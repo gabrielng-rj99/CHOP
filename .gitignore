@@ -1,0 +1,13 @@
+# Arquivo .gitignore
+
+# Arquivos de banco de dados locais
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de log
+*.log
+
+# Binários compilados do Go
+# (O nome do seu projeto, se compilar)
+Licenses_Manager
