@@ -1,4 +1,4 @@
-// backend/cmd/server/main.go
+// Licenses-Manager/backend/cmd/server/main.go
 
 package main
 
@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"backend/database"
-	"backend/domain"
-	"backend/store"
+	"Licenses-Manager/backend/database"
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func main() {

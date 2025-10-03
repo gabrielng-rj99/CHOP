@@ -1,4 +1,4 @@
-// backend/database/database.go
+// Licenses-Manager/backend/database/database.go
 
 package database
 
@@ -17,7 +17,6 @@ func ConnectDB() (*sql.DB, error) {
 	_, err := os.Stat(DBPath)
 	dbExists := !os.IsNotExist(err)
 
-	// Este parâmetro continua a ser essencial
 	dsn := DBPath + "?_loc=auto"
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
@@ -51,4 +50,3 @@ func initDB(db *sql.DB) error {
 
 	return nil
 }
-

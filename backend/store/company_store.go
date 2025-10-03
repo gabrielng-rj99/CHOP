@@ -1,4 +1,4 @@
-// backend/store/company_store.go
+// Licenses-Manager/backend/store/company_store.go
 
 package store
 
@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"time"
 
-	"backend/domain"
+	"Licenses-Manager/backend/domain"
 	"github.com/google/uuid"
 )
 

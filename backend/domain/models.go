@@ -1,4 +1,4 @@
-// backend/domain/models.go
+// Licenses-Manager/backend/domain/models.go
 
 package domain
 
@@ -62,4 +62,3 @@ func (l *License) Status() string {
 
 	return "Ativa"
 }
-

@@ -1,9 +1,9 @@
-// backend/store/unit_store.go
+// Licenses-Manager/backend/store/unit_store.go
 
 package store
 
 import (
-	"backend/domain"
+	"Licenses-Manager/backend/domain"
 
 	"database/sql"
 	"github.com/google/uuid"
