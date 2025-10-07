@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"Licenses-Manager/backend/domain" // Use o nome do seu módulo
+
 	"github.com/google/uuid"
 )
 
 // LicenseStore é a nossa "caixa de ferramentas" para operações com a tabela licenses.
 type LicenseStore struct {
-	db *sql.DB
+	db DBInterface
 }
 
 // NewLicenseStore cria uma nova instância de LicenseStore.
-func NewLicenseStore(db *sql.DB) *LicenseStore {
+func NewLicenseStore(db DBInterface) *LicenseStore {
 	return &LicenseStore{
 		db: db,
 	}
@@ -110,6 +111,35 @@ func (s *LicenseStore) UpdateLicense(license domain.License) error {
 	sqlStatement := `UPDATE licenses SET name = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?`
 	_, err := s.db.Exec(sqlStatement, license.Name, license.ProductKey, license.StartDate, license.EndDate, license.ID)
 	return err
+}
+
+// GetLicenseByID busca uma licença específica pelo seu ID
+func (s *LicenseStore) GetLicenseByID(id string) (*domain.License, error) {
+	sqlStatement := `
+		SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id
+		FROM licenses
+		WHERE id = ?`
+
+	var license domain.License
+	err := s.db.QueryRow(sqlStatement, id).Scan(
+		&license.ID,
+		&license.Name,
+		&license.ProductKey,
+		&license.StartDate,
+		&license.EndDate,
+		&license.TypeID,
+		&license.CompanyID,
+		&license.UnitID,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &license, nil
 }
 
 func (s *LicenseStore) DeleteLicense(id string) error {

@@ -3,19 +3,22 @@
 package store
 
 import (
+	"Licenses-Manager/backend/domain"
 	"database/sql"
+	"errors"
 
-	"Licenses-Manager/backend/domain" // Use o nome do seu módulo
 	"github.com/google/uuid"
 )
 
+// Use o nome do seu módulo
+
 // CategoryStore é a nossa "caixa de ferramentas" para operações com a tabela categories.
 type CategoryStore struct {
-	db *sql.DB
+	db DBInterface
 }
 
 // NewCategoryStore cria uma nova instância de CategoryStore.
-func NewCategoryStore(db *sql.DB) *CategoryStore {
+func NewCategoryStore(db DBInterface) *CategoryStore {
 	return &CategoryStore{
 		db: db,
 	}
@@ -23,6 +26,10 @@ func NewCategoryStore(db *sql.DB) *CategoryStore {
 
 // CreateCategory insere uma nova categoria no banco de dados.
 func (s *CategoryStore) CreateCategory(category domain.Category) (string, error) {
+	if category.Name == "" {
+		return "", errors.New("category name cannot be empty")
+	}
+
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO categories (id, name) VALUES (?, ?)`
 
@@ -42,10 +49,16 @@ func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err er
 	if err != nil {
 		return nil, err
 	}
+	if rows == nil {
+		return []domain.Category{}, nil
+	}
+
 	defer func() {
-		closeErr := rows.Close()
-		if err == nil {
-			err = closeErr
+		if rows != nil {
+			closeErr := rows.Close()
+			if err == nil {
+				err = closeErr
+			}
 		}
 	}()
 
@@ -63,6 +76,26 @@ func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err er
 	}
 
 	return categories, nil
+}
+
+// GetCategoryByID busca uma categoria específica pelo seu ID
+func (s *CategoryStore) GetCategoryByID(id string) (*domain.Category, error) {
+	sqlStatement := `SELECT id, name FROM categories WHERE id = ?`
+
+	var category domain.Category
+	err := s.db.QueryRow(sqlStatement, id).Scan(
+		&category.ID,
+		&category.Name,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &category, nil
 }
 
 func (s *CategoryStore) UpdateCategory(category domain.Category) error {

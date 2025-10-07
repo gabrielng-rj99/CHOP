@@ -6,14 +6,15 @@ import (
 	"Licenses-Manager/backend/domain"
 
 	"database/sql"
+
 	"github.com/google/uuid"
 )
 
 type UnitStore struct {
-	db *sql.DB
+	db DBInterface
 }
 
-func NewUnitStore(db *sql.DB) *UnitStore {
+func NewUnitStore(db DBInterface) *UnitStore {
 	return &UnitStore{
 		db: db,
 	}
@@ -63,4 +64,65 @@ func (s *UnitStore) GetUnitsByCompanyID(companyID string) (units []domain.Unit, 
 	}
 
 	return units, nil
+}
+
+// UpdateUnit atualiza os dados de uma unidade existente
+func (s *UnitStore) UpdateUnit(unit domain.Unit) error {
+	sqlStatement := `UPDATE units SET name = ? WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, unit.Name, unit.ID)
+	if err != nil {
+		return err
+	}
+
+	// Verifica se alguma linha foi afetada
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// DeleteUnit remove uma unidade do banco de dados
+func (s *UnitStore) DeleteUnit(id string) error {
+	sqlStatement := `DELETE FROM units WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+
+	// Verifica se alguma linha foi afetada
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// GetUnitByID busca uma unidade específica pelo seu ID
+func (s *UnitStore) GetUnitByID(id string) (*domain.Unit, error) {
+	sqlStatement := `SELECT id, name, company_id FROM units WHERE id = ?`
+
+	var unit domain.Unit
+	err := s.db.QueryRow(sqlStatement, id).Scan(
+		&unit.ID,
+		&unit.Name,
+		&unit.CompanyID,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &unit, nil
 }
