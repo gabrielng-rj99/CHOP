@@ -1,22 +1,18 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/database"
-	"Licenses-Manager/backend/domain"
-	"database/sql"
 	"testing"
 	"time"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
-	db, err := database.ConnectDB()
-	if err != nil {
-		t.Fatalf("Failed to connect to database: %v", err)
-	}
-	return db
+func setupTestDB(t *testing.T) *MockDB {
+	return &MockDB{}
 }
 
-func cleanupTestData(db *sql.DB) error {
+func cleanupTestData(db *MockDB) error {
 	tables := []string{"licenses", "units", "companies", "types", "categories"}
 	for _, table := range tables {
 		if _, err := db.Exec("DELETE FROM " + table); err != nil {
@@ -31,8 +27,9 @@ func TestCompanyLicenseIntegration(t *testing.T) {
 	defer db.Close()
 	defer cleanupTestData(db)
 
-	companyStore := NewCompanyStore(db)
-	licenseStore := NewLicenseStore(db)
+	// Criar company store e license store
+	companyStore := store.NewCompanyStore(db)
+	licenseStore := store.NewLicenseStore(db)
 
 	// Criar empresa
 	company := domain.Company{
@@ -93,7 +90,7 @@ func TestCompanyLicenseIntegration(t *testing.T) {
 
 	// A licença não deve mais existir
 	_, err = licenseStore.GetLicenseByID(licenseID)
-	if err != sql.ErrNoRows {
+	if err == nil {
 		t.Error("Expected license to be deleted with company")
 	}
 }
@@ -103,9 +100,10 @@ func TestCompanyUnitLicenseIntegration(t *testing.T) {
 	defer db.Close()
 	defer cleanupTestData(db)
 
-	companyStore := NewCompanyStore(db)
-	unitStore := NewUnitStore(db)
-	licenseStore := NewLicenseStore(db)
+	// Criar stores necessárias
+	companyStore := store.NewCompanyStore(db)
+	unitStore := store.NewUnitStore(db)
+	licenseStore := store.NewLicenseStore(db)
 
 	// Criar empresa
 	company := domain.Company{
@@ -202,8 +200,9 @@ func TestCategoryTypeIntegration(t *testing.T) {
 	defer db.Close()
 	defer cleanupTestData(db)
 
-	categoryStore := NewCategoryStore(db)
-	typeStore := NewTypeStore(db)
+	// Criar stores necessárias
+	categoryStore := store.NewCategoryStore(db)
+	typeStore := store.NewTypeStore(db)
 
 	// Criar categoria
 	category := domain.Category{

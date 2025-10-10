@@ -1,15 +1,17 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/domain"
 	"testing"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func TestCreateUnit(t *testing.T) {
 	tests := []struct {
 		name        string
 		unit        domain.Unit
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectID    bool
 	}{
@@ -19,7 +21,7 @@ func TestCreateUnit(t *testing.T) {
 				Name:      "Test Unit",
 				CompanyID: "company-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -29,8 +31,8 @@ func TestCreateUnit(t *testing.T) {
 				Name:      "Test Unit",
 				CompanyID: "company-123",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectID:    false,
@@ -40,7 +42,7 @@ func TestCreateUnit(t *testing.T) {
 			unit: domain.Unit{
 				Name: "Test Unit",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -48,11 +50,11 @@ func TestCreateUnit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewUnitStore(tt.mockDB)
-			id, err := store.CreateUnit(tt.unit)
+			unitStore := store.NewUnitStore(tt.mockDB)
+			id, err := unitStore.CreateUnit(tt.unit)
 
 			// Verifica se o método Exec foi chamado
-			if !tt.mockDB.execCalled {
+			if !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -74,8 +76,8 @@ func TestCreateUnit(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "INSERT INTO units (id, name, company_id) VALUES (?, ?, ?)"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -85,22 +87,22 @@ func TestGetUnitByID(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectUnit  bool
 	}{
 		{
 			name:        "sucesso - unidade encontrada",
 			id:          "unit-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectUnit:  true,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "unit-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectUnit:  false,
@@ -108,8 +110,8 @@ func TestGetUnitByID(t *testing.T) {
 		{
 			name: "não encontrado - id inexistente",
 			id:   "unit-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectUnit:  false,
@@ -118,11 +120,11 @@ func TestGetUnitByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewUnitStore(tt.mockDB)
-			unit, err := store.GetUnitByID(tt.id)
+			unitStore := store.NewUnitStore(tt.mockDB)
+			unit, err := unitStore.GetUnitByID(tt.id)
 
 			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.queryRowCalled {
+			if !tt.mockDB.QueryRowCalled {
 				t.Error("Expected QueryRow to be called")
 			}
 
@@ -144,8 +146,8 @@ func TestGetUnitByID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, company_id FROM units WHERE id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -155,7 +157,7 @@ func TestUpdateUnit(t *testing.T) {
 	tests := []struct {
 		name        string
 		unit        domain.Unit
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
@@ -165,7 +167,7 @@ func TestUpdateUnit(t *testing.T) {
 				Name:      "Updated Unit",
 				CompanyID: "company-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
@@ -175,8 +177,8 @@ func TestUpdateUnit(t *testing.T) {
 				Name:      "Updated Unit",
 				CompanyID: "company-123",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
@@ -187,8 +189,8 @@ func TestUpdateUnit(t *testing.T) {
 				Name:      "Updated Unit",
 				CompanyID: "company-123",
 			},
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
@@ -196,11 +198,11 @@ func TestUpdateUnit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewUnitStore(tt.mockDB)
-			err := store.UpdateUnit(tt.unit)
+			unitStore := store.NewUnitStore(tt.mockDB)
+			err := unitStore.UpdateUnit(tt.unit)
 
 			// Verifica se Exec foi chamado
-			if !tt.mockDB.execCalled {
+			if !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -214,8 +216,8 @@ func TestUpdateUnit(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "UPDATE units SET name = ? WHERE id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -225,28 +227,28 @@ func TestDeleteUnit(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
 			id:          "unit-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "unit-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - unidade não encontrada",
 			id:   "unit-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
@@ -254,11 +256,11 @@ func TestDeleteUnit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewUnitStore(tt.mockDB)
-			err := store.DeleteUnit(tt.id)
+			unitStore := store.NewUnitStore(tt.mockDB)
+			err := unitStore.DeleteUnit(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.mockDB.execCalled {
+			if !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -272,8 +274,8 @@ func TestDeleteUnit(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "DELETE FROM units WHERE id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}

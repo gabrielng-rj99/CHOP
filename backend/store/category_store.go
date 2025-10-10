@@ -99,12 +99,18 @@ func (s *CategoryStore) GetCategoryByID(id string) (*domain.Category, error) {
 }
 
 func (s *CategoryStore) UpdateCategory(category domain.Category) error {
+	if category.ID == "" {
+		return errors.New("category ID cannot be empty")
+	}
 	sqlStatement := `UPDATE categories SET name = ? WHERE id = ?`
 	_, err := s.db.Exec(sqlStatement, category.Name, category.ID)
 	return err
 }
 
 func (s *CategoryStore) DeleteCategory(id string) error {
+	if id == "" {
+		return errors.New("category ID cannot be empty")
+	}
 	sqlStatement := `DELETE FROM categories WHERE id = ?`
 	_, err := s.db.Exec(sqlStatement, id)
 	return err

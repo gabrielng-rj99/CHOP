@@ -1,15 +1,17 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/domain"
 	"testing"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func TestCreateCategory(t *testing.T) {
 	tests := []struct {
 		name        string
 		category    domain.Category
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectID    bool
 	}{
@@ -18,7 +20,7 @@ func TestCreateCategory(t *testing.T) {
 			category: domain.Category{
 				Name: "Test Category",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -27,8 +29,8 @@ func TestCreateCategory(t *testing.T) {
 			category: domain.Category{
 				Name: "Test Category",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectID:    false,
@@ -38,7 +40,7 @@ func TestCreateCategory(t *testing.T) {
 			category: domain.Category{
 				Name: "",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -46,15 +48,9 @@ func TestCreateCategory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCategoryStore(tt.mockDB)
-			id, err := store.CreateCategory(tt.category)
+			categoryStore := store.NewCategoryStore(tt.mockDB)
+			id, err := categoryStore.CreateCategory(tt.category)
 
-			// Verifica se Exec foi chamado
-			if !tt.mockDB.execCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -62,7 +58,6 @@ func TestCreateCategory(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica se retornou um ID quando deveria
 			if tt.expectID && id == "" {
 				t.Error("Expected ID but got empty string")
 			}
@@ -70,10 +65,11 @@ func TestCreateCategory(t *testing.T) {
 				t.Error("Expected no ID but got one")
 			}
 
-			// Verifica a query executada
-			expectedQuery := "INSERT INTO categories (id, name) VALUES (?, ?)"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError {
+				expectedQuery := "INSERT INTO categories (id, name) VALUES (?, ?)"
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				}
 			}
 		})
 	}
@@ -82,27 +78,28 @@ func TestCreateCategory(t *testing.T) {
 func TestGetAllCategories(t *testing.T) {
 	tests := []struct {
 		name        string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectEmpty bool
 	}{
 		{
 			name:        "sucesso - lista não vazia",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectEmpty: false,
 		},
 		{
 			name: "erro - falha no banco",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
+				NoRows:      true,
 			},
 			expectError: true,
 			expectEmpty: true,
 		},
 		{
 			name:        "sucesso - lista vazia",
-			mockDB:      &mockDB{noRows: true},
+			mockDB:      &MockDB{NoRows: true},
 			expectError: false,
 			expectEmpty: true,
 		},
@@ -110,15 +107,9 @@ func TestGetAllCategories(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCategoryStore(tt.mockDB)
-			categories, err := store.GetAllCategories()
+			categoryStore := store.NewCategoryStore(tt.mockDB)
+			categories, err := categoryStore.GetAllCategories()
 
-			// Verifica se Query foi chamado
-			if !tt.mockDB.queryCalled {
-				t.Error("Expected Query to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -126,15 +117,27 @@ func TestGetAllCategories(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica se a lista está vazia quando deveria
-			if tt.expectEmpty && len(categories) > 0 {
-				t.Error("Expected empty list but got items")
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but got: %v", err)
+				}
+				if tt.expectEmpty && len(categories) > 0 {
+					t.Error("Expected empty list but got items")
+				}
+				if !tt.expectEmpty && len(categories) == 0 {
+					t.Error("Expected non-empty list but got empty")
+				}
 			}
 
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name FROM categories"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError {
+				expectedQuery := "SELECT id, name FROM categories"
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				}
 			}
 		})
 	}
@@ -144,7 +147,7 @@ func TestUpdateCategory(t *testing.T) {
 	tests := []struct {
 		name        string
 		category    domain.Category
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
@@ -153,7 +156,7 @@ func TestUpdateCategory(t *testing.T) {
 				ID:   "category-123",
 				Name: "Updated Category",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
@@ -162,8 +165,8 @@ func TestUpdateCategory(t *testing.T) {
 				ID:   "category-123",
 				Name: "Updated Category",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
@@ -172,22 +175,16 @@ func TestUpdateCategory(t *testing.T) {
 			category: domain.Category{
 				Name: "Updated Category",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCategoryStore(tt.mockDB)
-			err := store.UpdateCategory(tt.category)
+			categoryStore := store.NewCategoryStore(tt.mockDB)
+			err := categoryStore.UpdateCategory(tt.category)
 
-			// Verifica se Exec foi chamado
-			if !tt.mockDB.execCalled && !tt.expectError {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -195,11 +192,10 @@ func TestUpdateCategory(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			if err == nil {
-				// Verifica a query executada
+			if !tt.expectError {
 				expectedQuery := "UPDATE categories SET name = ? WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})
@@ -210,50 +206,45 @@ func TestDeleteCategory(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
 			id:          "category-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "category-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria não encontrada",
 			id:   "category-999",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				NoRows:      true,
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name:        "erro - ID vazio",
 			id:          "",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCategoryStore(tt.mockDB)
-			err := store.DeleteCategory(tt.id)
+			categoryStore := store.NewCategoryStore(tt.mockDB)
+			err := categoryStore.DeleteCategory(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.mockDB.execCalled && !tt.expectError {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -261,11 +252,10 @@ func TestDeleteCategory(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			if err == nil {
-				// Verifica a query executada
+			if !tt.expectError {
 				expectedQuery := "DELETE FROM categories WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})

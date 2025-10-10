@@ -1,9 +1,11 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/domain"
 	"testing"
 	"time"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func TestCreateLicense(t *testing.T) {
@@ -13,7 +15,7 @@ func TestCreateLicense(t *testing.T) {
 	tests := []struct {
 		name        string
 		license     domain.License
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectID    bool
 	}{
@@ -27,7 +29,7 @@ func TestCreateLicense(t *testing.T) {
 				TypeID:     "type-123",
 				CompanyID:  "company-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -42,7 +44,7 @@ func TestCreateLicense(t *testing.T) {
 				CompanyID:  "company-123",
 				UnitID:     &unitID,
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -56,8 +58,8 @@ func TestCreateLicense(t *testing.T) {
 				TypeID:     "type-123",
 				CompanyID:  "company-123",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectID:    false,
@@ -72,7 +74,7 @@ func TestCreateLicense(t *testing.T) {
 				TypeID:     "type-123",
 				CompanyID:  "company-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -85,7 +87,7 @@ func TestCreateLicense(t *testing.T) {
 				EndDate:    now.AddDate(1, 0, 0),
 				TypeID:     "type-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -93,11 +95,11 @@ func TestCreateLicense(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			id, err := store.CreateLicense(tt.license)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			id, err := licenseStore.CreateLicense(tt.license)
 
 			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -119,8 +121,8 @@ func TestCreateLicense(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -130,22 +132,22 @@ func TestGetLicenseByID(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - licença encontrada",
 			id:          "license-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectFound: true,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "license-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectFound: false,
@@ -153,8 +155,8 @@ func TestGetLicenseByID(t *testing.T) {
 		{
 			name: "não encontrado - id inexistente",
 			id:   "license-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectFound: false,
@@ -163,11 +165,11 @@ func TestGetLicenseByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			license, err := store.GetLicenseByID(tt.id)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			license, err := licenseStore.GetLicenseByID(tt.id)
 
 			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.queryRowCalled {
+			if !tt.mockDB.QueryRowCalled {
 				t.Error("Expected QueryRow to be called")
 			}
 
@@ -189,8 +191,8 @@ func TestGetLicenseByID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -200,22 +202,22 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 	tests := []struct {
 		name        string
 		companyID   string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectEmpty bool
 	}{
 		{
 			name:        "sucesso - licenças encontradas",
 			companyID:   "company-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectEmpty: false,
 		},
 		{
 			name:      "erro - falha no banco",
 			companyID: "company-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectEmpty: true,
@@ -223,8 +225,8 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 		{
 			name:      "sucesso - nenhuma licença",
 			companyID: "company-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectEmpty: true,
@@ -233,11 +235,11 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			licenses, err := store.GetLicensesByCompanyID(tt.companyID)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenses, err := licenseStore.GetLicensesByCompanyID(tt.companyID)
 
 			// Verifica se Query foi chamado
-			if !tt.mockDB.queryCalled {
+			if !tt.mockDB.QueryCalled {
 				t.Error("Expected Query to be called")
 			}
 
@@ -256,8 +258,8 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE company_id = ? AND company_id IN (SELECT id FROM companies WHERE archived_at IS NULL)"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -267,22 +269,22 @@ func TestGetLicensesExpiringSoon(t *testing.T) {
 	tests := []struct {
 		name        string
 		days        int
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectEmpty bool
 	}{
 		{
 			name:        "sucesso - licenças encontradas",
 			days:        30,
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectEmpty: false,
 		},
 		{
 			name: "erro - falha no banco",
 			days: 30,
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectEmpty: true,
@@ -290,8 +292,8 @@ func TestGetLicensesExpiringSoon(t *testing.T) {
 		{
 			name: "sucesso - nenhuma licença expirando",
 			days: 30,
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectEmpty: true,
@@ -300,11 +302,11 @@ func TestGetLicensesExpiringSoon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			licenses, err := store.GetLicensesExpiringSoon(tt.days)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenses, err := licenseStore.GetLicensesExpiringSoon(tt.days)
 
 			// Verifica se Query foi chamado
-			if !tt.mockDB.queryCalled {
+			if !tt.mockDB.QueryCalled {
 				t.Error("Expected Query to be called")
 			}
 
@@ -323,8 +325,8 @@ func TestGetLicensesExpiringSoon(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE end_date BETWEEN ? AND ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -336,7 +338,7 @@ func TestUpdateLicense(t *testing.T) {
 	tests := []struct {
 		name        string
 		license     domain.License
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
@@ -348,7 +350,7 @@ func TestUpdateLicense(t *testing.T) {
 				StartDate:  now,
 				EndDate:    now.AddDate(1, 0, 0),
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
@@ -360,8 +362,8 @@ func TestUpdateLicense(t *testing.T) {
 				StartDate:  now,
 				EndDate:    now.AddDate(1, 0, 0),
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
@@ -374,18 +376,18 @@ func TestUpdateLicense(t *testing.T) {
 				StartDate:  now,
 				EndDate:    now.AddDate(0, 0, -1),
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			err := store.UpdateLicense(tt.license)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			err := licenseStore.UpdateLicense(tt.license)
 
 			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -400,8 +402,8 @@ func TestUpdateLicense(t *testing.T) {
 			if !tt.expectError {
 				// Verifica a query executada
 				expectedQuery := "UPDATE licenses SET name = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})
@@ -412,46 +414,46 @@ func TestDeleteLicense(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
 			id:          "license-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "license-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - licença não encontrada",
 			id:   "license-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
 		{
 			name:        "erro - ID vazio",
 			id:          "",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewLicenseStore(tt.mockDB)
-			err := store.DeleteLicense(tt.id)
+			licenseStore := store.NewLicenseStore(tt.mockDB)
+			err := licenseStore.DeleteLicense(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -466,8 +468,8 @@ func TestDeleteLicense(t *testing.T) {
 			if !tt.expectError {
 				// Verifica a query executada
 				expectedQuery := "DELETE FROM licenses WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})

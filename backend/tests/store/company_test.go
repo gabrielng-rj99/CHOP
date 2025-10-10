@@ -1,15 +1,17 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/domain"
 	"testing"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func TestCreateCompany(t *testing.T) {
 	tests := []struct {
 		name        string
 		company     domain.Company
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectID    bool
 	}{
@@ -19,7 +21,7 @@ func TestCreateCompany(t *testing.T) {
 				Name: "Test Company",
 				CNPJ: "12.345.678/0001-90",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -29,8 +31,8 @@ func TestCreateCompany(t *testing.T) {
 				Name: "Test Company",
 				CNPJ: "12.345.678/0001-90",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectID:    false,
@@ -41,7 +43,7 @@ func TestCreateCompany(t *testing.T) {
 				Name: "Test Company",
 				CNPJ: "",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -51,7 +53,7 @@ func TestCreateCompany(t *testing.T) {
 				Name: "",
 				CNPJ: "12.345.678/0001-90",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -59,11 +61,11 @@ func TestCreateCompany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCompanyStore(tt.mockDB)
-			id, err := store.CreateCompany(tt.company)
+			companyStore := store.NewCompanyStore(tt.mockDB)
+			id, err := companyStore.CreateCompany(tt.company)
 
 			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -85,8 +87,8 @@ func TestCreateCompany(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "INSERT INTO companies (id, name, cnpj) VALUES (?, ?, ?)"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -96,22 +98,22 @@ func TestGetCompanyByID(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - empresa encontrada",
 			id:          "company-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectFound: true,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "company-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectFound: false,
@@ -119,8 +121,8 @@ func TestGetCompanyByID(t *testing.T) {
 		{
 			name: "não encontrado - id inexistente",
 			id:   "company-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectFound: false,
@@ -128,7 +130,7 @@ func TestGetCompanyByID(t *testing.T) {
 		{
 			name:        "erro - id vazio",
 			id:          "",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectFound: false,
 		},
@@ -136,11 +138,11 @@ func TestGetCompanyByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCompanyStore(tt.mockDB)
-			company, err := store.GetCompanyByID(tt.id)
+			companyStore := store.NewCompanyStore(tt.mockDB)
+			company, err := companyStore.GetCompanyByID(tt.id)
 
 			// Verifica se QueryRow foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.queryRowCalled {
+			if !tt.expectError && !tt.mockDB.QueryRowCalled {
 				t.Error("Expected QueryRow to be called")
 			}
 
@@ -162,8 +164,8 @@ func TestGetCompanyByID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, cnpj, archived_at FROM companies WHERE id = ?"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -173,28 +175,28 @@ func TestArchiveCompany(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - arquivamento normal",
 			id:          "company-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "company-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa não encontrada",
 			id:   "company-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
@@ -202,11 +204,11 @@ func TestArchiveCompany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCompanyStore(tt.mockDB)
-			err := store.ArchiveCompany(tt.id)
+			companyStore := store.NewCompanyStore(tt.mockDB)
+			err := companyStore.ArchiveCompany(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -220,13 +222,13 @@ func TestArchiveCompany(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "UPDATE companies SET archived_at = ? WHERE id = ?"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 
 			// Verifica se o timestamp foi passado como parâmetro
-			if !tt.expectError && len(tt.mockDB.lastParams) != 2 {
-				t.Errorf("Expected 2 parameters, got %d", len(tt.mockDB.lastParams))
+			if !tt.expectError && len(tt.mockDB.LastParams) != 2 {
+				t.Errorf("Expected 2 parameters, got %d", len(tt.mockDB.LastParams))
 			}
 		})
 	}
@@ -236,28 +238,28 @@ func TestUnarchiveCompany(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - desarquivamento normal",
 			id:          "company-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "company-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa não encontrada",
 			id:   "company-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
@@ -265,11 +267,11 @@ func TestUnarchiveCompany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCompanyStore(tt.mockDB)
-			err := store.UnarchiveCompany(tt.id)
+			companyStore := store.NewCompanyStore(tt.mockDB)
+			err := companyStore.UnarchiveCompany(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -283,8 +285,8 @@ func TestUnarchiveCompany(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "UPDATE companies SET archived_at = NULL WHERE id = ?"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -294,28 +296,28 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
 			id:          "company-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "company-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa não encontrada",
 			id:   "company-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
@@ -323,11 +325,11 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewCompanyStore(tt.mockDB)
-			err := store.DeleteCompanyPermanently(tt.id)
+			companyStore := store.NewCompanyStore(tt.mockDB)
+			err := companyStore.DeleteCompanyPermanently(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -341,8 +343,8 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "DELETE FROM companies WHERE id = ?"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}

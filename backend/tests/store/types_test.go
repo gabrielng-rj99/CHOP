@@ -1,15 +1,17 @@
-package store
+package tests
 
 import (
-	"Licenses-Manager/backend/domain"
 	"testing"
+
+	"Licenses-Manager/backend/domain"
+	"Licenses-Manager/backend/store"
 )
 
 func TestCreateType(t *testing.T) {
 	tests := []struct {
 		name        string
 		licenseType domain.Type
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectID    bool
 	}{
@@ -19,7 +21,7 @@ func TestCreateType(t *testing.T) {
 				Name:       "Test Type",
 				CategoryID: "category-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectID:    true,
 		},
@@ -29,8 +31,8 @@ func TestCreateType(t *testing.T) {
 				Name:       "Test Type",
 				CategoryID: "category-123",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectID:    false,
@@ -41,7 +43,7 @@ func TestCreateType(t *testing.T) {
 				Name:       "",
 				CategoryID: "category-123",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -50,7 +52,7 @@ func TestCreateType(t *testing.T) {
 			licenseType: domain.Type{
 				Name: "Test Type",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 			expectID:    false,
 		},
@@ -58,11 +60,11 @@ func TestCreateType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewTypeStore(tt.mockDB)
-			id, err := store.CreateType(tt.licenseType)
+			typeStore := store.NewTypeStore(tt.mockDB)
+			id, err := typeStore.CreateType(tt.licenseType)
 
 			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -84,8 +86,8 @@ func TestCreateType(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "INSERT INTO types (id, name, category_id) VALUES (?, ?, ?)"
-			if !tt.expectError && tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -95,22 +97,22 @@ func TestGetTypeByID(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - tipo encontrado",
 			id:          "type-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectFound: true,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "type-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectFound: false,
@@ -118,8 +120,8 @@ func TestGetTypeByID(t *testing.T) {
 		{
 			name: "não encontrado - id inexistente",
 			id:   "type-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectFound: false,
@@ -128,11 +130,11 @@ func TestGetTypeByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewTypeStore(tt.mockDB)
-			licenseType, err := store.GetTypeByID(tt.id)
+			typeStore := store.NewTypeStore(tt.mockDB)
+			licenseType, err := typeStore.GetTypeByID(tt.id)
 
 			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.queryRowCalled {
+			if !tt.mockDB.QueryRowCalled {
 				t.Error("Expected QueryRow to be called")
 			}
 
@@ -154,8 +156,8 @@ func TestGetTypeByID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, category_id FROM types WHERE id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -165,22 +167,22 @@ func TestGetTypesByCategoryID(t *testing.T) {
 	tests := []struct {
 		name        string
 		categoryID  string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 		expectEmpty bool
 	}{
 		{
 			name:        "sucesso - tipos encontrados",
 			categoryID:  "category-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 			expectEmpty: false,
 		},
 		{
 			name:       "erro - falha no banco",
 			categoryID: "category-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 			expectEmpty: true,
@@ -188,8 +190,8 @@ func TestGetTypesByCategoryID(t *testing.T) {
 		{
 			name:       "sucesso - nenhum tipo",
 			categoryID: "category-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: false,
 			expectEmpty: true,
@@ -198,11 +200,11 @@ func TestGetTypesByCategoryID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewTypeStore(tt.mockDB)
-			types, err := store.GetTypesByCategoryID(tt.categoryID)
+			typeStore := store.NewTypeStore(tt.mockDB)
+			types, err := typeStore.GetTypesByCategoryID(tt.categoryID)
 
 			// Verifica se Query foi chamado
-			if !tt.mockDB.queryCalled {
+			if !tt.mockDB.QueryCalled {
 				t.Error("Expected Query to be called")
 			}
 
@@ -221,8 +223,8 @@ func TestGetTypesByCategoryID(t *testing.T) {
 
 			// Verifica a query executada
 			expectedQuery := "SELECT id, name, category_id FROM types WHERE category_id = ?"
-			if tt.mockDB.lastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+			if tt.mockDB.LastQuery != expectedQuery {
+				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
@@ -232,7 +234,7 @@ func TestUpdateType(t *testing.T) {
 	tests := []struct {
 		name        string
 		licenseType domain.Type
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
@@ -241,7 +243,7 @@ func TestUpdateType(t *testing.T) {
 				ID:   "type-123",
 				Name: "Updated Type",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
@@ -250,8 +252,8 @@ func TestUpdateType(t *testing.T) {
 				ID:   "type-123",
 				Name: "Updated Type",
 			},
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
@@ -260,7 +262,7 @@ func TestUpdateType(t *testing.T) {
 			licenseType: domain.Type{
 				Name: "Updated Type",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 		{
@@ -269,18 +271,18 @@ func TestUpdateType(t *testing.T) {
 				ID:   "type-123",
 				Name: "",
 			},
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewTypeStore(tt.mockDB)
-			err := store.UpdateType(tt.licenseType)
+			typeStore := store.NewTypeStore(tt.mockDB)
+			err := typeStore.UpdateType(tt.licenseType)
 
 			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -295,8 +297,8 @@ func TestUpdateType(t *testing.T) {
 			if !tt.expectError {
 				// Verifica a query executada
 				expectedQuery := "UPDATE types SET name = ? WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})
@@ -307,46 +309,46 @@ func TestDeleteType(t *testing.T) {
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *mockDB
+		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
 			id:          "type-123",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
 			name: "erro - falha no banco",
 			id:   "type-123",
-			mockDB: &mockDB{
-				shouldError: true,
+			mockDB: &MockDB{
+				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - tipo não encontrado",
 			id:   "type-999",
-			mockDB: &mockDB{
-				noRows: true,
+			mockDB: &MockDB{
+				NoRows: true,
 			},
 			expectError: true,
 		},
 		{
 			name:        "erro - ID vazio",
 			id:          "",
-			mockDB:      &mockDB{},
+			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewTypeStore(tt.mockDB)
-			err := store.DeleteType(tt.id)
+			typeStore := store.NewTypeStore(tt.mockDB)
+			err := typeStore.DeleteType(tt.id)
 
 			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.execCalled {
+			if !tt.expectError && !tt.mockDB.ExecCalled {
 				t.Error("Expected Exec to be called")
 			}
 
@@ -361,8 +363,8 @@ func TestDeleteType(t *testing.T) {
 			if !tt.expectError {
 				// Verifica a query executada
 				expectedQuery := "DELETE FROM types WHERE id = ?"
-				if tt.mockDB.lastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.lastQuery)
+				if tt.mockDB.LastQuery != expectedQuery {
+					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 				}
 			}
 		})
