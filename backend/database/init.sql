@@ -15,8 +15,7 @@ CREATE TABLE IF NOT EXISTS units (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     company_id TEXT NOT NULL,
-    -- Mantemos o ON DELETE CASCADE para a deleção permanente (LGPD)
-    FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 
 -- (O resto das tabelas 'categories', 'types', 'licenses' permanecem iguais)
@@ -29,20 +28,19 @@ CREATE TABLE IF NOT EXISTS types (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     category_id TEXT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES categories (id)
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS licenses (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    product_key TEXT,
+    product_key TEXT UNIQUE NOT NULL,
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
     type_id TEXT NOT NULL,
     company_id TEXT NOT NULL,
     unit_id TEXT,
-    FOREIGN KEY (type_id) REFERENCES types (id),
-    FOREIGN KEY (company_id) REFERENCES companies (id),
-    -- Se a empresa for apagada permanentemente, suas licenças também devem ir
-    FOREIGN KEY (unit_id) REFERENCES units (id) ON DELETE CASCADE
+    FOREIGN KEY (type_id) REFERENCES types(id),
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL
 );

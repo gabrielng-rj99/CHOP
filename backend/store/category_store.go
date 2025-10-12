@@ -80,6 +80,9 @@ func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err er
 
 // GetCategoryByID busca uma categoria específica pelo seu ID
 func (s *CategoryStore) GetCategoryByID(id string) (*domain.Category, error) {
+	if id == "" {
+		return nil, errors.New("category ID cannot be empty")
+	}
 	sqlStatement := `SELECT id, name FROM categories WHERE id = ?`
 
 	var category domain.Category
@@ -102,16 +105,57 @@ func (s *CategoryStore) UpdateCategory(category domain.Category) error {
 	if category.ID == "" {
 		return errors.New("category ID cannot be empty")
 	}
+	if category.Name == "" {
+		return errors.New("category name cannot be empty")
+	}
+	// Check if category exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", category.ID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("category does not exist")
+	}
 	sqlStatement := `UPDATE categories SET name = ? WHERE id = ?`
-	_, err := s.db.Exec(sqlStatement, category.Name, category.ID)
-	return err
+	result, err := s.db.Exec(sqlStatement, category.Name, category.ID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no category updated")
+	}
+	return nil
 }
 
 func (s *CategoryStore) DeleteCategory(id string) error {
 	if id == "" {
 		return errors.New("category ID cannot be empty")
 	}
+	// Check if category exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("category does not exist")
+	}
 	sqlStatement := `DELETE FROM categories WHERE id = ?`
-	_, err := s.db.Exec(sqlStatement, id)
-	return err
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no category deleted")
+	}
+	return nil
 }

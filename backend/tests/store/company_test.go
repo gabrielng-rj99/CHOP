@@ -1,19 +1,29 @@
 package tests
 
 import (
-	"testing"
-
 	"Licenses-Manager/backend/domain"
 	"Licenses-Manager/backend/store"
+	"database/sql"
+	"testing"
+	"time"
 )
 
+func setupCompanyTest(t *testing.T) *sql.DB {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	return db
+}
+
 func TestCreateCompany(t *testing.T) {
+	db := setupCompanyTest(t)
+	defer CloseDB(db)
+
 	tests := []struct {
 		name        string
 		company     domain.Company
-		mockDB      *MockDB
 		expectError bool
-		expectID    bool
 	}{
 		{
 			name: "sucesso - criação normal",
@@ -21,21 +31,15 @@ func TestCreateCompany(t *testing.T) {
 				Name: "Test Company",
 				CNPJ: "12.345.678/0001-90",
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
-			expectID:    true,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "erro - CNPJ duplicado",
 			company: domain.Company{
-				Name: "Test Company",
+				Name: "Another Company",
 				CNPJ: "12.345.678/0001-90",
 			},
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
 			expectError: true,
-			expectID:    false,
 		},
 		{
 			name: "erro - CNPJ vazio",
@@ -43,176 +47,146 @@ func TestCreateCompany(t *testing.T) {
 				Name: "Test Company",
 				CNPJ: "",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
 		},
 		{
 			name: "erro - nome vazio",
 			company: domain.Company{
 				Name: "",
-				CNPJ: "12.345.678/0001-90",
+				CNPJ: "12.345.678/0001-91",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(tt.mockDB)
-			id, err := companyStore.CreateCompany(tt.company)
-
-			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
 			}
 
-			// Verifica se o erro corresponde ao esperado
+			companyStore := store.NewCompanyStore(db)
+
+			// Insert the first company for the duplicate test
+			if tt.name == "erro - CNPJ duplicado" {
+				_, err := companyStore.CreateCompany(domain.Company{
+					Name: "Test Company",
+					CNPJ: "12.345.678/0001-90",
+				})
+				if err != nil {
+					t.Fatalf("Failed to insert company for duplicate test: %v", err)
+				}
+			}
+
+			id, err := companyStore.CreateCompany(tt.company)
+
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se retornou um ID quando deveria
-			if tt.expectID && id == "" {
+			if !tt.expectError && id == "" {
 				t.Error("Expected ID but got empty string")
-			}
-			if !tt.expectID && id != "" {
-				t.Error("Expected no ID but got one")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "INSERT INTO companies (id, name, cnpj) VALUES (?, ?, ?)"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
 }
 
 func TestGetCompanyByID(t *testing.T) {
+	db := setupCompanyTest(t)
+	defer CloseDB(db)
+
+	// Insert test company
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - empresa encontrada",
-			id:          "company-123",
-			mockDB:      &MockDB{},
+			id:          companyID,
 			expectError: false,
 			expectFound: true,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "company-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-			expectFound: false,
-		},
-		{
-			name: "não encontrado - id inexistente",
-			id:   "company-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
-			expectError: false,
-			expectFound: false,
-		},
-		{
 			name:        "erro - id vazio",
 			id:          "",
-			mockDB:      &MockDB{},
 			expectError: true,
+			expectFound: false,
+		},
+		{
+			name:        "não encontrado - id inexistente",
+			id:          "non-existent-id",
+			expectError: false,
 			expectFound: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(tt.mockDB)
+			companyStore := store.NewCompanyStore(db)
 			company, err := companyStore.GetCompanyByID(tt.id)
 
-			// Verifica se QueryRow foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.QueryRowCalled {
-				t.Error("Expected QueryRow to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se encontrou a empresa quando deveria
 			if tt.expectFound && company == nil {
 				t.Error("Expected company but got nil")
 			}
 			if !tt.expectFound && company != nil {
 				t.Error("Expected no company but got one")
 			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, cnpj, archived_at FROM companies WHERE id = ?"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-			}
 		})
 	}
 }
 
 func TestArchiveCompany(t *testing.T) {
+	db := setupCompanyTest(t)
+	defer CloseDB(db)
+
+	// Insert test company
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - arquivamento normal",
-			id:          "company-123",
-			mockDB:      &MockDB{},
+			id:          companyID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "company-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - empresa não encontrada",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 		{
-			name: "erro - empresa não encontrada",
-			id:   "company-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(tt.mockDB)
+			companyStore := store.NewCompanyStore(db)
 			err := companyStore.ArchiveCompany(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -220,62 +194,63 @@ func TestArchiveCompany(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica a query executada
-			expectedQuery := "UPDATE companies SET archived_at = ? WHERE id = ?"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-			}
-
-			// Verifica se o timestamp foi passado como parâmetro
-			if !tt.expectError && len(tt.mockDB.LastParams) != 2 {
-				t.Errorf("Expected 2 parameters, got %d", len(tt.mockDB.LastParams))
+			if !tt.expectError {
+				// Verify company was archived
+				var archivedAt *time.Time
+				err = db.QueryRow("SELECT archived_at FROM companies WHERE id = ?", tt.id).Scan(&archivedAt)
+				if err != nil {
+					t.Errorf("Failed to query archived company: %v", err)
+				}
+				if archivedAt == nil {
+					t.Error("Expected archived_at to be set, but it was nil")
+				}
 			}
 		})
 	}
 }
 
 func TestUnarchiveCompany(t *testing.T) {
+	db := setupCompanyTest(t)
+	defer CloseDB(db)
+
+	// Insert and archive test company
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
+	_, err = db.Exec("UPDATE companies SET archived_at = ? WHERE id = ?", time.Now(), companyID)
+	if err != nil {
+		t.Fatalf("Failed to archive test company: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - desarquivamento normal",
-			id:          "company-123",
-			mockDB:      &MockDB{},
+			id:          companyID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "company-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - empresa não encontrada",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 		{
-			name: "erro - empresa não encontrada",
-			id:   "company-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(tt.mockDB)
+			companyStore := store.NewCompanyStore(db)
 			err := companyStore.UnarchiveCompany(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -283,57 +258,58 @@ func TestUnarchiveCompany(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica a query executada
-			expectedQuery := "UPDATE companies SET archived_at = NULL WHERE id = ?"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError {
+				// Verify company was unarchived
+				var archivedAt *time.Time
+				err = db.QueryRow("SELECT archived_at FROM companies WHERE id = ?", tt.id).Scan(&archivedAt)
+				if err != nil {
+					t.Errorf("Failed to query unarchived company: %v", err)
+				}
+				if archivedAt != nil {
+					t.Error("Expected archived_at to be nil after unarchiving")
+				}
 			}
 		})
 	}
 }
 
 func TestDeleteCompanyPermanently(t *testing.T) {
+	db := setupCompanyTest(t)
+	defer CloseDB(db)
+
+	// Insert test company
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          "company-123",
-			mockDB:      &MockDB{},
+			id:          companyID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "company-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - empresa não encontrada",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 		{
-			name: "erro - empresa não encontrada",
-			id:   "company-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(tt.mockDB)
+			companyStore := store.NewCompanyStore(db)
 			err := companyStore.DeleteCompanyPermanently(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -341,10 +317,16 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica a query executada
-			expectedQuery := "DELETE FROM companies WHERE id = ?"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError {
+				// Verify company was deleted
+				var count int
+				err = db.QueryRow("SELECT COUNT(*) FROM companies WHERE id = ?", tt.id).Scan(&count)
+				if err != nil {
+					t.Errorf("Failed to query deleted company: %v", err)
+				}
+				if count != 0 {
+					t.Error("Expected company to be deleted, but it still exists")
+				}
 			}
 		})
 	}

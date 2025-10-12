@@ -24,10 +24,25 @@ func NewTypeStore(db DBInterface) *TypeStore {
 
 // CreateType insere um novo tipo de licença no banco, associado a uma categoria.
 func (s *TypeStore) CreateType(licensetype domain.Type) (string, error) {
+	if licensetype.Name == "" {
+		return "", sql.ErrNoRows // Or use errors.New("type name cannot be empty")
+	}
+	if licensetype.CategoryID == "" {
+		return "", sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
+	}
+	// Check if category exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licensetype.CategoryID).Scan(&count)
+	if err != nil {
+		return "", err
+	}
+	if count == 0 {
+		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
+	}
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO types (id, name, category_id) VALUES (?, ?, ?)`
 
-	_, err := s.db.Exec(sqlStatement, newID, licensetype.Name, licensetype.CategoryID)
+	_, err = s.db.Exec(sqlStatement, newID, licensetype.Name, licensetype.CategoryID)
 	if err != nil {
 		return "", err
 	}
@@ -37,6 +52,19 @@ func (s *TypeStore) CreateType(licensetype domain.Type) (string, error) {
 
 // GetTypesByCategoryID busca TODOS os tipos de uma categoria específica.
 func (s *TypeStore) GetTypesByCategoryID(categoryID string) (types []domain.Type, err error) {
+	if categoryID == "" {
+		return nil, sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
+	}
+	// Check if category exists
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", categoryID).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, nil // No types for non-existent category
+	}
+
 	sqlStatement := `SELECT id, name, category_id FROM types WHERE category_id = ?`
 
 	rows, err := s.db.Query(sqlStatement, categoryID)
@@ -68,6 +96,9 @@ func (s *TypeStore) GetTypesByCategoryID(categoryID string) (types []domain.Type
 
 // GetTypeByID busca um tipo específico pelo seu ID
 func (s *TypeStore) GetTypeByID(id string) (*domain.Type, error) {
+	if id == "" {
+		return nil, sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
+	}
 	sqlStatement := `SELECT id, name, category_id FROM types WHERE id = ?`
 
 	var t domain.Type
@@ -119,13 +150,63 @@ func (s *TypeStore) GetAllTypes() (types []domain.Type, err error) {
 }
 
 func (s *TypeStore) UpdateType(licensetype domain.Type) error {
-	sqlStatement := `UPDATE types SET name = ? WHERE id = ?`
-	_, err := s.db.Exec(sqlStatement, licensetype.Name, licensetype.ID)
-	return err
+	if licensetype.ID == "" {
+		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
+	}
+	if licensetype.Name == "" {
+		return sql.ErrNoRows // Or use errors.New("type name cannot be empty")
+	}
+	if licensetype.CategoryID == "" {
+		return sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
+	}
+	// Check if category exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licensetype.CategoryID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows // Or use errors.New("category does not exist")
+	}
+	sqlStatement := `UPDATE types SET name = ?, category_id = ? WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, licensetype.Name, licensetype.CategoryID, licensetype.ID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows // Or use errors.New("no type updated")
+	}
+	return nil
 }
 
 func (s *TypeStore) DeleteType(id string) error {
+	if id == "" {
+		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
+	}
+	// Check if type exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM types WHERE id = ?", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows // Or use errors.New("type does not exist")
+	}
 	sqlStatement := `DELETE FROM types WHERE id = ?`
-	_, err := s.db.Exec(sqlStatement, id)
-	return err
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows // Or use errors.New("no type deleted")
+	}
+	return nil
 }

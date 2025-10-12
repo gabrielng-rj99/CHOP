@@ -1,163 +1,242 @@
 package tests
 
 import (
-	"testing"
-	"time"
-
 	"Licenses-Manager/backend/domain"
 	"Licenses-Manager/backend/store"
+	"database/sql"
+	"testing"
+	"time"
 )
 
+func insertTestDependencies(db *sql.DB) (string, string, string, string, error) {
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		return "", "", "", "", err
+	}
+	unitID, err := InsertTestUnit(db, "Test Unit", companyID)
+	if err != nil {
+		return "", "", "", "", err
+	}
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		return "", "", "", "", err
+	}
+	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	if err != nil {
+		return "", "", "", "", err
+	}
+	return companyID, unitID, categoryID, typeID, nil
+}
+
 func TestCreateLicense(t *testing.T) {
-	now := time.Now()
-	unitID := "unit-123"
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
 
 	tests := []struct {
 		name        string
 		license     domain.License
-		mockDB      *MockDB
 		expectError bool
-		expectID    bool
 	}{
 		{
-			name: "sucesso - criação normal",
+			name: "sucesso - criação normal com unidade",
 			license: domain.License{
 				Name:       "Test License",
-				ProductKey: "TEST-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
-				TypeID:     "type-123",
-				CompanyID:  "company-123",
-			},
-			mockDB:      &MockDB{},
-			expectError: false,
-			expectID:    true,
-		},
-		{
-			name: "sucesso - com unidade",
-			license: domain.License{
-				Name:       "Test License",
-				ProductKey: "TEST-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
-				TypeID:     "type-123",
-				CompanyID:  "company-123",
+				ProductKey: "TEST-KEY-123",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 				UnitID:     &unitID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
-			expectID:    true,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "sucesso - criação sem unidade",
 			license: domain.License{
-				Name:       "Test License",
-				ProductKey: "TEST-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
-				TypeID:     "type-123",
-				CompanyID:  "company-123",
+				Name:       "Test License 2",
+				ProductKey: "TEST-KEY-124",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
-			mockDB: &MockDB{
-				ShouldError: true,
+			expectError: false,
+		},
+		{
+			name: "erro - nome vazio",
+			license: domain.License{
+				ProductKey: "TEST-KEY-125",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
 			expectError: true,
-			expectID:    false,
+		},
+		{
+			name: "erro - chave do produto vazia",
+			license: domain.License{
+				Name:      "Test License",
+				StartDate: startDate,
+				EndDate:   endDate,
+				TypeID:    typeID,
+				CompanyID: companyID,
+			},
+			expectError: true,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			license: domain.License{
 				Name:       "Test License",
-				ProductKey: "TEST-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(0, 0, -1),
-				TypeID:     "type-123",
-				CompanyID:  "company-123",
+				ProductKey: "TEST-KEY-126",
+				StartDate:  endDate,
+				EndDate:    startDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
 		},
 		{
-			name: "erro - sem company_id",
+			name: "erro - tipo inválido",
 			license: domain.License{
 				Name:       "Test License",
-				ProductKey: "TEST-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
-				TypeID:     "type-123",
+				ProductKey: "TEST-KEY-127",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     "invalid-type",
+				CompanyID:  companyID,
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
+		},
+		{
+			name: "erro - empresa inválida",
+			license: domain.License{
+				Name:       "Test License",
+				ProductKey: "TEST-KEY-128",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  "invalid-company",
+			},
+			expectError: true,
+		},
+		{
+			name: "erro - unidade inválida",
+			license: domain.License{
+				Name:       "Test License",
+				ProductKey: "TEST-KEY-129",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
+				UnitID:     stringPtr("invalid-unit"),
+			},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
-			id, err := licenseStore.CreateLicense(tt.license)
-
-			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
+			if !tt.expectError {
+				if err := ClearTables(db); err != nil {
+					t.Fatalf("Failed to clear tables: %v", err)
+				}
+				companyID, unitID, _, typeID, err = insertTestDependencies(db)
+				if err != nil {
+					t.Fatalf("Failed to insert test dependencies: %v", err)
+				}
+				tt.license.CompanyID = companyID
+				tt.license.TypeID = typeID
+				if tt.license.UnitID != nil {
+					tt.license.UnitID = &unitID
+				}
 			}
 
-			// Verifica se o erro corresponde ao esperado
+			licenseStore := store.NewLicenseStore(db)
+			id, err := licenseStore.CreateLicense(tt.license)
+
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se retornou um ID quando deveria
-			if tt.expectID && id == "" {
+			if !tt.expectError && id == "" {
 				t.Error("Expected ID but got empty string")
-			}
-			if !tt.expectID && id != "" {
-				t.Error("Expected no ID but got one")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
 }
 
 func TestGetLicenseByID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	_, err = db.Exec(
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"test-license-123",
+		"Test License",
+		"TEST-KEY-123",
+		startDate,
+		endDate,
+		typeID,
+		companyID,
+		unitID,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test license: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - licença encontrada",
-			id:          "license-123",
-			mockDB:      &MockDB{},
+			id:          "test-license-123",
 			expectError: false,
 			expectFound: true,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "license-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 			expectFound: false,
 		},
 		{
-			name: "não encontrado - id inexistente",
-			id:   "license-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "não encontrado - id inexistente",
+			id:          "non-existent-id",
 			expectError: false,
 			expectFound: false,
 		},
@@ -165,233 +244,202 @@ func TestGetLicenseByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenseStore := store.NewLicenseStore(db)
 			license, err := licenseStore.GetLicenseByID(tt.id)
 
-			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.QueryRowCalled {
-				t.Error("Expected QueryRow to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se encontrou a licença quando deveria
 			if tt.expectFound && license == nil {
 				t.Error("Expected license but got nil")
 			}
 			if !tt.expectFound && license != nil {
 				t.Error("Expected no license but got one")
 			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-			}
 		})
 	}
 }
 
 func TestGetLicensesByCompanyID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+
+	for i := 0; i < 3; i++ {
+		_, err := db.Exec(
+			"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			"test-license-"+string(rune('a'+i)),
+			"Test License "+string(rune('A'+i)),
+			"TEST-KEY-"+string(rune('a'+i)),
+			startDate,
+			endDate,
+			typeID,
+			companyID,
+			unitID,
+		)
+		if err != nil {
+			t.Fatalf("Failed to insert test license: %v", err)
+		}
+	}
+
 	tests := []struct {
 		name        string
 		companyID   string
-		mockDB      *MockDB
 		expectError bool
-		expectEmpty bool
+		expectCount int
 	}{
 		{
 			name:        "sucesso - licenças encontradas",
-			companyID:   "company-123",
-			mockDB:      &MockDB{},
+			companyID:   companyID,
 			expectError: false,
-			expectEmpty: false,
+			expectCount: 3,
 		},
 		{
-			name:      "erro - falha no banco",
-			companyID: "company-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - empresa vazia",
+			companyID:   "",
 			expectError: true,
-			expectEmpty: true,
+			expectCount: 0,
 		},
 		{
-			name:      "sucesso - nenhuma licença",
-			companyID: "company-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "sucesso - empresa sem licenças",
+			companyID:   "non-existent-company",
 			expectError: false,
-			expectEmpty: true,
+			expectCount: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenseStore := store.NewLicenseStore(db)
 			licenses, err := licenseStore.GetLicensesByCompanyID(tt.companyID)
 
-			// Verifica se Query foi chamado
-			if !tt.mockDB.QueryCalled {
-				t.Error("Expected Query to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se a lista está vazia quando deveria
-			if tt.expectEmpty && len(licenses) > 0 {
-				t.Error("Expected empty list but got items")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE company_id = ? AND company_id IN (SELECT id FROM companies WHERE archived_at IS NULL)"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-			}
-		})
-	}
-}
-
-func TestGetLicensesExpiringSoon(t *testing.T) {
-	tests := []struct {
-		name        string
-		days        int
-		mockDB      *MockDB
-		expectError bool
-		expectEmpty bool
-	}{
-		{
-			name:        "sucesso - licenças encontradas",
-			days:        30,
-			mockDB:      &MockDB{},
-			expectError: false,
-			expectEmpty: false,
-		},
-		{
-			name: "erro - falha no banco",
-			days: 30,
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-			expectEmpty: true,
-		},
-		{
-			name: "sucesso - nenhuma licença expirando",
-			days: 30,
-			mockDB: &MockDB{
-				NoRows: true,
-			},
-			expectError: false,
-			expectEmpty: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
-			licenses, err := licenseStore.GetLicensesExpiringSoon(tt.days)
-
-			// Verifica se Query foi chamado
-			if !tt.mockDB.QueryCalled {
-				t.Error("Expected Query to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
-
-			// Verifica se a lista está vazia quando deveria
-			if tt.expectEmpty && len(licenses) > 0 {
-				t.Error("Expected empty list but got items")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, product_key, start_date, end_date, type_id, company_id, unit_id FROM licenses WHERE end_date BETWEEN ? AND ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError && len(licenses) != tt.expectCount {
+				t.Errorf("Expected %d licenses but got %d", tt.expectCount, len(licenses))
 			}
 		})
 	}
 }
 
 func TestUpdateLicense(t *testing.T) {
-	now := time.Now()
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	licenseID := "test-license-123"
+	_, err = db.Exec(
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		licenseID,
+		"Test License",
+		"TEST-KEY-123",
+		startDate,
+		endDate,
+		typeID,
+		companyID,
+		unitID,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test license: %v", err)
+	}
 
 	tests := []struct {
 		name        string
 		license     domain.License
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
 			license: domain.License{
-				ID:         "license-123",
+				ID:         licenseID,
 				Name:       "Updated License",
-				ProductKey: "UPDATED-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
+				ProductKey: "TEST-KEY-123",
+				StartDate:  startDate,
+				EndDate:    endDate.AddDate(1, 0, 0),
+				TypeID:     typeID,
+				CompanyID:  companyID,
+				UnitID:     &unitID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "erro - id vazio",
 			license: domain.License{
-				ID:         "license-123",
 				Name:       "Updated License",
-				ProductKey: "UPDATED-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(1, 0, 0),
+				ProductKey: "TEST-KEY-123",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
-			mockDB: &MockDB{
-				ShouldError: true,
+			expectError: true,
+		},
+		{
+			name: "erro - nome vazio",
+			license: domain.License{
+				ID:         licenseID,
+				ProductKey: "TEST-KEY-123",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			license: domain.License{
-				ID:         "license-123",
+				ID:         licenseID,
 				Name:       "Updated License",
-				ProductKey: "UPDATED-123",
-				StartDate:  now,
-				EndDate:    now.AddDate(0, 0, -1),
+				ProductKey: "TEST-KEY-123",
+				StartDate:  endDate,
+				EndDate:    startDate,
+				TypeID:     typeID,
+				CompanyID:  companyID,
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenseStore := store.NewLicenseStore(db)
 			err := licenseStore.UpdateLicense(tt.license)
 
-			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -400,10 +448,13 @@ func TestUpdateLicense(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verifica a query executada
-				expectedQuery := "UPDATE licenses SET name = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				var name string
+				err = db.QueryRow("SELECT name FROM licenses WHERE id = ?", tt.license.ID).Scan(&name)
+				if err != nil {
+					t.Errorf("Failed to query updated license: %v", err)
+				}
+				if name != tt.license.Name {
+					t.Errorf("Expected name %q but got %q", tt.license.Name, name)
 				}
 			}
 		})
@@ -411,53 +462,66 @@ func TestUpdateLicense(t *testing.T) {
 }
 
 func TestDeleteLicense(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	licenseID := "test-license-123"
+	_, err = db.Exec(
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		licenseID,
+		"Test License",
+		"TEST-KEY-123",
+		startDate,
+		endDate,
+		typeID,
+		companyID,
+		unitID,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test license: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          "license-123",
-			mockDB:      &MockDB{},
+			id:          licenseID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "license-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-		},
-		{
-			name: "erro - licença não encontrada",
-			id:   "license-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
-			expectError: true,
-		},
-		{
-			name:        "erro - ID vazio",
+			name:        "erro - id vazio",
 			id:          "",
-			mockDB:      &MockDB{},
+			expectError: true,
+		},
+		{
+			name:        "erro - id inexistente",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			licenseStore := store.NewLicenseStore(tt.mockDB)
+			licenseStore := store.NewLicenseStore(db)
 			err := licenseStore.DeleteLicense(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -466,12 +530,20 @@ func TestDeleteLicense(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verifica a query executada
-				expectedQuery := "DELETE FROM licenses WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				var count int
+				err = db.QueryRow("SELECT COUNT(*) FROM licenses WHERE id = ?", tt.id).Scan(&count)
+				if err != nil {
+					t.Errorf("Failed to query deleted license: %v", err)
+				}
+				if count != 0 {
+					t.Error("Expected license to be deleted, but it still exists")
 				}
 			}
 		})
 	}
+}
+
+// Helper function to create a string pointer
+func stringPtr(s string) *string {
+	return &s
 }

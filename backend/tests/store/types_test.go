@@ -1,128 +1,140 @@
 package tests
 
 import (
-	"testing"
-
 	"Licenses-Manager/backend/domain"
 	"Licenses-Manager/backend/store"
+	"testing"
 )
 
 func TestCreateType(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Create a test category first
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
 	tests := []struct {
 		name        string
-		licenseType domain.Type
-		mockDB      *MockDB
+		typeData    domain.Type
 		expectError bool
-		expectID    bool
 	}{
 		{
 			name: "sucesso - criação normal",
-			licenseType: domain.Type{
+			typeData: domain.Type{
 				Name:       "Test Type",
-				CategoryID: "category-123",
+				CategoryID: categoryID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
-			expectID:    true,
-		},
-		{
-			name: "erro - falha no banco",
-			licenseType: domain.Type{
-				Name:       "Test Type",
-				CategoryID: "category-123",
-			},
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-			expectID:    false,
 		},
 		{
 			name: "erro - nome vazio",
-			licenseType: domain.Type{
+			typeData: domain.Type{
 				Name:       "",
-				CategoryID: "category-123",
+				CategoryID: categoryID,
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
 		},
 		{
-			name: "erro - sem category_id",
-			licenseType: domain.Type{
-				Name: "Test Type",
+			name: "erro - categoria não existe",
+			typeData: domain.Type{
+				Name:       "Test Type",
+				CategoryID: "non-existent-category",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
+		},
+		{
+			name: "erro - categoria vazia",
+			typeData: domain.Type{
+				Name:       "Test Type",
+				CategoryID: "",
+			},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(tt.mockDB)
-			id, err := typeStore.CreateType(tt.licenseType)
-
-			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
+			if tt.name == "sucesso - criação normal" {
+				if err := ClearTables(db); err != nil {
+					t.Fatalf("Failed to clear tables: %v", err)
+				}
+				// Recreate category after clearing
+				categoryID, err = InsertTestCategory(db, "Test Category")
+				if err != nil {
+					t.Fatalf("Failed to insert test category: %v", err)
+				}
+				tt.typeData.CategoryID = categoryID
 			}
 
-			// Verifica se o erro corresponde ao esperado
+			typeStore := store.NewTypeStore(db)
+			id, err := typeStore.CreateType(tt.typeData)
+
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se retornou um ID quando deveria
-			if tt.expectID && id == "" {
+			if !tt.expectError && id == "" {
 				t.Error("Expected ID but got empty string")
-			}
-			if !tt.expectID && id != "" {
-				t.Error("Expected no ID but got one")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "INSERT INTO types (id, name, category_id) VALUES (?, ?, ?)"
-			if !tt.expectError && tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
 }
 
 func TestGetTypeByID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Create test category and type
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test type: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 		expectFound bool
 	}{
 		{
 			name:        "sucesso - tipo encontrado",
-			id:          "type-123",
-			mockDB:      &MockDB{},
+			id:          typeID,
 			expectError: false,
 			expectFound: true,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "type-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 			expectFound: false,
 		},
 		{
-			name: "não encontrado - id inexistente",
-			id:   "type-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "não encontrado - id inexistente",
+			id:          "non-existent-id",
 			expectError: false,
 			expectFound: false,
 		},
@@ -130,163 +142,164 @@ func TestGetTypeByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(tt.mockDB)
-			licenseType, err := typeStore.GetTypeByID(tt.id)
+			typeStore := store.NewTypeStore(db)
+			typeData, err := typeStore.GetTypeByID(tt.id)
 
-			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.QueryRowCalled {
-				t.Error("Expected QueryRow to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se encontrou o tipo quando deveria
-			if tt.expectFound && licenseType == nil {
+			if tt.expectFound && typeData == nil {
 				t.Error("Expected type but got nil")
 			}
-			if !tt.expectFound && licenseType != nil {
+			if !tt.expectFound && typeData != nil {
 				t.Error("Expected no type but got one")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, category_id FROM types WHERE id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
 }
 
 func TestGetTypesByCategoryID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Create test category
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	// Insert test types
+	testTypes := []string{"Type 1", "Type 2", "Type 3"}
+	for _, name := range testTypes {
+		_, err := InsertTestType(db, name, categoryID)
+		if err != nil {
+			t.Fatalf("Failed to insert test type: %v", err)
+		}
+	}
+
 	tests := []struct {
 		name        string
 		categoryID  string
-		mockDB      *MockDB
 		expectError bool
-		expectEmpty bool
+		expectCount int
 	}{
 		{
 			name:        "sucesso - tipos encontrados",
-			categoryID:  "category-123",
-			mockDB:      &MockDB{},
+			categoryID:  categoryID,
 			expectError: false,
-			expectEmpty: false,
+			expectCount: len(testTypes),
 		},
 		{
-			name:       "erro - falha no banco",
-			categoryID: "category-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - categoria vazia",
+			categoryID:  "",
 			expectError: true,
-			expectEmpty: true,
+			expectCount: 0,
 		},
 		{
-			name:       "sucesso - nenhum tipo",
-			categoryID: "category-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "sucesso - categoria sem tipos",
+			categoryID:  "non-existent-category",
 			expectError: false,
-			expectEmpty: true,
+			expectCount: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(tt.mockDB)
+			typeStore := store.NewTypeStore(db)
 			types, err := typeStore.GetTypesByCategoryID(tt.categoryID)
 
-			// Verifica se Query foi chamado
-			if !tt.mockDB.QueryCalled {
-				t.Error("Expected Query to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se a lista está vazia quando deveria
-			if tt.expectEmpty && len(types) > 0 {
-				t.Error("Expected empty list but got items")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, category_id FROM types WHERE category_id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError && len(types) != tt.expectCount {
+				t.Errorf("Expected %d types but got %d", tt.expectCount, len(types))
 			}
 		})
 	}
 }
 
 func TestUpdateType(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Create test category and type
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test type: %v", err)
+	}
+
 	tests := []struct {
 		name        string
-		licenseType domain.Type
-		mockDB      *MockDB
+		typeData    domain.Type
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
-			licenseType: domain.Type{
-				ID:   "type-123",
-				Name: "Updated Type",
+			typeData: domain.Type{
+				ID:         typeID,
+				Name:       "Updated Type",
+				CategoryID: categoryID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			licenseType: domain.Type{
-				ID:   "type-123",
-				Name: "Updated Type",
+			name: "erro - id vazio",
+			typeData: domain.Type{
+				Name:       "Updated Type",
+				CategoryID: categoryID,
 			},
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-		},
-		{
-			name: "erro - ID vazio",
-			licenseType: domain.Type{
-				Name: "Updated Type",
-			},
-			mockDB:      &MockDB{},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
-			licenseType: domain.Type{
-				ID:   "type-123",
-				Name: "",
+			typeData: domain.Type{
+				ID:         typeID,
+				Name:       "",
+				CategoryID: categoryID,
 			},
-			mockDB:      &MockDB{},
+			expectError: true,
+		},
+		{
+			name: "erro - categoria inválida",
+			typeData: domain.Type{
+				ID:         typeID,
+				Name:       "Updated Type",
+				CategoryID: "non-existent-category",
+			},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(tt.mockDB)
-			err := typeStore.UpdateType(tt.licenseType)
+			typeStore := store.NewTypeStore(db)
+			err := typeStore.UpdateType(tt.typeData)
 
-			// Verifica se Exec foi chamado quando necessário
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -295,10 +308,18 @@ func TestUpdateType(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verifica a query executada
-				expectedQuery := "UPDATE types SET name = ? WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				// Verify update
+				var name, categoryID string
+				err = db.QueryRow("SELECT name, category_id FROM types WHERE id = ?", tt.typeData.ID).
+					Scan(&name, &categoryID)
+				if err != nil {
+					t.Errorf("Failed to query updated type: %v", err)
+				}
+				if name != tt.typeData.Name {
+					t.Errorf("Expected name %q but got %q", tt.typeData.Name, name)
+				}
+				if categoryID != tt.typeData.CategoryID {
+					t.Errorf("Expected category_id %q but got %q", tt.typeData.CategoryID, categoryID)
 				}
 			}
 		})
@@ -306,53 +327,54 @@ func TestUpdateType(t *testing.T) {
 }
 
 func TestDeleteType(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Create test category and type
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test type: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          "type-123",
-			mockDB:      &MockDB{},
+			id:          typeID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "type-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-		},
-		{
-			name: "erro - tipo não encontrado",
-			id:   "type-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
-			expectError: true,
-		},
-		{
-			name:        "erro - ID vazio",
+			name:        "erro - id vazio",
 			id:          "",
-			mockDB:      &MockDB{},
+			expectError: true,
+		},
+		{
+			name:        "erro - id inexistente",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(tt.mockDB)
+			typeStore := store.NewTypeStore(db)
 			err := typeStore.DeleteType(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.expectError && !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -361,10 +383,14 @@ func TestDeleteType(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verifica a query executada
-				expectedQuery := "DELETE FROM types WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				// Verify deletion
+				var count int
+				err = db.QueryRow("SELECT COUNT(*) FROM types WHERE id = ?", tt.id).Scan(&count)
+				if err != nil {
+					t.Errorf("Failed to query deleted type: %v", err)
+				}
+				if count != 0 {
+					t.Error("Expected type to be deleted, but it still exists")
 				}
 			}
 		})

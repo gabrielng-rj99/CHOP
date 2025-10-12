@@ -1,54 +1,65 @@
 package tests
 
 import (
-	"testing"
-
 	"Licenses-Manager/backend/domain"
 	"Licenses-Manager/backend/store"
+	"testing"
 )
 
 func TestCreateCategory(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
 	tests := []struct {
 		name        string
 		category    domain.Category
-		mockDB      *MockDB
 		expectError bool
-		expectID    bool
 	}{
 		{
 			name: "sucesso - criação normal",
 			category: domain.Category{
 				Name: "Test Category",
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
-			expectID:    true,
-		},
-		{
-			name: "erro - falha no banco",
-			category: domain.Category{
-				Name: "Test Category",
-			},
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-			expectID:    false,
 		},
 		{
 			name: "erro - nome vazio",
 			category: domain.Category{
 				Name: "",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
+		},
+		{
+			name: "erro - nome duplicado",
+			category: domain.Category{
+				Name: "Test Category",
+			},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			categoryStore := store.NewCategoryStore(tt.mockDB)
+			// Clean up before each test to avoid leftover data
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
+			}
+
+			if tt.name == "erro - nome duplicado" {
+				_, err := InsertTestCategory(db, "Test Category")
+				if err != nil {
+					t.Fatalf("Failed to insert category for duplicate test: %v", err)
+				}
+			}
+
+			categoryStore := store.NewCategoryStore(db)
 			id, err := categoryStore.CreateCategory(tt.category)
 
 			if tt.expectError && err == nil {
@@ -57,58 +68,71 @@ func TestCreateCategory(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			if tt.expectID && id == "" {
+			if !tt.expectError && id == "" {
 				t.Error("Expected ID but got empty string")
-			}
-			if !tt.expectID && id != "" {
-				t.Error("Expected no ID but got one")
-			}
-
-			if !tt.expectError {
-				expectedQuery := "INSERT INTO categories (id, name) VALUES (?, ?)"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-				}
 			}
 		})
 	}
 }
 
-func TestGetAllCategories(t *testing.T) {
+func TestGetCategoryByID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Insert test category
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
 	tests := []struct {
 		name        string
-		mockDB      *MockDB
+		id          string
 		expectError bool
-		expectEmpty bool
+		expectFound bool
 	}{
 		{
-			name:        "sucesso - lista não vazia",
-			mockDB:      &MockDB{},
+			name:        "sucesso - categoria encontrada",
+			id:          categoryID,
 			expectError: false,
-			expectEmpty: false,
+			expectFound: true,
 		},
 		{
-			name: "erro - falha no banco",
-			mockDB: &MockDB{
-				ShouldError: true,
-				NoRows:      true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
-			expectEmpty: true,
+			expectFound: false,
 		},
 		{
-			name:        "sucesso - lista vazia",
-			mockDB:      &MockDB{NoRows: true},
+			name:        "não encontrado - id inexistente",
+			id:          "non-existent-id",
 			expectError: false,
-			expectEmpty: true,
+			expectFound: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			categoryStore := store.NewCategoryStore(tt.mockDB)
-			categories, err := categoryStore.GetAllCategories()
+			// Clean up before each test to avoid leftover data
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
+			}
+			// Insert test category for valid cases
+			if tt.id == categoryID {
+				_, err := InsertTestCategory(db, "Test Category")
+				if err != nil {
+					t.Fatalf("Failed to insert test category: %v", err)
+				}
+			}
+			categoryStore := store.NewCategoryStore(db)
+			category, err := categoryStore.GetCategoryByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -116,73 +140,123 @@ func TestGetAllCategories(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error but got: %v", err)
-				}
-				if tt.expectEmpty && len(categories) > 0 {
-					t.Error("Expected empty list but got items")
-				}
-				if !tt.expectEmpty && len(categories) == 0 {
-					t.Error("Expected non-empty list but got empty")
-				}
+			if tt.expectFound && category == nil {
+				t.Error("Expected category but got nil")
 			}
-
-			if !tt.expectError {
-				expectedQuery := "SELECT id, name FROM categories"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
-				}
+			if !tt.expectFound && category != nil {
+				t.Error("Expected no category but got one")
 			}
 		})
 	}
 }
 
+func TestGetAllCategories(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	// Insert test categories
+	testCategories := []string{"Category 1", "Category 2", "Category 3"}
+	for _, name := range testCategories {
+		_, err := InsertTestCategory(db, name)
+		if err != nil {
+			t.Fatalf("Failed to insert test category %q: %v", name, err)
+		}
+	}
+
+	categoryStore := store.NewCategoryStore(db)
+	categories, err := categoryStore.GetAllCategories()
+
+	if err != nil {
+		t.Errorf("Expected no error but got: %v", err)
+	}
+	if len(categories) != len(testCategories) {
+		t.Errorf("Expected %d categories but got %d", len(testCategories), len(categories))
+	}
+	// Clean up after test
+	if err := ClearTables(db); err != nil {
+		t.Errorf("Failed to clear tables after test: %v", err)
+	}
+}
+
 func TestUpdateCategory(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Insert test category
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		category    domain.Category
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
 			category: domain.Category{
-				ID:   "category-123",
+				ID:   categoryID,
 				Name: "Updated Category",
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "erro - id vazio",
 			category: domain.Category{
-				ID:   "category-123",
 				Name: "Updated Category",
-			},
-			mockDB: &MockDB{
-				ShouldError: true,
 			},
 			expectError: true,
 		},
 		{
-			name: "erro - ID vazio",
+			name: "erro - nome vazio",
 			category: domain.Category{
+				ID: categoryID,
+			},
+			expectError: true,
+		},
+		{
+			name: "erro - categoria não existe",
+			category: domain.Category{
+				ID:   "non-existent-id",
 				Name: "Updated Category",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			categoryStore := store.NewCategoryStore(tt.mockDB)
+			// Clean up before each test to avoid leftover data
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
+			}
+			// Insert test category for valid cases
+			if tt.category.ID == categoryID {
+				_, err := InsertTestCategory(db, "Test Category")
+				if err != nil {
+					t.Fatalf("Failed to insert test category: %v", err)
+				}
+			}
+			categoryStore := store.NewCategoryStore(db)
 			err := categoryStore.UpdateCategory(tt.category)
 
 			if tt.expectError && err == nil {
@@ -193,9 +267,14 @@ func TestUpdateCategory(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				expectedQuery := "UPDATE categories SET name = ? WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				// Verify update
+				var name string
+				err = db.QueryRow("SELECT name FROM categories WHERE id = ?", tt.category.ID).Scan(&name)
+				if err != nil {
+					t.Errorf("Failed to query updated category: %v", err)
+				}
+				if name != tt.category.Name {
+					t.Errorf("Expected name %q but got %q", tt.category.Name, name)
 				}
 			}
 		})
@@ -203,46 +282,58 @@ func TestUpdateCategory(t *testing.T) {
 }
 
 func TestDeleteCategory(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	// Insert test category
+	categoryID, err := InsertTestCategory(db, "Test Category")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          "category-123",
-			mockDB:      &MockDB{},
+			id:          categoryID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "category-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
-			expectError: true,
-		},
-		{
-			name: "erro - categoria não encontrada",
-			id:   "category-999",
-			mockDB: &MockDB{
-				NoRows:      true,
-				ShouldError: true,
-			},
-			expectError: true,
-		},
-		{
-			name:        "erro - ID vazio",
+			name:        "erro - id vazio",
 			id:          "",
-			mockDB:      &MockDB{},
+			expectError: true,
+		},
+		{
+			name:        "erro - categoria não existe",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			categoryStore := store.NewCategoryStore(tt.mockDB)
+			// Clean up before each test to avoid leftover data
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
+			}
+			// Insert test category for valid cases
+			if tt.id == categoryID {
+				_, err := InsertTestCategory(db, "Test Category")
+				if err != nil {
+					t.Fatalf("Failed to insert test category: %v", err)
+				}
+			}
+			categoryStore := store.NewCategoryStore(db)
 			err := categoryStore.DeleteCategory(tt.id)
 
 			if tt.expectError && err == nil {
@@ -253,9 +344,14 @@ func TestDeleteCategory(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				expectedQuery := "DELETE FROM categories WHERE id = ?"
-				if tt.mockDB.LastQuery != expectedQuery {
-					t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+				// Verify deletion
+				var count int
+				err = db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", tt.id).Scan(&count)
+				if err != nil {
+					t.Errorf("Failed to query deleted category: %v", err)
+				}
+				if count != 0 {
+					t.Error("Expected category to be deleted, but it still exists")
 				}
 			}
 		})

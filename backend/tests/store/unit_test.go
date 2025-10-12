@@ -1,196 +1,278 @@
 package tests
 
 import (
-	"testing"
-
 	"Licenses-Manager/backend/domain"
 	"Licenses-Manager/backend/store"
+	"database/sql"
+	"testing"
 )
 
+func setupUnitTest(t *testing.T) *sql.DB {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	return db
+}
+
 func TestCreateUnit(t *testing.T) {
+	db := setupUnitTest(t)
+	defer CloseDB(db)
+
+	// Create test company first
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		unit        domain.Unit
-		mockDB      *MockDB
 		expectError bool
-		expectID    bool
 	}{
 		{
 			name: "sucesso - criação normal",
 			unit: domain.Unit{
 				Name:      "Test Unit",
-				CompanyID: "company-123",
+				CompanyID: companyID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
-			expectID:    true,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "erro - nome vazio",
 			unit: domain.Unit{
-				Name:      "Test Unit",
-				CompanyID: "company-123",
-			},
-			mockDB: &MockDB{
-				ShouldError: true,
+				Name:      "",
+				CompanyID: companyID,
 			},
 			expectError: true,
-			expectID:    false,
+		},
+		{
+			name: "erro - empresa não existe",
+			unit: domain.Unit{
+				Name:      "Test Unit",
+				CompanyID: "non-existent-company",
+			},
+			expectError: true,
 		},
 		{
 			name: "erro - sem company_id",
 			unit: domain.Unit{
 				Name: "Test Unit",
 			},
-			mockDB:      &MockDB{},
 			expectError: true,
-			expectID:    false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unitStore := store.NewUnitStore(tt.mockDB)
-			id, err := unitStore.CreateUnit(tt.unit)
-
-			// Verifica se o método Exec foi chamado
-			if !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
+			if tt.name != "erro - empresa não existe" {
+				err := ClearTables(db)
+				if err != nil {
+					t.Fatalf("Failed to clear tables: %v", err)
+				}
+				// Recreate company after clearing
+				companyID, err = InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+				if err != nil {
+					t.Fatalf("Failed to insert test company: %v", err)
+				}
+				if tt.unit.CompanyID == companyID {
+					tt.unit.CompanyID = companyID
+				}
 			}
 
-			// Verifica se o erro corresponde ao esperado
+			unitStore := store.NewUnitStore(db)
+			id, err := unitStore.CreateUnit(tt.unit)
+
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se retornou um ID quando deveria
-			if tt.expectID && id == "" {
+			if !tt.expectError && id == "" {
 				t.Error("Expected ID but got empty string")
-			}
-			if !tt.expectID && id != "" {
-				t.Error("Expected no ID but got one")
-			}
-
-			// Verifica a query executada
-			expectedQuery := "INSERT INTO units (id, name, company_id) VALUES (?, ?, ?)"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
 			}
 		})
 	}
 }
 
 func TestGetUnitByID(t *testing.T) {
+	db := setupUnitTest(t)
+	defer CloseDB(db)
+
+	// Create test company and unit
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
+	unitID, err := InsertTestUnit(db, "Test Unit", companyID)
+	if err != nil {
+		t.Fatalf("Failed to insert test unit: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
-		expectUnit  bool
+		expectFound bool
 	}{
 		{
 			name:        "sucesso - unidade encontrada",
-			id:          "unit-123",
-			mockDB:      &MockDB{},
+			id:          unitID,
 			expectError: false,
-			expectUnit:  true,
+			expectFound: true,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "unit-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
-			expectUnit:  false,
+			expectFound: false,
 		},
 		{
-			name: "não encontrado - id inexistente",
-			id:   "unit-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "não encontrado - id inexistente",
+			id:          "non-existent-id",
 			expectError: false,
-			expectUnit:  false,
+			expectFound: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unitStore := store.NewUnitStore(tt.mockDB)
+			unitStore := store.NewUnitStore(db)
 			unit, err := unitStore.GetUnitByID(tt.id)
 
-			// Verifica se QueryRow foi chamado
-			if !tt.mockDB.QueryRowCalled {
-				t.Error("Expected QueryRow to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-
-			// Verifica se retornou uma unidade quando deveria
-			if tt.expectUnit && unit == nil {
+			if tt.expectFound && unit == nil {
 				t.Error("Expected unit but got nil")
 			}
-			if !tt.expectUnit && unit != nil {
+			if !tt.expectFound && unit != nil {
 				t.Error("Expected no unit but got one")
 			}
+		})
+	}
+}
 
-			// Verifica a query executada
-			expectedQuery := "SELECT id, name, company_id FROM units WHERE id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+func TestGetUnitsByCompany(t *testing.T) {
+	db := setupUnitTest(t)
+	defer CloseDB(db)
+
+	// Create test company
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
+	// Insert test units
+	testUnits := []string{"Unit 1", "Unit 2", "Unit 3"}
+	for _, name := range testUnits {
+		_, err := InsertTestUnit(db, name, companyID)
+		if err != nil {
+			t.Fatalf("Failed to insert test unit: %v", err)
+		}
+	}
+
+	tests := []struct {
+		name        string
+		companyID   string
+		expectError bool
+		expectCount int
+	}{
+		{
+			name:        "sucesso - unidades encontradas",
+			companyID:   companyID,
+			expectError: false,
+			expectCount: len(testUnits),
+		},
+		{
+			name:        "erro - empresa vazia",
+			companyID:   "",
+			expectError: true,
+			expectCount: 0,
+		},
+		{
+			name:        "sucesso - empresa sem unidades",
+			companyID:   "non-existent-company",
+			expectError: false,
+			expectCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unitStore := store.NewUnitStore(db)
+			units, err := unitStore.GetUnitsByCompanyID(tt.companyID)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectError && len(units) != tt.expectCount {
+				t.Errorf("Expected %d units but got %d", tt.expectCount, len(units))
 			}
 		})
 	}
 }
 
 func TestUpdateUnit(t *testing.T) {
+	db := setupUnitTest(t)
+	defer CloseDB(db)
+
+	// Create test company and unit
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
+	unitID, err := InsertTestUnit(db, "Test Unit", companyID)
+	if err != nil {
+		t.Fatalf("Failed to insert test unit: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		unit        domain.Unit
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
 			unit: domain.Unit{
-				ID:        "unit-123",
+				ID:        unitID,
 				Name:      "Updated Unit",
-				CompanyID: "company-123",
+				CompanyID: companyID,
 			},
-			mockDB:      &MockDB{},
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
+			name: "erro - id vazio",
 			unit: domain.Unit{
-				ID:        "unit-123",
 				Name:      "Updated Unit",
-				CompanyID: "company-123",
-			},
-			mockDB: &MockDB{
-				ShouldError: true,
+				CompanyID: companyID,
 			},
 			expectError: true,
 		},
 		{
-			name: "erro - unidade não encontrada",
+			name: "erro - nome vazio",
 			unit: domain.Unit{
-				ID:        "unit-999",
-				Name:      "Updated Unit",
-				CompanyID: "company-123",
+				ID:        unitID,
+				Name:      "",
+				CompanyID: companyID,
 			},
-			mockDB: &MockDB{
-				NoRows: true,
+			expectError: true,
+		},
+		{
+			name: "erro - empresa inválida",
+			unit: domain.Unit{
+				ID:        unitID,
+				Name:      "Updated Unit",
+				CompanyID: "non-existent-company",
 			},
 			expectError: true,
 		},
@@ -198,15 +280,9 @@ func TestUpdateUnit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unitStore := store.NewUnitStore(tt.mockDB)
+			unitStore := store.NewUnitStore(db)
 			err := unitStore.UpdateUnit(tt.unit)
 
-			// Verifica se Exec foi chamado
-			if !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -214,57 +290,67 @@ func TestUpdateUnit(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica a query executada
-			expectedQuery := "UPDATE units SET name = ? WHERE id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError {
+				// Verify update
+				var name, companyID string
+				err = db.QueryRow("SELECT name, company_id FROM units WHERE id = ?", tt.unit.ID).
+					Scan(&name, &companyID)
+				if err != nil {
+					t.Errorf("Failed to query updated unit: %v", err)
+				}
+				if name != tt.unit.Name {
+					t.Errorf("Expected name %q but got %q", tt.unit.Name, name)
+				}
+				if companyID != tt.unit.CompanyID {
+					t.Errorf("Expected company_id %q but got %q", tt.unit.CompanyID, companyID)
+				}
 			}
 		})
 	}
 }
 
 func TestDeleteUnit(t *testing.T) {
+	db := setupUnitTest(t)
+	defer CloseDB(db)
+
+	// Create test company and unit
+	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test company: %v", err)
+	}
+
+	unitID, err := InsertTestUnit(db, "Test Unit", companyID)
+	if err != nil {
+		t.Fatalf("Failed to insert test unit: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		id          string
-		mockDB      *MockDB
 		expectError bool
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          "unit-123",
-			mockDB:      &MockDB{},
+			id:          unitID,
 			expectError: false,
 		},
 		{
-			name: "erro - falha no banco",
-			id:   "unit-123",
-			mockDB: &MockDB{
-				ShouldError: true,
-			},
+			name:        "erro - id vazio",
+			id:          "",
 			expectError: true,
 		},
 		{
-			name: "erro - unidade não encontrada",
-			id:   "unit-999",
-			mockDB: &MockDB{
-				NoRows: true,
-			},
+			name:        "erro - id inexistente",
+			id:          "non-existent-id",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unitStore := store.NewUnitStore(tt.mockDB)
+			unitStore := store.NewUnitStore(db)
 			err := unitStore.DeleteUnit(tt.id)
 
-			// Verifica se Exec foi chamado
-			if !tt.mockDB.ExecCalled {
-				t.Error("Expected Exec to be called")
-			}
-
-			// Verifica se o erro corresponde ao esperado
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -272,10 +358,16 @@ func TestDeleteUnit(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 
-			// Verifica a query executada
-			expectedQuery := "DELETE FROM units WHERE id = ?"
-			if tt.mockDB.LastQuery != expectedQuery {
-				t.Errorf("Expected query %q, got %q", expectedQuery, tt.mockDB.LastQuery)
+			if !tt.expectError {
+				// Verify deletion
+				var count int
+				err = db.QueryRow("SELECT COUNT(*) FROM units WHERE id = ?", tt.id).Scan(&count)
+				if err != nil {
+					t.Errorf("Failed to query deleted unit: %v", err)
+				}
+				if count != 0 {
+					t.Error("Expected unit to be deleted, but it still exists")
+				}
 			}
 		})
 	}

@@ -4,6 +4,7 @@ package store
 
 import (
 	"Licenses-Manager/backend/domain"
+	"errors"
 
 	"database/sql"
 
@@ -21,9 +22,24 @@ func NewUnitStore(db DBInterface) *UnitStore {
 }
 
 func (s *UnitStore) CreateUnit(unit domain.Unit) (string, error) {
+	if unit.Name == "" {
+		return "", sql.ErrNoRows // Or use errors.New("unit name cannot be empty")
+	}
+	if unit.CompanyID == "" {
+		return "", sql.ErrNoRows // Or use errors.New("company ID cannot be empty")
+	}
+	// Check if company exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM companies WHERE id = ?", unit.CompanyID).Scan(&count)
+	if err != nil {
+		return "", err
+	}
+	if count == 0 {
+		return "", sql.ErrNoRows // Or use errors.New("company does not exist")
+	}
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO units (id, name, company_id) VALUES (?, ?, ?)`
-	_, err := s.db.Exec(sqlStatement, newID, unit.Name, unit.CompanyID)
+	_, err = s.db.Exec(sqlStatement, newID, unit.Name, unit.CompanyID)
 	if err != nil {
 		return "", err
 	}
@@ -33,17 +49,27 @@ func (s *UnitStore) CreateUnit(unit domain.Unit) (string, error) {
 // GetUnitsByCompanyID busca TODAS as unidades de uma empresa específica.
 // MUDANÇA 1: Nomeamos os valores de retorno (units e err)
 func (s *UnitStore) GetUnitsByCompanyID(companyID string) (units []domain.Unit, err error) {
+	if companyID == "" {
+		return nil, errors.New("company ID cannot be empty")
+	}
+	// Check if company exists
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM companies WHERE id = ?", companyID).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return []domain.Unit{}, nil // No units for non-existent company
+	}
+
 	sqlStatement := `SELECT id, name, company_id FROM units WHERE company_id = ?`
 
 	rows, err := s.db.Query(sqlStatement, companyID)
 	if err != nil {
 		return nil, err
 	}
-	// MUDANÇA 2: O defer agora é uma função que verifica o erro de rows.Close()
 	defer func() {
 		closeErr := rows.Close()
-		// Se a função principal ainda não tiver um erro, mas o Close() tiver,
-		// nós atribuímos o erro do Close() ao 'err' de retorno.
 		if err == nil {
 			err = closeErr
 		}
@@ -58,7 +84,6 @@ func (s *UnitStore) GetUnitsByCompanyID(companyID string) (units []domain.Unit, 
 		units = append(units, unit)
 	}
 
-	// MUDANÇA 3: Verificamos se houve algum erro durante a iteração (rows.Next).
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
@@ -68,13 +93,30 @@ func (s *UnitStore) GetUnitsByCompanyID(companyID string) (units []domain.Unit, 
 
 // UpdateUnit atualiza os dados de uma unidade existente
 func (s *UnitStore) UpdateUnit(unit domain.Unit) error {
-	sqlStatement := `UPDATE units SET name = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, unit.Name, unit.ID)
+	if unit.ID == "" {
+		return sql.ErrNoRows // Or use errors.New("unit ID cannot be empty")
+	}
+	if unit.Name == "" {
+		return sql.ErrNoRows // Or use errors.New("unit name cannot be empty")
+	}
+	if unit.CompanyID == "" {
+		return sql.ErrNoRows // Or use errors.New("company ID cannot be empty")
+	}
+	// Check if company exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM companies WHERE id = ?", unit.CompanyID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows // Or use errors.New("company does not exist")
+	}
+	sqlStatement := `UPDATE units SET name = ?, company_id = ? WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, unit.Name, unit.CompanyID, unit.ID)
 	if err != nil {
 		return err
 	}
 
-	// Verifica se alguma linha foi afetada
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -88,13 +130,24 @@ func (s *UnitStore) UpdateUnit(unit domain.Unit) error {
 
 // DeleteUnit remove uma unidade do banco de dados
 func (s *UnitStore) DeleteUnit(id string) error {
+	if id == "" {
+		return sql.ErrNoRows // Or use errors.New("unit ID cannot be empty")
+	}
+	// Check if unit exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM units WHERE id = ?", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows // Or use errors.New("unit does not exist")
+	}
 	sqlStatement := `DELETE FROM units WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
 	}
 
-	// Verifica se alguma linha foi afetada
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -108,6 +161,9 @@ func (s *UnitStore) DeleteUnit(id string) error {
 
 // GetUnitByID busca uma unidade específica pelo seu ID
 func (s *UnitStore) GetUnitByID(id string) (*domain.Unit, error) {
+	if id == "" {
+		return nil, sql.ErrNoRows // Or use errors.New("unit ID cannot be empty")
+	}
 	sqlStatement := `SELECT id, name, company_id FROM units WHERE id = ?`
 
 	var unit domain.Unit
