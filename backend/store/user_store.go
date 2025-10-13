@@ -2,6 +2,7 @@ package store
 
 import (
 	"Licenses-Manager/backend/domain"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -137,25 +138,79 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 }
 
 // AuthenticateUser verifica se o usuário e senha estão corretos
+var bruteForceLevels = []struct {
+	attempts int
+	duration time.Duration
+}{
+	{5, time.Minute},
+	{3, 5 * time.Minute},
+	{3, 15 * time.Minute},
+	{3, 30 * time.Minute},
+	{3, 60 * time.Minute},
+	{3, 120 * time.Minute},
+	{3, 240 * time.Minute},
+	{3, 480 * time.Minute},
+	{3, 1440 * time.Minute}, // 24h
+}
+
 func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("usuário e senha são obrigatórios")
 	}
 
-	// Não precisa gerar o hash manualmente aqui
-
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role FROM users WHERE username = ?`
+	// Busca todos os campos necessários para brute-force
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE username = ?`
 	row := s.db.QueryRow(sqlStatement, username)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role)
+	var failedAttempts, lockLevel int
+	var lockedUntil sql.NullTime
+	err := row.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
 	if err != nil {
 		return nil, errors.New("usuário não encontrado")
 	}
+
+	now := time.Now()
+	if lockedUntil.Valid && now.Before(lockedUntil.Time) {
+		if lockLevel >= len(bruteForceLevels) {
+			return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
+		}
+		return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockedUntil.Time.Format(time.RFC1123))
+	}
+
 	// Verifica o hash bcrypt
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
-		return nil, errors.New("senha incorreta")
+		// Falha: incrementa tentativas
+		failedAttempts++
+		// Limite do nível atual
+		level := lockLevel
+		if level >= len(bruteForceLevels) {
+			// Bloqueio manual
+			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = ?, locked_until = ?, lock_level = ? WHERE username = ?`, failedAttempts, now.Add(365*24*time.Hour), level, username)
+			return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
+		}
+		limit := bruteForceLevels[level].attempts
+		if failedAttempts >= limit {
+			// Sobe de nível e bloqueia
+			lockLevel++
+			if lockLevel >= len(bruteForceLevels) {
+				// Bloqueio manual (define locked_until para 1 ano no futuro)
+				_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, locked_until = ?, lock_level = ? WHERE username = ?`, now.Add(365*24*time.Hour), lockLevel, username)
+				return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
+			} else {
+				dur := bruteForceLevels[lockLevel].duration
+				t := now.Add(dur)
+				_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, locked_until = ?, lock_level = ? WHERE username = ?`, t, lockLevel, username)
+				return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", t.Format(time.RFC1123))
+			}
+		} else {
+			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = ?, lock_level = ? WHERE username = ?`, failedAttempts, lockLevel, username)
+		}
+		return nil, errors.New("usuário ou senha inválidos")
 	}
+
+	// Sucesso: reseta tudo
+	_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = ?`, username)
 	return &user, nil
 }
 
@@ -231,7 +286,7 @@ func (s *UserStore) EditUserRole(requesterUsername, targetUsername, newRole stri
 
 // ListUsers retorna todos os usuários cadastrados, incluindo os hashes das senhas
 func (s *UserStore) ListUsers() ([]domain.User, error) {
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role FROM users`
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -241,10 +296,13 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 	var users []domain.User
 	for rows.Next() {
 		var user domain.User
-		err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role)
+		var failedAttempts, lockLevel int
+		var lockedUntil sql.NullTime
+		err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
 		if err != nil {
 			return nil, err
 		}
+		// Você pode adicionar esses campos ao struct User se quiser exibir no CLI
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
@@ -295,4 +353,10 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 	}
 	_, err := s.CreateUser(username, displayName, string(password), role)
 	return username, displayName, string(password), err
+}
+
+// Função para desbloquear usuário manualmente
+func (s *UserStore) UnlockUser(username string) error {
+	_, err := s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = ?`, username)
+	return err
 }

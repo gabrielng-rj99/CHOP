@@ -70,17 +70,79 @@ func main() {
 			http.Error(w, "JSON inválido", http.StatusBadRequest)
 			return
 		}
-		_, err := userStore.CreateUser(req.Username, req.Username, req.Password, "user")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+
+		// --- Proteção contra brute-force por IP ---
+		ip := r.RemoteAddr
+		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+			ip = forwarded
+		}
+
+		// Função auxiliar para buscar/atualizar tentativas por IP
+		// (Exemplo: você deve implementar a persistência real no banco)
+		type IPLock struct {
+			FailedAttempts int
+			LockLevel      int
+			LockedUntil    time.Time
+		}
+		getIPLock := func(ip string) *IPLock {
+			// TODO: Buscar do banco de dados real
+			return &IPLock{}
+		}
+		updateIPLock := func(ip string, lock *IPLock) {
+			// TODO: Atualizar no banco de dados real
+		}
+		bruteForceLevels := []struct {
+			attempts int
+			duration time.Duration
+		}{
+			{5, time.Minute},
+			{3, 5 * time.Minute},
+			{3, 15 * time.Minute},
+			{3, 30 * time.Minute},
+			{3, 60 * time.Minute},
+			{3, 120 * time.Minute},
+			{3, 240 * time.Minute},
+			{3, 480 * time.Minute},
+			{3, 1440 * time.Minute}, // 24h
+		}
+
+		ipLock := getIPLock(ip)
+		now := time.Now()
+		if !ipLock.LockedUntil.IsZero() && now.Before(ipLock.LockedUntil) {
+			http.Error(w, fmt.Sprintf("Este IP está bloqueado até %s por múltiplas tentativas. Tente novamente depois.", ipLock.LockedUntil.Format(time.RFC1123)), http.StatusTooManyRequests)
 			return
 		}
-		// Autentica para retornar dados do usuário criado
+
+		// Autenticação normal
 		user, err := userStore.AuthenticateUser(req.Username, req.Password)
 		if err != nil {
-			http.Error(w, "Usuário criado, mas erro ao autenticar para resposta", http.StatusInternalServerError)
+			// Falha: incrementa tentativas do IP
+			ipLock.FailedAttempts++
+			level := ipLock.LockLevel
+			if level >= len(bruteForceLevels) {
+				ipLock.LockedUntil = now.Add(365 * 24 * time.Hour) // bloqueio manual
+			} else {
+				limit := bruteForceLevels[level].attempts
+				if ipLock.FailedAttempts >= limit {
+					ipLock.LockLevel++
+					if ipLock.LockLevel >= len(bruteForceLevels) {
+						ipLock.LockedUntil = now.Add(365 * 24 * time.Hour)
+					} else {
+						ipLock.LockedUntil = now.Add(bruteForceLevels[ipLock.LockLevel].duration)
+					}
+					ipLock.FailedAttempts = 0
+				}
+			}
+			updateIPLock(ip, ipLock)
+			http.Error(w, "Usuário ou senha inválidos", http.StatusUnauthorized)
 			return
 		}
+		// Sucesso: zera tentativas do IP
+		ipLock.FailedAttempts = 0
+		ipLock.LockLevel = 0
+		ipLock.LockedUntil = time.Time{}
+		updateIPLock(ip, ipLock)
+
 		resp := struct {
 			ID        string    `json:"id"`
 			Username  string    `json:"username"`

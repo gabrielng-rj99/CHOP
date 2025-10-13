@@ -388,7 +388,8 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 		fmt.Println("6 - Change password")
 		fmt.Println("7 - Change your own username (admin or full_admin only)")
 		fmt.Println("8 - Change user role (full_admin only)")
-		fmt.Println("9 - Back")
+		fmt.Println("9 - Unlock user (full_admin only)")
+		fmt.Println("10 - Back")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -545,6 +546,21 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Role changed successfully!")
 			}
 		case "9":
+			// Unlock user (full_admin only)
+			if user.Role != "full_admin" {
+				fmt.Println("Only full_admin users can unlock users.")
+				break
+			}
+			fmt.Print("Username to unlock: ")
+			targetUsername, _ := reader.ReadString('\n')
+			targetUsername = strings.TrimSpace(targetUsername)
+			err := userStore.UnlockUser(targetUsername)
+			if err != nil {
+				fmt.Println("Error unlocking user:", err)
+			} else {
+				fmt.Println("User unlocked successfully!")
+			}
+		case "10":
 			return
 		default:
 			fmt.Println("Invalid option.")
