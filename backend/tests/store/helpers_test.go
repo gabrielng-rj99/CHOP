@@ -56,23 +56,23 @@ func SetupTestDB() (*sql.DB, error) {
 
 	// Create all tables using the exact schema from init.sql
 	tables := []string{
-		`CREATE TABLE IF NOT EXISTS companies (
+		`CREATE TABLE IF NOT EXISTS clients (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
-			cnpj TEXT UNIQUE NOT NULL,
+			registration_id TEXT UNIQUE NOT NULL,
 			archived_at DATETIME
 		)`,
-		`CREATE TABLE IF NOT EXISTS units (
+		`CREATE TABLE IF NOT EXISTS entities (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
-			company_id TEXT NOT NULL,
-			FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+			client_id TEXT NOT NULL,
+			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 		)`,
 		`CREATE TABLE IF NOT EXISTS categories (
 			id TEXT PRIMARY KEY,
 			name TEXT UNIQUE NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS types (
+		`CREATE TABLE IF NOT EXISTS lines (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			category_id TEXT NOT NULL,
@@ -84,12 +84,12 @@ func SetupTestDB() (*sql.DB, error) {
 			product_key TEXT UNIQUE NOT NULL,
 			start_date DATETIME NOT NULL,
 			end_date DATETIME NOT NULL,
-			type_id TEXT NOT NULL,
-			company_id TEXT NOT NULL,
-			unit_id TEXT,
-			FOREIGN KEY (type_id) REFERENCES types(id),
-			FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-			FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL
+			line_id TEXT NOT NULL,
+			client_id TEXT NOT NULL,
+			entity_id TEXT,
+			FOREIGN KEY (line_id) REFERENCES lines(id),
+			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+			FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE SET NULL
 		)`,
 	}
 
@@ -135,7 +135,7 @@ func CloseDB(db *sql.DB) error {
 
 // ClearTables removes all data from the test database tables
 func ClearTables(db *sql.DB) error {
-	tables := []string{"licenses", "units", "types", "categories", "companies"}
+	tables := []string{"licenses", "entities", "lines", "categories", "clients"}
 	for _, table := range tables {
 		if _, err := db.Exec("DELETE FROM " + table); err != nil {
 			return fmt.Errorf("failed to clear table %s: %v", table, err)
@@ -144,28 +144,29 @@ func ClearTables(db *sql.DB) error {
 	return nil
 }
 
-// InsertTestCompany inserts a test company and returns its ID
-func InsertTestCompany(db *sql.DB, name, cnpj string) (string, error) {
-	id := fmt.Sprintf("test-company-%s", cnpj)
+// InsertTestClient inserts a test client and returns its ID
+func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
+	// Usa o registrationID passado como argumento
+	id := fmt.Sprintf("test-client-%s", registrationID)
 	_, err := db.Exec(
-		"INSERT INTO companies (id, name, cnpj) VALUES (?, ?, ?)",
-		id, name, cnpj,
+		"INSERT INTO clients (id, name, registration_id) VALUES (?, ?, ?)",
+		id, name, registrationID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test company: %v", err)
+		return "", fmt.Errorf("failed to insert test client: %v", err)
 	}
 	return id, nil
 }
 
-// InsertTestUnit inserts a test unit and returns its ID
-func InsertTestUnit(db *sql.DB, name string, companyID string) (string, error) {
-	id := fmt.Sprintf("test-unit-%s-%s", name, companyID)
+// InsertTestEntity inserts a test entity and returns its ID
+func InsertTestEntity(db *sql.DB, name string, clientID string) (string, error) {
+	id := fmt.Sprintf("test-entity-%s-%s", name, clientID)
 	_, err := db.Exec(
-		"INSERT INTO units (id, name, company_id) VALUES (?, ?, ?)",
-		id, name, companyID,
+		"INSERT INTO entities (id, name, client_id) VALUES (?, ?, ?)",
+		id, name, clientID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test unit: %v", err)
+		return "", fmt.Errorf("failed to insert test entity: %v", err)
 	}
 	return id, nil
 }
@@ -183,25 +184,25 @@ func InsertTestCategory(db *sql.DB, name string) (string, error) {
 	return id, nil
 }
 
-// InsertTestType inserts a test type and returns its ID
-func InsertTestType(db *sql.DB, name string, categoryID string) (string, error) {
-	id := fmt.Sprintf("test-type-%s-%s", name, categoryID)
+// InsertTestLine inserts a test type and returns its ID
+func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) {
+	id := fmt.Sprintf("test-line-%s-%s", name, categoryID)
 	_, err := db.Exec(
-		"INSERT INTO types (id, name, category_id) VALUES (?, ?, ?)",
+		"INSERT INTO lines (id, name, category_id) VALUES (?, ?, ?)",
 		id, name, categoryID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test type: %v", err)
+		return "", fmt.Errorf("failed to insert test line: %v", err)
 	}
 	return id, nil
 }
 
 // InsertTestLicense inserts a test license and returns its ID
-func InsertTestLicense(db *sql.DB, name, productKey string, startDate, endDate time.Time, typeID, companyID, unitID string) (string, error) {
+func InsertTestLicense(db *sql.DB, name, productKey string, startDate, endDate time.Time, lineID, clientID, entityID string) (string, error) {
 	id := fmt.Sprintf("test-license-%s", productKey)
 	_, err := db.Exec(
-		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		id, name, productKey, startDate, endDate, typeID, companyID, unitID,
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		id, name, productKey, startDate, endDate, lineID, clientID, entityID,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert test license: %v", err)

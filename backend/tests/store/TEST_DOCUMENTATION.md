@@ -6,13 +6,13 @@ Esta documentação descreve os testes implementados para validar as regras de n
 
 Os testes estão organizados em três principais componentes:
 
-1. CompanyStore (company_test.go)
-2. UnitStore (unit_test.go)
+1. ClientStore (client_test.go)
+2. EntityStore (entity_test.go)
 3. LicenseStore (licenses_test.go)
 
-## CompanyStore Tests
+## ClientStore Tests
 
-### TestCreateCompany
+### TestCreateClient
 Valida a criação de empresas com os seguintes cenários:
 
 - **Sucesso - Criação Normal**
@@ -29,7 +29,7 @@ Valida a criação de empresas com os seguintes cenários:
   - Verifica se o sistema rejeita CNPJs com formato inválido
   - Valida o formato do CNPJ antes da persistência
 
-### TestArchiveCompany
+### TestArchiveClient
 Testa o arquivamento (soft delete) de empresas:
 
 - **Sucesso - Arquivamento Normal**
@@ -40,16 +40,16 @@ Testa o arquivamento (soft delete) de empresas:
   - Impede o arquivamento de empresas que possuem licenças em vigor
   - Garante a integridade dos dados relacionados
 
-### TestDeleteCompanyPermanently
+### TestDeleteClientPermanently
 Testa a deleção permanente de empresas:
 
 - **Sucesso - Deleção Normal**
   - Verifica a remoção completa dos registros
   - Valida o cascade delete nas unidades e licenças
 
-## UnitStore Tests
+## EntityStore Tests
 
-### TestCreateUnit
+### TestCreateEntity
 Valida a criação de unidades:
 
 - **Sucesso - Criação Normal**
@@ -60,17 +60,17 @@ Valida a criação de unidades:
   - Impede a criação de unidades para empresas inexistentes
   - Valida a integridade referencial
 
-### TestUpdateUnit
+### TestUpdateEntity
 Testa a atualização de unidades:
 
 - **Sucesso - Atualização Normal**
   - Permite atualização do nome da unidade
   
-- **Erro - Alteração de Company ID**
+- **Erro - Alteração de Client ID**
   - Impede a mudança de vínculo com empresa
   - Garante a integridade dos relacionamentos
 
-### TestDeleteUnit
+### TestDeleteEntity
 Testa a deleção de unidades:
 
 - **Sucesso - Deleção Normal**
@@ -105,7 +105,7 @@ Valida a criação de licenças:
   - Impede sobreposição de licenças do mesmo tipo para mesma empresa/unidade
   - Garante unicidade temporal das licenças
 
-### TestGetLicensesByCompanyID
+### TestGetLicensesByClientID
 Testa a busca de licenças por empresa:
 
 - **Sucesso - Licenças Encontradas**

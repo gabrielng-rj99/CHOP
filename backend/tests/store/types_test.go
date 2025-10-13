@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestCreateType(t *testing.T) {
+func TestCreateLine(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -25,37 +25,37 @@ func TestCreateType(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		typeData    domain.Type
+		lineData    domain.Line
 		expectError bool
 	}{
 		{
 			name: "sucesso - criação normal",
-			typeData: domain.Type{
-				Name:       "Test Type",
+			lineData: domain.Line{
+				Line:       "Test Line",
 				CategoryID: categoryID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - nome vazio",
-			typeData: domain.Type{
-				Name:       "",
+			lineData: domain.Line{
+				Line:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria não existe",
-			typeData: domain.Type{
-				Name:       "Test Type",
+			lineData: domain.Line{
+				Line:       "Test Line",
 				CategoryID: "non-existent-category",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria vazia",
-			typeData: domain.Type{
-				Name:       "Test Type",
+			lineData: domain.Line{
+				Line:       "Test Line",
 				CategoryID: "",
 			},
 			expectError: true,
@@ -73,11 +73,11 @@ func TestCreateType(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to insert test category: %v", err)
 				}
-				tt.typeData.CategoryID = categoryID
+				tt.lineData.CategoryID = categoryID
 			}
 
-			typeStore := store.NewTypeStore(db)
-			id, err := typeStore.CreateType(tt.typeData)
+			lineStore := store.NewLineStore(db)
+			id, err := lineStore.CreateLine(tt.lineData)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -92,7 +92,7 @@ func TestCreateType(t *testing.T) {
 	}
 }
 
-func TestGetTypeByID(t *testing.T) {
+func TestGetLineByID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -103,15 +103,15 @@ func TestGetTypeByID(t *testing.T) {
 		}
 	}()
 
-	// Create test category and type
+	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	lineID, err := InsertTestLine(db, "Test Line", categoryID)
 	if err != nil {
-		t.Fatalf("Failed to insert test type: %v", err)
+		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
@@ -122,7 +122,7 @@ func TestGetTypeByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - tipo encontrado",
-			id:          typeID,
+			id:          lineID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -142,8 +142,8 @@ func TestGetTypeByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(db)
-			typeData, err := typeStore.GetTypeByID(tt.id)
+			lineStore := store.NewLineStore(db)
+			lineData, err := lineStore.GetLineByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -151,17 +151,17 @@ func TestGetTypeByID(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if tt.expectFound && typeData == nil {
+			if tt.expectFound && lineData == nil {
 				t.Error("Expected type but got nil")
 			}
-			if !tt.expectFound && typeData != nil {
+			if !tt.expectFound && lineData != nil {
 				t.Error("Expected no type but got one")
 			}
 		})
 	}
 }
 
-func TestGetTypesByCategoryID(t *testing.T) {
+func TestGetLinesByCategoryID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -178,12 +178,12 @@ func TestGetTypesByCategoryID(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	// Insert test types
-	testTypes := []string{"Type 1", "Type 2", "Type 3"}
-	for _, name := range testTypes {
-		_, err := InsertTestType(db, name, categoryID)
+	// Insert test lines
+	testLines := []string{"Line 1", "Line 2", "Line 3"}
+	for _, name := range testLines {
+		_, err := InsertTestLine(db, name, categoryID)
 		if err != nil {
-			t.Fatalf("Failed to insert test type: %v", err)
+			t.Fatalf("Failed to insert test line: %v", err)
 		}
 	}
 
@@ -197,7 +197,7 @@ func TestGetTypesByCategoryID(t *testing.T) {
 			name:        "sucesso - tipos encontrados",
 			categoryID:  categoryID,
 			expectError: false,
-			expectCount: len(testTypes),
+			expectCount: len(testLines),
 		},
 		{
 			name:        "erro - categoria vazia",
@@ -215,8 +215,8 @@ func TestGetTypesByCategoryID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(db)
-			types, err := typeStore.GetTypesByCategoryID(tt.categoryID)
+			lineStore := store.NewLineStore(db)
+			lines, err := lineStore.GetLinesByCategoryID(tt.categoryID)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -224,14 +224,14 @@ func TestGetTypesByCategoryID(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if !tt.expectError && len(types) != tt.expectCount {
-				t.Errorf("Expected %d types but got %d", tt.expectCount, len(types))
+			if !tt.expectError && len(lines) != tt.expectCount {
+				t.Errorf("Expected %d lines but got %d", tt.expectCount, len(lines))
 			}
 		})
 	}
 }
 
-func TestUpdateType(t *testing.T) {
+func TestUpdateLine(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -242,53 +242,54 @@ func TestUpdateType(t *testing.T) {
 		}
 	}()
 
-	// Create test category and type
+	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	lineID, err := InsertTestLine(db, "Test Line", categoryID)
 	if err != nil {
-		t.Fatalf("Failed to insert test type: %v", err)
+		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		typeData    domain.Type
+		lineData    domain.Line
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
-			typeData: domain.Type{
-				ID:         typeID,
-				Name:       "Updated Type",
+			lineData: domain.Line{
+				ID:         lineID,
+				Line:       "Updated Line",
 				CategoryID: categoryID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - id vazio",
-			typeData: domain.Type{
-				Name:       "Updated Type",
+			lineData: domain.Line{
+				ID:         "",
+				Line:       "Updated Line",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
-			typeData: domain.Type{
-				ID:         typeID,
-				Name:       "",
+			lineData: domain.Line{
+				ID:         lineID,
+				Line:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria inválida",
-			typeData: domain.Type{
-				ID:         typeID,
-				Name:       "Updated Type",
+			lineData: domain.Line{
+				ID:         lineID,
+				Line:       "Updated Line",
 				CategoryID: "non-existent-category",
 			},
 			expectError: true,
@@ -297,8 +298,8 @@ func TestUpdateType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(db)
-			err := typeStore.UpdateType(tt.typeData)
+			lineStore := store.NewLineStore(db)
+			err := lineStore.UpdateLine(tt.lineData)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -310,23 +311,23 @@ func TestUpdateType(t *testing.T) {
 			if !tt.expectError {
 				// Verify update
 				var name, categoryID string
-				err = db.QueryRow("SELECT name, category_id FROM types WHERE id = ?", tt.typeData.ID).
+				err = db.QueryRow("SELECT name, category_id FROM lines WHERE id = ?", tt.lineData.ID).
 					Scan(&name, &categoryID)
 				if err != nil {
-					t.Errorf("Failed to query updated type: %v", err)
+					t.Errorf("Failed to query updated line: %v", err)
 				}
-				if name != tt.typeData.Name {
-					t.Errorf("Expected name %q but got %q", tt.typeData.Name, name)
+				if name != tt.lineData.Line {
+					t.Errorf("Expected type %q but got %q", tt.lineData.Line, name)
 				}
-				if categoryID != tt.typeData.CategoryID {
-					t.Errorf("Expected category_id %q but got %q", tt.typeData.CategoryID, categoryID)
+				if categoryID != tt.lineData.CategoryID {
+					t.Errorf("Expected category_id %q but got %q", tt.lineData.CategoryID, categoryID)
 				}
 			}
 		})
 	}
 }
 
-func TestDeleteType(t *testing.T) {
+func TestDeleteLine(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -337,15 +338,15 @@ func TestDeleteType(t *testing.T) {
 		}
 	}()
 
-	// Create test category and type
+	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	lineID, err := InsertTestLine(db, "Test Line", categoryID)
 	if err != nil {
-		t.Fatalf("Failed to insert test type: %v", err)
+		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
@@ -355,7 +356,7 @@ func TestDeleteType(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          typeID,
+			id:          lineID,
 			expectError: false,
 		},
 		{
@@ -372,8 +373,8 @@ func TestDeleteType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			typeStore := store.NewTypeStore(db)
-			err := typeStore.DeleteType(tt.id)
+			lineStore := store.NewLineStore(db)
+			err := lineStore.DeleteLine(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -385,9 +386,9 @@ func TestDeleteType(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM types WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", tt.id).Scan(&count)
 				if err != nil {
-					t.Errorf("Failed to query deleted type: %v", err)
+					t.Errorf("Failed to query deleted line: %v", err)
 				}
 				if count != 0 {
 					t.Error("Expected type to be deleted, but it still exists")

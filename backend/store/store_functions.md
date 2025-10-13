@@ -2,7 +2,7 @@
 
 ## Overview
 
-The store package provides database operations for the License Management System, handling all CRUD operations and business logic for entities like companies, licenses, categories, and units.
+The store package provides database operations for the License Management System, handling all CRUD operations and business logic for entities like clients, licenses, categories, and entities.
 
 ## Components
 
@@ -24,40 +24,40 @@ Provides abstraction for database operations, allowing both real database connec
 
 ### Stores
 
-#### CompanyStore
+#### ClientStore
 
-Manages company-related database operations.
+Manages client-related database operations.
 
 **Methods:**
-- `NewCompanyStore(db DBInterface) *CompanyStore`
+- `NewClientStore(db DBInterface) *ClientStore`
   - Creates new store instance
-  
-- `CreateCompany(company domain.Company) (string, error)`
-  - Creates new company record
-  - Validates: name and CNPJ not empty
-  - Returns: UUID of created company
-  
-- `GetCompanyByID(id string) (*domain.Company, error)`
-  - Retrieves single company by ID
+
+- `CreateClient(client domain.Client) (string, error)`
+  - Creates new client record
+  - Validates: name and registration_id not empty
+  - Returns: UUID of created client
+
+- `GetClientByID(id string) (*domain.Client, error)`
+  - Retrieves single client by ID
   - Returns nil if not found
-  
-- `UpdateCompany(company domain.Company) error`
-  - Updates existing company details
-  
-- `ArchiveCompany(id string) error`
-  - Archives company (soft delete)
-  
-- `UnarchiveCompany(id string) error`
-  - Restores archived company
-  
-- `DeleteCompanyPermanently(id string) error` 
-  - Hard deletes company and related data
-  
-- `GetAllCompanies() ([]domain.Company, error)`
-  - Lists all non-archived companies
-  
-- `GetArchivedCompanies() ([]domain.Company, error)`
-  - Lists all archived companies
+
+- `UpdateClient(client domain.Client) error`
+  - Updates existing client details
+
+- `ArchiveClient(id string) error`
+  - Archives client (soft delete)
+
+- `UnarchiveClient(id string) error`
+  - Restores archived client
+
+- `DeleteClientPermanently(id string) error`
+  - Hard deletes client and related data
+
+- `GetAllClients() ([]domain.Client, error)`
+  - Lists all non-archived clients
+
+- `GetArchivedClients() ([]domain.Client, error)`
+  - Lists all archived clients
 
 #### CategoryStore
 
@@ -66,76 +66,76 @@ Manages license categories.
 **Methods:**
 - `NewCategoryStore(db DBInterface) *CategoryStore`
   - Creates new store instance
-  
-- `CreateCategory(category domain.Category) (string, error)` 
+
+- `CreateCategory(category domain.Category) (string, error)`
   - Creates new category
   - Validates: name not empty
   - Returns: UUID of created category
-  
+
 - `GetAllCategories() ([]domain.Category, error)`
   - Lists all categories
-  
+
 - `GetCategoryByID(id string) (*domain.Category, error)`
   - Retrieves single category
   - Returns nil if not found
-  
+
 - `UpdateCategory(category domain.Category) error`
   - Updates category details
-  
+
 - `DeleteCategory(id string) error`
-  - Deletes category if no types reference it
+  - Deletes category if no lines reference it
 
-#### TypeStore 
+#### LineStore
 
-Manages license types within categories.
+Manages license lines within categories.
 
 **Methods:**
-- `NewTypeStore(db DBInterface) *TypeStore`
+- `NewLineStore(db DBInterface) *LineStore`
   - Creates new store instance
-  
-- `CreateType(licensetype domain.Type) (string, error)`
-  - Creates new license type
+
+- `CreateLine(licensetype domain.Line) (string, error)`
+  - Creates new license line
   - Validates: name and categoryID not empty
-  
-- `GetTypesByCategoryID(categoryID string) ([]domain.Type, error)`
-  - Lists types in specific category
-  
-- `GetTypeByID(id string) (*domain.Type, error)`
-  - Retrieves single type
+
+- `GetLinesByCategoryID(categoryID string) ([]domain.Line, error)`
+  - Lists lines in specific category
+
+- `GetLineByID(id string) (*domain.Line, error)`
+  - Retrieves single line
   - Returns nil if not found
-  
-- `GetAllTypes() ([]domain.Type, error)`
-  - Lists all license types
-  
-- `UpdateType(licensetype domain.Type) error`
+
+- `GetAllLines() ([]domain.Line, error)`
+  - Lists all license lines
+
+- `UpdateLine(licensetype domain.Line) error`
   - Updates type details
-  
-- `DeleteType(id string) error`
+
+- `DeleteLine(id string) error`
   - Deletes type if no licenses reference it
 
-#### UnitStore
+#### EntityStore
 
-Manages company units/branches.
+Manages client entities/branches.
 
 **Methods:**
-- `NewUnitStore(db DBInterface) *UnitStore`
+- `NewEntityStore(db DBInterface) *EntityStore`
   - Creates new store instance
-  
-- `CreateUnit(unit domain.Unit) (string, error)`
-  - Creates new unit
-  - Validates: name and companyID not empty
-  
-- `GetUnitsByCompanyID(companyID string) ([]domain.Unit, error)`
-  - Lists units belonging to company
-  
-- `UpdateUnit(unit domain.Unit) error`
-  - Updates unit details
-  
-- `DeleteUnit(id string) error`
-  - Deletes unit if no licenses reference it
-  
-- `GetUnitByID(id string) (*domain.Unit, error)`
-  - Retrieves single unit
+
+- `CreateEntity(entity domain.Entity) (string, error)`
+  - Creates new entity
+  - Validates: name and clientID not empty
+
+- `GetEntitiesByClientID(clientID string) ([]domain.Entity, error)`
+  - Lists entities belonging to client
+
+- `UpdateEntity(entity domain.Entity) error`
+  - Updates entity details
+
+- `DeleteEntity(id string) error`
+  - Deletes entity if no licenses reference it
+
+- `GetEntityByID(id string) (*domain.Entity, error)`
+  - Retrieves single entity
   - Returns nil if not found
 
 #### LicenseStore
@@ -145,30 +145,30 @@ Manages software licenses.
 **Methods:**
 - `NewLicenseStore(db DBInterface) *LicenseStore`
   - Creates new store instance
-  
+
 - `CreateLicense(license domain.License) (string, error)`
   - Creates new license
   - Validates:
     - Name not empty
     - Product key not empty
-    - Type ID exists
-    - Company ID exists
+    - Line ID exists
+    - Client ID exists
     - End date after start date
-  
-- `GetLicensesByCompanyID(companyID string) ([]domain.License, error)`
-  - Lists company's active licenses
-  - Excludes archived companies
-  
+
+- `GetLicensesByClientID(clientID string) ([]domain.License, error)`
+  - Lists client's active licenses
+  - Excludes archived clients
+
 - `GetLicensesExpiringSoon(days int) ([]domain.License, error)`
   - Lists licenses expiring within days
-  
+
 - `UpdateLicense(license domain.License) error`
   - Updates license details
-  
+
 - `GetLicenseByID(id string) (*domain.License, error)`
   - Retrieves single license
   - Returns nil if not found
-  
+
 - `DeleteLicense(id string) error`
   - Deletes license record
 
@@ -181,12 +181,12 @@ Custom error type for validation failures.
 **Methods:**
 - `NewValidationError(message string) *ValidationError`
   - Creates validation error with message
-  
+
 - `Error() string`
   - Returns error message
-  
+
 - `IsValidationError(err error) bool`
-  - Checks if error is validation type
+  - Checks if error is validation line
 
 **Common Error Cases:**
 1. Not Found: Returns `sql.ErrNoRows`

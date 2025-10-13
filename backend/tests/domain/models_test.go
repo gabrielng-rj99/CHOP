@@ -7,52 +7,52 @@ import (
 	"Licenses-Manager/backend/domain"
 )
 
-func TestCompanyValidations(t *testing.T) {
-	t.Run("Valid Company", func(t *testing.T) {
-		company := domain.Company{
-			ID:   "1",
-			Name: "Test Company",
-			CNPJ: "12.345.678/0001-90",
+func TestClientValidations(t *testing.T) {
+	t.Run("Valid Client", func(t *testing.T) {
+		client := domain.Client{
+			ID:             "1",
+			Name:           "Test Client",
+			RegistrationID: "12.345.678/0001-90",
 		}
 
-		if company.Name == "" {
-			t.Error("Company name should not be empty")
+		if client.Name == "" {
+			t.Error("Client name should not be empty")
 		}
 
-		if company.CNPJ == "" {
-			t.Error("Company CNPJ should not be empty")
+		if client.RegistrationID == "" {
+			t.Error("Client registration ID should not be empty")
 		}
 	})
 
-	t.Run("Archived Company", func(t *testing.T) {
+	t.Run("Archived Client", func(t *testing.T) {
 		now := time.Now()
-		company := domain.Company{
-			ID:         "1",
-			Name:       "Test Company",
-			CNPJ:       "12.345.678/0001-90",
-			ArchivedAt: &now,
+		client := domain.Client{
+			ID:             "1",
+			Name:           "Test Client",
+			RegistrationID: "12.345.678/0001-90",
+			ArchivedAt:     &now,
 		}
 
-		if company.ArchivedAt == nil {
-			t.Error("Company should be archived")
+		if client.ArchivedAt == nil {
+			t.Error("Client should be archived")
 		}
 	})
 }
 
-func TestUnitValidations(t *testing.T) {
-	t.Run("Valid Unit", func(t *testing.T) {
-		unit := domain.Unit{
-			ID:        "1",
-			Name:      "Test Unit",
-			CompanyID: "company-1",
+func TestEntityValidations(t *testing.T) {
+	t.Run("Valid Entity", func(t *testing.T) {
+		entity := domain.Entity{
+			ID:       "1",
+			Name:     "Test Entity",
+			ClientID: "client-1",
 		}
 
-		if unit.Name == "" {
-			t.Error("Unit name should not be empty")
+		if entity.Name == "" {
+			t.Error("Entity name should not be empty")
 		}
 
-		if unit.CompanyID == "" {
-			t.Error("Unit must belong to a company")
+		if entity.ClientID == "" {
+			t.Error("Entity must belong to a client")
 		}
 	})
 }
@@ -64,24 +64,24 @@ func TestLicenseValidations(t *testing.T) {
 
 		license := domain.License{
 			ID:         "1",
-			Name:       "Test License",
+			Model:      "Test License",
 			ProductKey: "XXXX-YYYY-ZZZZ",
 			StartDate:  now,
 			EndDate:    future,
-			TypeID:     "type-1",
-			CompanyID:  "company-1",
+			LineID:     "line-1",
+			ClientID:   "client-1",
 		}
 
-		if license.Name == "" {
-			t.Error("License name should not be empty")
+		if license.Model == "" {
+			t.Error("License model should not be empty")
 		}
 
-		if license.TypeID == "" {
-			t.Error("License must have a type")
+		if license.LineID == "" {
+			t.Error("License must have a line")
 		}
 
-		if license.CompanyID == "" {
-			t.Error("License must belong to a company")
+		if license.ClientID == "" {
+			t.Error("License must belong to a client")
 		}
 
 		if license.EndDate.Before(license.StartDate) {
@@ -145,20 +145,20 @@ func TestCategoryValidations(t *testing.T) {
 	})
 }
 
-func TestTypeValidations(t *testing.T) {
-	t.Run("Valid Type", func(t *testing.T) {
-		licenseType := domain.Type{
+func TestLineValidations(t *testing.T) {
+	t.Run("Valid Line", func(t *testing.T) {
+		licenseLine := domain.Line{
 			ID:         "1",
-			Name:       "Test Type",
+			Line:       "Test Line",
 			CategoryID: "category-1",
 		}
 
-		if licenseType.Name == "" {
-			t.Error("Type name should not be empty")
+		if licenseLine.Line == "" {
+			t.Error("Line type should not be empty")
 		}
 
-		if licenseType.CategoryID == "" {
-			t.Error("Type must belong to a category")
+		if licenseLine.CategoryID == "" {
+			t.Error("Line must belong to a category")
 		}
 	})
 }

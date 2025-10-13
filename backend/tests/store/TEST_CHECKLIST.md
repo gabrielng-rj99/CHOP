@@ -37,7 +37,7 @@ Para cada novo recurso, verifique se os testes cobrem:
 - [ ] Verificação de arquivamento
 - [ ] Proteção contra deleção com dependências
 
-### Units
+### Entities
 - [ ] Vínculo com empresa existente
 - [ ] Proteção contra mudança de empresa
 - [ ] Validação de deleção segura
@@ -57,7 +57,7 @@ Para cada novo recurso, verifique se os testes cobrem:
 func TestNomeRecurso(t *testing.T) {
     tests := []struct {
         name        string
-        input       domain.Type
+        input       domain.Line
         mockDB      *MockDB
         expectError bool
         expectID    bool

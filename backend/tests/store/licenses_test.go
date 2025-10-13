@@ -9,11 +9,18 @@ import (
 )
 
 func insertTestDependencies(db *sql.DB) (string, string, string, string, error) {
-	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
 	if err != nil {
 		return "", "", "", "", err
 	}
-	unitID, err := InsertTestUnit(db, "Test Unit", companyID)
+	// Helper para inserir entidade no banco
+	entityID := "test-entity-123"
+	_, err = db.Exec(
+		"INSERT INTO entities (id, name, client_id) VALUES (?, ?, ?)",
+		entityID,
+		"Test Entity",
+		clientID,
+	)
 	if err != nil {
 		return "", "", "", "", err
 	}
@@ -21,11 +28,11 @@ func insertTestDependencies(db *sql.DB) (string, string, string, string, error) 
 	if err != nil {
 		return "", "", "", "", err
 	}
-	typeID, err := InsertTestType(db, "Test Type", categoryID)
+	lineID, err := InsertTestLine(db, "Test Line", categoryID)
 	if err != nil {
 		return "", "", "", "", err
 	}
-	return companyID, unitID, categoryID, typeID, nil
+	return clientID, entityID, categoryID, lineID, nil
 }
 
 func TestCreateLicense(t *testing.T) {
@@ -39,10 +46,12 @@ func TestCreateLicense(t *testing.T) {
 		}
 	}()
 
-	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
+
+	t.Logf("DEBUG: clientID=%s, entityID=%s, lineID=%s", clientID, entityID, lineID)
 
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
@@ -55,25 +64,26 @@ func TestCreateLicense(t *testing.T) {
 		{
 			name: "sucesso - criação normal com unidade",
 			license: domain.License{
-				Name:       "Test License",
-				ProductKey: "TEST-KEY-123",
+				Model:      "Test License",
+				ProductKey: "TEST-KEY-125",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
-				UnitID:     &unitID,
+				LineID:     lineID,
+				ClientID:   clientID,
+				EntityID:   &entityID,
 			},
 			expectError: false,
 		},
 		{
 			name: "sucesso - criação sem unidade",
 			license: domain.License{
-				Name:       "Test License 2",
+				Model:      "Test License",
 				ProductKey: "TEST-KEY-124",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
+				EntityID:   &entityID,
 			},
 			expectError: false,
 		},
@@ -83,68 +93,92 @@ func TestCreateLicense(t *testing.T) {
 				ProductKey: "TEST-KEY-125",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - chave do produto vazia",
 			license: domain.License{
-				Name:      "Test License",
+				Model:     "Test License",
 				StartDate: startDate,
 				EndDate:   endDate,
-				TypeID:    typeID,
-				CompanyID: companyID,
+				LineID:    lineID,
+				ClientID:  clientID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			license: domain.License{
-				Name:       "Test License",
+				Model:      "Test License",
 				ProductKey: "TEST-KEY-126",
 				StartDate:  endDate,
 				EndDate:    startDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
+			},
+			expectError: true,
+		},
+		{
+			name: "erro - atualização com StartDate após EndDate",
+			license: domain.License{
+				Model:      "Test License Update",
+				ProductKey: "TEST-KEY-UPDATE",
+				StartDate:  endDate.AddDate(2, 0, 0),
+				EndDate:    endDate,
+				LineID:     lineID,
+				ClientID:   clientID,
+			},
+			expectError: true,
+		},
+		{
+			name: "erro - atualização com StartDate após EndDate",
+			license: domain.License{
+				Model:      "Test License Update",
+				ProductKey: "TEST-KEY-UPDATE",
+				StartDate:  endDate.AddDate(2, 0, 0),
+				EndDate:    endDate,
+				LineID:     lineID,
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - tipo inválido",
 			license: domain.License{
-				Name:       "Test License",
+				Model:      "Test License",
 				ProductKey: "TEST-KEY-127",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     "invalid-type",
-				CompanyID:  companyID,
+				LineID:     "invalid-line",
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa inválida",
 			license: domain.License{
-				Name:       "Test License",
+				Model:      "Test License",
 				ProductKey: "TEST-KEY-128",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  "invalid-company",
+				LineID:     lineID,
+				ClientID:   "invalid-client",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - unidade inválida",
 			license: domain.License{
-				Name:       "Test License",
+				Model:      "Test License",
 				ProductKey: "TEST-KEY-129",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
-				UnitID:     stringPtr("invalid-unit"),
+				LineID:     lineID,
+				ClientID:   clientID,
+				EntityID:   stringPtr("invalid-entity"),
 			},
 			expectError: true,
 		},
@@ -156,17 +190,18 @@ func TestCreateLicense(t *testing.T) {
 				if err := ClearTables(db); err != nil {
 					t.Fatalf("Failed to clear tables: %v", err)
 				}
-				companyID, unitID, _, typeID, err = insertTestDependencies(db)
+				clientID, entityID, _, lineID, err = insertTestDependencies(db)
 				if err != nil {
 					t.Fatalf("Failed to insert test dependencies: %v", err)
 				}
-				tt.license.CompanyID = companyID
-				tt.license.TypeID = typeID
-				if tt.license.UnitID != nil {
-					tt.license.UnitID = &unitID
+				tt.license.ClientID = clientID
+				tt.license.LineID = lineID
+				if tt.license.EntityID != nil {
+					tt.license.EntityID = &entityID
 				}
 			}
 
+			t.Logf("DEBUG: Creating license with ClientID=%s, LineID=%s, EntityID=%v, Model=%s, ProductKey=%s", tt.license.ClientID, tt.license.LineID, tt.license.EntityID, tt.license.Model, tt.license.ProductKey)
 			licenseStore := store.NewLicenseStore(db)
 			id, err := licenseStore.CreateLicense(tt.license)
 
@@ -183,6 +218,97 @@ func TestCreateLicense(t *testing.T) {
 	}
 }
 
+func TestUpdateLicenseEdgeCases(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	licenseStore := store.NewLicenseStore(db)
+	license := domain.License{
+		Model:      "Edge License",
+		ProductKey: "EDGE-KEY-1",
+		StartDate:  startDate,
+		EndDate:    endDate,
+		LineID:     lineID,
+		ClientID:   clientID,
+		EntityID:   &entityID,
+	}
+	licenseID, err := licenseStore.CreateLicense(license)
+	if err != nil {
+		t.Fatalf("Failed to create license for update edge case: %v", err)
+	}
+
+	// Atualizar com datas invertidas
+	license.ID = licenseID
+	license.StartDate = endDate.AddDate(2, 0, 0)
+	license.EndDate = endDate
+	err = licenseStore.UpdateLicense(license)
+	if err == nil {
+		t.Error("Expected error when updating license with StartDate after EndDate, got none")
+	}
+
+	// Atualizar licença inexistente
+	license.ID = "non-existent-id"
+	license.StartDate = startDate
+	license.EndDate = endDate
+	licenseStore = store.NewLicenseStore(db)
+	err = licenseStore.UpdateLicense(license)
+	if err == nil {
+		t.Error("Expected error when updating non-existent license, got none")
+	}
+}
+
+func TestDeleteLicenseEdgeCases(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	licenseStore := store.NewLicenseStore(db)
+	// Tentar deletar licença inexistente
+	err = licenseStore.DeleteLicense("non-existent-id")
+	if err == nil {
+		t.Error("Expected error when deleting non-existent license, got none")
+	}
+}
+
+func TestDeleteClientEdgeCases(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	clientStore := store.NewClientStore(db)
+	// Tentar deletar empresa inexistente
+	err = clientStore.DeleteClientPermanently("non-existent-id")
+	if err == nil {
+		t.Error("Expected error when deleting non-existent client, got none")
+	}
+}
+
 func TestGetLicenseByID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
@@ -194,7 +320,7 @@ func TestGetLicenseByID(t *testing.T) {
 		}
 	}()
 
-	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
@@ -202,15 +328,15 @@ func TestGetLicenseByID(t *testing.T) {
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
 	_, err = db.Exec(
-		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		"test-license-123",
 		"Test License",
 		"TEST-KEY-123",
 		startDate,
 		endDate,
-		typeID,
-		companyID,
-		unitID,
+		lineID,
+		clientID,
+		entityID,
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)
@@ -263,7 +389,7 @@ func TestGetLicenseByID(t *testing.T) {
 	}
 }
 
-func TestGetLicensesByCompanyID(t *testing.T) {
+func TestGetLicensesByClientID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -274,7 +400,7 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 		}
 	}()
 
-	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
@@ -284,15 +410,15 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := db.Exec(
-			"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 			"test-license-"+string(rune('a'+i)),
 			"Test License "+string(rune('A'+i)),
 			"TEST-KEY-"+string(rune('a'+i)),
 			startDate,
 			endDate,
-			typeID,
-			companyID,
-			unitID,
+			lineID,
+			clientID,
+			entityID,
 		)
 		if err != nil {
 			t.Fatalf("Failed to insert test license: %v", err)
@@ -301,26 +427,26 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		companyID   string
+		clientID    string
 		expectError bool
 		expectCount int
 	}{
 		{
 			name:        "sucesso - licenças encontradas",
-			companyID:   companyID,
+			clientID:    clientID,
 			expectError: false,
 			expectCount: 3,
 		},
 		{
 			name:        "erro - empresa vazia",
-			companyID:   "",
+			clientID:    "",
 			expectError: true,
 			expectCount: 0,
 		},
 		{
-			name:        "sucesso - empresa sem licenças",
-			companyID:   "non-existent-company",
-			expectError: false,
+			name:        "erro - empresa não existe",
+			clientID:    "non-existent-client",
+			expectError: true,
 			expectCount: 0,
 		},
 	}
@@ -328,7 +454,7 @@ func TestGetLicensesByCompanyID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			licenseStore := store.NewLicenseStore(db)
-			licenses, err := licenseStore.GetLicensesByCompanyID(tt.companyID)
+			licenses, err := licenseStore.GetLicensesByClientID(tt.clientID)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -354,7 +480,7 @@ func TestUpdateLicense(t *testing.T) {
 		}
 	}()
 
-	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
@@ -363,15 +489,15 @@ func TestUpdateLicense(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	licenseID := "test-license-123"
 	_, err = db.Exec(
-		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		licenseID,
 		"Test License",
 		"TEST-KEY-123",
 		startDate,
 		endDate,
-		typeID,
-		companyID,
-		unitID,
+		lineID,
+		clientID,
+		entityID,
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)
@@ -386,25 +512,25 @@ func TestUpdateLicense(t *testing.T) {
 			name: "sucesso - atualização normal",
 			license: domain.License{
 				ID:         licenseID,
-				Name:       "Updated License",
+				Model:      "Updated License",
 				ProductKey: "TEST-KEY-123",
 				StartDate:  startDate,
 				EndDate:    endDate.AddDate(1, 0, 0),
-				TypeID:     typeID,
-				CompanyID:  companyID,
-				UnitID:     &unitID,
+				LineID:     lineID,
+				ClientID:   clientID,
+				EntityID:   &entityID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - id vazio",
 			license: domain.License{
-				Name:       "Updated License",
+				Model:      "Updated License",
 				ProductKey: "TEST-KEY-123",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
@@ -415,8 +541,8 @@ func TestUpdateLicense(t *testing.T) {
 				ProductKey: "TEST-KEY-123",
 				StartDate:  startDate,
 				EndDate:    endDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
@@ -424,12 +550,12 @@ func TestUpdateLicense(t *testing.T) {
 			name: "erro - data final antes da inicial",
 			license: domain.License{
 				ID:         licenseID,
-				Name:       "Updated License",
+				Model:      "Updated License",
 				ProductKey: "TEST-KEY-123",
 				StartDate:  endDate,
 				EndDate:    startDate,
-				TypeID:     typeID,
-				CompanyID:  companyID,
+				LineID:     lineID,
+				ClientID:   clientID,
 			},
 			expectError: true,
 		},
@@ -453,8 +579,8 @@ func TestUpdateLicense(t *testing.T) {
 				if err != nil {
 					t.Errorf("Failed to query updated license: %v", err)
 				}
-				if name != tt.license.Name {
-					t.Errorf("Expected name %q but got %q", tt.license.Name, name)
+				if name != tt.license.Model {
+					t.Errorf("Expected name %q but got %q", tt.license.Model, name)
 				}
 			}
 		})
@@ -472,7 +598,7 @@ func TestDeleteLicense(t *testing.T) {
 		}
 	}()
 
-	companyID, unitID, _, typeID, err := insertTestDependencies(db)
+	clientID, entityID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
@@ -481,15 +607,15 @@ func TestDeleteLicense(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	licenseID := "test-license-123"
 	_, err = db.Exec(
-		"INSERT INTO licenses (id, name, product_key, start_date, end_date, type_id, company_id, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		licenseID,
 		"Test License",
 		"TEST-KEY-123",
 		startDate,
 		endDate,
-		typeID,
-		companyID,
-		unitID,
+		lineID,
+		clientID,
+		entityID,
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)

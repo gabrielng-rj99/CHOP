@@ -11,13 +11,25 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const DBPath = "./licenses.db"
+func getDBPath() string {
+	// Descobre o diretório do arquivo atual (database.go)
+	_, b, _, _ := runtime.Caller(0)
+	basePath := filepath.Dir(b)
+	return filepath.Join(basePath, "licenses.db")
+}
 
 func ConnectDB() (*sql.DB, error) {
-	_, err := os.Stat(DBPath)
+	dbPath := getDBPath()
+	// Garante que o diretório database existe
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+
+	_, err := os.Stat(dbPath)
 	dbExists := !os.IsNotExist(err)
 
-	dsn := DBPath + "?_loc=auto"
+	dsn := dbPath + "?_loc=auto"
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/store/type_store.go
+// Licenses-Manager/backend/store/line_store.go
 
 package store
 
@@ -10,29 +10,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// TypeStore é a nossa "caixa de ferramentas" para operações com a tabela types.
-type TypeStore struct {
+// LineStore é a nossa "caixa de ferramentas" para operações com a tabela lines.
+type LineStore struct {
 	db DBInterface
 }
 
-// NewTypeStore cria uma nova instância de TypeStore.
-func NewTypeStore(db DBInterface) *TypeStore {
-	return &TypeStore{
+// NewLineStore cria uma nova instância de LineStore.
+func NewLineStore(db DBInterface) *LineStore {
+	return &LineStore{
 		db: db,
 	}
 }
 
-// CreateType insere um novo tipo de licença no banco, associado a uma categoria.
-func (s *TypeStore) CreateType(licensetype domain.Type) (string, error) {
-	if licensetype.Name == "" {
-		return "", sql.ErrNoRows // Or use errors.New("type name cannot be empty")
+// CreateLine insere um novo tipo de licença no banco, associado a uma categoria.
+func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
+	if licenseline.Line == "" {
+		return "", sql.ErrNoRows // Or use errors.New("type cannot be empty")
 	}
-	if licensetype.CategoryID == "" {
+	if licenseline.CategoryID == "" {
 		return "", sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licensetype.CategoryID).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -40,9 +40,9 @@ func (s *TypeStore) CreateType(licensetype domain.Type) (string, error) {
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO types (id, name, category_id) VALUES (?, ?, ?)`
+	sqlStatement := `INSERT INTO lines (id, name, category_id) VALUES (?, ?, ?)`
 
-	_, err = s.db.Exec(sqlStatement, newID, licensetype.Name, licensetype.CategoryID)
+	_, err = s.db.Exec(sqlStatement, newID, licenseline.Line, licenseline.CategoryID)
 	if err != nil {
 		return "", err
 	}
@@ -50,8 +50,8 @@ func (s *TypeStore) CreateType(licensetype domain.Type) (string, error) {
 	return newID, nil
 }
 
-// GetTypesByCategoryID busca TODOS os tipos de uma categoria específica.
-func (s *TypeStore) GetTypesByCategoryID(categoryID string) (types []domain.Type, err error) {
+// GetLinesByCategoryID busca TODOS os tipos de uma categoria específica.
+func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line, err error) {
 	if categoryID == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
@@ -62,10 +62,10 @@ func (s *TypeStore) GetTypesByCategoryID(categoryID string) (types []domain.Type
 		return nil, err
 	}
 	if count == 0 {
-		return nil, nil // No types for non-existent category
+		return nil, nil // No lines for non-existent category
 	}
 
-	sqlStatement := `SELECT id, name, category_id FROM types WHERE category_id = ?`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE category_id = ?`
 
 	rows, err := s.db.Query(sqlStatement, categoryID)
 	if err != nil {
@@ -78,33 +78,33 @@ func (s *TypeStore) GetTypesByCategoryID(categoryID string) (types []domain.Type
 		}
 	}()
 
-	types = []domain.Type{}
+	lines = []domain.Line{}
 	for rows.Next() {
-		var t domain.Type // 'type' é uma palavra reservada, então usamos 't'
-		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID); err != nil {
+		var t domain.Line // 'line' é uma palavra reservada, então usamos 't'
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
 			return nil, err
 		}
-		types = append(types, t)
+		lines = append(lines, t)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return types, nil
+	return lines, nil
 }
 
-// GetTypeByID busca um tipo específico pelo seu ID
-func (s *TypeStore) GetTypeByID(id string) (*domain.Type, error) {
+// GetLineByID busca um tipo específico pelo seu ID
+func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM types WHERE id = ?`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE id = ?`
 
-	var t domain.Type
+	var t domain.Line
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&t.ID,
-		&t.Name,
+		&t.Line,
 		&t.CategoryID,
 	)
 
@@ -118,9 +118,9 @@ func (s *TypeStore) GetTypeByID(id string) (*domain.Type, error) {
 	return &t, nil
 }
 
-// GetAllTypes busca todos os tipos de licença
-func (s *TypeStore) GetAllTypes() (types []domain.Type, err error) {
-	sqlStatement := `SELECT id, name, category_id FROM types`
+// GetAllLines busca todos os tipos de licença
+func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
+	sqlStatement := `SELECT id, name, category_id FROM lines`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -133,43 +133,43 @@ func (s *TypeStore) GetAllTypes() (types []domain.Type, err error) {
 		}
 	}()
 
-	types = []domain.Type{}
+	lines = []domain.Line{}
 	for rows.Next() {
-		var t domain.Type
-		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID); err != nil {
+		var t domain.Line
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
 			return nil, err
 		}
-		types = append(types, t)
+		lines = append(lines, t)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return types, nil
+	return lines, nil
 }
 
-func (s *TypeStore) UpdateType(licensetype domain.Type) error {
-	if licensetype.ID == "" {
+func (s *LineStore) UpdateLine(licenseline domain.Line) error {
+	if licenseline.ID == "" {
 		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	if licensetype.Name == "" {
-		return sql.ErrNoRows // Or use errors.New("type name cannot be empty")
+	if licenseline.Line == "" {
+		return sql.ErrNoRows // Or use errors.New("type cannot be empty")
 	}
-	if licensetype.CategoryID == "" {
+	if licenseline.CategoryID == "" {
 		return sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licensetype.CategoryID).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
-	sqlStatement := `UPDATE types SET name = ?, category_id = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, licensetype.Name, licensetype.CategoryID, licensetype.ID)
+	sqlStatement := `UPDATE lines SET name = ?, category_id = ? WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, licenseline.Line, licenseline.CategoryID, licenseline.ID)
 	if err != nil {
 		return err
 	}
@@ -183,20 +183,20 @@ func (s *TypeStore) UpdateType(licensetype domain.Type) error {
 	return nil
 }
 
-func (s *TypeStore) DeleteType(id string) error {
+func (s *LineStore) DeleteLine(id string) error {
 	if id == "" {
 		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
 	// Check if type exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM types WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", id).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("type does not exist")
 	}
-	sqlStatement := `DELETE FROM types WHERE id = ?`
+	sqlStatement := `DELETE FROM lines WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err

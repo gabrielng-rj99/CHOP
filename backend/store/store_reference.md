@@ -6,43 +6,43 @@ The store package implements database operations and business rules for the Lice
 
 ## Database Relationships & Constraints
 
-### Companies
-- Primary entity that owns licenses and units
-- Each company must have:
-  - Unique CNPJ
+### Clients
+- Primary entity that owns licenses and entities
+- Each client must have:
+  - Unique registration_id
   - Non-empty name
   - Creation date (auto-generated)
 - Optional archived_at timestamp for soft deletion
 - **Cascade Effects**:
-  - Deleting a company will delete all its:
-    - Units
+  - Deleting a client will delete all its:
+    - Entities
     - Licenses
     - Related data
 
-### Units (Company Branches)
+### Entities (Client Branches)
 - Represents physical locations or departments
 - **Required Relationships**:
-  - Must belong to an existing company (foreign key: company_id)
+  - Must belong to an existing client (foreign key: client_id)
 - **Constraints**:
-  - Cannot exist without a company
+  - Cannot exist without a client
   - Must have a non-empty name
-  - Name should be unique within the same company
+  - Name should be unique within the same client
 - **Cascade Effects**:
-  - When a unit is deleted:
-    - Associated licenses are updated to remove unit reference (unit_id set to NULL)
-    - Does not affect parent company
+  - When a entity is deleted:
+    - Associated licenses are updated to remove entity reference (entity_id set to NULL)
+    - Does not affect parent client
 
 ### Categories
-- Classifies license types
+- Classifies license lines
 - **Constraints**:
   - Must have unique name
-  - Cannot be deleted if has types associated
+  - Cannot be deleted if has lines associated
 - **Validations**:
   - Name cannot be empty
   - Name must be unique (case-insensitive)
 
-### Types
-- Defines specific license types within categories
+### Lines
+- Defines specific license lines within categories
 - **Required Relationships**:
   - Must belong to a category (foreign key: category_id)
 - **Constraints**:
@@ -57,44 +57,44 @@ The store package implements database operations and business rules for the Lice
 ### Licenses
 - Core entity representing software licenses
 - **Required Relationships**:
-  - Must belong to a company (foreign key: company_id)
-  - Must have a type (foreign key: type_id)
+  - Must belong to a client (foreign key: client_id)
+  - Must have a type (foreign key: line_id)
 - **Optional Relationships**:
-  - Can be assigned to a unit (foreign key: unit_id, nullable)
+  - Can be assigned to a entity (foreign key: entity_id, nullable)
 - **Constraints**:
-  - Cannot exist without a company
-  - Cannot exist without a type
+  - Cannot exist without a client
+  - Cannot exist without a line
   - End date must be after start date
-  - Cannot be assigned to archived companies
+  - Cannot be assigned to archived clients
 - **Validations**:
   - Name cannot be empty
   - Product key cannot be empty
   - Start date must be valid
   - End date must be valid and after start date
-  - Company ID must exist
-  - Type ID must exist
-  - Unit ID (if provided) must exist
+  - Client ID must exist
+  - Line ID must exist
+  - Entity ID (if provided) must exist
 
 ## Business Rules
 
-### Company Management
+### Client Management
 1. **Archiving**:
-   - Archived companies:
+   - Archived clients:
      - Cannot receive new licenses
      - Existing licenses become inactive
-     - Units remain but are considered inactive
+     - Entities remain but are considered inactive
    - Can be unarchived to restore operations
 2. **Deletion**:
    - Permanent deletion requires:
-     - Company to be archived first
+     - Client to be archived first
      - Manual confirmation
      - Administrative privileges
 
 ### License Management
 1. **Assignment Rules**:
    - Licenses can be:
-     - Company-wide (no unit_id)
-     - Unit-specific (has unit_id)
+     - Client-wide (no entity_id)
+     - Entity-specific (has entity_id)
    - Cannot be assigned to archived companies
 2. **Expiration Handling**:
    - System tracks:
@@ -106,25 +106,25 @@ The store package implements database operations and business rules for the Lice
    - Expiring Soon: Within 30 days of end_date
    - Expired: Current date past end_date
 
-### Unit Management
-1. **Unit Operations**:
-   - Units can only be managed if company is active
-   - Unit deletion requires:
+### Entity Management
+1. **Entity Operations**:
+   - Entities can only be managed if client is active
+   - Entity deletion requires:
      - No active licenses assigned
      - Administrative confirmation
 2. **License Association**:
-   - Units can have multiple licenses
-   - Licenses can be transferred between units
-   - Unit deletion unassigns licenses (not deletes)
+   - Entities can have multiple licenses
+   - Licenses can be transferred between entities
+   - Entity deletion unassigns licenses (not deletes)
 
-### Category and Type Management
+### Category and Line Management
 1. **Category Operations**:
-   - Categories can only be deleted if no types exist
+   - Categories can only be deleted if no lines exist
    - Category names must be unique
-2. **Type Operations**:
-   - Types can only be deleted if no licenses exist
-   - Type names must be unique within category
-   - Moving types between categories is not allowed
+2. **Line Operations**:
+   - Lines can only be deleted if no licenses exist
+   - Line names must be unique within category
+   - Moving lines between categories is not allowed
 
 ## Validation Rules
 
@@ -136,22 +136,22 @@ The store package implements database operations and business rules for the Lice
 
 ### Specific Entity Validations
 
-#### Company
+#### Client
 ```go
-type Company struct {
+type Client struct {
     ID         string     // UUID, required
     Name       string     // Required, 1-255 chars
-    CNPJ       string     // Required, valid format XX.XXX.XXX/XXXX-XX
+    RegistrationID string // Required, valid format for country-specific registration
     ArchivedAt *time.Time // Optional, must be valid timestamp if present
 }
 ```
 
-#### Unit
+#### Entity
 ```go
-type Unit struct {
+type Entity struct {
     ID        string // UUID, required
     Name      string // Required, 1-255 chars
-    CompanyID string // Required, must exist in companies table
+    ClientID string // Required, must exist in companies table
 }
 ```
 
@@ -163,9 +163,9 @@ type Category struct {
 }
 ```
 
-#### Type
+#### Line
 ```go
-type Type struct {
+type Line struct {
     ID         string // UUID, required
     Name       string // Required, 1-255 chars, unique in category
     CategoryID string // Required, must exist in categories table
@@ -180,15 +180,15 @@ type License struct {
     ProductKey string    // Required, 1-255 chars
     StartDate  time.Time // Required, valid date
     EndDate    time.Time // Required, valid date > StartDate
-    TypeID     string    // Required, must exist in types table
-    CompanyID  string    // Required, must exist in companies table
-    UnitID     *string   // Optional, must exist in units table if present
+    LineID     string    // Required, must exist in lines table
+    ClientID  string    // Required, must exist in companies table
+    EntityID   *string   // Optional, must exist in entities table if present
 }
 ```
 
 ## Error Handling
 
-### Common Error Types
+### Common Error Lines
 1. **ValidationError**
    - Invalid input data
    - Missing required fields
@@ -205,7 +205,7 @@ type License struct {
 
 ### Error Responses
 - All errors include:
-  - Error type
+  - Error line
   - Descriptive message
   - Additional context when relevant
 - Validation errors specify:
@@ -230,7 +230,7 @@ type License struct {
 5. Validate date ranges and timestamps
 
 ### Error Handling
-1. Return specific error types
+1. Return specific error lines
 2. Include context in error messages
 3. Log detailed error information
 4. Handle transaction rollbacks

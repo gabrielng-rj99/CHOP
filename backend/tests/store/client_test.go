@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func setupCompanyTest(t *testing.T) *sql.DB {
+func setupClientTest(t *testing.T) *sql.DB {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -16,44 +16,44 @@ func setupCompanyTest(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestCreateCompany(t *testing.T) {
-	db := setupCompanyTest(t)
+func TestCreateClient(t *testing.T) {
+	db := setupClientTest(t)
 	defer CloseDB(db)
 
 	tests := []struct {
 		name        string
-		company     domain.Company
+		client      domain.Client
 		expectError bool
 	}{
 		{
 			name: "sucesso - criação normal",
-			company: domain.Company{
-				Name: "Test Company",
-				CNPJ: "12.345.678/0001-90",
+			client: domain.Client{
+				Name:           "Test Client",
+				RegistrationID: "45.723.174/0001-10",
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - CNPJ duplicado",
-			company: domain.Company{
-				Name: "Another Company",
-				CNPJ: "12.345.678/0001-90",
+			client: domain.Client{
+				Name:           "Another Client",
+				RegistrationID: "45.723.174/0001-10",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - CNPJ vazio",
-			company: domain.Company{
-				Name: "Test Company",
-				CNPJ: "",
+			client: domain.Client{
+				Name:           "Test Client",
+				RegistrationID: "",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
-			company: domain.Company{
-				Name: "",
-				CNPJ: "12.345.678/0001-91",
+			client: domain.Client{
+				Name:           "",
+				RegistrationID: "45.723.174/0001-10",
 			},
 			expectError: true,
 		},
@@ -65,20 +65,20 @@ func TestCreateCompany(t *testing.T) {
 				t.Fatalf("Failed to clear tables: %v", err)
 			}
 
-			companyStore := store.NewCompanyStore(db)
+			clientStore := store.NewClientStore(db)
 
-			// Insert the first company for the duplicate test
+			// Insert the first client for the duplicate test
 			if tt.name == "erro - CNPJ duplicado" {
-				_, err := companyStore.CreateCompany(domain.Company{
-					Name: "Test Company",
-					CNPJ: "12.345.678/0001-90",
+				_, err := clientStore.CreateClient(domain.Client{
+					Name:           "Test Client",
+					RegistrationID: "45.723.174/0001-10",
 				})
 				if err != nil {
-					t.Fatalf("Failed to insert company for duplicate test: %v", err)
+					t.Fatalf("Failed to insert client for duplicate test: %v", err)
 				}
 			}
 
-			id, err := companyStore.CreateCompany(tt.company)
+			id, err := clientStore.CreateClient(tt.client)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -93,14 +93,14 @@ func TestCreateCompany(t *testing.T) {
 	}
 }
 
-func TestGetCompanyByID(t *testing.T) {
-	db := setupCompanyTest(t)
+func TestGetClientByID(t *testing.T) {
+	db := setupClientTest(t)
 	defer CloseDB(db)
 
-	// Insert test company
-	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	// Insert test client
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
-		t.Fatalf("Failed to insert test company: %v", err)
+		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
 	tests := []struct {
@@ -111,7 +111,7 @@ func TestGetCompanyByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - empresa encontrada",
-			id:          companyID,
+			id:          clientID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -131,8 +131,8 @@ func TestGetCompanyByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(db)
-			company, err := companyStore.GetCompanyByID(tt.id)
+			clientStore := store.NewClientStore(db)
+			client, err := clientStore.GetClientByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -140,24 +140,24 @@ func TestGetCompanyByID(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if tt.expectFound && company == nil {
-				t.Error("Expected company but got nil")
+			if tt.expectFound && client == nil {
+				t.Error("Expected client but got nil")
 			}
-			if !tt.expectFound && company != nil {
-				t.Error("Expected no company but got one")
+			if !tt.expectFound && client != nil {
+				t.Error("Expected no client but got one")
 			}
 		})
 	}
 }
 
-func TestArchiveCompany(t *testing.T) {
-	db := setupCompanyTest(t)
+func TestArchiveClient(t *testing.T) {
+	db := setupClientTest(t)
 	defer CloseDB(db)
 
-	// Insert test company
-	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	// Insert test client
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
-		t.Fatalf("Failed to insert test company: %v", err)
+		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
 	tests := []struct {
@@ -167,7 +167,7 @@ func TestArchiveCompany(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - arquivamento normal",
-			id:          companyID,
+			id:          clientID,
 			expectError: false,
 		},
 		{
@@ -184,8 +184,8 @@ func TestArchiveCompany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(db)
-			err := companyStore.ArchiveCompany(tt.id)
+			clientStore := store.NewClientStore(db)
+			err := clientStore.ArchiveClient(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -195,11 +195,11 @@ func TestArchiveCompany(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verify company was archived
+				// Verify client was archived
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM companies WHERE id = ?", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = ?", tt.id).Scan(&archivedAt)
 				if err != nil {
-					t.Errorf("Failed to query archived company: %v", err)
+					t.Errorf("Failed to query archived client: %v", err)
 				}
 				if archivedAt == nil {
 					t.Error("Expected archived_at to be set, but it was nil")
@@ -209,19 +209,19 @@ func TestArchiveCompany(t *testing.T) {
 	}
 }
 
-func TestUnarchiveCompany(t *testing.T) {
-	db := setupCompanyTest(t)
+func TestUnarchiveClient(t *testing.T) {
+	db := setupClientTest(t)
 	defer CloseDB(db)
 
-	// Insert and archive test company
-	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	// Insert and archive test client
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
-		t.Fatalf("Failed to insert test company: %v", err)
+		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	_, err = db.Exec("UPDATE companies SET archived_at = ? WHERE id = ?", time.Now(), companyID)
+	_, err = db.Exec("UPDATE clients SET archived_at = ? WHERE id = ?", time.Now(), clientID)
 	if err != nil {
-		t.Fatalf("Failed to archive test company: %v", err)
+		t.Fatalf("Failed to archive test client: %v", err)
 	}
 
 	tests := []struct {
@@ -231,7 +231,7 @@ func TestUnarchiveCompany(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - desarquivamento normal",
-			id:          companyID,
+			id:          clientID,
 			expectError: false,
 		},
 		{
@@ -248,8 +248,8 @@ func TestUnarchiveCompany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(db)
-			err := companyStore.UnarchiveCompany(tt.id)
+			clientStore := store.NewClientStore(db)
+			err := clientStore.UnarchiveClient(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -259,11 +259,11 @@ func TestUnarchiveCompany(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verify company was unarchived
+				// Verify client was unarchived
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM companies WHERE id = ?", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = ?", tt.id).Scan(&archivedAt)
 				if err != nil {
-					t.Errorf("Failed to query unarchived company: %v", err)
+					t.Errorf("Failed to query unarchived client: %v", err)
 				}
 				if archivedAt != nil {
 					t.Error("Expected archived_at to be nil after unarchiving")
@@ -273,14 +273,14 @@ func TestUnarchiveCompany(t *testing.T) {
 	}
 }
 
-func TestDeleteCompanyPermanently(t *testing.T) {
-	db := setupCompanyTest(t)
+func TestDeleteClientPermanently(t *testing.T) {
+	db := setupClientTest(t)
 	defer CloseDB(db)
 
-	// Insert test company
-	companyID, err := InsertTestCompany(db, "Test Company", "12.345.678/0001-90")
+	// Insert test client
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
-		t.Fatalf("Failed to insert test company: %v", err)
+		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
 	tests := []struct {
@@ -290,7 +290,7 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          companyID,
+			id:          clientID,
 			expectError: false,
 		},
 		{
@@ -307,8 +307,8 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			companyStore := store.NewCompanyStore(db)
-			err := companyStore.DeleteCompanyPermanently(tt.id)
+			clientStore := store.NewClientStore(db)
+			err := clientStore.DeleteClientPermanently(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -318,14 +318,14 @@ func TestDeleteCompanyPermanently(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				// Verify company was deleted
+				// Verify client was deleted
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM companies WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", tt.id).Scan(&count)
 				if err != nil {
-					t.Errorf("Failed to query deleted company: %v", err)
+					t.Errorf("Failed to query deleted client: %v", err)
 				}
 				if count != 0 {
-					t.Error("Expected company to be deleted, but it still exists")
+					t.Error("Expected client to be deleted, but it still exists")
 				}
 			}
 		})

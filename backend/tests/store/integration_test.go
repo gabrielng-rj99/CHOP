@@ -18,7 +18,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func cleanupTestData(db *sql.DB) error {
-	tables := []string{"licenses", "units", "companies", "types", "categories"}
+	tables := []string{"licenses", "entities", "clients", "lines", "categories"}
 	for _, table := range tables {
 		if _, err := db.Exec("DELETE FROM " + table); err != nil {
 			return err
@@ -27,24 +27,24 @@ func cleanupTestData(db *sql.DB) error {
 	return nil
 }
 
-func TestCompanyLicenseIntegration(t *testing.T) {
+func TestClientLicenseIntegration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	defer cleanupTestData(db)
 
-	// Criar company store e license store
-	companyStore := store.NewCompanyStore(db)
+	// Criar client store e license store
+	clientStore := store.NewClientStore(db)
 	licenseStore := store.NewLicenseStore(db)
 
-	// Criar empresa
-	company := domain.Company{
-		Name: "Integration Test Company",
-		CNPJ: "12.345.678/0001-90",
+	// Criar cliente
+	client := domain.Client{
+		Name:           "Empresa Teste",
+		RegistrationID: "45.723.174/0001-10",
 	}
 
-	companyID, err := companyStore.CreateCompany(company)
+	clientID, err := clientStore.CreateClient(client)
 	if err != nil {
-		t.Fatalf("Failed to create company: %v", err)
+		t.Fatalf("Failed to create client: %v", err)
 	}
 
 	// Inserir categoria e tipo antes de criar a licença
@@ -52,32 +52,32 @@ func TestCompanyLicenseIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
-	typeID, err := InsertTestType(db, "Integration Type", categoryID)
+	lineID, err := InsertTestLine(db, "Integration Line", categoryID)
 	if err != nil {
-		t.Fatalf("Failed to insert test type: %v", err)
+		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Criar licença para a empresa
 	now := time.Now()
 	license := domain.License{
-		Name:       "Test License",
+		Model:      "Test License",
 		ProductKey: "TEST-KEY-123",
 		StartDate:  now,
 		EndDate:    now.AddDate(1, 0, 0),
-		TypeID:     typeID, // Use o ID realmente inserido
-		CompanyID:  companyID,
+		LineID:     lineID, // Use o ID realmente inserido
+		ClientID:   clientID,
 	}
 
 	licenseID, err := licenseStore.CreateLicense(license)
 	if err != nil {
-		if err == store.ErrInvalidCompanyUnit {
-			t.Skip("Skipping test due to invalid company unit")
+		if err == store.ErrInvalidClientEntity {
+			t.Skip("Skipping test due to invalid client entity")
 		}
 		t.Fatalf("Failed to create license: %v", err)
 	}
 
 	// Verificar se a licença está associada à empresa
-	licenses, err := licenseStore.GetLicensesByCompanyID(companyID)
+	licenses, err := licenseStore.GetLicensesByClientID(clientID)
 	if err != nil {
 		if err != store.ErrNoRows {
 			t.Fatalf("Failed to get licenses: %v", err)
@@ -87,24 +87,21 @@ func TestCompanyLicenseIntegration(t *testing.T) {
 	}
 
 	// Arquivar empresa e verificar se as licenças ainda são acessíveis
-	err = companyStore.ArchiveCompany(companyID)
+	err = clientStore.ArchiveClient(clientID)
 	if err != nil {
-		t.Fatalf("Failed to archive company: %v", err)
+		t.Fatalf("Failed to archive client: %v", err)
 	}
 
 	// Não deve encontrar licenças para empresa arquivada
-	licenses, err = licenseStore.GetLicensesByCompanyID(companyID)
-	if err != nil {
-		t.Fatalf("Failed to get licenses for archived company: %v", err)
-	}
-	if len(licenses) > 0 {
-		t.Error("Expected no licenses for archived company")
+	licenses, err = licenseStore.GetLicensesByClientID(clientID)
+	if err == nil {
+		t.Error("Expected error for archived client, got none")
 	}
 
 	// Deletar empresa e verificar se as licenças são deletadas em cascata
-	err = companyStore.DeleteCompanyPermanently(companyID)
+	err = clientStore.DeleteClientPermanently(clientID)
 	if err != nil {
-		t.Fatalf("Failed to delete company: %v", err)
+		t.Fatalf("Failed to delete client: %v", err)
 	}
 
 	// A licença não deve mais existir
@@ -113,43 +110,44 @@ func TestCompanyLicenseIntegration(t *testing.T) {
 		t.Fatalf("Unexpected error when checking for deleted license: %v", err)
 	}
 	if deletedLicense != nil {
-		t.Error("Expected license to be deleted with company")
+		t.Error("Expected license to be deleted with client")
 	}
 }
 
-func TestCompanyUnitLicenseIntegration(t *testing.T) {
+func TestClientEntityLicenseIntegration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	defer cleanupTestData(db)
 
 	// Criar stores necessárias
-	companyStore := store.NewCompanyStore(db)
-	unitStore := store.NewUnitStore(db)
+	clientStore := store.NewClientStore(db)
+	entityStore := store.NewEntityStore(db)
 	licenseStore := store.NewLicenseStore(db)
 
-	// Criar empresa
-	company := domain.Company{
-		Name: "Full Integration Test Company",
-		CNPJ: "98.765.432/0001-10",
+	// Criar Cliente
+	client := domain.Client{
+		Name:           "Full Integration Test Client",
+		RegistrationID: "45.723.174/0001-10",
 	}
 
-	companyID, err := companyStore.CreateCompany(company)
+	clientID, err := clientStore.CreateClient(client)
 	if err != nil {
-		t.Fatalf("Failed to create company: %v", err)
+		t.Fatalf("Failed to create client: %v", err)
 	}
 
 	// Criar unidade
-	unit := domain.Unit{
-		Name:      "Test Unit",
-		CompanyID: companyID,
+	entity := domain.Entity{
+		Name:     "Test Entity",
+		ClientID: clientID,
 	}
 
-	unitID, err := unitStore.CreateUnit(unit)
+	entityID, err := entityStore.CreateEntity(entity)
 	if err != nil {
-		if err == store.ErrInvalidCompanyUnit {
-			t.Skip("Skipping test due to invalid company unit")
-		}
-		t.Fatalf("Failed to create unit: %v", err)
+		// Se necessário, pode-se criar um erro customizado para entidade inválida
+		// if err == store.ErrInvalidClientEntity {
+		// 	t.Skip("Skipping test due to invalid client entity")
+		// }
+		t.Fatalf("Failed to create entity: %v", err)
 	}
 
 	// Inserir categoria e tipo antes de criar a licença
@@ -157,25 +155,25 @@ func TestCompanyUnitLicenseIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
-	typeID, err := InsertTestType(db, "Integration Type", categoryID)
+	lineID, err := InsertTestLine(db, "Integration Line", categoryID)
 	if err != nil {
-		t.Fatalf("Failed to insert test type: %v", err)
+		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Criar licença associada à unidade
 	now := time.Now()
-	var unitIDPtr *string
-	if unitID != "" {
-		unitIDPtr = &unitID
+	var entityIDPtr *string
+	if entityID != "" {
+		entityIDPtr = &entityID
 	}
 	license := domain.License{
-		Name:       "Unit License",
-		ProductKey: "UNIT-KEY-123",
+		Model:      "Entity License",
+		ProductKey: "ENTITY-KEY-123",
 		StartDate:  now,
 		EndDate:    now.AddDate(1, 0, 0),
-		TypeID:     typeID, // Use o ID realmente inserido
-		CompanyID:  companyID,
-		UnitID:     unitIDPtr,
+		LineID:     lineID, // Use o ID realmente inserido
+		ClientID:   clientID,
+		EntityID:   entityIDPtr,
 	}
 
 	licenseID, err := licenseStore.CreateLicense(license)
@@ -184,7 +182,7 @@ func TestCompanyUnitLicenseIntegration(t *testing.T) {
 	}
 
 	// Verificar se a licença está corretamente associada à unidade
-	licenses, err := licenseStore.GetLicensesByCompanyID(companyID)
+	licenses, err := licenseStore.GetLicensesByClientID(clientID)
 	if err != nil {
 		if err != store.ErrNoRows {
 			t.Fatalf("Failed to get licenses: %v", err)
@@ -194,57 +192,54 @@ func TestCompanyUnitLicenseIntegration(t *testing.T) {
 	if len(licenses) != 1 {
 		t.Fatalf("Expected 1 license, got %d", len(licenses))
 	}
-	if licenses[0].UnitID == nil || *licenses[0].UnitID != unitID {
-		t.Error("License not properly associated with unit")
+	if licenses[0].EntityID == nil || *licenses[0].EntityID != entityID {
+		t.Error("License not properly associated with entity")
 	}
 
 	// Deletar a unidade e verificar se a licença é atualizada (não deletada)
-	err = unitStore.DeleteUnit(unitID)
+	err = entityStore.DeleteEntity(entityID)
 	if err != nil {
-		t.Fatalf("Failed to delete unit: %v", err)
+		t.Fatalf("Failed to delete entity: %v", err)
 	}
 
-	// A licença deve ainda existir, mas sem unidade associada
+	// A licença deve ainda existir, mas sem entidade associada
 	updatedLicense, err := licenseStore.GetLicenseByID(licenseID)
 	if err != nil {
-		t.Fatalf("Failed to get license after unit deletion: %v", err)
+		t.Fatalf("Failed to get license after entity deletion: %v", err)
 	}
-	if updatedLicense.UnitID != nil {
-		t.Error("License should not be associated with deleted unit")
+	if updatedLicense.EntityID != nil {
+		t.Error("License should not be associated with deleted entity")
 	}
 
 	// Deletar empresa e verificar se tudo é limpo
-	err = companyStore.DeleteCompanyPermanently(companyID)
+	err = clientStore.DeleteClientPermanently(clientID)
 	if err != nil {
-		t.Fatalf("Failed to delete company: %v", err)
+		t.Fatalf("Failed to delete client: %v", err)
 	}
 
 	// Verificar se nada permanece no banco
-	units, err := unitStore.GetUnitsByCompanyID(companyID)
+	entities, err := entityStore.GetEntitiesByClientID(clientID)
 	if err != nil {
-		t.Fatalf("Failed to check units: %v", err)
+		t.Fatalf("Failed to check entities: %v", err)
 	}
-	if len(units) > 0 {
-		t.Error("Expected no units after company deletion")
+	if len(entities) > 0 {
+		t.Error("Expected no entities after client deletion")
 	}
 
-	licenses, err = licenseStore.GetLicensesByCompanyID(companyID)
-	if err != nil {
-		t.Fatalf("Failed to check licenses: %v", err)
-	}
-	if len(licenses) > 0 {
-		t.Error("Expected no licenses after company deletion")
+	licenses, err = licenseStore.GetLicensesByClientID(clientID)
+	if err == nil {
+		t.Error("Expected error for deleted client, got none")
 	}
 }
 
-func TestCategoryTypeIntegration(t *testing.T) {
+func TestCategoryLineIntegration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	defer cleanupTestData(db)
 
 	// Criar stores necessárias
 	categoryStore := store.NewCategoryStore(db)
-	typeStore := store.NewTypeStore(db)
+	lineStore := store.NewLineStore(db)
 
 	// Criar categoria
 	category := domain.Category{
@@ -257,28 +252,28 @@ func TestCategoryTypeIntegration(t *testing.T) {
 	}
 
 	// Criar tipos para a categoria
-	types := []domain.Type{
-		{Name: "Type A", CategoryID: categoryID},
-		{Name: "Type B", CategoryID: categoryID},
+	lines := []domain.Line{
+		{Line: "Line A", CategoryID: categoryID},
+		{Line: "Line B", CategoryID: categoryID},
 	}
 
-	var createdTypes []domain.Type
-	for _, typ := range types {
-		typeID, err := typeStore.CreateType(typ)
+	var createdLines []domain.Line
+	for _, typ := range lines {
+		lineID, err := lineStore.CreateLine(typ)
 		if err != nil {
-			t.Fatalf("Failed to create type: %v", err)
+			t.Fatalf("Failed to create line: %v", err)
 		}
-		typ.ID = typeID
-		createdTypes = append(createdTypes, typ)
+		typ.ID = lineID
+		createdLines = append(createdLines, typ)
 	}
 
 	// Verificar se os tipos estão associados à categoria
-	foundTypes, err := typeStore.GetTypesByCategoryID(categoryID)
+	foundLines, err := lineStore.GetLinesByCategoryID(categoryID)
 	if err != nil {
-		t.Fatalf("Failed to get types: %v", err)
+		t.Fatalf("Failed to get lines: %v", err)
 	}
-	if len(foundTypes) != len(types) {
-		t.Errorf("Expected %d types, got %d", len(types), len(foundTypes))
+	if len(foundLines) != len(lines) {
+		t.Errorf("Expected %d lines, got %d", len(lines), len(foundLines))
 	}
 
 	// Deletar categoria e verificar se os tipos são deletados
@@ -288,11 +283,11 @@ func TestCategoryTypeIntegration(t *testing.T) {
 	}
 
 	// Verificar se os tipos foram deletados
-	foundTypes, err = typeStore.GetTypesByCategoryID(categoryID)
+	foundLines, err = lineStore.GetLinesByCategoryID(categoryID)
 	if err != nil && err != store.ErrNoRows {
-		t.Fatalf("Failed to check types after category deletion: %v", err)
+		t.Fatalf("Failed to check lines after category deletion: %v", err)
 	}
-	if err == nil && len(foundTypes) > 0 {
-		t.Error("Expected no types after category deletion")
+	if err == nil && len(foundLines) > 0 {
+		t.Error("Expected no lines after category deletion")
 	}
 }

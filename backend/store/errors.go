@@ -1,27 +1,27 @@
-// Package store provides the error types and handling for the license management system.
-// This file contains custom error types used throughout the store package to provide
+// Package store provides the error lines and handling for the license management system.
+// This file contains custom error lines used throughout the store package to provide
 // more specific error information and handling capabilities.
 package store
 
 import "errors"
 
-// Erros específicos do domínio
+// Domain-specific errors
 var (
-	ErrCompanyNotFound          = errors.New("empresa não encontrada")
-	ErrCompanyHasActiveLicenses = errors.New("empresa possui licenças ativas")
-	ErrDuplicatedCNPJ           = errors.New("CNPJ já cadastrado")
-	ErrUnitNotFound             = errors.New("unidade não encontrada")
-	ErrUnitHasActiveLicenses    = errors.New("unidade possui licenças ativas")
-	ErrInvalidCompanyUnit       = errors.New("unidade não pertence à empresa")
-	ErrTypeNotFound             = errors.New("tipo de licença não encontrado")
-	ErrLicenseNotFound          = errors.New("licença não encontrada")
-	ErrLicenseOverlap           = errors.New("já existe uma licença do mesmo tipo neste período")
-	ErrArchivedCompany          = errors.New("empresa está arquivada")
-	ErrNoRows                   = errors.New("nenhum registro encontrado")
+	ErrClientNotFound           = errors.New("client not found")
+	ErrClientHasActiveLicenses  = errors.New("client has active licenses")
+	ErrDuplicatedRegistrationID = errors.New("registration ID already registered")
+	ErrEntityNotFound           = errors.New("entity not found")
+	ErrEntityHasActiveLicenses  = errors.New("entity has active licenses")
+	ErrInvalidClientEntity      = errors.New("entity does not belong to the client")
+	ErrLineNotFound             = errors.New("license type not found")
+	ErrLicenseNotFound          = errors.New("license not found")
+	ErrLicenseOverlap           = errors.New("there is already a license of the same type in this period")
+	ErrArchivedClient           = errors.New("client is archived")
+	ErrNoRows                   = errors.New("no records found")
 )
 
 // ValidationError represents an error that occurs when input validation fails.
-// It is used to distinguish validation errors from other types of errors (like database errors)
+// It is used to distinguish validation errors from other lines of errors (like database errors)
 // and provides a consistent way to handle validation failures across the application.
 type ValidationError struct {
 	message string

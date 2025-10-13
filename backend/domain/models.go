@@ -6,19 +6,19 @@ import (
 	"time"
 )
 
-// Company representa a tabela 'companies'
-type Company struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	CNPJ       string     `json:"cnpj"`
-	ArchivedAt *time.Time `json:"archived_at,omitempty"` // NOVO: Usamos ponteiro para permitir valor nulo
+// Client representa a tabela 'clients'
+type Client struct {
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	RegistrationID string     `json:"registration_id"`
+	ArchivedAt     *time.Time `json:"archived_at,omitempty"` // NOVO: Usamos ponteiro para permitir valor nulo
 }
 
-// Unit representa a tabela 'units'
-type Unit struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	CompanyID string `json:"company_id"`
+// Entity representa a tabela 'entities' (entidades)
+type Entity struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	ClientID string `json:"client_id"`
 }
 
 // Category representa a tabela 'categories'
@@ -27,23 +27,33 @@ type Category struct {
 	Name string `json:"name"`
 }
 
-// Type representa a tabela 'types'
-type Type struct {
+// Line representa a tabela 'lines'
+type Line struct {
 	ID         string `json:"id"`
-	Name       string `json:"name"`
+	Line       string `json:"line" db:"name"`
 	CategoryID string `json:"category_id"`
 }
 
 // License representa a tabela 'licenses'
 type License struct {
 	ID         string    `json:"id"`
-	Name       string    `json:"name"`
+	Model      string    `json:"model" db:"name"`
 	ProductKey string    `json:"product_key"`
 	StartDate  time.Time `json:"start_date"`
 	EndDate    time.Time `json:"end_date"`
-	TypeID     string    `json:"type_id"`
-	CompanyID  string    `json:"company_id"`
-	UnitID     *string   `json:"unit_id"` // Usamos um ponteiro para que possa ser nulo
+	LineID     string    `json:"line_id"`
+	ClientID   string    `json:"client_id"`
+	EntityID   *string   `json:"entity_id"` // Usamos um ponteiro para que possa ser nulo
+}
+
+// User representa um usuário do sistema para autenticação
+type User struct {
+	ID           string    `json:"id"`
+	Username     string    `json:"username"`
+	DisplayName  string    `json:"display_name"`
+	PasswordHash string    `json:"-"`
+	CreatedAt    time.Time `json:"created_at"`
+	Role         string    `json:"role"` // "user", "admin", "full_admin"
 }
 
 // Status calcula e retorna o estado atual da licença (Ativa, Expirando, Expirada).
