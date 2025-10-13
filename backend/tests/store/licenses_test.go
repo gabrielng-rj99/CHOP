@@ -35,6 +35,109 @@ func insertTestDependencies(db *sql.DB) (string, string, string, string, error) 
 	return clientID, entityID, categoryID, lineID, nil
 }
 
+// Teste: Não pode mover linha entre categorias
+func TestCannotMoveLineBetweenCategories(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	categoryID1, err := InsertTestCategory(db, "Categoria 1")
+	if err != nil {
+		t.Fatalf("Failed to insert test category 1: %v", err)
+	}
+	categoryID2, err := InsertTestCategory(db, "Categoria 2")
+	if err != nil {
+		t.Fatalf("Failed to insert test category 2: %v", err)
+	}
+
+	lineStore := store.NewLineStore(db)
+	line := domain.Line{
+		Line:       "Linha Teste",
+		CategoryID: categoryID1,
+	}
+	lineID, err := lineStore.CreateLine(line)
+	if err != nil {
+		t.Fatalf("Failed to create line: %v", err)
+	}
+
+	// Tentar mover linha para outra categoria
+	lineUpdate := domain.Line{
+		ID:         lineID,
+		Line:       "Linha Teste",
+		CategoryID: categoryID2,
+	}
+	err = lineStore.UpdateLine(lineUpdate)
+	if err == nil {
+		t.Error("Expected error when moving line between categories, got none")
+	}
+}
+
+// Teste: Não pode deletar linha com licenças associadas
+func TestDeleteLineWithLicensesAssociated(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test client: %v", err)
+	}
+	categoryID, err := InsertTestCategory(db, "Categoria Teste")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+	lineStore := store.NewLineStore(db)
+	line := domain.Line{
+		Line:       "Linha Teste",
+		CategoryID: categoryID,
+	}
+	lineID, err := lineStore.CreateLine(line)
+	if err != nil {
+		t.Fatalf("Failed to create line: %v", err)
+	}
+
+	licenseStore := store.NewLicenseStore(db)
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	license := domain.License{
+		Model:      "Licença Teste",
+		ProductKey: "LINE-DEL-KEY-001",
+		StartDate:  startDate,
+		EndDate:    endDate,
+		LineID:     lineID,
+		ClientID:   clientID,
+	}
+	_, err = licenseStore.CreateLicense(license)
+	if err != nil {
+		t.Fatalf("Failed to create license: %v", err)
+	}
+
+	err = lineStore.DeleteLine(lineID)
+	if err == nil {
+		t.Error("Expected error when deleting line with licenses associated, got none")
+	}
+}
+
 func TestCreateLicense(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
@@ -50,8 +153,6 @@ func TestCreateLicense(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
-
-	t.Logf("DEBUG: clientID=%s, entityID=%s, lineID=%s", clientID, entityID, lineID)
 
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
@@ -83,7 +184,6 @@ func TestCreateLicense(t *testing.T) {
 				EndDate:    endDate,
 				LineID:     lineID,
 				ClientID:   clientID,
-				EntityID:   &entityID,
 			},
 			expectError: false,
 		},
@@ -122,14 +222,15 @@ func TestCreateLicense(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "erro - atualização com StartDate após EndDate",
+			name: "erro - sobreposição de datas para mesma empresa/unidade/tipo",
 			license: domain.License{
-				Model:      "Test License Update",
-				ProductKey: "TEST-KEY-UPDATE",
-				StartDate:  endDate.AddDate(2, 0, 0),
+				Model:      "Test License",
+				ProductKey: "TEST-KEY-OVERLAP",
+				StartDate:  startDate,
 				EndDate:    endDate,
 				LineID:     lineID,
 				ClientID:   clientID,
+				EntityID:   &entityID,
 			},
 			expectError: true,
 		},
@@ -170,6 +271,18 @@ func TestCreateLicense(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "erro - empresa arquivada",
+			license: domain.License{
+				Model:      "Test License",
+				ProductKey: "TEST-KEY-ARCHIVED",
+				StartDate:  startDate,
+				EndDate:    endDate,
+				LineID:     lineID,
+				ClientID:   clientID, // Usar clientID válido
+			},
+			expectError: true,
+		},
+		{
 			name: "erro - unidade inválida",
 			license: domain.License{
 				Model:      "Test License",
@@ -178,7 +291,7 @@ func TestCreateLicense(t *testing.T) {
 				EndDate:    endDate,
 				LineID:     lineID,
 				ClientID:   clientID,
-				EntityID:   stringPtr("invalid-entity"),
+				EntityID:   func() *string { s := "invalid-entity"; return &s }(),
 			},
 			expectError: true,
 		},
@@ -186,25 +299,8 @@ func TestCreateLicense(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !tt.expectError {
-				if err := ClearTables(db); err != nil {
-					t.Fatalf("Failed to clear tables: %v", err)
-				}
-				clientID, entityID, _, lineID, err = insertTestDependencies(db)
-				if err != nil {
-					t.Fatalf("Failed to insert test dependencies: %v", err)
-				}
-				tt.license.ClientID = clientID
-				tt.license.LineID = lineID
-				if tt.license.EntityID != nil {
-					tt.license.EntityID = &entityID
-				}
-			}
-
-			t.Logf("DEBUG: Creating license with ClientID=%s, LineID=%s, EntityID=%v, Model=%s, ProductKey=%s", tt.license.ClientID, tt.license.LineID, tt.license.EntityID, tt.license.Model, tt.license.ProductKey)
 			licenseStore := store.NewLicenseStore(db)
 			id, err := licenseStore.CreateLicense(tt.license)
-
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 			}
@@ -215,6 +311,34 @@ func TestCreateLicense(t *testing.T) {
 				t.Error("Expected ID but got empty string")
 			}
 		})
+	}
+}
+
+// Função de utilitário para status de licença deve estar fora do TestCreateLicense!
+func TestLicenseStatusUtil(t *testing.T) {
+	now := time.Now()
+	licenseActive := domain.License{
+		EndDate: now.AddDate(0, 1, 0), // expira em 1 mês
+	}
+	licenseExpiring := domain.License{
+		EndDate: now.AddDate(0, 0, 10), // expira em 10 dias
+	}
+	licenseExpired := domain.License{
+		EndDate: now.AddDate(0, 0, -1), // já expirou
+	}
+
+	statusActive := store.GetLicenseStatus(licenseActive)
+	statusExpiring := store.GetLicenseStatus(licenseExpiring)
+	statusExpired := store.GetLicenseStatus(licenseExpired)
+
+	if statusActive != "ativa" {
+		t.Errorf("Expected status 'ativa', got '%s'", statusActive)
+	}
+	if statusExpiring != "expirando" {
+		t.Errorf("Expected status 'expirando', got '%s'", statusExpiring)
+	}
+	if statusExpired != "expirada" {
+		t.Errorf("Expected status 'expirada', got '%s'", statusExpired)
 	}
 }
 

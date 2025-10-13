@@ -25,6 +25,9 @@ func (s *EntityStore) CreateEntity(entity domain.Entity) (string, error) {
 	if entity.Name == "" {
 		return "", sql.ErrNoRows // Or use errors.New("entity name cannot be empty")
 	}
+	if len(entity.Name) > 255 {
+		return "", errors.New("entity name must be at most 255 characters")
+	}
 	if entity.ClientID == "" {
 		return "", sql.ErrNoRows // Or use errors.New("client ID cannot be empty")
 	}
@@ -36,6 +39,14 @@ func (s *EntityStore) CreateEntity(entity domain.Entity) (string, error) {
 	}
 	if count == 0 {
 		return "", sql.ErrNoRows // Or use errors.New("client does not exist")
+	}
+	// NOVA REGRA: Nome único por empresa
+	err = s.db.QueryRow("SELECT COUNT(*) FROM entities WHERE client_id = ? AND name = ?", entity.ClientID, entity.Name).Scan(&count)
+	if err != nil {
+		return "", err
+	}
+	if count > 0 {
+		return "", errors.New("entity name must be unique per client")
 	}
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO entities (id, name, client_id) VALUES (?, ?, ?)`
@@ -98,6 +109,9 @@ func (s *EntityStore) UpdateEntity(entity domain.Entity) error {
 	if entity.Name == "" {
 		return sql.ErrNoRows // Or use errors.New("entity name cannot be empty")
 	}
+	if len(entity.Name) > 255 {
+		return errors.New("entity name must be at most 255 characters")
+	}
 	if entity.ClientID == "" {
 		return sql.ErrNoRows // Or use errors.New("client ID cannot be empty")
 	}
@@ -140,6 +154,11 @@ func (s *EntityStore) DeleteEntity(id string) error {
 	}
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("entity does not exist")
+	}
+	// NOVA REGRA: Desassociar licenças antes de deletar unidade
+	_, err = s.db.Exec("UPDATE licenses SET entity_id = NULL WHERE entity_id = ?", id)
+	if err != nil {
+		return err
 	}
 	sqlStatement := `DELETE FROM entities WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)

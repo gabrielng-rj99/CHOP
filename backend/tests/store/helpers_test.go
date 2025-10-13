@@ -87,6 +87,7 @@ func SetupTestDB() (*sql.DB, error) {
 			line_id TEXT NOT NULL,
 			client_id TEXT NOT NULL,
 			entity_id TEXT,
+			archived_at DATETIME,
 			FOREIGN KEY (line_id) REFERENCES lines(id),
 			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
 			FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE SET NULL
@@ -197,15 +198,18 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 	return id, nil
 }
 
-// InsertTestLicense inserts a test license and returns its ID
-func InsertTestLicense(db *sql.DB, name, productKey string, startDate, endDate time.Time, lineID, clientID, entityID string) (string, error) {
-	id := fmt.Sprintf("test-license-%s", productKey)
-	_, err := db.Exec(
-		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		id, name, productKey, startDate, endDate, lineID, clientID, entityID,
+// InsertTestLicense inserts a test license and returns its auto-generated ID
+func InsertTestLicense(db *sql.DB, name, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
+	result, err := db.Exec(
+		"INSERT INTO licenses (name, product_key, start_date, end_date, line_id, client_id, entity_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		name, productKey, startDate, endDate, lineID, clientID, entityID, nil,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert test license: %v", err)
 	}
-	return id, nil
+	idInt, err := result.LastInsertId()
+	if err != nil {
+		return "", fmt.Errorf("failed to get last insert id: %v", err)
+	}
+	return fmt.Sprintf("%d", idInt), nil
 }

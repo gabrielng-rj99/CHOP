@@ -150,6 +150,80 @@ func TestGetCategoryByID(t *testing.T) {
 	}
 }
 
+func TestDeleteCategoryWithLinesAssociated(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	categoryID, err := InsertTestCategory(db, "Categoria Com Linha")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	lineStore := store.NewLineStore(db)
+	line := domain.Line{
+		Line:       "Linha Teste",
+		CategoryID: categoryID,
+	}
+	_, err = lineStore.CreateLine(line)
+	if err != nil {
+		t.Fatalf("Failed to create line: %v", err)
+	}
+
+	categoryStore := store.NewCategoryStore(db)
+	err = categoryStore.DeleteCategory(categoryID)
+	if err == nil {
+		t.Error("Expected error when deleting category with lines associated, got none")
+	}
+}
+
+func TestLineNameUniquePerCategory(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer func() {
+		if err := CloseDB(db); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	categoryID, err := InsertTestCategory(db, "Categoria Unica")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	lineStore := store.NewLineStore(db)
+	line := domain.Line{
+		Line:       "Linha Unica",
+		CategoryID: categoryID,
+	}
+	_, err = lineStore.CreateLine(line)
+	if err != nil {
+		t.Fatalf("Failed to create first line: %v", err)
+	}
+
+	// Tentar criar segunda linha com mesmo nome na mesma categoria
+	_, err = lineStore.CreateLine(line)
+	if err == nil {
+		t.Error("Expected error when creating duplicate line name in same category, got none")
+	}
+}
+
 func TestGetAllCategories(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {

@@ -36,14 +36,15 @@ type Line struct {
 
 // License representa a tabela 'licenses'
 type License struct {
-	ID         string    `json:"id"`
-	Model      string    `json:"model" db:"name"`
-	ProductKey string    `json:"product_key"`
-	StartDate  time.Time `json:"start_date"`
-	EndDate    time.Time `json:"end_date"`
-	LineID     string    `json:"line_id"`
-	ClientID   string    `json:"client_id"`
-	EntityID   *string   `json:"entity_id"` // Usamos um ponteiro para que possa ser nulo
+	ID         string     `json:"id"`
+	Model      string     `json:"model" db:"name"`
+	ProductKey string     `json:"product_key"`
+	StartDate  time.Time  `json:"start_date"`
+	EndDate    time.Time  `json:"end_date"`
+	LineID     string     `json:"line_id"`
+	ClientID   string     `json:"client_id"`
+	EntityID   *string    `json:"entity_id"` // Usamos um ponteiro para que possa ser nulo
+	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 }
 
 // User representa um usuário do sistema para autenticação

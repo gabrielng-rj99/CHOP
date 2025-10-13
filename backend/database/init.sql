@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS clients ( -- Clients. E.g.: Client A, Client B, Perso
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     registration_id TEXT UNIQUE NOT NULL,
-    archived_at DATETIME -- Change from TEXT to DATETIME
+    archived_at DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS entities ( -- Entidades de cada cliente. Ex: Matriz, Entidade SP, Entidade RJ, Dependente, etc.
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS licenses ( -- Licenças de software. Ex: Licença do 
     line_id TEXT NOT NULL,
     client_id TEXT NOT NULL,
     entity_id TEXT,
+    archived_at DATETIME,
     FOREIGN KEY (line_id) REFERENCES lines(id),
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
     FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE SET NULL

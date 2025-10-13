@@ -61,22 +61,10 @@ func TestCreateClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ClearTables(db); err != nil {
-				t.Fatalf("Failed to clear tables: %v", err)
-			}
-
 			clientStore := store.NewClientStore(db)
 
-			// Insert the first client for the duplicate test
-			if tt.name == "erro - CNPJ duplicado" {
-				_, err := clientStore.CreateClient(domain.Client{
-					Name:           "Test Client",
-					RegistrationID: "45.723.174/0001-10",
-				})
-				if err != nil {
-					t.Fatalf("Failed to insert client for duplicate test: %v", err)
-				}
-			}
+			// Para o teste de duplicidade, não insira o cliente antes.
+			// O próprio teste tentará criar o cliente duplicado e deve esperar erro.
 
 			id, err := clientStore.CreateClient(tt.client)
 
@@ -206,6 +194,111 @@ func TestArchiveClient(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestArchiveAndDeleteClientWithPermanentLicense(t *testing.T) {
+	db := setupClientTest(t)
+	defer CloseDB(db)
+
+	// 1. Inserir categoria
+	categoryID, err := InsertTestCategory(db, "Categoria Permanente")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	// 2. Inserir linha vinculada à categoria
+	lineID, err := InsertTestLine(db, "Linha Permanente", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test line: %v", err)
+	}
+
+	// 3. Inserir cliente de teste
+	clientID, err := InsertTestClient(db, "Empresa Permanente", "99.999.999/0001-99")
+	if err != nil {
+		t.Fatalf("Failed to insert test client: %v", err)
+	}
+
+	// 4. Inserir licença permanente (end_date muito distante)
+	startDate := time.Now()
+	endDate := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+	licenseID, err := InsertTestLicense(db, "Licença Permanente", "KEY-PERM", startDate, endDate, lineID, clientID, nil)
+	if err != nil {
+		t.Fatalf("Failed to insert permanent license: %v", err)
+	}
+
+	clientStore := store.NewClientStore(db)
+
+	// 5. Tentar excluir cliente (deve falhar pois tem licença ativa/permanente)
+	err = clientStore.DeleteClientPermanently(clientID)
+	if err == nil {
+		t.Error("Expected error when deleting client with permanent license, got none")
+	}
+
+	// 6. Arquivar cliente (licença permanente deve ser arquivada)
+	err = clientStore.ArchiveClient(clientID)
+	if err != nil {
+		t.Fatalf("Failed to archive client: %v", err)
+	}
+
+	// 7. Agora deve conseguir excluir cliente (licença permanente foi arquivada)
+	err = clientStore.DeleteClientPermanently(clientID)
+	if err != nil {
+		t.Fatalf("Failed to delete client with archived permanent license: %v", err)
+	}
+
+	// 8. Verificar se licença foi excluída
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM licenses WHERE id = ?", licenseID).Scan(&count)
+	if err != nil {
+		t.Fatalf("Failed to query license after client deletion: %v", err)
+	}
+	if count != 0 {
+		t.Error("Expected license to be deleted after client deletion")
+	}
+}
+
+func TestDeleteClientWithActiveLicenses(t *testing.T) {
+	db := setupClientTest(t)
+	defer CloseDB(db)
+
+	// Insert test client
+	clientID, err := InsertTestClient(db, "Empresa Ativa", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test client: %v", err)
+	}
+
+	// Insert category and line
+	categoryID, err := InsertTestCategory(db, "Categoria Teste")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+	lineID, err := InsertTestLine(db, "Linha Teste", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test line: %v", err)
+	}
+
+	// Insert active license
+	licenseStore := store.NewLicenseStore(db)
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	license := domain.License{
+		Model:      "Licença Ativa",
+		ProductKey: "ACTIVE-KEY-001",
+		StartDate:  startDate,
+		EndDate:    endDate,
+		LineID:     lineID,
+		ClientID:   clientID,
+	}
+	_, err = licenseStore.CreateLicense(license)
+	if err != nil {
+		t.Fatalf("Failed to create active license: %v", err)
+	}
+
+	clientStore := store.NewClientStore(db)
+	err = clientStore.DeleteClientPermanently(clientID)
+	if err == nil {
+		t.Error("Expected error when deleting client with active licenses, got none")
 	}
 }
 

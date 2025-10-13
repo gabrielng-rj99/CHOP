@@ -29,6 +29,9 @@ func (s *CategoryStore) CreateCategory(category domain.Category) (string, error)
 	if category.Name == "" {
 		return "", errors.New("category name cannot be empty")
 	}
+	if len(category.Name) > 255 {
+		return "", errors.New("category name must be at most 255 characters")
+	}
 
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO categories (id, name) VALUES (?, ?)`
@@ -108,6 +111,9 @@ func (s *CategoryStore) UpdateCategory(category domain.Category) error {
 	if category.Name == "" {
 		return errors.New("category name cannot be empty")
 	}
+	if len(category.Name) > 255 {
+		return errors.New("category name must be at most 255 characters")
+	}
 	// Check if category exists
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", category.ID).Scan(&count)
@@ -144,6 +150,15 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 	}
 	if count == 0 {
 		return errors.New("category does not exist")
+	}
+	// NOVA REGRA: Não permitir deletar categoria com linhas associadas
+	var linesCount int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = ?", id).Scan(&linesCount)
+	if err != nil {
+		return err
+	}
+	if linesCount > 0 {
+		return errors.New("cannot delete category with associated lines")
 	}
 	sqlStatement := `DELETE FROM categories WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)

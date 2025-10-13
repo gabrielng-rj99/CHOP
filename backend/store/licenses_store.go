@@ -53,13 +53,13 @@ func (s *LicenseStore) CreateLicense(license domain.License) (string, error) {
 	if count == 0 {
 		return "", sql.ErrNoRows // Or use errors.New("type does not exist")
 	}
-	// Check if client exists
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", license.ClientID).Scan(&count)
+	// Check if client exists e não está arquivado
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ? AND archived_at IS NULL", license.ClientID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
 	if count == 0 {
-		return "", sql.ErrNoRows // Or use errors.New("client does not exist")
+		return "", errors.New("client does not exist or is archived")
 	}
 	// If entityID is provided, check if entity exists
 	if license.EntityID != nil && *license.EntityID != "" {
@@ -79,6 +79,39 @@ func (s *LicenseStore) CreateLicense(license domain.License) (string, error) {
 	if count > 0 {
 		return "", sql.ErrNoRows // Or use errors.New("product key already exists")
 	}
+
+	// NOVA REGRA: Verificar sobreposição temporal de licenças do mesmo tipo para empresa/unidade
+	var overlapCount int
+	if license.EntityID != nil && *license.EntityID != "" {
+		err = s.db.QueryRow(`
+			SELECT COUNT(*) FROM licenses
+			WHERE line_id = ? AND client_id = ? AND entity_id = ? AND (
+				(start_date <= ? AND end_date >= ?) OR
+				(start_date <= ? AND end_date >= ?)
+			)
+		`, license.LineID, license.ClientID, *license.EntityID,
+			license.EndDate, license.EndDate,
+			license.StartDate, license.StartDate,
+		).Scan(&overlapCount)
+	} else {
+		err = s.db.QueryRow(`
+			SELECT COUNT(*) FROM licenses
+			WHERE line_id = ? AND client_id = ? AND entity_id IS NULL AND (
+				(start_date <= ? AND end_date >= ?) OR
+				(start_date <= ? AND end_date >= ?)
+			)
+		`, license.LineID, license.ClientID,
+			license.EndDate, license.EndDate,
+			license.StartDate, license.StartDate,
+		).Scan(&overlapCount)
+	}
+	if err != nil {
+		return "", err
+	}
+	if overlapCount > 0 {
+		return "", errors.New("license period overlaps with another license of the same type for this company/unit")
+	}
+
 	newID := uuid.New().String()
 	sqlStatement := `
 		INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id)
@@ -247,6 +280,19 @@ func (s *LicenseStore) GetLicenseByID(id string) (*domain.License, error) {
 	}
 
 	return &license, nil
+}
+
+// Utility: Get explicit status for a license (ativa, expirando, expirada)
+func GetLicenseStatus(license domain.License) string {
+	now := time.Now()
+	expiringSoon := now.AddDate(0, 0, 30) // 30 days window for "expiring"
+	if license.EndDate.Before(now) {
+		return "expirada"
+	}
+	if license.EndDate.Before(expiringSoon) {
+		return "expirando"
+	}
+	return "ativa"
 }
 
 func (s *LicenseStore) DeleteLicense(id string) error {

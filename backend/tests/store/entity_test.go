@@ -5,6 +5,7 @@ import (
 	"Licenses-Manager/backend/store"
 	"database/sql"
 	"testing"
+	"time"
 )
 
 func setupEntityTest(t *testing.T) *sql.DB {
@@ -47,6 +48,14 @@ func TestCreateEntity(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "erro - nome duplicado para mesma empresa",
+			entity: domain.Entity{
+				Name:     "Test Entity",
+				ClientID: clientID,
+			},
+			expectError: true,
+		},
+		{
 			name: "erro - empresa não existe",
 			entity: domain.Entity{
 				Name:     "Test Entity",
@@ -81,6 +90,18 @@ func TestCreateEntity(t *testing.T) {
 			}
 
 			entityStore := store.NewEntityStore(db)
+
+			// Para o teste de nome duplicado, insere a primeira entidade antes
+			if tt.name == "erro - nome duplicado para mesma empresa" {
+				_, err := entityStore.CreateEntity(domain.Entity{
+					Name:     "Test Entity",
+					ClientID: clientID,
+				})
+				if err != nil {
+					t.Fatalf("Failed to insert entity for duplicate test: %v", err)
+				}
+			}
+
 			id, err := entityStore.CreateEntity(tt.entity)
 
 			if tt.expectError && err == nil {
@@ -93,6 +114,65 @@ func TestCreateEntity(t *testing.T) {
 				t.Error("Expected ID but got empty string")
 			}
 		})
+	}
+}
+
+func TestDeleteEntityDisassociatesLicenses(t *testing.T) {
+	db := setupEntityTest(t)
+	defer CloseDB(db)
+
+	// Create test client and entity
+	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	if err != nil {
+		t.Fatalf("Failed to insert test client: %v", err)
+	}
+	entityID, err := InsertTestEntity(db, "Entity Delete", clientID)
+	if err != nil {
+		t.Fatalf("Failed to insert test entity: %v", err)
+	}
+
+	// Insert category and line
+	categoryID, err := InsertTestCategory(db, "Categoria Teste")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+	lineID, err := InsertTestLine(db, "Linha Teste", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test line: %v", err)
+	}
+
+	// Insert license associated to entity
+	licenseStore := store.NewLicenseStore(db)
+	startDate := time.Now()
+	endDate := startDate.AddDate(1, 0, 0)
+	license := domain.License{
+		Model:      "Licença Teste",
+		ProductKey: "ENTITY-DEL-KEY-001",
+		StartDate:  startDate,
+		EndDate:    endDate,
+		LineID:     lineID,
+		ClientID:   clientID,
+		EntityID:   &entityID,
+	}
+	licenseID, err := licenseStore.CreateLicense(license)
+	if err != nil {
+		t.Fatalf("Failed to create license: %v", err)
+	}
+
+	// Delete entity
+	entityStore := store.NewEntityStore(db)
+	err = entityStore.DeleteEntity(entityID)
+	if err != nil {
+		t.Fatalf("Failed to delete entity: %v", err)
+	}
+
+	// Check license entity_id is NULL
+	updatedLicense, err := licenseStore.GetLicenseByID(licenseID)
+	if err != nil {
+		t.Fatalf("Failed to get license after entity deletion: %v", err)
+	}
+	if updatedLicense == nil || updatedLicense.EntityID != nil {
+		t.Error("Expected license entity_id to be NULL after entity deletion")
 	}
 }
 

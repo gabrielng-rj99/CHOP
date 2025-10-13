@@ -27,6 +27,9 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 	if client.Name == "" {
 		return "", errors.New("client name cannot be empty")
 	}
+	if len(client.Name) > 255 {
+		return "", errors.New("client name must be at most 255 characters")
+	}
 	if client.RegistrationID == "" {
 		return "", errors.New("client registration ID cannot be empty")
 	}
@@ -95,6 +98,9 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	}
 	if client.Name == "" {
 		return errors.New("client name cannot be empty")
+	}
+	if len(client.Name) > 255 {
+		return errors.New("client name must be at most 255 characters")
 	}
 	if client.RegistrationID == "" {
 		return errors.New("client registration ID cannot be empty")
@@ -218,6 +224,7 @@ func isValidCNPJ(cnpj string) bool {
 // --- NOVAS FUNÇÕES ---
 
 // ArchiveClient define a data de arquivamento para a data/hora atual.
+// Além disso, arquiva todas as licenças permanentes do cliente (end_date >= 9999-01-01).
 func (s *ClientStore) ArchiveClient(id string) error {
 	if id == "" {
 		return errors.New("client ID cannot be empty")
@@ -231,6 +238,8 @@ func (s *ClientStore) ArchiveClient(id string) error {
 	if count == 0 {
 		return errors.New("client not found")
 	}
+
+	// Arquivar cliente
 	sqlStatement := `UPDATE clients SET archived_at = ? WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, time.Now(), id)
 	if err != nil {
@@ -243,6 +252,16 @@ func (s *ClientStore) ArchiveClient(id string) error {
 	if rows == 0 {
 		return errors.New("no client archived")
 	}
+
+	// Arquivar todas as licenças associadas ao cliente (não só permanentes)
+	_, err = s.db.Exec(
+		`UPDATE licenses SET archived_at = ? WHERE client_id = ? AND archived_at IS NULL`,
+		time.Now(), id,
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -290,6 +309,29 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 	}
 	if count == 0 {
 		return errors.New("client not found")
+	}
+	// NOVA REGRA: Só pode excluir cliente se todas as licenças estiverem expiradas ou arquivadas
+	var blockedLicenses int
+	err = s.db.QueryRow(`
+		SELECT COUNT(*) FROM licenses
+		WHERE client_id = ?
+		AND archived_at IS NULL
+		AND end_date > ?
+	`, id, time.Now()).Scan(&blockedLicenses)
+	if err != nil {
+		return err
+	}
+	if blockedLicenses > 0 {
+		return errors.New("cannot delete client with active or unarchived licenses")
+	}
+	// Cascade delete: remover entidades e licenças associadas ao cliente
+	_, err = s.db.Exec("DELETE FROM licenses WHERE client_id = ?", id)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec("DELETE FROM entities WHERE client_id = ?", id)
+	if err != nil {
+		return err
 	}
 	sqlStatement := `DELETE FROM clients WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)
