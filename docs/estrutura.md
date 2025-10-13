@@ -1,88 +1,59 @@
-# Documentação Estruturada do Projeto Licenses Manager
+Licenses-Manager/docs/estrutura.md
+# Estrutura do Projeto — Licenses Manager
 
-Este documento serve como referência central para a estrutura do projeto, organização dos arquivos, testes, banco de dados e funções principais.
+Este documento apresenta a estrutura organizacional do projeto Licenses Manager, detalhando a função de cada pasta e arquivo principal para facilitar navegação, manutenção e expansão.
 
 ---
 
-## Estrutura de Pastas
+## Visão Geral da Estrutura
 
 ```
 Licenses-Manager/
 ├── backend/
-│   ├── cmd/              # Aplicações CLI e Server
-│   ├── database/         # Scripts SQL, diagramas e documentação do banco
-│   ├── domain/           # Modelos de dados (structs principais)
-│   ├── store/            # Lógica de acesso e manipulação de dados
-│   ├── tests/            # Testes entityários e de integração
-│   └── docs/             # Documentação técnica do backend
-├── docs/                 # Documentação agregada do projeto
-└── README.md             # Página inicial do GitHub
+│   ├── cmd/              # Aplicações CLI e servidor principal
+│   ├── database/         # Scripts SQL, diagramas e documentação do banco de dados
+│   ├── domain/           # Modelos de dados (structs, entidades)
+│   ├── store/            # Lógica de acesso, manipulação e regras de negócio
+│   ├── tests/            # Testes unitários, de integração e mocks
+│   └── docs/             # Documentação técnica específica do backend
+├── docs/                 # Documentação agregada e central do projeto
+└── README.md             # Página inicial do projeto no GitHub
 ```
 
 ---
 
-## Organização dos Testes
+## Detalhamento das Pastas
 
-- **backend/tests/domain/**: Testes dos modelos de dados (validações, métodos).
-- **backend/tests/store/**: Testes dos stores (CRUD, integrações, regras de negócio).
-- **backend/tests/store/integration_test.go**: Testes de integração entre entidades (empresa, unidade, licença, tipo, categoria).
-- **backend/tests/store/licenses_test.go**: Testes específicos para licenças.
-- **backend/tests/store/types_test.go**: Testes específicos para tipos/linhas.
-- **backend/tests/store/category_test.go**: Testes para categorias.
-- **backend/tests/store/entity_test.go**: Testes para unidades.
-- **backend/tests/store/user_test.go**: Testes para usuários.
+### backend/
+- **cmd/**: Contém as aplicações de linha de comando (CLI) e o servidor principal. Aqui ficam os pontos de entrada do sistema.
+- **database/**: Scripts para criação, atualização e manutenção do banco de dados, além de diagramas que ilustram as relações entre entidades.
+- **domain/**: Define os modelos de dados usados em todo o sistema, como `Client`, `Entity`, `Category`, `Type`, `License`, `User`.
+- **store/**: Implementa o acesso ao banco de dados e as regras de negócio para cada entidade, incluindo validações e operações CRUD.
+- **tests/**: Testes automatizados para garantir a qualidade do código, cobrindo validações, integrações e fluxos de negócio.
+- **docs/**: Documentação técnica detalhada sobre o backend, incluindo stores, testes e campos principais.
 
----
+### docs/
+- Documentação centralizada do projeto, incluindo visão geral, instalação, uso, arquitetura, banco de dados, entidades, regras de negócio, testes, checklist de qualidade, exemplos, FAQ, histórico de versões e referências.
 
-## Banco de Dados
-
-- **Script de inicialização:** `backend/database/init.sql`
-  - Cria as tabelas principais: `users`, `companies`, `entities`, `categories`, `types`, `licenses`.
-  - Os campos principais para licenças são: `modelo`, `product_key`, `start_date`, `end_date`, `type_id`, `client_id`, `entity_id`.
-  - Para tipos/linhas: `linha`, `category_id`.
-
-- **Diagramas:**
-  - `backend/database/diagram.drawio` e backups `.bkp` para visualização das relações entre tabelas.
-
-- **Documentação dos campos:**
-  - `backend/database/docs/campos.md` detalha o significado de **Categoria**, **Linha** e **Modelo**.
+### README.md
+- Apresenta o projeto, objetivos, instruções rápidas e links para a documentação detalhada.
 
 ---
 
-## Funções e Fluxos Principais
+## Recomendações de Organização
 
-- **CLI:**
-  - Localizado em `backend/cmd/cli/main.go`.
-  - Menus para gerenciamento de empresas, licenças, unidades, categorias, linhas e usuários.
-  - Fluxos de criação, edição, deleção e listagem.
-
-- **Models:**
-  - Definidos em `backend/domain/models.go`.
-  - Estruturas para `Client`, `Entity`, `Category`, `Type`, `License`, `User`.
-
-- **Stores:**
-  - CRUD e regras de negócio para cada entidade.
-  - Exemplo: `LicenseStore`, `TypeStore`, `CategoryStore`, etc.
-
-- **Testes:**
-  - Cobrem validações, fluxos de negócio e integração entre entidades.
+- Mantenha cada tipo de arquivo/documentação em sua respectiva pasta para facilitar localização e manutenção.
+- Utilize a documentação central (`docs/README.md`) como ponto de partida para novos colaboradores.
+- Expanda a documentação conforme novas funcionalidades e módulos forem adicionados ao projeto.
 
 ---
 
-## Recomendações para Expansão da Documentação
+## Sugestão de Expansão
 
-- Adicionar exemplos de uso dos comandos CLI.
-- Documentar endpoints se houver API.
-- Detalhar regras de negócio específicas (ex: renovação de licença, notificações).
-- Incluir instruções de deploy e configuração do ambiente.
-
----
-
-## Referências
-
-- [README.md](../README.md): Visão geral do projeto para o GitHub.
-- [backend/database/docs/campos.md](../backend/database/docs/campos.md): Detalhamento dos campos de licença.
+- Adicionar subpastas em `docs/` para exemplos práticos, tutoriais e guias de integração.
+- Documentar scripts de deploy e configuração de ambiente.
+- Manter histórico de mudanças e checklist de qualidade para cada release.
 
 ---
 
-Esta documentação será expandida conforme o projeto evolui. Sugestões de melhoria são bem-vindas!
+Esta estrutura foi pensada para garantir clareza, escalabilidade e facilidade de colaboração no Licenses Manager.
