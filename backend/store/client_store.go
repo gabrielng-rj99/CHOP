@@ -350,7 +350,7 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 
 // GetAllClients retorna todos os clientes não arquivados
 func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE archived_at IS NOT NULL`
+	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -379,7 +379,7 @@ func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
 
 // GetArchivedClients retorna todos os clientes arquivados
 func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, cnpj, archived_at FROM clients WHERE archived_at IS NOT NULL`
+	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE archived_at IS NOT NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {

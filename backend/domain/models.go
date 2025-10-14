@@ -49,12 +49,15 @@ type License struct {
 
 // User representa um usuário do sistema para autenticação
 type User struct {
-	ID           string    `json:"id"`
-	Username     string    `json:"username"`
-	DisplayName  string    `json:"display_name"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
-	Role         string    `json:"role"` // "user", "admin", "full_admin"
+	ID             string     `json:"id"`
+	Username       string     `json:"username"`
+	DisplayName    string     `json:"display_name"`
+	PasswordHash   string     `json:"-"`
+	CreatedAt      time.Time  `json:"created_at"`
+	Role           string     `json:"role"` // "user", "admin", "full_admin"
+	FailedAttempts int        `json:"failed_attempts"`
+	LockLevel      int        `json:"lock_level"`
+	LockedUntil    *time.Time `json:"locked_until,omitempty"`
 }
 
 // Status calcula e retorna o estado atual da licença (Ativa, Expirando, Expirada).

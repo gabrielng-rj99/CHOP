@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS users ( -- Se trata dos usuários do sistema. Ex: adm
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     created_at DATETIME NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user'
+    role TEXT NOT NULL DEFAULT 'user',
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    lock_level INTEGER NOT NULL DEFAULT 0,
+    locked_until DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS clients ( -- Clients. E.g.: Client A, Client B, Person X, etc.

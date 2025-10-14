@@ -167,6 +167,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	var lockedUntil sql.NullTime
 	err := row.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
 	if err != nil {
+		fmt.Println("Erro no Scan da autenticação:", err)
 		return nil, errors.New("usuário não encontrado")
 	}
 

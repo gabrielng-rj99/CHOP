@@ -28,9 +28,23 @@ func main() {
 	lineStore := store.NewLineStore(db)
 
 	fmt.Println("=== Licenses Manager CLI ===")
+	fmt.Println("Lista de usuários no banco:")
+	rows, err := db.Query("SELECT id, username, display_name FROM users")
+	if err != nil {
+		fmt.Println("Erro ao consultar usuários:", err)
+	} else {
+		for rows.Next() {
+			var id, username, displayName string
+			if err := rows.Scan(&id, &username, &displayName); err == nil {
+				fmt.Printf("ID: %s | Username: %s | Display Name: %s\n", id, username, displayName)
+			}
+		}
+		rows.Close()
+	}
 	fmt.Println("Please log in to continue.")
 
 	username, password := promptLogin()
+	fmt.Printf("Tentando login com username: '%s'\n", username)
 	user, err := userStore.AuthenticateUser(username, password)
 	if err != nil {
 		fmt.Println("Login failed:", err)
