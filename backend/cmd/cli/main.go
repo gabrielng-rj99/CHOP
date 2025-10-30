@@ -89,8 +89,26 @@ func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientSto
 		switch opt {
 		case "1":
 			// List all licenses
-			// There is no direct method, so it may be necessary to search by client or implement GetAllLicenses
-			fmt.Println("Feature under development (list all licenses).")
+			licenses, err := licenseStore.GetAllLicenses()
+			if err != nil {
+				fmt.Println("Error listing licenses:", err)
+				continue
+			}
+			if len(licenses) == 0 {
+				fmt.Println("No licenses found.")
+				continue
+			}
+			fmt.Println("\n=== All Licenses ===")
+			for _, l := range licenses {
+				entity := ""
+				if l.EntityID != nil {
+					entity = *l.EntityID
+				}
+				status := l.Status()
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+			}
+
 		case "2":
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
@@ -100,26 +118,68 @@ func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientSto
 				fmt.Println("Error listing licenses:", err)
 				continue
 			}
+			if len(licenses) == 0 {
+				fmt.Println("No licenses found for this client.")
+				continue
+			}
+			fmt.Println("\n=== Licenses by Client ===")
 			for _, l := range licenses {
 				entity := ""
 				if l.EntityID != nil {
 					entity = *l.EntityID
 				}
-				fmt.Printf("ID: %s | Name: %s | Product: %s | Start: %s | End: %s | Entity: %s\n",
-					l.ID, l.Model, l.ProductKey, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+				status := l.Status()
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
 			}
 		case "3":
 			fmt.Print("Line ID: ")
 			lineID, _ := reader.ReadString('\n')
 			lineID = strings.TrimSpace(lineID)
-			// There is no direct method, but GetLicensesByLineID can be implemented
-			fmt.Println("Feature under development (filter by line).")
+			licenses, err := licenseStore.GetLicensesByLineID(lineID)
+			if err != nil {
+				fmt.Println("Error listing licenses:", err)
+				continue
+			}
+			if len(licenses) == 0 {
+				fmt.Println("No licenses found for this line.")
+				continue
+			}
+			fmt.Println("\n=== Licenses by Line ===")
+			for _, l := range licenses {
+				entity := ""
+				if l.EntityID != nil {
+					entity = *l.EntityID
+				}
+				status := l.Status()
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+			}
 		case "4":
 			fmt.Print("Category ID: ")
 			categoryID, _ := reader.ReadString('\n')
 			categoryID = strings.TrimSpace(categoryID)
-			// There is no direct method, but GetLicensesByCategoryID can be implemented
-			fmt.Println("Feature under development (filter by category).")
+			licenses, err := licenseStore.GetLicensesByCategoryID(categoryID)
+			if err != nil {
+				fmt.Println("Error listing licenses:", err)
+				continue
+			}
+			if len(licenses) == 0 {
+				fmt.Println("No licenses found for this category.")
+				continue
+			}
+			fmt.Println("\n=== Licenses by Category ===")
+			for _, l := range licenses {
+				entity := ""
+				if l.EntityID != nil {
+					entity = *l.EntityID
+				}
+				status := l.Status()
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+			}
+
+
 		case "5":
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
@@ -299,15 +359,30 @@ func categoriesMenu(categoryStore *store.CategoryStore) {
 			fmt.Print("Category ID to edit: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			fmt.Print("New category name: ")
-			// There is no UpdateCategory, but it can be implemented
-			fmt.Println("Feature under development (edit category).")
+			category, err := categoryStore.GetCategoryByID(id)
+			if err != nil || category == nil {
+				fmt.Println("Category not found.")
+				continue
+			}
+			fmt.Printf("Current name: %s | New name: ", category.Name)
+			newName, _ := reader.ReadString('\n')
+			category.Name = strings.TrimSpace(newName)
+			err = categoryStore.UpdateCategory(*category)
+			if err != nil {
+				fmt.Println("Error updating category:", err)
+			} else {
+				fmt.Println("Category updated.")
+			}
 		case "4":
 			fmt.Print("Category ID to delete: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			// There is no DeleteCategory, but it can be implemented
-			fmt.Println("Feature under development (delete category).")
+			err := categoryStore.DeleteCategory(id)
+			if err != nil {
+				fmt.Println("Error deleting category:", err)
+			} else {
+				fmt.Println("Category deleted.")
+			}
 		case "5":
 			return
 		default:

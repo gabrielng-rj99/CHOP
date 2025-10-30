@@ -322,3 +322,118 @@ func (s *LicenseStore) DeleteLicense(id string) error {
 	}
 	return nil
 }
+
+// GetAllLicenses fetches all licenses in the system
+func (s *LicenseStore) GetAllLicenses() (licenses []domain.License, err error) {
+	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, entity_id FROM licenses`
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	licenses = []domain.License{}
+	for rows.Next() {
+		var l domain.License
+		if err = rows.Scan(&l.ID, &l.Model, &l.ProductKey, &l.StartDate, &l.EndDate, &l.LineID, &l.ClientID, &l.EntityID); err != nil {
+			return nil, err
+		}
+		licenses = append(licenses, l)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return licenses, nil
+}
+
+// GetLicensesByLineID fetches all licenses for a specific line
+func (s *LicenseStore) GetLicensesByLineID(lineID string) (licenses []domain.License, err error) {
+	if lineID == "" {
+		return nil, errors.New("line ID is required")
+	}
+	// Check if line exists
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", lineID).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, errors.New("line not found")
+	}
+
+	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, entity_id FROM licenses WHERE line_id = ?`
+	rows, err := s.db.Query(sqlStatement, lineID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	licenses = []domain.License{}
+	for rows.Next() {
+		var l domain.License
+		if err = rows.Scan(&l.ID, &l.Model, &l.ProductKey, &l.StartDate, &l.EndDate, &l.LineID, &l.ClientID, &l.EntityID); err != nil {
+			return nil, err
+		}
+		licenses = append(licenses, l)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return licenses, nil
+}
+
+// GetLicensesByCategoryID fetches all licenses for a specific category
+func (s *LicenseStore) GetLicensesByCategoryID(categoryID string) (licenses []domain.License, err error) {
+	if categoryID == "" {
+		return nil, errors.New("category ID is required")
+	}
+	// Check if category exists
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", categoryID).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, errors.New("category not found")
+	}
+
+	sqlStatement := `
+		SELECT l.id, l.name, l.product_key, l.start_date, l.end_date, l.line_id, l.client_id, l.entity_id
+		FROM licenses l
+		INNER JOIN lines ln ON l.line_id = ln.id
+		WHERE ln.category_id = ?
+	`
+	rows, err := s.db.Query(sqlStatement, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	licenses = []domain.License{}
+	for rows.Next() {
+		var l domain.License
+		if err = rows.Scan(&l.ID, &l.Model, &l.ProductKey, &l.StartDate, &l.EndDate, &l.LineID, &l.ClientID, &l.EntityID); err != nil {
+			return nil, err
+		}
+		licenses = append(licenses, l)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return licenses, nil
+}
