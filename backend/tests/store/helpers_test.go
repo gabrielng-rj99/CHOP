@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -198,18 +199,15 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 	return id, nil
 }
 
-// InsertTestLicense inserts a test license and returns its auto-generated ID
+// InsertTestLicense inserts a test license and returns its UUID
 func InsertTestLicense(db *sql.DB, name, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
-	result, err := db.Exec(
-		"INSERT INTO licenses (name, product_key, start_date, end_date, line_id, client_id, entity_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		name, productKey, startDate, endDate, lineID, clientID, entityID, nil,
+	id := uuid.New().String()
+	_, err := db.Exec(
+		"INSERT INTO licenses (id, name, product_key, start_date, end_date, line_id, client_id, entity_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		id, name, productKey, startDate, endDate, lineID, clientID, entityID, nil,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert test license: %v", err)
 	}
-	idInt, err := result.LastInsertId()
-	if err != nil {
-		return "", fmt.Errorf("failed to get last insert id: %v", err)
-	}
-	return fmt.Sprintf("%d", idInt), nil
+	return id, nil
 }

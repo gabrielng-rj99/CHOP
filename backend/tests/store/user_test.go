@@ -22,7 +22,10 @@ func setupUserStore(t *testing.T) *store.UserStore {
 			display_name TEXT NOT NULL,
 			password_hash TEXT NOT NULL,
 			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user'
+			role TEXT NOT NULL DEFAULT 'user',
+			failed_attempts INTEGER NOT NULL DEFAULT 0,
+			lock_level INTEGER NOT NULL DEFAULT 0,
+			locked_until DATETIME
 		);
 	`)
 	if err != nil {
