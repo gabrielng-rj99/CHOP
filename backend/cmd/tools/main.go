@@ -1,3 +1,5 @@
+// Licenses-Manager/backend/cmd/tools/main.go
+
 package main
 
 import (

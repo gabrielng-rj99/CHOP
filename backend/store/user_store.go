@@ -114,12 +114,12 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 		return errors.New("nome de usuário já existe")
 	}
 	// Verifica se o usuário atual é admin
-	var adminInt int
-	err = s.db.QueryRow("SELECT admin FROM users WHERE username = ?", currentUsername).Scan(&adminInt)
+	var role string
+	err = s.db.QueryRow("SELECT role FROM users WHERE username = ?", currentUsername).Scan(&role)
 	if err != nil {
 		return errors.New("usuário atual não encontrado")
 	}
-	if adminInt != 1 {
+	if role != "admin" && role != "full_admin" {
 		return errors.New("apenas usuários admin podem alterar seu próprio username")
 	}
 	sqlStatement := `UPDATE users SET username = ? WHERE username = ?`

@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/cmd/cli/create_admin.go
+// Licenses-Manager/backend/cmd/tools/create_admin.go
 
 package main
 

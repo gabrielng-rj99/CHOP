@@ -179,7 +179,6 @@ func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientSto
 					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
 			}
 
-
 		case "5":
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
