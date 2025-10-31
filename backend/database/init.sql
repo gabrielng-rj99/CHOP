@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS clients ( -- Clients. E.g.: Client A, Client B, Perso
     archived_at DATETIME
 );
 
-CREATE TABLE IF NOT EXISTS entities ( -- Entidades de cada cliente. Ex: Matriz, Entidade SP, Entidade RJ, Dependente, etc.
+CREATE TABLE IF NOT EXISTS dependents ( -- Dependentes de cada cliente. Ex: Matriz, Filial SP, Filial RJ, Dependente, etc.
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     client_id TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS lines ( -- Linhas de produtos. Ex: Office, Windows, A
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS licenses ( -- Licenças de software. Ex: Licença do Windows 10 Pro, Licença do Office 365, etc.
+CREATE TABLE IF NOT EXISTS contracts ( -- Contratos de software. Ex: Contrato do Windows 10 Pro, Contrato do Office 365, etc.
     id TEXT PRIMARY KEY,
     model TEXT NOT NULL,
     product_key TEXT UNIQUE NOT NULL,
@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS licenses ( -- Licenças de software. Ex: Licença do 
     end_date DATETIME NOT NULL,
     line_id TEXT NOT NULL,
     client_id TEXT NOT NULL,
-    entity_id TEXT,
+    dependent_id TEXT,
     archived_at DATETIME,
     FOREIGN KEY (line_id) REFERENCES lines(id),
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-    FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE SET NULL
+    FOREIGN KEY (dependent_id) REFERENCES dependents(id) ON DELETE SET NULL
 );

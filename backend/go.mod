@@ -1,4 +1,4 @@
-module Licenses-Manager/backend
+module Contracts-Manager/backend
 
 go 1.25.1
 

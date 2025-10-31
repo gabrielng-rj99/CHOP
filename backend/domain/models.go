@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/domain/models.go
+// Contracts-Manager/backend/domain/models.go
 
 package domain
 
@@ -14,8 +14,8 @@ type Client struct {
 	ArchivedAt     *time.Time `json:"archived_at,omitempty"` // NOVO: Usamos ponteiro para permitir valor nulo
 }
 
-// Entity representa a tabela 'entities' (entidades)
-type Entity struct {
+// Dependent representa a tabela 'dependents' (Client Dependent, como unidades, filhos, parentes)
+type Dependent struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	ClientID string `json:"client_id"`
@@ -27,24 +27,24 @@ type Category struct {
 	Name string `json:"name"`
 }
 
-// Line representa a tabela 'lines'
+// Line representa a tabela 'lines' (Product Line)
 type Line struct {
 	ID         string `json:"id"`
 	Line       string `json:"line" db:"name"`
 	CategoryID string `json:"category_id"`
 }
 
-// License representa a tabela 'licenses'
-type License struct {
-	ID         string     `json:"id"`
-	Model      string     `json:"model" db:"name"`
-	ProductKey string     `json:"product_key"`
-	StartDate  time.Time  `json:"start_date"`
-	EndDate    time.Time  `json:"end_date"`
-	LineID     string     `json:"line_id"`
-	ClientID   string     `json:"client_id"`
-	EntityID   *string    `json:"entity_id"` // Usamos um ponteiro para que possa ser nulo
-	ArchivedAt *time.Time `json:"archived_at,omitempty"`
+// Contract representa a tabela 'contracts'
+type Contract struct {
+	ID          string     `json:"id"`
+	Model       string     `json:"model" db:"name"`
+	ProductKey  string     `json:"product_key"`
+	StartDate   time.Time  `json:"start_date"`
+	EndDate     time.Time  `json:"end_date"`
+	LineID      string     `json:"line_id"`
+	ClientID    string     `json:"client_id"`
+	DependentID *string    `json:"dependent_id"` // Usamos um ponteiro para que possa ser nulo
+	ArchivedAt  *time.Time `json:"archived_at,omitempty"`
 }
 
 // User representa um usuário do sistema para autenticação
@@ -60,19 +60,19 @@ type User struct {
 	LockedUntil    *time.Time `json:"locked_until,omitempty"`
 }
 
-// Status calcula e retorna o estado atual da licença (Ativa, Expirando, Expirada).
-func (l *License) Status() string {
+// Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).
+func (c *Contract) Status() string {
 	now := time.Now()
 
-	if l.EndDate.Before(now) {
-		return "Expirada"
+	if c.EndDate.Before(now) {
+		return "Expirado"
 	}
 
 	// Consideramos "Expirando em Breve" se faltar 30 dias ou menos.
-	daysUntilExpiration := l.EndDate.Sub(now).Hours() / 24
+	daysUntilExpiration := c.EndDate.Sub(now).Hours() / 24
 	if daysUntilExpiration <= 30 {
 		return "Expirando em Breve"
 	}
 
-	return "Ativa"
+	return "Ativo"
 }
