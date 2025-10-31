@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/store/line_store.go
+// Contracts-Manager/backend/store/line_store.go
 
 package store
 
@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"Licenses-Manager/backend/domain" // Use o nome do seu módulo
+	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
 
 	"github.com/google/uuid"
 )
@@ -25,26 +25,24 @@ func NewLineStore(db DBInterface) *LineStore {
 
 // CreateLine insere um novo tipo de licença no banco, associado a uma categoria.
 func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
-	if licenseline.Line == "" {
-		return "", sql.ErrNoRows // Or use errors.New("type cannot be empty")
-	}
-	if len(licenseline.Line) > 255 {
-		return "", errors.New("line name must be at most 255 characters")
+	trimmedName, err := ValidateName(licenseline.Line, 255)
+	if err != nil {
+		return "", err
 	}
 	if licenseline.CategoryID == "" {
 		return "", sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
 	if count == 0 {
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
-	// NOVA REGRA: Nome único por categoria
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = ? AND name = ?", licenseline.CategoryID, licenseline.Line).Scan(&count)
+	// NOVA REGRA: Nome único por categoria (case-insensitive)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = ? AND LOWER(name) = LOWER(?)", licenseline.CategoryID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +52,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO lines (id, name, category_id) VALUES (?, ?, ?)`
 
-	_, err = s.db.Exec(sqlStatement, newID, licenseline.Line, licenseline.CategoryID)
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName, licenseline.CategoryID)
 	if err != nil {
 		return "", err
 	}
@@ -165,18 +163,16 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	if licenseline.ID == "" {
 		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	if licenseline.Line == "" {
-		return sql.ErrNoRows // Or use errors.New("type cannot be empty")
-	}
-	if len(licenseline.Line) > 255 {
-		return errors.New("line name must be at most 255 characters")
+	trimmedName, err := ValidateName(licenseline.Line, 255)
+	if err != nil {
+		return err
 	}
 	if licenseline.CategoryID == "" {
 		return sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -193,7 +189,7 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 		return errors.New("cannot move line between categories")
 	}
 	sqlStatement := `UPDATE lines SET name = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, licenseline.Line, licenseline.ID)
+	result, err := s.db.Exec(sqlStatement, trimmedName, licenseline.ID)
 	if err != nil {
 		return err
 	}
@@ -220,14 +216,14 @@ func (s *LineStore) DeleteLine(id string) error {
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("type does not exist")
 	}
-	// NOVA REGRA: Não permitir deletar linha com licenças associadas
-	var licenseCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM licenses WHERE line_id = ?", id).Scan(&licenseCount)
+	// NOVA REGRA: Não permitir deletar linha com contratos associados
+	var contractCount int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE line_id = ?", id).Scan(&contractCount)
 	if err != nil {
 		return err
 	}
-	if licenseCount > 0 {
-		return errors.New("cannot delete line with associated licenses")
+	if contractCount > 0 {
+		return errors.New("cannot delete line with associated contracts")
 	}
 	sqlStatement := `DELETE FROM lines WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, id)

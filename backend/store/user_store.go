@@ -1,12 +1,13 @@
 package store
 
 import (
-	"Licenses-Manager/backend/domain"
+	"Contracts-Manager/backend/domain"
 	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,10 +26,13 @@ func NewUserStore(db DBInterface) *UserStore {
 	}
 }
 
-// Validação de senha forte: 16+ caracteres, 1 número, 1 minúscula, 1 maiúscula, 1 símbolo
+// Validação de senha forte: 16+ caracteres, 1 número, 1 minúscula, 1 maiúscula, 1 símbolo, sem espaços
 func ValidateStrongPassword(password string) error {
 	if len(password) < 16 {
 		return errors.New("a senha deve ter pelo menos 16 caracteres")
+	}
+	if strings.Contains(password, " ") {
+		return errors.New("a senha não pode conter espaços")
 	}
 	reNumber := regexp.MustCompile(`[0-9]`)
 	reLower := regexp.MustCompile(`[a-z]`)
@@ -61,11 +65,13 @@ func HashPassword(password string) (string, error) {
 
 // CreateUser cadastra um novo usuário após validar senha forte
 func (s *UserStore) CreateUser(username, displayName, password, role string) (string, error) {
-	if username == "" {
-		return "", errors.New("nome de usuário não pode ser vazio")
+	trimmedUsername, err := ValidateName(username, 255)
+	if err != nil {
+		return "", err
 	}
-	if displayName == "" {
-		return "", errors.New("display name não pode ser vazio")
+	trimmedDisplayName, errDisplay := ValidateName(displayName, 255)
+	if errDisplay != nil {
+		return "", errDisplay
 	}
 	if role == "" {
 		role = "user"
@@ -76,7 +82,7 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 
 	// Verifica se já existe usuário com esse nome
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", username).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", trimmedUsername).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +98,7 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 	createdAt := time.Now()
 
 	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, role) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = s.db.Exec(sqlStatement, id, username, displayName, passwordHash, createdAt, role)
+	_, err = s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, role)
 	if err != nil {
 		return "", err
 	}
@@ -241,11 +247,12 @@ func (s *UserStore) EditUserPassword(username, newPassword string) error {
 
 // Edita o display name de um usuário existente
 func (s *UserStore) EditUserDisplayName(username, newDisplayName string) error {
-	if newDisplayName == "" {
-		return errors.New("display name não pode ser vazio")
+	trimmedDisplayName, err := ValidateName(newDisplayName, 255)
+	if err != nil {
+		return err
 	}
 	sqlStatement := `UPDATE users SET display_name = ? WHERE username = ?`
-	result, err := s.db.Exec(sqlStatement, newDisplayName, username)
+	result, err := s.db.Exec(sqlStatement, trimmedDisplayName, username)
 	if err != nil {
 		return err
 	}

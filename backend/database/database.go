@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/database/database.go
+// Contracts-Manager/backend/database/database.go
 
 package database
 
@@ -15,7 +15,7 @@ func getDBPath() string {
 	// Descobre o diretório do arquivo atual (database.go)
 	_, b, _, _ := runtime.Caller(0)
 	basePath := filepath.Dir(b)
-	return filepath.Join(basePath, "licenses.db")
+	return filepath.Join(basePath, "contracts.db")
 }
 
 func ConnectDB() (*sql.DB, error) {

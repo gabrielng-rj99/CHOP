@@ -1,9 +1,9 @@
-// Licenses-Manager/backend/store/client_store.go
+// Contracts-Manager/backend/store/client_store.go
 
 package store
 
 import (
-	"Licenses-Manager/backend/domain"
+	"Contracts-Manager/backend/domain"
 	"database/sql"
 	"errors"
 	"strings"
@@ -24,30 +24,38 @@ func NewClientStore(db DBInterface) *ClientStore {
 
 // CreateClient foi atualizado para incluir a nova coluna (que será NULL por padrão)
 func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
-	if client.Name == "" {
-		return "", errors.New("client name cannot be empty")
+	// Trim and validate name
+	trimmedName, err := ValidateName(client.Name, 255)
+	if err != nil {
+		return "", err
 	}
-	if len(client.Name) > 255 {
-		return "", errors.New("client name must be at most 255 characters")
-	}
+
 	if client.RegistrationID == "" {
 		return "", errors.New("client registration ID cannot be empty")
 	}
 	if !isValidCPFOrCNPJ(client.RegistrationID) {
 		return "", errors.New("registration ID must be a valid CPF or CNPJ")
 	}
-	// Check for duplicate registration ID
+
+	// Format CPF/CNPJ
+	formattedID, err := FormatCPFOrCNPJ(client.RegistrationID)
+	if err != nil {
+		return "", errors.New("registration ID must be a valid CPF or CNPJ")
+	}
+
+	// Check for duplicate registration ID (check both formatted and unformatted versions)
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = ?", client.RegistrationID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = ?", formattedID).Scan(&count)
 	if err != nil && err != sql.ErrNoRows {
 		return "", err
 	}
 	if count > 0 {
 		return "", errors.New("client registration ID already exists")
 	}
+
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO clients (id, name, registration_id) VALUES (?, ?, ?)`
-	_, err = s.db.Exec(sqlStatement, newID, client.Name, client.RegistrationID)
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName, formattedID)
 	if err != nil {
 		// Handle unique constraint violation for registration ID
 		if err.Error() != "" &&
@@ -96,21 +104,29 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if client.ID == "" {
 		return errors.New("client ID cannot be empty")
 	}
-	if client.Name == "" {
-		return errors.New("client name cannot be empty")
+
+	// Trim and validate name
+	trimmedName, err := ValidateName(client.Name, 255)
+	if err != nil {
+		return err
 	}
-	if len(client.Name) > 255 {
-		return errors.New("client name must be at most 255 characters")
-	}
+
 	if client.RegistrationID == "" {
 		return errors.New("client registration ID cannot be empty")
 	}
 	if !isValidCPFOrCNPJ(client.RegistrationID) {
 		return errors.New("registration ID must be a valid CPF or CNPJ")
 	}
+
+	// Format CPF/CNPJ
+	formattedID, err := FormatCPFOrCNPJ(client.RegistrationID)
+	if err != nil {
+		return errors.New("registration ID must be a valid CPF or CNPJ")
+	}
+
 	// Check if client exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", client.ID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", client.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -118,7 +134,7 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 		return errors.New("client does not exist")
 	}
 	sqlStatement := `UPDATE clients SET name = ?, registration_id = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, client.Name, client.RegistrationID, client.ID)
+	result, err := s.db.Exec(sqlStatement, trimmedName, formattedID, client.ID)
 	if err != nil {
 		return err
 	}
@@ -253,9 +269,9 @@ func (s *ClientStore) ArchiveClient(id string) error {
 		return errors.New("no client archived")
 	}
 
-	// Arquivar todas as licenças associadas ao cliente (não só permanentes)
+	// Arquivar todos os contratos associados ao cliente (não só permanentes)
 	_, err = s.db.Exec(
-		`UPDATE licenses SET archived_at = ? WHERE client_id = ? AND archived_at IS NULL`,
+		`UPDATE contracts SET archived_at = ? WHERE client_id = ? AND archived_at IS NULL`,
 		time.Now(), id,
 	)
 	if err != nil {
@@ -310,26 +326,26 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 	if count == 0 {
 		return errors.New("client not found")
 	}
-	// NOVA REGRA: Só pode excluir cliente se todas as licenças estiverem expiradas ou arquivadas
-	var blockedLicenses int
+	// NOVA REGRA: Só pode excluir cliente se todos os contratos estiverem expirados ou arquivados
+	var blockedContracts int
 	err = s.db.QueryRow(`
-		SELECT COUNT(*) FROM licenses
+		SELECT COUNT(*) FROM contracts
 		WHERE client_id = ?
 		AND archived_at IS NULL
 		AND end_date > ?
-	`, id, time.Now()).Scan(&blockedLicenses)
+	`, id, time.Now()).Scan(&blockedContracts)
 	if err != nil {
 		return err
 	}
-	if blockedLicenses > 0 {
-		return errors.New("cannot delete client with active or unarchived licenses")
+	if blockedContracts > 0 {
+		return errors.New("cannot delete client with active or unarchived contracts")
 	}
-	// Cascade delete: remover entidades e licenças associadas ao cliente
-	_, err = s.db.Exec("DELETE FROM licenses WHERE client_id = ?", id)
+	// Cascade delete: remover dependentes e contratos associados ao cliente
+	_, err = s.db.Exec("DELETE FROM contracts WHERE client_id = ?", id)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec("DELETE FROM entities WHERE client_id = ?", id)
+	_, err = s.db.Exec("DELETE FROM dependents WHERE client_id = ?", id)
 	if err != nil {
 		return err
 	}

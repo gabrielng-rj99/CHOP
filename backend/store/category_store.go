@@ -1,9 +1,9 @@
-// Licenses-Manager/backend/store/category_store.go
+// Contracts-Manager/backend/store/category_store.go
 
 package store
 
 import (
-	"Licenses-Manager/backend/domain"
+	"Contracts-Manager/backend/domain"
 	"database/sql"
 	"errors"
 
@@ -26,17 +26,15 @@ func NewCategoryStore(db DBInterface) *CategoryStore {
 
 // CreateCategory insere uma nova categoria no banco de dados.
 func (s *CategoryStore) CreateCategory(category domain.Category) (string, error) {
-	if category.Name == "" {
-		return "", errors.New("category name cannot be empty")
-	}
-	if len(category.Name) > 255 {
-		return "", errors.New("category name must be at most 255 characters")
+	trimmedName, err := ValidateName(category.Name, 255)
+	if err != nil {
+		return "", err
 	}
 
 	newID := uuid.New().String()
 	sqlStatement := `INSERT INTO categories (id, name) VALUES (?, ?)`
 
-	_, err := s.db.Exec(sqlStatement, newID, category.Name)
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName)
 	if err != nil {
 		return "", err
 	}
@@ -108,15 +106,13 @@ func (s *CategoryStore) UpdateCategory(category domain.Category) error {
 	if category.ID == "" {
 		return errors.New("category ID cannot be empty")
 	}
-	if category.Name == "" {
-		return errors.New("category name cannot be empty")
-	}
-	if len(category.Name) > 255 {
-		return errors.New("category name must be at most 255 characters")
+	trimmedName, err := ValidateName(category.Name, 255)
+	if err != nil {
+		return err
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", category.ID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", category.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -124,7 +120,7 @@ func (s *CategoryStore) UpdateCategory(category domain.Category) error {
 		return errors.New("category does not exist")
 	}
 	sqlStatement := `UPDATE categories SET name = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, category.Name, category.ID)
+	result, err := s.db.Exec(sqlStatement, trimmedName, category.ID)
 	if err != nil {
 		return err
 	}
