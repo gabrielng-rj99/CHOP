@@ -11,3 +11,32 @@
 # Binários compilados do Go
 # (O nome do seu projeto, se compilar)
 Licenses-Manager
+
+# Coverage e relatórios (devem ser gerados localmente)
+coverage.html
+coverage.out
+*.coverage
+.nyc_output/
+coverage/
+dist/
+build/
+
+# Dependências e build
+node_modules/
+dist/
+build/
+*.exe
+*.o
+*.a
+*.so
+
+# IDE e Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
