@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/cmd/server/main.go
+// Contracts-Manager/backend/cmd/server/main.go
 
 package main
 
@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"Licenses-Manager/backend/database"
-	"Licenses-Manager/backend/store"
+	"Contracts-Manager/backend/database"
+	"Contracts-Manager/backend/store"
 )
 
 func main() {

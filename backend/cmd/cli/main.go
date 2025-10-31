@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"Licenses-Manager/backend/database"
-	"Licenses-Manager/backend/domain"
-	"Licenses-Manager/backend/store"
+	"Contracts-Manager/backend/database"
+	"Contracts-Manager/backend/domain"
+	"Contracts-Manager/backend/store"
 )
 
 func main() {
@@ -22,12 +22,12 @@ func main() {
 
 	userStore := store.NewUserStore(db)
 	clientStore := store.NewClientStore(db)
-	licenseStore := store.NewLicenseStore(db)
-	entityStore := store.NewEntityStore(db)
+	contractStore := store.NewContractStore(db)
+	dependentStore := store.NewDependentStore(db)
 	categoryStore := store.NewCategoryStore(db)
 	lineStore := store.NewLineStore(db)
 
-	fmt.Println("=== Licenses Manager CLI ===")
+	fmt.Println("=== contracts Manager CLI ===")
 	fmt.Println("Lista de usuários no banco:")
 	rows, err := db.Query("SELECT id, username, display_name FROM users")
 	if err != nil {
@@ -55,9 +55,9 @@ func main() {
 	for {
 		switch mainMenu() {
 		case "1":
-			clientsFlow(clientStore, entityStore, licenseStore, lineStore, categoryStore)
+			clientsFlow(clientStore, dependentStore, contractStore, lineStore, categoryStore)
 		case "2":
-			licensesFlow(licenseStore, clientStore, entityStore, lineStore, categoryStore)
+			contractsFlow(contractStore, clientStore, dependentStore, lineStore, categoryStore)
 		case "3":
 			administrationFlow(categoryStore, lineStore, userStore, user)
 		case "4":
@@ -69,17 +69,17 @@ func main() {
 	}
 }
 
-// Licenses Menu (Overview)
-func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientStore, entityStore *store.EntityStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// contracts Menu (Overview)
+func contractsFlow(contractStore *store.ContractStore, clientStore *store.ClientStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
-		fmt.Println("\n--- Licenses (Overview) ---")
-		fmt.Println("1 - List all licenses")
+		fmt.Println("\n--- contracts (Overview) ---")
+		fmt.Println("1 - List all contracts")
 		fmt.Println("2 - Filter by client")
 		fmt.Println("3 - Filter by line")
 		fmt.Println("4 - Filter by category")
-		fmt.Println("5 - Create license")
-		fmt.Println("6 - Edit license")
-		fmt.Println("7 - Delete license")
+		fmt.Println("5 - Create contract")
+		fmt.Println("6 - Edit contract")
+		fmt.Println("7 - Delete contract")
 		fmt.Println("8 - Back")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
@@ -88,163 +88,215 @@ func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientSto
 
 		switch opt {
 		case "1":
-			// List all licenses
-			licenses, err := licenseStore.GetAllLicenses()
+			// List all contracts
+			contracts, err := contractStore.GetAllContracts()
 			if err != nil {
-				fmt.Println("Error listing licenses:", err)
+				fmt.Println("Error listing contracts:", err)
 				continue
 			}
-			if len(licenses) == 0 {
-				fmt.Println("No licenses found.")
+			if len(contracts) == 0 {
+				fmt.Println("No contracts found.")
 				continue
 			}
-			fmt.Println("\n=== All Licenses ===")
-			for _, l := range licenses {
-				entity := ""
-				if l.EntityID != nil {
-					entity = *l.EntityID
+			fmt.Println("\n=== All contracts ===")
+			for _, l := range contracts {
+				dependent := ""
+				if l.DependentID != nil {
+					dependent = *l.DependentID
 				}
 				status := l.Status()
-				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
-					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
 
 		case "2":
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
 			clientID = strings.TrimSpace(clientID)
-			licenses, err := licenseStore.GetLicensesByClientID(clientID)
+			if clientID == "" {
+				fmt.Println("Error: Client ID cannot be empty.")
+				continue
+			}
+			contracts, err := contractStore.GetContractsByClientID(clientID)
 			if err != nil {
-				fmt.Println("Error listing licenses:", err)
+				fmt.Println("Error listing contracts:", err)
 				continue
 			}
-			if len(licenses) == 0 {
-				fmt.Println("No licenses found for this client.")
+			if len(contracts) == 0 {
+				fmt.Println("No contracts found for this client.")
 				continue
 			}
-			fmt.Println("\n=== Licenses by Client ===")
-			for _, l := range licenses {
-				entity := ""
-				if l.EntityID != nil {
-					entity = *l.EntityID
+			fmt.Println("\n=== contracts by Client ===")
+			for _, l := range contracts {
+				dependent := ""
+				if l.DependentID != nil {
+					dependent = *l.DependentID
 				}
 				status := l.Status()
-				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
-					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
 		case "3":
 			fmt.Print("Line ID: ")
 			lineID, _ := reader.ReadString('\n')
 			lineID = strings.TrimSpace(lineID)
-			licenses, err := licenseStore.GetLicensesByLineID(lineID)
+			if lineID == "" {
+				fmt.Println("Error: Line ID cannot be empty.")
+				continue
+			}
+			contracts, err := contractStore.GetContractsByLineID(lineID)
 			if err != nil {
-				fmt.Println("Error listing licenses:", err)
+				fmt.Println("Error listing contracts:", err)
 				continue
 			}
-			if len(licenses) == 0 {
-				fmt.Println("No licenses found for this line.")
+			if len(contracts) == 0 {
+				fmt.Println("No contracts found for this line.")
 				continue
 			}
-			fmt.Println("\n=== Licenses by Line ===")
-			for _, l := range licenses {
-				entity := ""
-				if l.EntityID != nil {
-					entity = *l.EntityID
+			fmt.Println("\n=== contracts by Line ===")
+			for _, l := range contracts {
+				dependent := ""
+				if l.DependentID != nil {
+					dependent = *l.DependentID
 				}
 				status := l.Status()
-				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
-					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
 		case "4":
 			fmt.Print("Category ID: ")
 			categoryID, _ := reader.ReadString('\n')
 			categoryID = strings.TrimSpace(categoryID)
-			licenses, err := licenseStore.GetLicensesByCategoryID(categoryID)
+			if categoryID == "" {
+				fmt.Println("Error: Category ID cannot be empty.")
+				continue
+			}
+			contracts, err := contractStore.GetContractsByCategoryID(categoryID)
 			if err != nil {
-				fmt.Println("Error listing licenses:", err)
+				fmt.Println("Error listing contracts:", err)
 				continue
 			}
-			if len(licenses) == 0 {
-				fmt.Println("No licenses found for this category.")
+			if len(contracts) == 0 {
+				fmt.Println("No contracts found for this category.")
 				continue
 			}
-			fmt.Println("\n=== Licenses by Category ===")
-			for _, l := range licenses {
-				entity := ""
-				if l.EntityID != nil {
-					entity = *l.EntityID
+			fmt.Println("\n=== contracts by Category ===")
+			for _, l := range contracts {
+				dependent := ""
+				if l.DependentID != nil {
+					dependent = *l.DependentID
 				}
 				status := l.Status()
-				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Entity: %s\n",
-					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), entity)
+				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
+					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
 
 		case "5":
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
 			clientID = strings.TrimSpace(clientID)
-			licensesSubmenu(clientID, licenseStore, entityStore, lineStore, categoryStore)
+			if clientID == "" {
+				fmt.Println("Error: Client ID cannot be empty.")
+				continue
+			}
+			contractsSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
 		case "6":
-			fmt.Print("License ID to edit: ")
+			fmt.Print("contract ID to edit: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			license, err := licenseStore.GetLicenseByID(id)
-			if err != nil || license == nil {
-				fmt.Println("License not found.")
+			if id == "" {
+				fmt.Println("Error: contract ID cannot be empty.")
+				continue
+			}
+			contract, err := contractStore.GetContractByID(id)
+			if err != nil || contract == nil {
+				fmt.Println("contract not found.")
 				continue
 			}
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Printf("Current name: %s | New name: ", license.Model)
+			fmt.Printf("Current name: %s | New name: ", contract.Model)
 			name, _ := reader.ReadString('\n')
-			fmt.Printf("Current key: %s | New key: ", license.ProductKey)
+			fmt.Printf("Current key: %s | New key: ", contract.ProductKey)
 			productKey, _ := reader.ReadString('\n')
-			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", license.StartDate.Format("2006-01-02"))
+			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", contract.StartDate.Format("2006-01-02"))
 			startStr, _ := reader.ReadString('\n')
-			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", license.EndDate.Format("2006-01-02"))
+			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", contract.EndDate.Format("2006-01-02"))
 			endStr, _ := reader.ReadString('\n')
-			fmt.Printf("Current type ID: %s | New type ID: ", license.LineID)
+			fmt.Printf("Current type ID: %s | New type ID: ", contract.LineID)
 			lineID, _ := reader.ReadString('\n')
-			fmt.Printf("Current entity ID: ")
-			if license.EntityID != nil {
-				fmt.Printf("%s | New entity (optional): ", *license.EntityID)
+			fmt.Printf("Current dependent ID: ")
+			if contract.DependentID != nil {
+				fmt.Printf("%s | New dependent (optional): ", *contract.DependentID)
 			} else {
-				fmt.Print("(none) | New entity (optional): ")
+				fmt.Print("(none) | New dependent (optional): ")
 			}
-			entityID, _ := reader.ReadString('\n')
-			startDate := license.StartDate
-			endDate := license.EndDate
+			dependentID, _ := reader.ReadString('\n')
+
+			name = strings.TrimSpace(name)
+			productKey = strings.TrimSpace(productKey)
+			lineID = strings.TrimSpace(lineID)
+
+			if name == "" {
+				fmt.Println("Error: contract name cannot be empty.")
+				continue
+			}
+			if productKey == "" {
+				fmt.Println("Error: Product key cannot be empty.")
+				continue
+			}
+			if lineID == "" {
+				fmt.Println("Error: Line ID cannot be empty.")
+				continue
+			}
+
+			startDate := contract.StartDate
+			endDate := contract.EndDate
 			if strings.TrimSpace(startStr) != "" {
-				startDate, _ = time.Parse("2006-01-02", strings.TrimSpace(startStr))
+				parsedStart, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
+				if errStart != nil {
+					fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
+					continue
+				}
+				startDate = parsedStart
 			}
 			if strings.TrimSpace(endStr) != "" {
-				endDate, _ = time.Parse("2006-01-02", strings.TrimSpace(endStr))
+				parsedEnd, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
+				if errEnd != nil {
+					fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
+					continue
+				}
+				endDate = parsedEnd
 			}
-			var entityPtr *string
-			entityID = strings.TrimSpace(entityID)
-			if entityID != "" {
-				entityPtr = &entityID
+			var dependentPtr *string
+			dependentID = strings.TrimSpace(dependentID)
+			if dependentID != "" {
+				dependentPtr = &dependentID
 			}
-			license.Model = strings.TrimSpace(name)
-			license.ProductKey = strings.TrimSpace(productKey)
-			license.StartDate = startDate
-			license.EndDate = endDate
-			license.LineID = strings.TrimSpace(lineID)
-			license.EntityID = entityPtr
-			err = licenseStore.UpdateLicense(*license)
+			contract.Model = name
+			contract.ProductKey = productKey
+			contract.StartDate = startDate
+			contract.EndDate = endDate
+			contract.LineID = lineID
+			contract.DependentID = dependentPtr
+			err = contractStore.UpdateContract(*contract)
 			if err != nil {
-				fmt.Println("Error updating license:", err)
+				fmt.Println("Error updating contract:", err)
 			} else {
-				fmt.Println("License updated.")
+				fmt.Println("contract updated.")
 			}
 		case "7":
-			fmt.Print("License ID to delete: ")
+			fmt.Print("contract ID to delete: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			err := licenseStore.DeleteLicense(id)
+			if id == "" {
+				fmt.Println("Error: contract ID cannot be empty.")
+				continue
+			}
+			err := contractStore.DeleteContract(id)
 			if err != nil {
-				fmt.Println("Error deleting license:", err)
+				fmt.Println("Error deleting contract:", err)
 			} else {
-				fmt.Println("License deleted.")
+				fmt.Println("contract deleted.")
 			}
 		case "8":
 			return
@@ -254,10 +306,10 @@ func licensesFlow(licenseStore *store.LicenseStore, clientStore *store.ClientSto
 	}
 }
 
-// Licenses Submenu for Client
-func licensesSubmenu(clientID string, licenseStore *store.LicenseStore, entityStore *store.EntityStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// contracts Submenu for Client
+func contractsSubmenu(clientID string, contractStore *store.ContractStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("License name: ")
+	fmt.Print("contract name: ")
 	name, _ := reader.ReadString('\n')
 	fmt.Print("Product key: ")
 	productKey, _ := reader.ReadString('\n')
@@ -267,29 +319,56 @@ func licensesSubmenu(clientID string, licenseStore *store.LicenseStore, entitySt
 	endStr, _ := reader.ReadString('\n')
 	fmt.Print("Line ID: ")
 	lineID, _ := reader.ReadString('\n')
-	fmt.Print("Entity ID: ")
-	entityID, _ := reader.ReadString('\n')
-	startDate, _ := time.Parse("2006-01-02", strings.TrimSpace(startStr))
-	endDate, _ := time.Parse("2006-01-02", strings.TrimSpace(endStr))
-	var entityPtr *string
-	entityID = strings.TrimSpace(entityID)
-	if entityID != "" {
-		entityPtr = &entityID
+	fmt.Print("Dependent ID: ")
+	dependentID, _ := reader.ReadString('\n')
+
+	name = strings.TrimSpace(name)
+	productKey = strings.TrimSpace(productKey)
+	lineID = strings.TrimSpace(lineID)
+
+	if name == "" {
+		fmt.Println("Error: contract name cannot be empty.")
+		return
 	}
-	license := domain.License{
-		Model:      strings.TrimSpace(name),
-		ProductKey: strings.TrimSpace(productKey),
-		StartDate:  startDate,
-		EndDate:    endDate,
-		LineID:     strings.TrimSpace(lineID),
-		ClientID:   clientID,
-		EntityID:   entityPtr,
+	if productKey == "" {
+		fmt.Println("Error: Product key cannot be empty.")
+		return
 	}
-	id, err := licenseStore.CreateLicense(license)
+	if lineID == "" {
+		fmt.Println("Error: Line ID cannot be empty.")
+		return
+	}
+
+	startDate, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
+	if errStart != nil {
+		fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
+		return
+	}
+	endDate, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
+	if errEnd != nil {
+		fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
+		return
+	}
+
+	var dependentPtr *string
+	dependentID = strings.TrimSpace(dependentID)
+	if dependentID != "" {
+		dependentPtr = &dependentID
+	}
+	contract := domain.Contract{
+		Model:       name,
+		ProductKey:  productKey,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		LineID:      lineID,
+		ClientID:    clientID,
+		DependentID: dependentPtr,
+	}
+	id, err := contractStore.CreateContract(contract)
 	if err != nil {
-		fmt.Println("Error creating license:", err)
+		fmt.Println("Error creating contract:", err)
 	} else {
-		fmt.Println("License created with ID:", id)
+		fmt.Println("contract created with ID:", id)
 	}
 }
 
@@ -324,7 +403,7 @@ func administrationFlow(categoryStore *store.CategoryStore, lineStore *store.Lin
 // Categories Submenu
 func categoriesMenu(categoryStore *store.CategoryStore) {
 	for {
-		fmt.Println("\n--- Categories ---")
+		fmt.Println("\n--- Categories Menu ---")
 		fmt.Println("1 - List categories")
 		fmt.Println("2 - Create category")
 		fmt.Println("3 - Edit category")
@@ -342,13 +421,26 @@ func categoriesMenu(categoryStore *store.CategoryStore) {
 				fmt.Println("Error listing categories:", err)
 				continue
 			}
+			if len(categories) == 0 {
+				fmt.Println("No categories found.")
+				continue
+			}
 			for _, c := range categories {
 				fmt.Printf("ID: %s | Name: %s\n", c.ID, c.Name)
 			}
 		case "2":
+			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("Category name: ")
 			name, _ := reader.ReadString('\n')
-			id, err := categoryStore.CreateCategory(domain.Category{Name: strings.TrimSpace(name)})
+			name = strings.TrimSpace(name)
+			if name == "" {
+				fmt.Println("Error: Category name cannot be empty.")
+				continue
+			}
+			category := domain.Category{
+				Name: name,
+			}
+			id, err := categoryStore.CreateCategory(category)
 			if err != nil {
 				fmt.Println("Error creating category:", err)
 			} else {
@@ -358,14 +450,24 @@ func categoriesMenu(categoryStore *store.CategoryStore) {
 			fmt.Print("Category ID to edit: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
+			if id == "" {
+				fmt.Println("Error: Category ID cannot be empty.")
+				continue
+			}
 			category, err := categoryStore.GetCategoryByID(id)
 			if err != nil || category == nil {
 				fmt.Println("Category not found.")
 				continue
 			}
+			reader := bufio.NewReader(os.Stdin)
 			fmt.Printf("Current name: %s | New name: ", category.Name)
-			newName, _ := reader.ReadString('\n')
-			category.Name = strings.TrimSpace(newName)
+			name, _ := reader.ReadString('\n')
+			name = strings.TrimSpace(name)
+			if name == "" {
+				fmt.Println("Error: Category name cannot be empty.")
+				continue
+			}
+			category.Name = name
 			err = categoryStore.UpdateCategory(*category)
 			if err != nil {
 				fmt.Println("Error updating category:", err)
@@ -376,6 +478,10 @@ func categoriesMenu(categoryStore *store.CategoryStore) {
 			fmt.Print("Category ID to delete: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
+			if id == "" {
+				fmt.Println("Error: Category ID cannot be empty.")
+				continue
+			}
 			err := categoryStore.DeleteCategory(id)
 			if err != nil {
 				fmt.Println("Error deleting category:", err)
@@ -393,7 +499,7 @@ func categoriesMenu(categoryStore *store.CategoryStore) {
 // Lines Submenu
 func linesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
-		fmt.Println("\n--- License Lines ---")
+		fmt.Println("\n--- contract Lines ---")
 		fmt.Println("1 - List lines")
 		fmt.Println("2 - Create line")
 		fmt.Println("3 - Edit line")
@@ -411,17 +517,32 @@ func linesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				fmt.Println("Error listing lines:", err)
 				continue
 			}
+			if len(lines) == 0 {
+				fmt.Println("No lines found.")
+				continue
+			}
 			for _, t := range lines {
 				fmt.Printf("ID: %s | Name: %s | Category: %s\n", t.ID, t.Line, t.CategoryID)
 			}
 		case "2":
+			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("Line name: ")
 			line, _ := reader.ReadString('\n')
 			fmt.Print("Category ID: ")
 			categoryID, _ := reader.ReadString('\n')
+			line = strings.TrimSpace(line)
+			categoryID = strings.TrimSpace(categoryID)
+			if line == "" {
+				fmt.Println("Error: Line name cannot be empty.")
+				continue
+			}
+			if categoryID == "" {
+				fmt.Println("Error: Category ID cannot be empty.")
+				continue
+			}
 			id, err := lineStore.CreateLine(domain.Line{
-				Line:       strings.TrimSpace(line),
-				CategoryID: strings.TrimSpace(categoryID),
+				Line:       line,
+				CategoryID: categoryID,
 			})
 			if err != nil {
 				fmt.Println("Error creating line:", err)
@@ -429,17 +550,32 @@ func linesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				fmt.Println("Line created with ID:", id)
 			}
 		case "3":
+			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("Line ID to edit: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
+			if id == "" {
+				fmt.Println("Error: Line ID cannot be empty.")
+				continue
+			}
 			fmt.Print("New type name: ")
 			line, _ := reader.ReadString('\n')
 			fmt.Print("New category for line: ")
 			categoryID, _ := reader.ReadString('\n')
+			line = strings.TrimSpace(line)
+			categoryID = strings.TrimSpace(categoryID)
+			if line == "" {
+				fmt.Println("Error: Line name cannot be empty.")
+				continue
+			}
+			if categoryID == "" {
+				fmt.Println("Error: Category ID cannot be empty.")
+				continue
+			}
 			err := lineStore.UpdateLine(domain.Line{
 				ID:         id,
-				Line:       strings.TrimSpace(line),
-				CategoryID: strings.TrimSpace(categoryID),
+				Line:       line,
+				CategoryID: categoryID,
 			})
 			if err != nil {
 				fmt.Println("Error updating line:", err)
@@ -450,6 +586,10 @@ func linesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			fmt.Print("Line ID to delete: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
+			if id == "" {
+				fmt.Println("Error: Line ID cannot be empty.")
+				continue
+			}
 			err := lineStore.DeleteLine(id)
 			if err != nil {
 				fmt.Println("Error deleting line:", err)
@@ -509,6 +649,18 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("User's password: ")
 			password, _ := reader.ReadString('\n')
 			password = strings.TrimSpace(password)
+			if username == "" {
+				fmt.Println("Error: Username cannot be empty.")
+				continue
+			}
+			if displayName == "" {
+				fmt.Println("Error: Display name cannot be empty.")
+				continue
+			}
+			if password == "" {
+				fmt.Println("Error: Password cannot be empty.")
+				continue
+			}
 			id, err := userStore.CreateUser(username, displayName, password, "user")
 			if err != nil {
 				fmt.Println("Error creating user:", err)
@@ -527,6 +679,10 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("Admin display name: ")
 			displayName, _ := reader.ReadString('\n')
 			displayName = strings.TrimSpace(displayName)
+			if displayName == "" {
+				fmt.Println("Error: Display name cannot be empty.")
+				continue
+			}
 			genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "admin")
 			if err != nil {
 				fmt.Println("Error creating admin:", err)
@@ -545,6 +701,10 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("Full_admin display name: ")
 			displayName, _ := reader.ReadString('\n')
 			displayName = strings.TrimSpace(displayName)
+			if displayName == "" {
+				fmt.Println("Error: Display name cannot be empty.")
+				continue
+			}
 			genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "full_admin")
 			if err != nil {
 				fmt.Println("Error creating full_admin:", err)
@@ -556,6 +716,10 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("New display name for you: ")
 			newDisplayName, _ := reader.ReadString('\n')
 			newDisplayName = strings.TrimSpace(newDisplayName)
+			if newDisplayName == "" {
+				fmt.Println("Error: Display name cannot be empty.")
+				continue
+			}
 			err := userStore.EditUserDisplayName(user.Username, newDisplayName)
 			if err != nil {
 				fmt.Println("Error changing display name:", err)
@@ -567,6 +731,11 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("New password: ")
 			newPassword, _ := reader.ReadString('\n')
 			newPassword = strings.TrimSpace(newPassword)
+
+			if newPassword == "" {
+				fmt.Println("Error: Password cannot be empty.")
+				continue
+			}
 
 			// Password requirements: min 12 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
 			var (
@@ -608,6 +777,10 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("New username for you: ")
 			newUsername, _ := reader.ReadString('\n')
 			newUsername = strings.TrimSpace(newUsername)
+			if newUsername == "" {
+				fmt.Println("Error: Username cannot be empty.")
+				continue
+			}
 			err := userStore.UpdateUsername(user.Username, newUsername)
 			if err != nil {
 				fmt.Println("Error changing your username:", err)
@@ -627,6 +800,14 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("New role (user/admin/full_admin): ")
 			newRole, _ := reader.ReadString('\n')
 			newRole = strings.TrimSpace(newRole)
+			if targetUsername == "" {
+				fmt.Println("Error: Target username cannot be empty.")
+				continue
+			}
+			if newRole == "" {
+				fmt.Println("Error: New role cannot be empty.")
+				continue
+			}
 			err := userStore.EditUserRole(user.Username, targetUsername, newRole)
 			if err != nil {
 				fmt.Println("Error changing role:", err)
@@ -642,6 +823,10 @@ func usuariosMenu(userStore *store.UserStore, user *domain.User) {
 			fmt.Print("Username to unlock: ")
 			targetUsername, _ := reader.ReadString('\n')
 			targetUsername = strings.TrimSpace(targetUsername)
+			if targetUsername == "" {
+				fmt.Println("Error: Target username cannot be empty.")
+				continue
+			}
 			err := userStore.UnlockUser(targetUsername)
 			if err != nil {
 				fmt.Println("Error unlocking user:", err)
@@ -668,7 +853,7 @@ func promptLogin() (string, string) {
 func mainMenu() string {
 	fmt.Println("Select an option:")
 	fmt.Println("1 - Clients")
-	fmt.Println("2 - Licenses (overview)")
+	fmt.Println("2 - contracts (overview)")
 	fmt.Println("3 - Administration (categories, lines, users)")
 	fmt.Println("4 - Exit")
 	fmt.Print("Option: ")
@@ -677,7 +862,7 @@ func mainMenu() string {
 	return strings.TrimSpace(opt)
 }
 
-func clientsFlow(clientStore *store.ClientStore, entityStore *store.EntityStore, licenseStore *store.LicenseStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+func clientsFlow(clientStore *store.ClientStore, dependentStore *store.DependentStore, contractStore *store.ContractStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
 		fmt.Println("\n--- Clients Menu ---")
 		fmt.Println("1 - List clients")
@@ -706,9 +891,19 @@ func clientsFlow(clientStore *store.ClientStore, entityStore *store.EntityStore,
 			name, _ := reader.ReadString('\n')
 			fmt.Print("Registration ID: ")
 			registrationID, _ := reader.ReadString('\n')
+			name = strings.TrimSpace(name)
+			registrationID = strings.TrimSpace(registrationID)
+			if name == "" {
+				fmt.Println("Error: Client name cannot be empty.")
+				continue
+			}
+			if registrationID == "" {
+				fmt.Println("Error: Registration ID cannot be empty.")
+				continue
+			}
 			client := domain.Client{
-				Name:           strings.TrimSpace(name),
-				RegistrationID: strings.TrimSpace(registrationID),
+				Name:           name,
+				RegistrationID: registrationID,
 			}
 			id, err := clientStore.CreateClient(client)
 			if err != nil {
@@ -721,7 +916,11 @@ func clientsFlow(clientStore *store.ClientStore, entityStore *store.EntityStore,
 			fmt.Print("Client ID: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			clientSubmenu(id, clientStore, entityStore, licenseStore, lineStore, categoryStore)
+			if id == "" {
+				fmt.Println("Error: Client ID cannot be empty.")
+				continue
+			}
+			clientSubmenu(id, clientStore, dependentStore, contractStore, lineStore, categoryStore)
 		case "4":
 			return
 		default:
@@ -730,13 +929,13 @@ func clientsFlow(clientStore *store.ClientStore, entityStore *store.EntityStore,
 	}
 }
 
-func entitiesSubmenu(clientID string, entityStore *store.EntityStore) {
+func dependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 	for {
-		fmt.Printf("\n--- Entities of Client %s ---\n", clientID)
-		fmt.Println("1 - List entities")
-		fmt.Println("2 - Create entity")
-		fmt.Println("3 - Edit entity")
-		fmt.Println("4 - Delete entity")
+		fmt.Printf("\n--- Dependents of Client %s ---\n", clientID)
+		fmt.Println("1 - List dependents")
+		fmt.Println("2 - Create dependent")
+		fmt.Println("3 - Edit dependent")
+		fmt.Println("4 - Delete dependent")
 		fmt.Println("5 - Back")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
@@ -745,68 +944,86 @@ func entitiesSubmenu(clientID string, entityStore *store.EntityStore) {
 
 		switch opt {
 		case "1":
-			entities, err := entityStore.GetEntitiesByClientID(clientID)
+			dependents, err := dependentStore.GetDependentsByClientID(clientID)
 			if err != nil {
-				fmt.Println("Error listing entities:", err)
+				fmt.Println("Error listing dependents:", err)
 				continue
 			}
-			for _, e := range entities {
+			for _, e := range dependents {
 				fmt.Printf("ID: %s | Name: %s\n", e.ID, e.Name)
 			}
 		case "2":
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Entity name: ")
+			fmt.Print("Dependent name: ")
 			name, _ := reader.ReadString('\n')
-			entity := domain.Entity{
-				Name:     strings.TrimSpace(name),
+			name = strings.TrimSpace(name)
+			if name == "" {
+				fmt.Println("Error: Dependent name cannot be empty.")
+				continue
+			}
+			dependent := domain.Dependent{
+				Name:     name,
 				ClientID: clientID,
 			}
-			id, err := entityStore.CreateEntity(entity)
+			id, err := dependentStore.CreateDependent(dependent)
 			if err != nil {
-				fmt.Println("Error creating entity:", err)
+				fmt.Println("Error creating dependent:", err)
 			} else {
-				fmt.Println("Entity created with ID:", id)
+				fmt.Println("Dependent created with ID:", id)
 			}
 		case "3":
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Entity ID to edit: ")
+			fmt.Print("Dependent ID to edit: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			entities, err := entityStore.GetEntitiesByClientID(clientID)
-			if err != nil {
-				fmt.Println("Error fetching entity:", err)
+			if id == "" {
+				fmt.Println("Error: Dependent ID cannot be empty.")
 				continue
 			}
-			var entity *domain.Entity
-			for _, e := range entities {
+			dependents, err := dependentStore.GetDependentsByClientID(clientID)
+			if err != nil {
+				fmt.Println("Error fetching dependent:", err)
+				continue
+			}
+			var dependent *domain.Dependent
+			for _, e := range dependents {
 				if e.ID == id {
-					entity = &e
+					dependent = &e
 					break
 				}
 			}
-			if entity == nil {
-				fmt.Println("Entity not found.")
+			if dependent == nil {
+				fmt.Println("Dependent not found.")
 				continue
 			}
-			fmt.Printf("Current name: %s | New name: ", entity.Name)
+			fmt.Printf("Current name: %s | New name: ", dependent.Name)
 			name, _ := reader.ReadString('\n')
-			entity.Name = strings.TrimSpace(name)
-			err = entityStore.UpdateEntity(*entity)
+			name = strings.TrimSpace(name)
+			if name == "" {
+				fmt.Println("Error: Dependent name cannot be empty.")
+				continue
+			}
+			dependent.Name = name
+			err = dependentStore.UpdateDependent(*dependent)
 			if err != nil {
-				fmt.Println("Error updating entity:", err)
+				fmt.Println("Error updating dependent:", err)
 			} else {
-				fmt.Println("Entity updated.")
+				fmt.Println("Dependent updated.")
 			}
 		case "4":
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Entity ID to delete: ")
+			fmt.Print("Dependent ID to delete: ")
 			id, _ := reader.ReadString('\n')
 			id = strings.TrimSpace(id)
-			err := entityStore.DeleteEntity(id)
+			if id == "" {
+				fmt.Println("Error: Dependent ID cannot be empty.")
+				continue
+			}
+			err := dependentStore.DeleteDependent(id)
 			if err != nil {
-				fmt.Println("Error deleting entity:", err)
+				fmt.Println("Error deleting dependent:", err)
 			} else {
-				fmt.Println("Entity deleted.")
+				fmt.Println("Dependent deleted.")
 			}
 		case "5":
 			return
@@ -818,18 +1035,26 @@ func entitiesSubmenu(clientID string, entityStore *store.EntityStore) {
 
 func clientSubmenu(clientID string,
 	clientStore *store.ClientStore,
-	entityStore *store.EntityStore,
-	licenseStore *store.LicenseStore,
+	dependentStore *store.DependentStore,
+	contractStore *store.ContractStore,
 	lineStore *store.LineStore,
 	categoryStore *store.CategoryStore) {
-	clientName, _ := clientStore.GetClientNameByID(clientID)
+	if clientID == "" {
+		fmt.Println("Error: Client ID cannot be empty.")
+		return
+	}
+	clientName, err := clientStore.GetClientNameByID(clientID)
+	if err != nil {
+		fmt.Println("Error: Client not found.")
+		return
+	}
 	for {
 		fmt.Printf("\n--- Client %s ---\n", clientName)
 		fmt.Println("1 - Edit client")
 		fmt.Println("2 - Archive client")
 		fmt.Println("3 - Delete client")
-		fmt.Println("4 - Entities")
-		fmt.Println("5 - Licenses")
+		fmt.Println("4 - Dependents")
+		fmt.Println("5 - contracts")
 		fmt.Println("6 - Back")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
@@ -848,8 +1073,18 @@ func clientSubmenu(clientID string,
 			name, _ := reader.ReadString('\n')
 			fmt.Printf("Current Registration ID: %s | New Registration ID: ", client.RegistrationID)
 			registrationID, _ := reader.ReadString('\n')
-			client.Name = strings.TrimSpace(name)
-			client.RegistrationID = strings.TrimSpace(registrationID)
+			name = strings.TrimSpace(name)
+			registrationID = strings.TrimSpace(registrationID)
+			if name == "" {
+				fmt.Println("Error: Client name cannot be empty.")
+				continue
+			}
+			if registrationID == "" {
+				fmt.Println("Error: Registration ID cannot be empty.")
+				continue
+			}
+			client.Name = name
+			client.RegistrationID = registrationID
 			err = clientStore.UpdateClient(*client)
 			if err != nil {
 				fmt.Println("Error updating client:", err)
@@ -871,9 +1106,9 @@ func clientSubmenu(clientID string,
 				fmt.Println("Client permanently deleted.")
 			}
 		case "4":
-			entitiesSubmenu(clientID, entityStore)
+			dependentsSubmenu(clientID, dependentStore)
 		case "5":
-			licensesSubmenu(clientID, licenseStore, entityStore, lineStore, categoryStore)
+			contractsSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
 		case "6":
 			return
 		default:

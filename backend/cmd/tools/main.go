@@ -1,4 +1,4 @@
-// Licenses-Manager/backend/cmd/tools/main.go
+// Contracts-Manager/backend/cmd/tools/main.go
 
 package main
 
@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"Licenses-Manager/backend/database"
-	"Licenses-Manager/backend/store"
+	"Contracts-Manager/backend/database"
+	"Contracts-Manager/backend/store"
 )
 
 // CreateAdminUser cria um usuário admin com uma senha aleatória.

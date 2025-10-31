@@ -1,9 +1,9 @@
-// Licenses-Manager/backend/cmd/tools/create_admin.go
+// Contracts-Manager/backend/cmd/tools/create_admin.go
 
 package main
 
 import (
-	"Licenses-Manager/backend/store"
+	"Contracts-Manager/backend/store"
 	"bufio"
 	"fmt"
 	"math/rand"
