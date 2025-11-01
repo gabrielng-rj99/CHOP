@@ -1,18 +1,16 @@
-# Setup — Licenses Manager
+# Setup — Contracts Manager
 
-Guia completo para instalar, configurar e começar a usar o Licenses Manager em ambiente de desenvolvimento ou produção.
+Guia completo para instalar, configurar e começar a usar o Contracts Manager em ambiente de desenvolvimento ou produção.
 
 ## 📋 Pré-requisitos
 
-- **Go** 1.18 ou superior
-- **PostgreSQL** 12 ou superior
+- **Go** 1.21 ou superior
 - **Git**
-- **Make** (opcional, para automação)
+- **PostgreSQL** 12+ (opcional - banco padrão é SQLite)
 
-Verifique se estão instalados:
+Verifique:
 ```bash
 go version
-psql --version
 git --version
 ```
 
@@ -21,50 +19,34 @@ git --version
 ### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/seu-usuario/Licenses-Manager.git
-cd Licenses-Manager
+git clone https://github.com/seu-usuario/Contracts-Manager.git
+cd Contracts-Manager
 ```
 
-### 2. Configure o Banco de Dados
-
-```bash
-# Crie o banco
-createdb licenses_manager
-
-# Aplique o schema
-psql -d licenses_manager -f backend/database/init.sql
-```
-
-Verifique:
-```bash
-psql -d licenses_manager -c "\dt"
-# Deve listar: categories, companies, entities, licenses, lines, users
-```
-
-### 3. Configure Variáveis de Ambiente
-
-Na raiz do projeto, crie `.env`:
-
-```bash
-cat > .env << EOF
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=seu_usuario_pg
-DB_PASSWORD=sua_senha_pg
-DB_NAME=licenses_manager
-EOF
-```
-
-**Não commite o `.env` no git!** Adicione à `.gitignore` se não estiver.
-
-### 4. Instale Dependências
+### 2. Instale Dependências
 
 ```bash
 cd backend
 go mod tidy
 ```
 
-### 5. Execute
+### 3. Configure Variáveis de Ambiente (Opcional)
+
+Para PostgreSQL (desenvolvimento), crie `.env` na raiz do projeto:
+
+```bash
+cat > ../.env << EOF
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=seu_usuario_pg
+DB_PASSWORD=sua_senha_pg
+DB_NAME=contracts_manager
+EOF
+```
+
+**Nota:** SQLite é usado por padrão. `.env` é necessário apenas para PostgreSQL.
+
+### 4. Execute
 
 ```bash
 go run cmd/cli/main.go
@@ -72,7 +54,66 @@ go run cmd/cli/main.go
 
 Você verá o menu interativo da CLI.
 
+## 🗄️ Banco de Dados
+
+### SQLite (Padrão)
+
+O banco SQLite é criado automaticamente na primeira execução em `contracts_manager.db`.
+
+**Vantagens:**
+- ✅ Sem configuração
+- ✅ Sem servidor externo
+- ✅ Perfeito para desenvolvimento
+- ✅ Portável
+
+### PostgreSQL (Produção)
+
+Se preferir usar PostgreSQL:
+
+#### 1. Criar Banco de Dados
+
+```bash
+createdb contracts_manager
+```
+
+#### 2. Aplicar Schema
+
+```bash
+psql -d contracts_manager -f backend/database/init.sql
+```
+
+#### 3. Verificar Tabelas
+
+```bash
+psql -d contracts_manager -c "\dt"
+```
+
+Deve listar: `categories`, `clients`, `contracts`, `dependents`, `lines`, `users`.
+
+#### 4. Configurar .env
+
+```bash
+cat > .env << EOF
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=seu_usuario
+DB_PASSWORD=sua_senha
+DB_NAME=contracts_manager
+EOF
+```
+
 ## 🔧 Configuração Detalhada
+
+### Criar Usuário Dedicado (PostgreSQL)
+
+```bash
+psql -U postgres << EOF
+CREATE USER contracts_user WITH PASSWORD 'senha_segura';
+CREATE DATABASE contracts_manager OWNER contracts_user;
+\c contracts_manager
+GRANT ALL ON SCHEMA public TO contracts_user;
+EOF
+```
 
 ### Variáveis de Ambiente
 
@@ -80,59 +121,26 @@ Você verá o menu interativo da CLI.
 |----------|---------|-----------|
 | `DB_HOST` | localhost | Host do PostgreSQL |
 | `DB_PORT` | 5432 | Porta do PostgreSQL |
-| `DB_USER` | postgres | Usuário do BD |
+| `DB_USER` | contracts_user | Usuário do BD |
 | `DB_PASSWORD` | senha123 | Senha do BD |
-| `DB_NAME` | licenses_manager | Nome do banco |
-
-### Criar Usuário Dedicado (Recomendado)
-
-Ao invés de usar `postgres`, crie um usuário específico:
-
-```bash
-psql -U postgres << EOF
-CREATE USER licenses_user WITH PASSWORD 'senha_segura';
-CREATE DATABASE licenses_manager OWNER licenses_user;
-\c licenses_manager
-GRANT ALL ON SCHEMA public TO licenses_user;
-EOF
-```
-
-Depois execute o init:
-```bash
-psql -U licenses_user -d licenses_manager -f backend/database/init.sql
-```
-
-### Estrutura do Banco
-
-O script `init.sql` cria as seguintes tabelas:
-
-```sql
-users              -- Usuários do sistema
-companies          -- Empresas clientes
-entities           -- Unidades/filiais
-categories         -- Classificação de licenças
-lines              -- Linhas de produtos
-licenses           -- Licenças de software
-```
-
-Com relacionamentos via chaves estrangeiras e constraints de unicidade.
+| `DB_NAME` | contracts_manager | Nome do banco |
 
 ## 🧪 Executar Testes
-
-Antes de testar, certifique-se de que o banco está rodando:
 
 ```bash
 cd backend
 
-# Testes unitários
-go test ./tests/store -v
+# Todos os testes
+go test ./store -v
 
 # Com cobertura
-go test ./tests/store -cover
+go test ./store -cover
 
-# Benchmark
-go test ./tests/store -bench=.
+# Teste específico
+go test -run TestContractCreate ./store
 ```
+
+**Status esperado:** ✅ 114 testes passando
 
 ## 🏭 Build para Produção
 
@@ -140,46 +148,92 @@ Compile um binário executável:
 
 ```bash
 cd backend
-go build -o licenses-manager cmd/cli/main.go
-./licenses-manager
+go build -o contracts-manager cmd/cli/main.go
+./contracts-manager
 ```
 
 ## 🐳 Docker (Opcional)
 
-Se preferir usar Docker para o PostgreSQL:
+### Com PostgreSQL no Docker
 
 ```bash
 docker run -d \
-  --name licenses-db \
-  -e POSTGRES_USER=licenses_user \
+  --name contracts-db \
+  -e POSTGRES_USER=contracts_user \
   -e POSTGRES_PASSWORD=senha_segura \
-  -e POSTGRES_DB=licenses_manager \
+  -e POSTGRES_DB=contracts_manager \
   -p 5432:5432 \
   postgres:15
 
-# Aplique o schema
-psql -h localhost -U licenses_user -d licenses_manager -f backend/database/init.sql
+# Aguarde 5 segundos e aplique o schema
+sleep 5
+psql -h localhost -U contracts_user -d contracts_manager -f backend/database/init.sql
 ```
 
 Configure `.env`:
 ```
 DB_HOST=localhost
-DB_USER=licenses_user
+DB_USER=contracts_user
 DB_PASSWORD=senha_segura
+DB_NAME=contracts_manager
+```
+
+### Docker Compose (Completo)
+
+Crie `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: contracts_user
+      POSTGRES_PASSWORD: senha_segura
+      POSTGRES_DB: contracts_manager
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  pg_data:
+```
+
+Execute:
+```bash
+docker-compose up -d
 ```
 
 ## 🔍 Troubleshooting
 
-### Erro: "connection refused"
+### Erro: "cannot open database"
+
+**Causa:** Banco de dados não pode ser criado/acessado
+
+**Solução:**
+```bash
+# Verifique permissões
+ls -la contracts_manager.db
+
+# Se SQLite, delete e recrie
+rm contracts_manager.db
+go run cmd/cli/main.go
+```
+
+### Erro: "connection refused" (PostgreSQL)
 
 **Causa:** PostgreSQL não está rodando
 
 **Solução:**
 ```bash
-# Verifique se está rodando
+# Verifique status
 psql -h localhost -U postgres -d postgres -c "SELECT 1;"
 
-# Se não estiver, inicie (macOS/Homebrew)
+# Se não estiver rodando:
+# macOS (Homebrew)
 brew services start postgresql
 
 # Linux (systemd)
@@ -195,8 +249,8 @@ net start PostgreSQL-x64-15
 
 **Solução:**
 ```bash
-createdb licenses_manager
-psql -d licenses_manager -f backend/database/init.sql
+createdb contracts_manager
+psql -d contracts_manager -f backend/database/init.sql
 ```
 
 ### Erro: "permission denied for schema public"
@@ -205,7 +259,7 @@ psql -d licenses_manager -f backend/database/init.sql
 
 **Solução:**
 ```bash
-psql -U postgres -d licenses_manager << EOF
+psql -U postgres -d contracts_manager << EOF
 GRANT ALL ON SCHEMA public TO seu_usuario;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO seu_usuario;
 EOF
@@ -228,51 +282,63 @@ go mod download
 
 **Solução:**
 ```bash
-cd Licenses-Manager/backend
+cd Contracts-Manager/backend
 go run cmd/cli/main.go
 ```
 
 ### Erro: ".env file not found" ou variáveis não carregam
 
-**Causa:** Arquivo `.env` não está no lugar certo
+**Causa:** Arquivo `.env` está no local errado
 
 **Solução:**
 ```bash
-# Verifique o caminho
-ls -la Licenses-Manager/.env
+# Deve estar na raiz do projeto
+ls -la Contracts-Manager/.env
 
 # Se não existir, crie
-cat > Licenses-Manager/.env << EOF
+cat > Contracts-Manager/.env << EOF
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=postgres
+DB_USER=seu_usuario
 DB_PASSWORD=sua_senha
-DB_NAME=licenses_manager
+DB_NAME=contracts_manager
 EOF
 ```
 
-### Banco criado mas sem tabelas
+### Erro: "too many connections"
 
-**Causa:** Script SQL não foi executado completamente
+**Causa:** Muitas conexões abertas com PostgreSQL
 
 **Solução:**
 ```bash
-# Verifique as tabelas
-psql -d licenses_manager -c "\dt"
+# Limpe conexões antigas
+psql -U postgres -d postgres << EOF
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = 'contracts_manager'
+  AND pid <> pg_backend_pid();
+EOF
+```
 
-# Se vazio, execute novamente
-psql -d licenses_manager -f backend/database/init.sql
+### Erro: "go version not supported"
 
-# Ou verifique se init.sql existe
-ls -la backend/database/init.sql
+**Causa:** Versão do Go é muito antiga
+
+**Solução:**
+```bash
+# Verifique versão
+go version
+
+# Se for < 1.21, atualize
+# https://go.dev/dl/
 ```
 
 ## 📝 Próximas Passos
 
 1. **Leia** [USAGE.md](USAGE.md) para aprender os comandos
 2. **Explore** [ARCHITECTURE.md](ARCHITECTURE.md) para entender a estrutura
-3. **Execute** alguns exemplos práticos
-4. **Contribua** com melhorias!
+3. **Teste** comandos básicos no menu CLI
+4. **Consulte** [CONTRIBUTING.md](CONTRIBUTING.md) se for contribuir
 
 ## ✅ Verificação Final
 
@@ -281,11 +347,22 @@ Após seguir todos os passos, teste se tudo funciona:
 ```bash
 cd backend
 go run cmd/cli/main.go
-# Você deve ver o menu principal da CLI
+```
+
+Você deve ver o menu principal com opções como:
+```
+=== Contracts Manager ===
+1. Clients
+2. Dependents
+3. Categories
+4. Lines
+5. Contracts
+6. Users
+0. Exit
 ```
 
 Se vir o menu, parabéns! 🎉 O setup está completo.
 
 ---
 
-**Dúvidas?** Consulte [README.md](../README.md) ou abra uma issue no repositório.
+**Problemas?** Consulte [Troubleshooting](#-troubleshooting) acima ou abra uma [issue](https://github.com/seu-usuario/Contracts-Manager/issues).
