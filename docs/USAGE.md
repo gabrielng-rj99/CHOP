@@ -1,394 +1,457 @@
-# Usage — Guia de Uso
+# Usage — Contracts Manager
 
-Exemplos práticos para usar o Licenses Manager. Todos os comandos assumem que você está rodando a CLI.
+Guia prático para usar o Contracts Manager. Aprenda os comandos e operações do dia a dia.
 
-## 🚀 Iniciar a Aplicação
+## 🚀 Começar
 
 ```bash
 cd backend
 go run cmd/cli/main.go
 ```
 
-Você verá um menu interativo para escolher operações.
+Você verá um menu interativo:
+
+```
+=== Contracts Manager ===
+1. Clients
+2. Dependents
+3. Categories
+4. Lines
+5. Contracts
+6. Users
+0. Exit
+
+Escolha uma opção:
+```
+
+## 👥 Gerenciar Clientes (Clients)
+
+### Listar Clientes
+
+Menu → `1` → `1 - List`
+
+Exibe todos os clientes cadastrados:
+```
+ID: 550e8400-e29b-41d4-a716-446655440000
+Nome: Acme Corporation
+CNPJ/Reg: 12.345.678/0001-99
+Status: Ativo
+```
+
+### Criar Novo Cliente
+
+Menu → `1` → `2 - Create`
+
+Informações necessárias:
+- **Nome:** Nome da empresa (ex: Acme Corporation)
+- **CNPJ/Registration ID:** Identificador único (ex: 12.345.678/0001-99)
+
+Exemplo:
+```
+Nome: TechCorp Brasil
+CNPJ: 98.765.432/0001-00
+✓ Cliente criado com sucesso
+ID: 550e8400-e29b-41d4-a716-446655440001
+```
+
+### Arquivar Cliente
+
+Menu → `1` → `3 - Archive`
+
+```
+Informe o ID do cliente: 550e8400-e29b-41d4-a716-446655440001
+✓ Cliente arquivado
+Nota: Contratos associados ficam inativos
+```
+
+**Importante:** Clientes arquivados não recebem novos contratos.
+
+## 🏢 Gerenciar Dependentes (Unidades/Filiais)
+
+Dependentes são unidades, filiais ou subsidiárias de um cliente.
+
+### Listar Dependentes
+
+Menu → `2` → `1 - List`
+
+```
+Cliente: Acme Corporation (ID: 550e8400-...)
+Dependentes:
+- Filial São Paulo (ID: 660e8400-...)
+- Filial Rio de Janeiro (ID: 770e8400-...)
+```
+
+### Criar Dependente
+
+Menu → `2` → `2 - Create`
+
+Informações:
+- **Cliente ID:** ID do cliente pai
+- **Nome:** Nome da filial/unidade
+
+Exemplo:
+```
+ID do Cliente: 550e8400-e29b-41d4-a716-446655440001
+Nome da Filial: Filial São Paulo
+✓ Dependente criado
+ID: 660e8400-e29b-41d4-a716-446655440002
+```
+
+## 📂 Categorias (Tipos de Produtos)
+
+Categorize seus produtos de software.
+
+### Criar Categoria
+
+Menu → `3` → `1 - Create`
+
+Exemplos de categorias:
+- Antivírus
+- Banco de Dados
+- Sistemas Operacionais
+- Office/Produtividade
+- Segurança
+- Desenvolvimento
+
+Exemplo:
+```
+Nome: Antivírus
+✓ Categoria criada
+ID: 880e8400-e29b-41d4-a716-446655440003
+```
+
+### Listar Categorias
+
+Menu → `3` → `2 - List`
+
+```
+1. Antivírus (ID: 880e8400-...)
+2. Banco de Dados (ID: 990e8400-...)
+3. Sistemas Operacionais (ID: aa0e8400-...)
+```
+
+## 📦 Linhas de Produtos (Product Lines)
+
+Produtos específicos dentro de uma categoria.
+
+### Criar Linha de Produto
+
+Menu → `4` → `1 - Create`
+
+Informações:
+- **Categoria ID:** ID da categoria (ex: Antivírus)
+- **Nome/Produto:** Nome do produto específico
+
+Exemplos:
+- Categoria: Antivírus → Linha: Kaspersky Endpoint
+- Categoria: SO → Linha: Windows 10 Pro
+- Categoria: BD → Linha: Oracle Database 19c
+
+Exemplo:
+```
+ID da Categoria: 880e8400-e29b-41d4-a716-446655440003
+Nome do Produto: Kaspersky Endpoint
+✓ Linha criada
+ID: bb0e8400-e29b-41d4-a716-446655440004
+```
+
+### Listar Linhas
+
+Menu → `4` → `2 - List`
+
+```
+Categoria: Antivírus
+- Kaspersky Endpoint (ID: bb0e8400-...)
+- Avast Business (ID: cc0e8400-...)
+
+Categoria: Banco de Dados
+- Oracle Database 19c (ID: dd0e8400-...)
+- SQL Server 2022 (ID: ee0e8400-...)
+```
+
+## 📋 Gerenciar Contratos (Licenças)
+
+Contratos são a entidade principal do sistema. Vincule a um cliente, produto e datas.
+
+### Criar Contrato
+
+Menu → `5` → `1 - Create`
+
+Informações necessárias:
+
+| Campo | Exemplo | Descrição |
+|-------|---------|-----------|
+| **Nome/Model** | Windows 10 Pro | Nome do contrato |
+| **Product Key** | XXXXX-XXXXX-... | Chave de licença |
+| **Start Date** | 2025-01-15 | Início (formato: YYYY-MM-DD) |
+| **End Date** | 2026-01-15 | Término (formato: YYYY-MM-DD) |
+| **Cliente ID** | 550e8400-... | ID do cliente |
+| **Linha ID** | bb0e8400-... | ID da linha (produto) |
+| **Dependente ID** | (opcional) | ID da filial (deixar vazio se não aplicável) |
+
+Exemplo:
+```
+Nome: Windows 10 Pro - 10 licenças
+Product Key: XXXXX-XXXXX-XXXXX-XXXXX
+Data de início (YYYY-MM-DD): 2025-01-15
+Data de término (YYYY-MM-DD): 2026-01-15
+ID do Cliente: 550e8400-e29b-41d4-a716-446655440001
+ID da Linha: bb0e8400-e29b-41d4-a716-446655440004
+ID do Dependente (opcional): (deixar vazio)
+
+✓ Contrato criado
+ID: ff0e8400-e29b-41d4-a716-446655440005
+Status: Ativo
+```
+
+### Listar Contratos
+
+Menu → `5` → `2 - List`
+
+```
+1. Windows 10 Pro - 10 licenças
+   Status: Ativo
+   Vencimento: 2026-01-15
+   Cliente: Acme Corporation
+
+2. Kaspersky Endpoint - 5 licenças
+   Status: Expirando em Breve (20 dias)
+   Vencimento: 2025-02-04
+   Cliente: TechCorp Brasil
+
+3. Oracle Database 19c
+   Status: Expirado
+   Vencimento: 2024-12-31
+   Cliente: DataCorp
+```
+
+### Buscar Contrato
+
+Menu → `5` → `3 - Search`
+
+```
+ID do Contrato: ff0e8400-e29b-41d4-a716-446655440005
+
+Contrato encontrado:
+Nome: Windows 10 Pro - 10 licenças
+Cliente: Acme Corporation
+Linha: Windows 10 Pro
+Data início: 2025-01-15
+Data término: 2026-01-15
+Status: Ativo
+```
+
+### Atualizar Contrato
+
+Menu → `5` → `4 - Update`
+
+```
+ID do Contrato: ff0e8400-e29b-41d4-a716-446655440005
+
+Deixe em branco para não alterar:
+Nome (ou Enter): 
+Data término (YYYY-MM-DD ou Enter): 2026-06-15
+
+✓ Contrato atualizado
+```
+
+### Arquivar Contrato
+
+Menu → `5` → `5 - Archive`
+
+```
+ID do Contrato: ff0e8400-e29b-41d4-a716-446655440005
+✓ Contrato arquivado (soft delete)
+```
+
+## 👤 Autenticação e Usuários
+
+### Primeiro Acesso
+
+Na primeira execução, crie um usuário admin:
+
+```bash
+cd backend
+go run cmd/tools/main.go create_admin
+```
+
+Ou pelo menu:
+
+Menu → `6` → `1 - Create User`
+
+```
+Username: admin
+Senha: (será solicitada)
+Confirmar senha: (será solicitada)
+Role (user/admin/full_admin): full_admin
+
+✓ Usuário criado
+ID: 11aa2200-e29b-41d4-a716-446655440006
+```
+
+### Login
+
+Quando necessário, o sistema solicitará:
+
+```
+Username: admin
+Senha: ••••••••
+✓ Login realizado com sucesso
+```
+
+### Roles (Permissões)
+
+- **user:** Visualização e operações básicas
+- **admin:** Gerenciamento completo
+- **full_admin:** Acesso total + gerenciamento de usuários
+
+## 📊 Monitoramento e Relatórios
+
+### Ver Contratos Próximos de Vencer
+
+Menu → `5` → `2 - List`
+
+Contratos com menos de 30 dias até vencimento aparecem como:
+```
+Status: Expirando em Breve (15 dias)
+```
+
+Planeje renovações com antecedência.
+
+### Ver Contratos Expirados
+
+Filtre na listagem:
+```
+Status: Expirado
+```
+
+Esses contratos precisam ser renovados ou removidos.
+
+### Filtrar por Cliente
+
+Menu → `5` → `2 - List`
+
+Todos os contratos de um cliente aparecem agrupados:
+```
+Cliente: Acme Corporation
+├─ Contrato 1 (Ativo)
+├─ Contrato 2 (Expirando em Breve)
+└─ Contrato 3 (Expirado)
+```
+
+## 🎯 Casos de Uso Comuns
+
+### Caso 1: Cadastrar Nova Empresa e Primeira Licença
+
+1. Menu → `1` → `2` → Criar cliente "Acme Corp"
+2. Menu → `3` → `1` → Criar categoria "Antivírus"
+3. Menu → `4` → `1` → Criar linha "Norton 360"
+4. Menu → `5` → `1` → Criar contrato vinculando tudo
+
+### Caso 2: Renovar Licença Expirando
+
+1. Menu → `5` → `2` → Listar contratos
+2. Identificar contrato com "Expirando em Breve"
+3. Menu → `5` → `4` → Atualizar data de término
+4. Ou Menu → `5` → `1` → Criar novo contrato
+
+### Caso 3: Arquivar Cliente Inativo
+
+1. Menu → `1` → `1` → Listar clientes
+2. Encontrar cliente para arquivar
+3. Menu → `1` → `3` → Arquivar
+4. Contratos associados ficam inativos automaticamente
+
+### Caso 4: Adicionar Filial de Um Cliente
+
+1. Menu → `2` → `2` → Criar dependente
+2. Selecionar cliente
+3. Informar nome da filial
+4. Menu → `5` → `1` → Criar contrato para a filial (campo "Dependente ID" opcional)
+
+## ⚠️ Validações Importantes
+
+### Datas
+
+- **End date deve ser posterior a start date**
+  ```
+  ✗ Erro: End date must be after start date
+  ```
+
+- **Formato:** YYYY-MM-DD
+  ```
+  ✓ 2025-12-31 (correto)
+  ✗ 31/12/2025 (errado)
+  ✗ 2025-13-01 (mês inválido)
+  ```
+
+### Sobreposição de Datas
+
+- **Não há sobreposição temporal para mesma linha e cliente**
+  ```
+  ✗ Erro: Overlapping contract dates for this line
+  ```
+
+### Cliente Arquivado
+
+- **Não é possível criar contrato para cliente arquivado**
+  ```
+  ✗ Erro: Cannot create contract for archived client
+  ```
+
+## 🔍 Dicas de Produtividade
+
+### Copiar IDs Facilmente
+
+Quando listar, os IDs aparecem de forma legível para copiar:
+```
+ID: 550e8400-e29b-41d4-a716-446655440000
+    ↑ Copie este ID
+```
+
+### Usar Tab para Autocompletar
+
+Em alguns campos, pressione Tab para sugestões.
+
+### Historicamente Rastreado (Soft Delete)
+
+Contratos e clientes arquivados não são deletados:
+- ✅ Histórico preservado
+- ✅ Auditoria facilitada
+- ✅ Recuperação possível (admin)
+
+## ❓ FAQ Prático
+
+**P: Como filtrar contratos por período?**
+A: Lista mostra todos. Se precisar de período específico, use a busca por cliente.
+
+**P: Posso deletar um contrato?**
+A: Não permanentemente. Use "Arquivar" (soft delete). Historicamente é preservado.
+
+**P: Qual é a diferença entre Dependente e Cliente?**
+A: Cliente = Empresa. Dependente = Unidade/Filial/Subsidiária da empresa.
+
+**P: Posso editar CNPJ de um cliente?**
+A: Não. CNPJ é identificador único. Crie novo cliente se necessário.
+
+**P: Como exportar dados?**
+A: Atualmente não há export. Use cópia manual ou aguarde versão 2.0.
+
+**P: Contratos podem ter dependente vazio?**
+A: Sim, é opcional. Use quando a licença não é para filial específica.
+
+**P: O que significa "Expirando em Breve"?**
+A: Contratos com menos de 30 dias até vencimento.
+
+**P: Como acessar dados de contrato específico?**
+A: Menu → Contratos → Buscar, depois informar o ID.
+
+## 📚 Próximos Passos
+
+- **Leia [ARCHITECTURE.md](ARCHITECTURE.md)** para entender o design técnico
+- **Consulte [CONTRIBUTING.md](CONTRIBUTING.md)** se quiser contribuir
+- **Veja [SETUP.md](SETUP.md)** para configurações avançadas
 
 ---
 
-## 📚 Operações Básicas
-
-### Empresas (Companies)
-
-#### Listar todas as empresas
-
-Menu → `1 - Companies` → `1 - List`
-
-Exibe todas as empresas cadastradas com ID, nome e CNPJ.
-
-#### Criar nova empresa
-
-Menu → `1 - Companies` → `2 - Create`
-
-```
-Informe:
-- Nome: Acme Corporation
-- CNPJ/Registration ID: 12.345.678/0001-99
-```
-
-Resultado: Empresa criada com UUID único.
-
-#### Arquivar empresa
-
-Menu → `1 - Companies` → `3 - Archive`
-
-```
-Informe o ID da empresa: <uuid>
-```
-
-Empresa é marcada como arquivada (soft delete). Licenças associadas ficam inativas.
-
-**Nota:** Empresas arquivadas não recebem novas licenças.
-
----
-
-### Unidades (Entities)
-
-#### Listar unidades de uma empresa
-
-Menu → `2 - Entities` → `1 - List`
-
-```
-Informe o ID da empresa: <uuid>
-```
-
-Exibe todas as filiais/unidades da empresa.
-
-#### Criar unidade
-
-Menu → `2 - Entities` → `2 - Create`
-
-```
-Informe:
-- Nome: Filial São Paulo
-- Company ID: <uuid-da-empresa>
-```
-
-Unidade criada com vínculo à empresa.
-
-#### Deletar unidade
-
-Menu → `2 - Entities` → `3 - Delete`
-
-```
-Informe o ID da unidade: <uuid>
-```
-
-**Atenção:** Unidade só pode ser deletada se não houver licenças ativas associadas.
-
----
-
-### Categorias (Categories)
-
-#### Listar categorias
-
-Menu → `3 - Categories` → `1 - List`
-
-Exibe todas as categorias de licenças (ex: Antivírus, Banco de Dados, etc).
-
-#### Criar categoria
-
-Menu → `3 - Categories` → `2 - Create`
-
-```
-Informe o nome: Antivírus
-```
-
-Categoria criada. Nomes devem ser únicos.
-
----
-
-### Linhas (Lines)
-
-#### Listar linhas de uma categoria
-
-Menu → `4 - Lines` → `1 - List`
-
-```
-Informe o ID da categoria: <uuid>
-```
-
-Exibe todas as marcas/linhas dentro da categoria.
-
-#### Criar linha
-
-Menu → `4 - Lines` → `2 - Create`
-
-```
-Informe:
-- Nome: Kaspersky
-- Category ID: <uuid-da-categoria>
-```
-
-Linha criada (ex: Kaspersky é uma linha dentro de Antivírus).
-
----
-
-### Licenças (Licenses)
-
-#### Listar todas as licenças
-
-Menu → `5 - Licenses` → `1 - List`
-
-Exibe todas as licenças do sistema com status (Ativa/Expirando/Expirada).
-
-#### Listar licenças de uma empresa
-
-Menu → `5 - Licenses` → `2 - Filter by Company`
-
-```
-Informe o ID da empresa: <uuid>
-```
-
-Exibe apenas licenças associadas à empresa.
-
-#### Listar licenças próximas do vencimento
-
-Menu → `5 - Licenses` → `3 - Expiring Soon`
-
-Exibe licenças que vencem nos próximos 30 dias.
-
-#### Cadastrar licença
-
-Menu → `5 - Licenses` → `4 - Create`
-
-```
-Informe:
-- Nome: Windows Server 2019 Datacenter
-- Product Key: XXXXX-XXXXX-XXXXX-XXXXX
-- Start Date (YYYY-MM-DD): 2024-01-01
-- End Date (YYYY-MM-DD): 2025-01-01
-- Line ID: <uuid-da-linha>
-- Company ID: <uuid-da-empresa>
-- Entity ID (opcional): <uuid-da-unidade>
-```
-
-Licença criada com todas as validações.
-
-**Validações:**
-- Data de fim deve ser posterior à data de início
-- Não pode haver sobreposição temporal
-- Empresa não pode estar arquivada
-- Linha e empresa devem existir
-
-#### Deletar licença
-
-Menu → `5 - Licenses` → `5 - Delete`
-
-```
-Informe o ID da licença: <uuid>
-```
-
-Licença removida do sistema.
-
----
-
-## 🔍 Casos de Uso Comuns
-
-### Caso 1: Cadastro Completo
-
-Você recebeu uma nova licença de software. Complete os passos:
-
-**Passo 1:** Criar categoria (se não existir)
-```
-Menu → Categories → Create
-Nome: Database
-```
-
-**Passo 2:** Criar linha (marca do software)
-```
-Menu → Lines → Create
-Nome: SQL Server
-Category ID: <id-da-categoria>
-```
-
-**Passo 3:** Criar empresa (se não existir)
-```
-Menu → Companies → Create
-Nome: Acme Corp
-CNPJ: 12.345.678/0001-99
-```
-
-**Passo 4:** Criar unidade (opcional)
-```
-Menu → Entities → Create
-Nome: Filial RJ
-Company ID: <id-da-empresa>
-```
-
-**Passo 5:** Cadastrar licença
-```
-Menu → Licenses → Create
-Nome: SQL Server 2019 Standard
-Product Key: ABC-123-XYZ
-Start Date: 2024-01-01
-End Date: 2025-01-01
-Line ID: <id-da-linha>
-Company ID: <id-da-empresa>
-Entity ID: <id-da-unidade> (se tiver)
-```
-
-### Caso 2: Monitorar Vencimentos
-
-Você quer saber quais licenças vencem em breve:
-
-```
-Menu → Licenses → Expiring Soon
-# Exibe todas as licenças que vencem nos próximos 30 dias
-```
-
-Importante revisar antes de implementar renovações.
-
-### Caso 3: Arquivar Empresa
-
-Empresa encerrou operações. Você quer manter o histórico mas desativar:
-
-```
-Menu → Companies → Archive
-Company ID: <uuid>
-```
-
-Todas as licenças associadas ficam inativas automaticamente.
-
-### Caso 4: Filtrar por Categoria
-
-Você quer listar apenas licenças de antivírus:
-
-```
-Menu → Licenses → Filter by Category
-Category ID: <uuid-de-antivírus>
-# Lista todos os antivírus do sistema
-```
-
----
-
-## 📊 Estrutura de Dados — Referência Rápida
-
-### Companies
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| ID | UUID | ✓ |
-| Name | String | ✓ |
-| Registration_ID (CNPJ) | String | ✓ (único) |
-| Archived_At | Timestamp | (soft delete) |
-| Created_At | Timestamp | ✓ |
-
-### Entities
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| ID | UUID | ✓ |
-| Name | String | ✓ (único por empresa) |
-| Client_ID | UUID | ✓ (FK) |
-
-### Categories
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| ID | UUID | ✓ |
-| Name | String | ✓ (único) |
-
-### Lines
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| ID | UUID | ✓ |
-| Name | String | ✓ (único na categoria) |
-| Category_ID | UUID | ✓ (FK) |
-
-### Licenses
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| ID | UUID | ✓ |
-| Name | String | ✓ |
-| Product_Key | String | ✓ |
-| Start_Date | Date | ✓ |
-| End_Date | Date | ✓ |
-| Line_ID | UUID | ✓ (FK) |
-| Client_ID | UUID | ✓ (FK) |
-| Entity_ID | UUID | (opcional, FK) |
-
----
-
-## ⚠️ Regras Importantes
-
-### Relacionamentos Obrigatórios
-
-```
-License → Company (obrigatório)
-License → Line (obrigatório)
-License → Entity (opcional)
-
-Line → Category (obrigatório)
-Entity → Company (obrigatório)
-```
-
-### Validações
-
-- **CNPJs:** Devem ser únicos em companies
-- **Datas:** End_Date > Start_Date
-- **Nomes:** Entre 1 e 255 caracteres
-- **UUIDs:** Todos os IDs devem ser válidos
-
-### Status de Licença (Automático)
-
-- **Ativa:** Data atual está entre Start_Date e End_Date
-- **Expirando:** Faltam menos de 30 dias para End_Date
-- **Expirada:** End_Date já passou
-
----
-
-## 🚫 Erros Comuns e Soluções
-
-| Erro | Causa | Solução |
-|------|-------|---------|
-| "Company not found" | ID inválido | Verifique o UUID da empresa |
-| "Line already exists" | Nome duplicado na categoria | Use outro nome ou apague a antiga |
-| "Invalid date format" | Data em formato errado | Use YYYY-MM-DD |
-| "Cannot delete: entity has licenses" | Unidade ainda tem licenças | Delete as licenças primeiro |
-| "Archived company cannot have licenses" | Empresa arquivada | Desarquive a empresa ou crie licença em outra |
-
----
-
-## 💡 Dicas Úteis
-
-1. **Anote UUIDs:** Os IDs são gerados aleatoriamente. Copie quando criados.
-2. **Backup:** Faça backup do banco de dados regularmente.
-3. **Organize:** Use nomes descritivos para facilitar buscas.
-4. **Verifique:** Sempre confirme datas de licenças antes de registrar.
-5. **Monitore:** Revise licenças expirando mensalmente.
-
----
-
-## 🔗 Próximas Etapas
-
-- **Integração:** Futura API REST permitirá integração com sistemas externos
-- **Automação:** Scripts podem consumir a API para renovações automáticas
-- **Dashboard:** Visualização web das licenças está em planejamento
-
----
-
-## ❓ FAQ Rápido
-
-**P: Posso excluir uma empresa com licenças?**
-R: Não, delete as licenças primeiro ou arquive a empresa (soft delete).
-
-**P: Como diferencio os status de licença?**
-R: Menu → Licenses → List. Status é exibido ao lado de cada licença.
-
-**P: Perdi o ID de uma empresa. Como busco?**
-R: Menu → Companies → List. Exibe todos com IDs.
-
-**P: Posso mover uma licença para outra unidade?**
-R: Sim, delete a atual e crie uma nova com a unidade desejada.
-
-**P: Quanto tempo as licenças ficam no sistema após expirar?**
-R: Permanecem para histórico. Crie política de arquivamento conforme necessário.
-
----
-
-**Precisa de ajuda?** Consulte [SETUP.md](SETUP.md) ou [ARCHITECTURE.md](ARCHITECTURE.md).
+**Precisa de ajuda?** Abra uma [issue](https://github.com/seu-usuario/Contracts-Manager/issues) ou consulte a documentação completa.
