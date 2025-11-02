@@ -1,25 +1,27 @@
-# Architecture — Licenses Manager
+# Architecture — Contracts Manager
 
 Visão técnica do sistema, padrões adotados e diretrizes de desenvolvimento.
 
 ## 🏗️ Visão Geral
 
-Licenses Manager é um sistema modular para gestão de licenças de software. Backend em Go, estruturado em camadas com foco em testabilidade e separação de responsabilidades.
+Contracts Manager é um sistema para gerenciar contratos e licenças de software com validações robustas. Backend em Go, estruturado em camadas com foco em testabilidade, integridade de dados e separação de responsabilidades.
 
 ```
 ┌─────────────────────────────┐
 │      CLI / Interface        │  (cmd/cli)
+│   (Menu interativo)         │
 ├─────────────────────────────┤
 │     Stores & Handlers       │  (store/)
-│   - Business Rules          │
+│   - Business Logic          │
 │   - Validations             │
+│   - Data Access             │
 ├─────────────────────────────┤
 │     Domain Models           │  (domain/)
 │   - Structs                 │
-│   - Interfaces              │
+│   - Value Objects           │
 ├─────────────────────────────┤
 │   Database Layer            │  (database/)
-│   - PostgreSQL              │
+│   - SQLite / PostgreSQL     │
 │   - Migrations              │
 └─────────────────────────────┘
 ```
@@ -28,80 +30,104 @@ Licenses Manager é um sistema modular para gestão de licenças de software. Ba
 
 ```
 backend/
-├── cmd/cli/
-│   └── main.go              # Ponto de entrada, menu CLI
+├── cmd/
+│   ├── cli/
+│   │   └── main.go           # Ponto de entrada (menu CLI)
+│   ├── server/
+│   │   └── main.go           # API (futuro)
+│   └── tools/
+│       └── main.go           # Utilitários (criar admin, etc)
 ├── domain/
-│   ├── client.go            # Struct Client (empresa)
-│   ├── entity.go            # Struct Entity (unidade)
-│   ├── category.go          # Struct Category
-│   ├── line.go              # Struct Line
-│   ├── license.go           # Struct License
-│   └── user.go              # Struct User
+│   └── models.go             # Structs (Client, Contract, User, etc)
 ├── store/
-│   ├── client_store.go      # CRUD + lógica de empresa
-│   ├── entity_store.go      # CRUD + lógica de unidade
-│   ├── category_store.go    # CRUD + lógica de categoria
-│   ├── line_store.go        # CRUD + lógica de linha
-│   ├── license_store.go     # CRUD + lógica de licença
-│   └── user_store.go        # CRUD + lógica de usuário
+│   ├── client_store.go       # CRUD + lógica de client
+│   ├── contract_store.go     # CRUD + lógica de contract
+│   ├── user_store.go         # CRUD + autenticação
+│   ├── category_store.go     # CRUD + categorias
+│   ├── dependent_store.go    # CRUD + dependentes
+│   ├── store_interfaces.go   # Interfaces
+│   └── *_test.go             # Testes unitários (114+)
 ├── database/
-│   ├── init.sql             # Schema e tabelas
-│   ├── diagram.drawio       # Diagrama ER
-│   └── migrations/          # Scripts de evolução
+│   ├── database.go           # Conexão e inicialização
+│   └── init.sql              # Schema e migrations
+├── config/
+│   └── config.go             # Configurações e ambiente
 └── tests/
-    └── store/               # Testes unitários dos stores
+    └── (integrados nos *_test.go)
 ```
 
 ## 🔄 Fluxo de Dados
 
-### Exemplo: Criar Licença
+### Exemplo: Criar Contrato
 
 ```
 1. CLI → Pede dados ao usuário
           ↓
-2. Validação → Verifica formato e valores
+2. Validação → Formatos e valores básicos
           ↓
-3. Store → LicenseStore.Create()
-    - Valida FK (empresa, linha)
+3. Store → ContractStore.Create()
+    - Valida FK (cliente, linha)
     - Verifica sobreposição de datas
-    - Valida empresa não arquivada
+    - Valida cliente não arquivado
+    - Garante integridade referencial
           ↓
-4. Database → INSERT licença
+4. Database → INSERT contrato
           ↓
-5. Retorna → UUID da licença criada
+5. Retorna → UUID do contrato criado
 ```
 
 ## 🏛️ Padrões Adotados
 
-### 1. **Separação em Camadas**
+### 1. Repository Pattern
+
+Cada entidade tem um Store (repositório):
+
+```go
+// store/contract_store.go
+type ContractStore struct {
+    db *sql.DB
+}
+
+func (s *ContractStore) Create(contract domain.Contract) (string, error) {
+    // Validações
+    // INSERT
+    // Retorna ID
+}
+
+func (s *ContractStore) GetByID(id string) (*domain.Contract, error) {
+    // SELECT
+}
+```
+
+### 2. Separação em Camadas
 
 - **Domain:** Modelos puros, sem dependências externas
 - **Store:** Lógica de negócio + acesso a dados
 - **CLI:** Interface com usuário
 - **Database:** Persistência
 
-### 2. **Validação em Múltiplos Níveis**
+### 3. Validação em Múltiplos Níveis
 
 ```go
 // Nível 1: Tipo (Go garante tipos)
-type License struct {
+type Contract struct {
     StartDate time.Time  // Not nullable
     EndDate   time.Time
 }
 
 // Nível 2: Business Logic (Store)
-if !license.StartDate.Before(license.EndDate) {
+if !contract.StartDate.Before(contract.EndDate) {
     return fmt.Errorf("end_date must be after start_date")
 }
 
 // Nível 3: Database (Constraints)
-ALTER TABLE licenses ADD CONSTRAINT 
+ALTER TABLE contracts ADD CONSTRAINT 
     check_dates CHECK (end_date > start_date);
 ```
 
-### 3. **Soft Delete para Auditoria**
+### 4. Soft Delete para Auditoria
 
-Empresas arquivadas não são deletadas, apenas marcadas:
+Entidades não são deletadas, apenas marcadas:
 
 ```go
 type Client struct {
@@ -111,28 +137,28 @@ type Client struct {
 }
 
 // Queries sempre filtram
-SELECT * FROM companies WHERE archived_at IS NULL;
+SELECT * FROM clients WHERE archived_at IS NULL;
 ```
 
-### 4. **Validação de Relacionamentos**
+### 5. Validação de Relacionamentos
 
-Antes de criar licença:
+Antes de criar contrato:
 
 ```go
-// 1. Verifica se empresa existe
-if err := cs.ClientExists(license.ClientID); err != nil {
+// 1. Verifica se cliente existe
+if err := cs.ClientExists(contract.ClientID); err != nil {
     return err
 }
 
 // 2. Verifica se linha existe
-if err := ls.LineExists(license.LineID); err != nil {
+if err := ls.LineExists(contract.LineID); err != nil {
     return err
 }
 
-// 3. Verifica se empresa está ativa
-client, _ := cs.GetByID(license.ClientID)
+// 3. Verifica se cliente está ativo
+client, _ := cs.GetByID(contract.ClientID)
 if client.ArchivedAt != nil {
-    return errors.New("cannot create license for archived company")
+    return errors.New("cannot create contract for archived client")
 }
 ```
 
@@ -142,121 +168,142 @@ if client.ArchivedAt != nil {
 
 ```
 ┌──────────────┐
-│  Companies   │
+│  Clients     │
 └──────┬───────┘
        │ 1:N
-       ├─→ Entities (unidades)
-       └─→ Licenses
+       ├─→ Dependents (filiais)
+       └─→ Contracts (licenças)
 
 ┌──────────────┐
 │ Categories   │
 └──────┬───────┘
        │ 1:N
-       └─→ Lines (marcas)
-           │
-           └─→ Licenses
+       └─→ Lines (produtos)
+           │ 1:N
+           └─→ Contracts
 
 ┌──────────────┐
-│   Licenses   │ (centro do modelo)
+│  Contracts   │ (centro do modelo)
 └──────┬───────┘
-       ├─→ Companies (empresa)
-       ├─→ Lines (tipo/marca)
-       └─→ Entities (unidade, opcional)
+       ├─→ Clients (quem tem)
+       ├─→ Lines (o que é)
+       ├─→ Dependents (onde, opcional)
+       └─→ Status (calculado automaticamente)
+
+┌──────────────┐
+│   Users      │ (autenticação)
+└──────────────┘
 ```
+
+### Entidades
+
+| Entidade | Descrição | Relacionamentos |
+|----------|-----------|-----------------|
+| **Client** | Empresa/cliente | N dependents, N contracts |
+| **Dependent** | Filial/unidade | 1 client, N contracts |
+| **Category** | Classificação (Antivírus, DB, SO) | N lines |
+| **Line** | Produto específico (Windows 10, Oracle 19c) | 1 category, N contracts |
+| **Contract** | Contrato/licença com datas | 1 client, 1 line, 0-1 dependent |
+| **User** | Usuário com autenticação | 1 client (atribuível) |
 
 ### Constraints Principais
 
-- `registration_id` (CNPJ) único em companies
+- `registration_id` (CNPJ) único em clients
 - Nome + CategoryID único em lines
-- Nome + ClientID único em entities
-- `end_date > start_date` em licenses
-- Sem sobreposição temporal para mesma linha/empresa
+- Nome + ClientID único em dependents
+- `end_date > start_date` em contracts
+- Sem sobreposição temporal para mesma linha/cliente
+- Soft delete via `archived_at` NOT NULL
 
 ## 🛡️ Validações de Negócio
 
 | Regra | Local | Erro |
 |-------|-------|------|
 | CNPJ válido | Store | ValidationError |
-| Datas válidas | Store | ValidationError |
-| Empresa existe | Store | NotFoundError |
-| Empresa não arquivada | Store | StateError |
-| Sem sobreposição de datas | Store | ConstraintError |
+| Datas válidas | Store + DB | ValidationError |
+| Cliente existe | Store | NotFoundError |
+| Cliente não arquivado | Store | StateError |
+| Sem sobreposição de datas | Store + DB | ConstraintError |
 | Linha existe | Store | NotFoundError |
+| Dependente existe (se informado) | Store | NotFoundError |
 | Nome único na categoria | Database | ConstraintError |
+| Integridade referencial | Database | ConstraintError |
 
 ## 🧪 Testes
 
 ### Estrutura
 
 ```
-tests/
-└── store/
-    ├── client_store_test.go
-    ├── entity_store_test.go
-    ├── category_store_test.go
-    ├── line_store_test.go
-    ├── license_store_test.go
-    └── mocks/
-        └── db_mock.go
+backend/store/
+├── client_test.go           # 28 testes
+├── contract_test.go         # 33 testes
+├── user_test.go             # 19 testes
+├── category_test.go         # 17 testes
+├── lines_test.go            # 26 testes
+├── dependent_test.go        # 11 testes
+├── validation_test.go       # 4 testes
+├── errors_test.go           # 6 testes
+├── types_test.go            # 5 testes
+└── integration_test.go      # 3 testes
+
+Total: 114+ testes
 ```
 
-### Exemplo de Teste
+### Padrão de Teste
 
 ```go
-func TestCreateLicense_ValidatesDates(t *testing.T) {
-    license := domain.License{
-        Name:      "Windows 10",
+func TestCreateContract_ValidatesDates(t *testing.T) {
+    contract := domain.Contract{
+        Model:     "Windows 10",
         StartDate: time.Now(),
         EndDate:   time.Now().AddDate(-1, 0, 0),  // Data anterior!
     }
     
-    _, err := store.Create(license)
+    _, err := store.Create(contract)
     
     require.Error(t, err)
     require.Contains(t, err.Error(), "end_date must be after start_date")
 }
 ```
 
+### Cobertura
+
+- ✅ Casos de sucesso
+- ✅ Validações
+- ✅ Erros
+- ✅ Edge cases
+- ✅ Integridade referencial
+
 ## 🔐 Segurança
 
 - **Prepared Statements:** Previnem SQL Injection
 - **Validação de Input:** Todos os dados validados antes de usar
-- **Soft Delete:** Histórico mantido
+- **Soft Delete:** Histórico mantido para auditoria
 - **Transações:** Operações multi-tabela são atômicas
-
-## 🚀 Escalabilidade
-
-### Possibilidades Futuras
-
-1. **API REST:** Expor endpoints para integração
-2. **Cache:** Redis para consultas frequentes
-3. **Workers:** Background jobs para notificações
-4. **Audit Log:** Tabela separada para rastreamento
-
-### Design Preparado Para
-
-- Múltiplas unidades por empresa ✓
-- Histórico de operações (via soft delete) ✓
-- Filtros complexos (categoria, linha, status) ✓
-- Expiração automática de licenças ✓
+- **Autenticação:** Sistema de usuários com roles
+- **Proteção contra força bruta:** Bloqueio automático após falhas
 
 ## 📝 Convenções de Código
 
 ### Nomenclatura
 
-- **Structs:** PascalCase (`Client`, `License`)
-- **Métodos:** PascalCase (`Create`, `GetByID`)
-- **Variáveis:** camelCase (`clientID`, `startDate`)
-- **Constantes:** UPPER_SNAKE_CASE (`MAX_NAME_LENGTH`)
+- **Structs:** PascalCase (`Client`, `Contract`, `User`)
+- **Métodos:** PascalCase (`Create`, `GetByID`, `Archive`)
+- **Variáveis:** camelCase (`clientID`, `startDate`, `hasLicenses`)
+- **Constantes:** UPPER_SNAKE_CASE (`MAX_NAME_LENGTH`, `DEFAULT_PAGE_SIZE`)
+- **Arquivos:** snake_case (`client_store.go`, `contract_test.go`)
 
 ### Erros
 
 ```go
-// ✓ Bom
-return fmt.Errorf("license not found: %s", id)
+// ✓ Bom - descritivo
+return fmt.Errorf("contract not found: %s", id)
+return fmt.Errorf("end_date must be after start_date")
+return fmt.Errorf("overlapping contract dates for line %s", lineID)
 
-// ✗ Ruim
+// ✗ Ruim - genérico
 return errors.New("error")
+return errors.New("invalid")
 ```
 
 ### Comentários
@@ -268,68 +315,186 @@ client.ArchivedAt = time.Now()
 
 // ✗ Óbvio
 // Set archived at to now
+client.ArchivedAt = time.Now()
 ```
 
 ## 🔗 Dependências Externas Mínimas
 
-- `database/sql` — Padrão Go
-- `postgresql` — Driver do banco
-- `uuid` — Geração de IDs
-- Sem frameworks pesados (testabilidade)
+```
+github.com/google/uuid        # Geração de IDs (UUID v4)
+github.com/mattn/go-sqlite3   # Driver SQLite
+golang.org/x/crypto           # Hashing de senhas
+```
 
-## 📚 Evolução Planejada
+**Stack:** Go stdlib + SQLite (desenvolvimento) ou PostgreSQL (produção)
 
-### v1.0 (Atual)
-- ✓ CLI funcional
-- ✓ Todas as entidades
-- ✓ Testes unitários
+## 🚀 Escalabilidade e Evolução
 
-### v1.1
+### Preparado Para
+
+- ✅ Múltiplas unidades por cliente (Dependents)
+- ✅ Histórico de operações (via soft delete)
+- ✅ Filtros complexos (por categoria, linha, status, período)
+- ✅ Expiração automática de contratos
+- ✅ Sistema de usuários com permissões
+- ✅ Migração para PostgreSQL em produção
+
+### Roadmap Futuro
+
+**v1.1:**
 - [ ] API REST
 - [ ] Paginação em listagens
 - [ ] Filtros avançados
+- [ ] Export CSV/PDF
 
-### v2.0
+**v2.0:**
 - [ ] Dashboard web
 - [ ] Notificações (email/Slack)
-- [ ] Relatórios (PDF/CSV)
 - [ ] Auditoria detalhada
+- [ ] Integração com sistemas externos
 
 ## 🤝 Para Desenvolvedores
 
 ### Adicionar Nova Entidade
 
-1. Criar `domain/new_entity.go` com struct
-2. Criar `store/new_entity_store.go` com CRUD
-3. Criar `tests/store/new_entity_store_test.go`
+1. Definir struct em `domain/models.go`
+2. Criar store em `store/new_entity_store.go`
+3. Criar testes em `store/new_entity_store_test.go`
 4. Atualizar `database/init.sql` com tabela
 5. Integrar no menu CLI (`cmd/cli/main.go`)
 
-### Executar Testes
+### Exemplo: Adicionar Campo a Contrato
+
+**1. Domain** (`domain/models.go`):
+```go
+type Contract struct {
+    // ... campos existentes ...
+    Notes string  // Novo campo
+}
+```
+
+**2. Store** (`store/contract_store.go`):
+```go
+// UPDATE query para incluir Notes
+// Validação se necessário
+
+func (s *ContractStore) Create(contract domain.Contract) (string, error) {
+    if len(contract.Notes) > 1000 {
+        return "", errors.New("notes must be 1000 characters or less")
+    }
+    // ... INSERT com Notes ...
+}
+```
+
+**3. Tests** (`store/contract_test.go`):
+```go
+func TestCreateContract_WithNotes(t *testing.T) {
+    contract := domain.Contract{
+        // ... dados necessários ...
+        Notes: "Licença para departamento de TI",
+    }
+    
+    id, err := store.Create(contract)
+    require.NoError(t, err)
+    // Verificar se Notes foi salvo
+}
+```
+
+**4. Database** (`database/init.sql`):
+```sql
+ALTER TABLE contracts ADD COLUMN notes TEXT;
+```
+
+### Executar Testes Localmente
 
 ```bash
 cd backend
-go test ./tests/store -v
-go test ./tests/store -cover
+
+# Todos os testes
+go test ./store -v
+
+# Com cobertura
+go test ./store -cover
+
+# Teste específico
+go test -run TestContractCreate ./store -v
+
+# Com race detector
+go test -race ./store
 ```
 
-### Adicionar Validação
+### Linting e Formatação
 
-Sempre em dois lugares:
+```bash
+# Formatar código
+go fmt ./...
+
+# Lint
+golangci-lint run ./...
+
+# Análise estática
+go vet ./...
+```
+
+## 📚 Referências Técnicas
+
+### Database Layer
+
+- Prepared statements para todas as queries
+- Connection pooling automático via `database/sql`
+- Transações para operações multi-tabela
+- Índices em ForeignKeys e campos de busca
+
+### Performance
+
+- SQLite para desenvolvimento (embarcado)
+- PostgreSQL para produção (escalável)
+- Índices em campos frequentemente consultados
+- Lazy loading de relacionamentos
+
+## 🔍 Debugging
+
+### Logs
 
 ```go
-// 1. No Store (lógica)
-if len(name) < 1 || len(name) > 255 {
-    return errors.New("name must be 1-255 characters")
-}
-
-// 2. No Database (constraint)
-ALTER TABLE companies 
-ADD CONSTRAINT check_name_length 
-CHECK (char_length(name) >= 1 AND char_length(name) <= 255);
+// Adicione em desenvolvimento
+log.Printf("Creating contract: %+v", contract)
+log.Printf("Query: %s", query)
 ```
+
+### Testes Isolados
+
+```bash
+# Teste uma função específica
+go test -run TestContractCreate ./store -v
+
+# Com debugging
+go test -v -run TestContractCreate ./store --race
+```
+
+### Inspeção de Banco
+
+SQLite:
+```bash
+sqlite3 contracts_manager.db ".tables"
+sqlite3 contracts_manager.db "SELECT * FROM contracts LIMIT 5;"
+```
+
+PostgreSQL:
+```bash
+psql -d contracts_manager -c "\dt"
+psql -d contracts_manager -c "SELECT * FROM contracts LIMIT 5;"
+```
+
+## 📖 Leitura Recomendada
+
+- [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
+- [Effective Go](https://golang.org/doc/effective_go)
+- [Domain-Driven Design](https://www.domainlanguage.com/ddd/)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 ---
 
 **Para usar o sistema:** Veja [USAGE.md](USAGE.md)
 **Para instalar:** Veja [SETUP.md](SETUP.md)
+**Para contribuir:** Veja [CONTRIBUTING.md](CONTRIBUTING.md)

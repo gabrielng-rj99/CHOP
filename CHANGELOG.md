@@ -4,7 +4,7 @@ Todas as mudanças notáveis deste projeto estão documentadas aqui.
 
 Para histórico completo de commits, veja `git log`.
 
-## [v1.0.0] — 2024-06-XX
+## [v1.0.0] — 2025-06-XX
 
 **Primeira versão estável do Licenses Manager**
 
@@ -30,7 +30,7 @@ Para histórico completo de commits, veja `git log`.
 
 ---
 
-## [v0.1.0] — 2024-05-XX
+## [v0.1.0] — 2025-05-XX
 
 **Protótipo inicial**
 
