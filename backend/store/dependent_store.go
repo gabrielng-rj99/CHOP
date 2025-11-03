@@ -5,6 +5,7 @@ package store
 import (
 	"Contracts-Manager/backend/domain"
 	"errors"
+	"strings"
 
 	"database/sql"
 
@@ -96,6 +97,41 @@ func (s *DependentStore) GetDependentsByClientID(clientID string) (dependents []
 		return nil, err
 	}
 
+	return dependents, nil
+}
+
+// GetDependentsByName busca dependentes por nome (case-insensitive, parcial) para um cliente específico
+func (s *DependentStore) GetDependentsByName(clientID, name string) ([]domain.Dependent, error) {
+	name = strings.TrimSpace(name)
+	if clientID == "" {
+		return nil, errors.New("client ID cannot be empty")
+	}
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = ? AND LOWER(name) LIKE LOWER(?)`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, clientID, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+	var dependents []domain.Dependent
+	for rows.Next() {
+		var dependent domain.Dependent
+		if err = rows.Scan(&dependent.ID, &dependent.Name, &dependent.ClientID); err != nil {
+			return nil, err
+		}
+		dependents = append(dependents, dependent)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	return dependents, nil
 }
 
