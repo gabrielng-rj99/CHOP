@@ -6,6 +6,7 @@ import (
 	"Contracts-Manager/backend/domain"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -76,6 +77,40 @@ func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err er
 		return nil, err
 	}
 
+	return categories, nil
+}
+
+// GetCategoriesByName busca categorias por nome (case-insensitive, parcial)
+func (s *CategoryStore) GetCategoriesByName(name string) ([]domain.Category, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	sqlStatement := `SELECT id, name FROM categories WHERE LOWER(name) LIKE LOWER(?)`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if rows != nil {
+			closeErr := rows.Close()
+			if err == nil {
+				err = closeErr
+			}
+		}
+	}()
+	var categories []domain.Category
+	for rows.Next() {
+		var category domain.Category
+		if err = rows.Scan(&category.ID, &category.Name); err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	return categories, nil
 }
 
