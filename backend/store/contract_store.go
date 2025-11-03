@@ -5,6 +5,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
@@ -116,7 +117,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 
 	newID := uuid.New().String()
 	sqlStatement := `
-		INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id)
+		INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err = s.db.Exec(sqlStatement,
@@ -150,7 +151,7 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 		return nil, errors.New("client not found or archived")
 	}
 	// ... rest of the function ...
-	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE client_id = ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE client_id = ?`
 	rows, err := s.db.Query(sqlStatement, clientID)
 	if err != nil {
 		return nil, err
@@ -182,7 +183,7 @@ func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.C
 	now := time.Now()
 	limitDate := now.AddDate(0, 0, days) // Adiciona 'days' dias à data atual
 
-	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE end_date BETWEEN ? AND ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE end_date BETWEEN ? AND ?`
 
 	rows, err := s.db.Query(sqlStatement, now, limitDate)
 	if err != nil {
@@ -247,7 +248,7 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("contract does not exist")
 	}
-	sqlStatement := `UPDATE contracts SET name = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?`
+	sqlStatement := `UPDATE contracts SET model = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?`
 	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedProductKey, contract.StartDate, contract.EndDate, contract.ID)
 	if err != nil {
 		return err
@@ -268,7 +269,7 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 		return nil, sql.ErrNoRows // Or use errors.New("contract ID cannot be empty")
 	}
 	sqlStatement := `
-		SELECT id, name, product_key, start_date, end_date, line_id, client_id, dependent_id
+		SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
 		FROM contracts
 		WHERE id = ?`
 
@@ -340,7 +341,7 @@ func (s *ContractStore) DeleteContract(id string) error {
 
 // GetAllContracts fetches all contracts in the system
 func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err error) {
-	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -353,6 +354,39 @@ func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err erro
 	}()
 
 	contracts = []domain.Contract{}
+	for rows.Next() {
+		var c domain.Contract
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+			return nil, err
+		}
+		contracts = append(contracts, c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return contracts, nil
+}
+
+// GetContractsByName fetches contracts by partial name/model (case-insensitive)
+func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	// Busca case-insensitive
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE LOWER(model) LIKE LOWER(?)`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+	var contracts []domain.Contract
 	for rows.Next() {
 		var c domain.Contract
 		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
@@ -381,7 +415,7 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 		return nil, errors.New("line not found")
 	}
 
-	sqlStatement := `SELECT id, name, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE line_id = ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE line_id = ?`
 	rows, err := s.db.Query(sqlStatement, lineID)
 	if err != nil {
 		return nil, err
@@ -423,7 +457,7 @@ func (s *ContractStore) GetContractsByCategoryID(categoryID string) (contracts [
 	}
 
 	sqlStatement := `
-		SELECT c.id, c.name, c.product_key, c.start_date, c.end_date, c.line_id, c.client_id, c.dependent_id
+		SELECT c.id, c.model, c.product_key, c.start_date, c.end_date, c.line_id, c.client_id, c.dependent_id
 		FROM contracts c
 		INNER JOIN lines ln ON c.line_id = ln.id
 		WHERE ln.category_id = ?
