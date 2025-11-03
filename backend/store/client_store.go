@@ -99,6 +99,38 @@ func (s *ClientStore) GetClientNameByID(id string) (string, error) {
 	return client.Name, nil
 }
 
+// GetClientsByName busca clientes por nome (case-insensitive, parcial)
+func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE LOWER(name) LIKE LOWER(?) AND archived_at IS NULL`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+	var clients []domain.Client
+	for rows.Next() {
+		var client domain.Client
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.ArchivedAt); err != nil {
+			return nil, err
+		}
+		clients = append(clients, client)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return clients, nil
+}
+
 // UpdateClient também foi atualizado
 func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if client.ID == "" {
