@@ -5,6 +5,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
 
@@ -156,6 +157,38 @@ func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
 		return nil, err
 	}
 
+	return lines, nil
+}
+
+// GetLinesByName busca linhas por nome (case-insensitive, parcial)
+func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE LOWER(name) LIKE LOWER(?)`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+	var lines []domain.Line
+	for rows.Next() {
+		var t domain.Line
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
+			return nil, err
+		}
+		lines = append(lines, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	return lines, nil
 }
 
