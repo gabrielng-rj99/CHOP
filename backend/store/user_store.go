@@ -319,6 +319,37 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 	return users, nil
 }
 
+// GetUsersByName busca usuários por nome de usuário ou display name (case-insensitive, parcial)
+func (s *UserStore) GetUsersByName(name string) ([]domain.User, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE LOWER(username) LIKE LOWER(?) OR LOWER(display_name) LIKE LOWER(?)`
+	likePattern := "%" + name + "%"
+	rows, err := s.db.Query(sqlStatement, likePattern, likePattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var user domain.User
+		var failedAttempts, lockLevel int
+		var lockedUntil sql.NullTime
+		err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 // CreateAdminUser cria um usuário admin customizado ou admin-n com senha aleatória de 64 caracteres, onde n é o próximo número disponível
 func (s *UserStore) CreateAdminUser(customUsername, displayName string, role string) (string, string, string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>/?"
