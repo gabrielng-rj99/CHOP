@@ -81,7 +81,7 @@ func SetupTestDB() (*sql.DB, error) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS contracts (
 			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
+			model TEXT NOT NULL,
 			product_key TEXT UNIQUE NOT NULL,
 			start_date DATETIME NOT NULL,
 			end_date DATETIME NOT NULL,
@@ -200,11 +200,11 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 }
 
 // InsertTestContract inserts a test license and returns its UUID
-func InsertTestContract(db *sql.DB, name, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
+func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		id, name, productKey, startDate, endDate, lineID, clientID, entityID, nil,
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		id, model, productKey, startDate, endDate, lineID, clientID, entityID, nil,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert test license: %v", err)

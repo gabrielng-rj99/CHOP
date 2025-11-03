@@ -452,7 +452,7 @@ func TestGetContractByID(t *testing.T) {
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		"test-contract-123",
 		"Test Contract",
 		"TEST-KEY-123",
@@ -534,7 +534,7 @@ func TestGetContractsByClientID(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := db.Exec(
-			"INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 			"test-contract-"+string(rune('a'+i)),
 			"Test Contract "+string(rune('A'+i)),
 			"TEST-KEY-"+string(rune('a'+i)),
@@ -613,7 +613,7 @@ func TestUpdateContract(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	contractID := "test-contract-123"
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		contractID,
 		"Test Contract",
 		"TEST-KEY-123",
@@ -698,13 +698,13 @@ func TestUpdateContract(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				var name string
-				err = db.QueryRow("SELECT name FROM contracts WHERE id = ?", tt.contract.ID).Scan(&name)
+				var model string
+				err = db.QueryRow("SELECT model FROM contracts WHERE id = ?", tt.contract.ID).Scan(&model)
 				if err != nil {
 					t.Errorf("Failed to query updated contract: %v", err)
 				}
-				if name != tt.contract.Model {
-					t.Errorf("Expected name %q but got %q", tt.contract.Model, name)
+				if model != tt.contract.Model {
+					t.Errorf("Expected model %q but got %q", tt.contract.Model, model)
 				}
 			}
 		})
@@ -731,7 +731,7 @@ func TestDeleteContract(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	contractID := "test-contract-123"
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, name, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		contractID,
 		"Test Contract",
 		"TEST-KEY-123",
