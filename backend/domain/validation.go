@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 
@@ -40,7 +41,7 @@ func (ve ValidationErrors) IsValid() bool {
 // Padrão regex para validação de email
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-// ValidateClientEmail valida o formato do email
+// ValidateClientEmail valida o formato do email e verifica MX do domínio
 func ValidateClientEmail(email *string) error {
 	if email == nil || *email == "" {
 		return nil
@@ -94,6 +95,15 @@ func ValidateClientEmail(email *string) error {
 		return ValidationError{
 			Field:   "email",
 			Message: "domínio do email deve conter pelo menos um ponto",
+		}
+	}
+
+	// Verificação MX do domínio - valida se o domínio está apto a receber emails
+	mxRecords, err := net.LookupMX(domain)
+	if err != nil || len(mxRecords) == 0 {
+		return ValidationError{
+			Field:   "email",
+			Message: "domínio do email não está apto a receber emails (MX ausente)",
 		}
 	}
 
