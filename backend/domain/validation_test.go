@@ -195,11 +195,10 @@ func TestValidateClientEmailValid(t *testing.T) {
 		name  string
 		email string
 	}{
-		{"simple", "user@example.com"},
-		{"com ponto", "john.doe@example.com"},
-		{"com número", "user123@example.com"},
-		{"subdomínio", "user@mail.example.com"},
-		{"brasil", "contato@empresa.com.br"},
+		{"simple", "user@gmail.com"},
+		{"com ponto", "john.doe@gmail.com"},
+		{"com número", "user123@gmail.com"},
+		{"brasil", "contato@gmail.com"},
 	}
 
 	for _, tt := range tests {
@@ -221,10 +220,11 @@ func TestValidateClientEmailInvalid(t *testing.T) {
 		{"sem @", "userexample.com"},
 		{"múltiplos @", "user@@example.com"},
 		{"sem domínio", "user@"},
-		{"sem local", "@example.com"},
-		{"pontos consecutivos", "user..name@example.com"},
-		{"começa com ponto", ".user@example.com"},
-		{"termina com ponto", "user.@example.com"},
+		{"sem local", "@gmail.com"},
+		{"pontos consecutivos", "user..name@gmail.com"},
+		{"começa com ponto", ".user@gmail.com"},
+		{"termina com ponto", "user.@gmail.com"},
+		{"domínio sem MX", "user@nonexistent-domain-12345-xyz.invalid"},
 	}
 
 	for _, tt := range tests {
@@ -239,9 +239,7 @@ func TestValidateClientEmailInvalid(t *testing.T) {
 
 // TestValidateClient testa validação completa de cliente
 func TestValidateClient(t *testing.T) {
-	validEmail := "contact@example.com"
 	validPhone := "+5511987654321"
-	invalidEmail := "not-an-email"
 	invalidPhone := "123"
 
 	tests := []struct {
@@ -254,7 +252,7 @@ func TestValidateClient(t *testing.T) {
 			client: &Client{
 				Name:           "Test Company",
 				RegistrationID: "12345678000180",
-				Email:          &validEmail,
+				Email:          stringPtr("user@gmail.com"),
 				Phone:          &validPhone,
 			},
 			expectsErrors: false,
@@ -288,7 +286,7 @@ func TestValidateClient(t *testing.T) {
 			client: &Client{
 				Name:           "Test Company",
 				RegistrationID: "12345678000180",
-				Email:          &invalidEmail,
+				Email:          stringPtr("user@nonexistent-domain-12345-xyz.invalid"),
 			},
 			expectsErrors: true,
 		},
@@ -330,13 +328,13 @@ func TestNormalizeEmail(t *testing.T) {
 	}{
 		{
 			name:     "uppercase",
-			input:    stringPtr("USER@EXAMPLE.COM"),
-			expected: stringPtr("user@example.com"),
+			input:    stringPtr("USER@GMAIL.COM"),
+			expected: stringPtr("user@gmail.com"),
 		},
 		{
 			name:     "com espaços",
-			input:    stringPtr("  user@example.com  "),
-			expected: stringPtr("user@example.com"),
+			input:    stringPtr("  user@gmail.com  "),
+			expected: stringPtr("user@gmail.com"),
 		},
 		{
 			name:     "nil",
