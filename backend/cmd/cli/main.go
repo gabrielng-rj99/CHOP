@@ -1097,7 +1097,15 @@ func clientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 			}
 			fmt.Println("Active clients:")
 			for _, c := range clients {
-				fmt.Printf("ID: %s | Name: %s | Registration ID: %s\n", c.ID, c.Name, c.RegistrationID)
+				email := "-"
+				if c.Email != nil {
+					email = *c.Email
+				}
+				phone := "-"
+				if c.Phone != nil {
+					phone = *c.Phone
+				}
+				fmt.Printf("ID: %s | Name: %s | Registration ID: %s | Email: %s | Phone: %s\n", c.ID, c.Name, c.RegistrationID, email, phone)
 			}
 		case "2":
 			reader := bufio.NewReader(os.Stdin)
@@ -1105,8 +1113,14 @@ func clientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 			name, _ := reader.ReadString('\n')
 			fmt.Print("Registration ID: ")
 			registrationID, _ := reader.ReadString('\n')
+			fmt.Print("Email (optional): ")
+			email, _ := reader.ReadString('\n')
+			fmt.Print("Phone (optional): ")
+			phone, _ := reader.ReadString('\n')
 			name = strings.TrimSpace(name)
 			registrationID = strings.TrimSpace(registrationID)
+			email = strings.TrimSpace(email)
+			phone = strings.TrimSpace(phone)
 			if name == "" {
 				fmt.Println("Error: Client name cannot be empty.")
 				continue
@@ -1115,9 +1129,26 @@ func clientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				fmt.Println("Error: Registration ID cannot be empty.")
 				continue
 			}
+			var emailPtr, phonePtr *string
+			if email != "" {
+				emailPtr = &email
+			}
+			if phone != "" {
+				phonePtr = &phone
+			}
 			client := domain.Client{
 				Name:           name,
 				RegistrationID: registrationID,
+				Email:          emailPtr,
+				Phone:          phonePtr,
+			}
+			validationErrors := domain.ValidateClient(&client)
+			if !validationErrors.IsValid() {
+				fmt.Println("Validation errors:")
+				for _, err := range validationErrors {
+					fmt.Printf("  - %s: %s\n", err.Field, err.Message)
+				}
+				continue
 			}
 			id, err := clientStore.CreateClient(client)
 			if err != nil {
@@ -1311,8 +1342,22 @@ func clientSubmenu(clientID string,
 			name, _ := reader.ReadString('\n')
 			fmt.Printf("Current Registration ID: %s | New Registration ID: ", client.RegistrationID)
 			registrationID, _ := reader.ReadString('\n')
+			currentEmail := ""
+			if client.Email != nil {
+				currentEmail = *client.Email
+			}
+			fmt.Printf("Current email: %s | New email (leave blank to keep): ", currentEmail)
+			email, _ := reader.ReadString('\n')
+			currentPhone := ""
+			if client.Phone != nil {
+				currentPhone = *client.Phone
+			}
+			fmt.Printf("Current phone: %s | New phone (leave blank to keep): ", currentPhone)
+			phone, _ := reader.ReadString('\n')
 			name = strings.TrimSpace(name)
 			registrationID = strings.TrimSpace(registrationID)
+			email = strings.TrimSpace(email)
+			phone = strings.TrimSpace(phone)
 			if name == "" {
 				fmt.Println("Error: Client name cannot be empty.")
 				continue
@@ -1323,6 +1368,24 @@ func clientSubmenu(clientID string,
 			}
 			client.Name = name
 			client.RegistrationID = registrationID
+			if email != "" {
+				client.Email = &email
+			} else if email == "" && client.Email != nil {
+				client.Email = nil
+			}
+			if phone != "" {
+				client.Phone = &phone
+			} else if phone == "" && client.Phone != nil {
+				client.Phone = nil
+			}
+			validationErrors := domain.ValidateClient(client)
+			if !validationErrors.IsValid() {
+				fmt.Println("Validation errors:")
+				for _, err := range validationErrors {
+					fmt.Printf("  - %s: %s\n", err.Field, err.Message)
+				}
+				continue
+			}
 			err = clientStore.UpdateClient(*client)
 			if err != nil {
 				fmt.Println("Error updating client:", err)
