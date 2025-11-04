@@ -46,6 +46,8 @@ func TestCreateClient(t *testing.T) {
 			client: domain.Client{
 				Name:           "Test Client",
 				RegistrationID: "45.723.174/0001-10",
+				Email:          stringPtr("test@example.com"),
+				Phone:          stringPtr("+5511987654321"),
 			},
 			expectError: false,
 		},
@@ -54,6 +56,8 @@ func TestCreateClient(t *testing.T) {
 			client: domain.Client{
 				Name:           "Another Client",
 				RegistrationID: "45.723.174/0001-10",
+				Email:          stringPtr("another@example.com"),
+				Phone:          stringPtr("+5511987654321"),
 			},
 			expectError: true,
 		},
@@ -62,6 +66,8 @@ func TestCreateClient(t *testing.T) {
 			client: domain.Client{
 				Name:           "Test Client",
 				RegistrationID: "",
+				Email:          stringPtr("test@example.com"),
+				Phone:          stringPtr("+5511987654321"),
 			},
 			expectError: true,
 		},
@@ -70,6 +76,8 @@ func TestCreateClient(t *testing.T) {
 			client: domain.Client{
 				Name:           "",
 				RegistrationID: "45.723.174/0001-10",
+				Email:          stringPtr("test@example.com"),
+				Phone:          stringPtr("+5511987654321"),
 			},
 			expectError: true,
 		},
@@ -1264,3 +1272,4 @@ func TestClientNameTrimming(t *testing.T) {
 		})
 	}
 }
+
