@@ -36,9 +36,13 @@ func TestClientContractIntegration(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Criar cliente
+	email := "empresa@teste.com"
+	phone := "+5511987654321"
 	client := domain.Client{
 		Name:           "Empresa Teste",
 		RegistrationID: "45.723.174/0001-10",
+		Email:          &email,
+		Phone:          &phone,
 	}
 
 	clientID, err := clientStore.CreateClient(client)
@@ -149,9 +153,13 @@ func TestClientDependentContractIntegration(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Criar Cliente
+	email := "integration@test.com"
+	phone := "+5511999999999"
 	client := domain.Client{
 		Name:           "Full Integration Test Client",
 		RegistrationID: "45.723.174/0001-10",
+		Email:          &email,
+		Phone:          &phone,
 	}
 
 	clientID, err := clientStore.CreateClient(client)
