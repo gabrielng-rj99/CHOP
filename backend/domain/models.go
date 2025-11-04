@@ -11,7 +11,9 @@ type Client struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
 	RegistrationID string     `json:"registration_id"`
-	ArchivedAt     *time.Time `json:"archived_at,omitempty"` // NOVO: Usamos ponteiro para permitir valor nulo
+	Email          *string    `json:"email,omitempty"`       // Email do cliente (opcional)
+	Phone          *string    `json:"phone,omitempty"`       // Telefone do cliente (opcional)
+	ArchivedAt     *time.Time `json:"archived_at,omitempty"` // Soft delete via archived_at
 }
 
 // Dependent representa a tabela 'dependents' (Client Dependent, como unidades, filhos, parentes)
