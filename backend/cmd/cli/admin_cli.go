@@ -27,7 +27,7 @@ func AdministrationFlow(categoryStore *store.CategoryStore, lineStore *store.Lin
 		case "0":
 			return
 		case "1":
-			CategoriesMenu(categoryStore)
+			CategoriesMenu(categoryStore, lineStore)
 		case "2":
 			LinesMenu(lineStore, categoryStore)
 		case "3":
