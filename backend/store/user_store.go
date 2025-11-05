@@ -354,9 +354,9 @@ func (s *UserStore) GetUsersByName(name string) ([]domain.User, error) {
 func (s *UserStore) CreateAdminUser(customUsername, displayName string, role string) (string, string, string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>/?"
 	password := make([]byte, 64)
-	rand.Seed(time.Now().UnixNano())
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range password {
-		password[i] = charset[rand.Intn(len(charset))]
+		password[i] = charset[rng.Intn(len(charset))]
 	}
 
 	var username string
