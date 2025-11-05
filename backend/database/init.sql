@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS clients ( -- Clients. E.g.: Client A, Client B, Perso
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     registration_id TEXT UNIQUE NOT NULL,
+    email TEXT,
+    phone TEXT,
     archived_at DATETIME
 );
 
@@ -54,3 +56,24 @@ CREATE TABLE IF NOT EXISTS contracts ( -- Contratos de software. Ex: Contrato do
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
     FOREIGN KEY (dependent_id) REFERENCES dependents(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS audit_logs ( -- Logs de auditoria: rastreia todas as operações CRUD
+    id TEXT PRIMARY KEY,
+    timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    operation TEXT NOT NULL, -- 'create', 'update', 'delete', 'read'
+    entity TEXT NOT NULL, -- 'client', 'contract', 'user', 'line', 'category', 'dependent'
+    entity_id TEXT NOT NULL,
+    admin_id TEXT NOT NULL,
+    admin_username TEXT,
+    old_value TEXT, -- JSON com valores antigos (para updates/deletes)
+    new_value TEXT, -- JSON com valores novos (para creates/updates)
+    status TEXT NOT NULL DEFAULT 'success', -- 'success', 'error'
+    error_message TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id);

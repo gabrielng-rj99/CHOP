@@ -19,6 +19,14 @@ var (
 	dbOpened bool
 )
 
+func init() {
+	// Cleanup any leftover test directories from previous test runs
+	os.RemoveAll("logs")
+	os.RemoveAll("logs_audit_test")
+	os.RemoveAll("tests")
+	os.RemoveAll("backend/tests")
+}
+
 // SetupTestDB initializes and returns a test database connection
 func SetupTestDB() (*sql.DB, error) {
 	dbMutex.Lock()
@@ -61,6 +69,8 @@ func SetupTestDB() (*sql.DB, error) {
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			registration_id TEXT UNIQUE NOT NULL,
+			email TEXT,
+			phone TEXT,
 			archived_at DATETIME
 		)`,
 		`CREATE TABLE IF NOT EXISTS dependents (
@@ -93,6 +103,21 @@ func SetupTestDB() (*sql.DB, error) {
 			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
 			FOREIGN KEY (dependent_id) REFERENCES dependents(id) ON DELETE SET NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS audit_logs (
+			id TEXT PRIMARY KEY,
+			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			operation TEXT NOT NULL,
+			entity TEXT NOT NULL,
+			entity_id TEXT NOT NULL,
+			admin_id TEXT NOT NULL,
+			admin_username TEXT,
+			old_value TEXT,
+			new_value TEXT,
+			status TEXT NOT NULL DEFAULT 'success',
+			error_message TEXT,
+			ip_address TEXT,
+			user_agent TEXT
+		)`,
 	}
 
 	for _, query := range tables {
@@ -107,7 +132,7 @@ func SetupTestDB() (*sql.DB, error) {
 	return db, nil
 }
 
-// CloseDB closes the test database connection and removes the test database file
+// CloseDB closes the test database connection and removes the test database file and temporary directories
 func CloseDB(db *sql.DB) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
@@ -128,9 +153,22 @@ func CloseDB(db *sql.DB) error {
 		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to remove test database file: %v", err)
 		}
+
+		// Remove all temporary directories created during tests
+		os.RemoveAll(filepath.Join(backendDir, "tests"))
+		os.RemoveAll(filepath.Join(backendDir, "logs"))
+		os.RemoveAll(filepath.Join(backendDir, "logs_audit_test"))
+		os.RemoveAll(filepath.Join(backendDir, "backend", "tests"))
+
 		dbOpened = false
 		testDB = nil
 	}
+
+	// Final cleanup to ensure no test directories remain
+	os.RemoveAll("logs")
+	os.RemoveAll("logs_audit_test")
+	os.RemoveAll("tests")
+	os.RemoveAll("backend/tests")
 
 	return nil
 }

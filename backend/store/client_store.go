@@ -54,8 +54,8 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 	}
 
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO clients (id, name, registration_id) VALUES (?, ?, ?)`
-	_, err = s.db.Exec(sqlStatement, newID, trimmedName, formattedID)
+	sqlStatement := `INSERT INTO clients (id, name, registration_id, email, phone) VALUES (?, ?, ?, ?, ?)`
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName, formattedID, client.Email, client.Phone)
 	if err != nil {
 		// Handle unique constraint violation for registration ID
 		if err.Error() != "" &&
@@ -73,11 +73,11 @@ func (s *ClientStore) GetClientByID(id string) (*domain.Client, error) {
 	if id == "" {
 		return nil, errors.New("client ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE id = ?`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE id = ?`
 	row := s.db.QueryRow(sqlStatement, id)
 
 	var client domain.Client
-	err := row.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.ArchivedAt)
+	err := row.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -105,7 +105,7 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE LOWER(name) LIKE LOWER(?) AND archived_at IS NULL`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE LOWER(name) LIKE LOWER(?) AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -120,7 +120,7 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	var clients []domain.Client
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
@@ -165,8 +165,8 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if count == 0 {
 		return errors.New("client does not exist")
 	}
-	sqlStatement := `UPDATE clients SET name = ?, registration_id = ? WHERE id = ?`
-	result, err := s.db.Exec(sqlStatement, trimmedName, formattedID, client.ID)
+	sqlStatement := `UPDATE clients SET name = ?, registration_id = ?, email = ?, phone = ? WHERE id = ?`
+	result, err := s.db.Exec(sqlStatement, trimmedName, formattedID, client.Email, client.Phone, client.ID)
 	if err != nil {
 		return err
 	}
@@ -398,7 +398,7 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 
 // GetAllClients retorna todos os clientes não arquivados
 func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE archived_at IS NULL`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -412,7 +412,7 @@ func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
 	}()
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
@@ -427,7 +427,7 @@ func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
 
 // GetArchivedClients retorna todos os clientes arquivados
 func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, registration_id, archived_at FROM clients WHERE archived_at IS NOT NULL`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE archived_at IS NOT NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -440,10 +440,9 @@ func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) 
 		}
 	}()
 
-	clients = []domain.Client{}
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
