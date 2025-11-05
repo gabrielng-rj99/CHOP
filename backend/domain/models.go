@@ -78,3 +78,20 @@ func (c *Contract) Status() string {
 
 	return "Ativo"
 }
+
+// AuditLog representa a tabela 'audit_logs' para rastreamento de auditoria
+type AuditLog struct {
+	ID            string    `json:"id"`
+	Timestamp     time.Time `json:"timestamp"`
+	Operation     string    `json:"operation"` // 'create', 'update', 'delete', 'read'
+	Entity        string    `json:"entity"`    // 'client', 'contract', 'user', 'line', 'category', 'dependent'
+	EntityID      string    `json:"entity_id"`
+	AdminID       string    `json:"admin_id"`
+	AdminUsername string    `json:"admin_username,omitempty"`
+	OldValue      *string   `json:"old_value,omitempty"` // JSON string com valores antigos
+	NewValue      *string   `json:"new_value,omitempty"` // JSON string com valores novos
+	Status        string    `json:"status"`              // 'success', 'error'
+	ErrorMessage  *string   `json:"error_message,omitempty"`
+	IPAddress     *string   `json:"ip_address,omitempty"`
+	UserAgent     *string   `json:"user_agent,omitempty"`
+}
