@@ -58,7 +58,7 @@ func main() {
 			ContractsFlow(contractStore, clientStore, dependentStore, lineStore, categoryStore)
 		case "3":
 			AdministrationFlow(categoryStore, lineStore, userStore, user)
-		case "4":
+		case "0":
 			fmt.Println("Exiting...")
 			return
 		default:
@@ -80,10 +80,10 @@ func promptLogin() (string, string) {
 // mainMenu displays the main menu options
 func mainMenu() string {
 	fmt.Println("Select an option:")
+	fmt.Println("0 - Exit")
 	fmt.Println("1 - Clients")
-	fmt.Println("2 - contracts (overview)")
+	fmt.Println("2 - Contracts (Overview)")
 	fmt.Println("3 - Administration (categories, lines, users)")
-	fmt.Println("4 - Exit")
 	fmt.Print("Option: ")
 	reader := bufio.NewReader(os.Stdin)
 	opt, _ := reader.ReadString('\n')

@@ -279,45 +279,54 @@ func ClientSubmenu(clientID string,
 				continue
 			}
 			reader := bufio.NewReader(os.Stdin)
+			PrintOptionalFieldHint()
 			fmt.Printf("Current name: %s | New name: ", client.Name)
 			name, _ := reader.ReadString('\n')
 			fmt.Printf("Current Registration ID: %s | New Registration ID: ", client.RegistrationID)
 			registrationID, _ := reader.ReadString('\n')
-			currentEmail := ""
+			currentEmail := "-"
 			if client.Email != nil {
 				currentEmail = *client.Email
 			}
-			fmt.Printf("Current email: %s | New email (leave blank to keep): ", currentEmail)
+			fmt.Printf("Current email: %s | New email: ", currentEmail)
 			email, _ := reader.ReadString('\n')
-			currentPhone := ""
+			currentPhone := "-"
 			if client.Phone != nil {
 				currentPhone = *client.Phone
 			}
-			fmt.Printf("Current phone: %s | New phone (leave blank to keep): ", currentPhone)
+			fmt.Printf("Current phone: %s | New phone: ", currentPhone)
 			phone, _ := reader.ReadString('\n')
 			name = strings.TrimSpace(name)
 			registrationID = strings.TrimSpace(registrationID)
 			email = strings.TrimSpace(email)
 			phone = strings.TrimSpace(phone)
+
+			// Handle required fields: empty keeps current value
 			if name == "" {
-				fmt.Println("Error: Client name cannot be empty.")
-				continue
+				name = client.Name
 			}
 			if registrationID == "" {
-				fmt.Println("Error: Registration ID cannot be empty.")
-				continue
+				registrationID = client.RegistrationID
 			}
 			client.Name = name
 			client.RegistrationID = registrationID
-			if email != "" {
-				client.Email = &email
-			} else if email == "" && client.Email != nil {
-				client.Email = nil
+			// Handle optional email: "-" clears it, empty keeps it, other value updates it
+			emailVal, emailUpdate, emailClear := HandleOptionalField(email)
+			if emailUpdate {
+				if emailClear {
+					client.Email = nil
+				} else {
+					client.Email = &emailVal
+				}
 			}
-			if phone != "" {
-				client.Phone = &phone
-			} else if phone == "" && client.Phone != nil {
-				client.Phone = nil
+			// Handle optional phone: "-" clears it, empty keeps it, other value updates it
+			phoneVal, phoneUpdate, phoneClear := HandleOptionalField(phone)
+			if phoneUpdate {
+				if phoneClear {
+					client.Phone = nil
+				} else {
+					client.Phone = &phoneVal
+				}
 			}
 			validationErrors := domain.ValidateClient(client)
 			if !validationErrors.IsValid() {

@@ -78,12 +78,13 @@ func CategoriesMenu(categoryStore *store.CategoryStore) {
 				continue
 			}
 			category := categories[idx-1]
+			PrintOptionalFieldHint()
 			fmt.Printf("Current name: %s | New name: ", category.Name)
 			name, _ := reader.ReadString('\n')
 			name = strings.TrimSpace(name)
+			// Handle required fields: empty keeps current value
 			if name == "" {
-				fmt.Println("Error: Category name cannot be empty.")
-				continue
+				name = category.Name
 			}
 			category.Name = name
 			err = categoryStore.UpdateCategory(category)

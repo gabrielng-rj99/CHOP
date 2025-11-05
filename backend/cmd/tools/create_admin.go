@@ -12,32 +12,47 @@ import (
 	"time"
 )
 
-// CreateAdminUser cria um usuário admin com senha aleatória de 64 caracteres.
-// Imprime a senha gerada no terminal para ser guardada com segurança.
-// Use esta função apenas manualmente, nunca em produção ou no fluxo normal do sistema.
+// PrintOptionalFieldHint prints instructions for optional field handling
+// This should be called once before displaying Current/New field prompts
+func PrintOptionalFieldHint() {
+	fmt.Println("(Use '-' to set blank, leave empty to keep current value)")
+}
+
+// CreateAdminUser creates an admin user with a randomly generated 64-character password.
+// Prints the generated password to the terminal to be saved securely.
+// Use this function only manually, never in production or in the normal system flow.
 func CreateAdminUser(userStore *store.UserStore) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>/?"
-	rand.Seed(time.Now().UnixNano())
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	password := make([]byte, 64)
 	for i := range password {
-		password[i] = charset[rand.Intn(len(charset))]
+		password[i] = charset[rng.Intn(len(charset))]
 	}
 
-	// Pergunta o role
+	// Ask for the role
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Role do admin (admin/full_admin): ")
+	PrintOptionalFieldHint()
+	fmt.Print("Admin role (admin/full_admin, leave empty for 'admin'): ")
 	role, _ := reader.ReadString('\n')
 	role = strings.TrimSpace(role)
 	if role == "" {
 		role = "admin"
 	}
-	id, err := userStore.CreateUser("admin", "Administrador", string(password), role)
-	if err != nil {
-		fmt.Println("Erro ao criar usuário admin:", err)
+
+	// Validate role
+	if role != "admin" && role != "full_admin" {
+		fmt.Println("Error: Invalid role. Use 'admin' or 'full_admin'.")
 		return
 	}
-	fmt.Println("Usuário admin criado com sucesso!")
+
+	id, err := userStore.CreateUser("admin", "Administrador", string(password), role)
+	if err != nil {
+		fmt.Println("Error creating admin user:", err)
+		return
+	}
+
+	fmt.Println("Admin user created successfully!")
 	fmt.Printf("Role: %s\n", role)
-	fmt.Printf("Senha gerada (guarde com segurança):\n%s\n", string(password))
-	fmt.Printf("ID do usuário: %s\n", id)
+	fmt.Printf("Generated password (store it securely):\n%s\n", string(password))
+	fmt.Printf("User ID: %s\n", id)
 }

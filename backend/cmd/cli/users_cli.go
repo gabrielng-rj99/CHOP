@@ -122,12 +122,12 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			}
 		case "5":
 			// Change your display name
-			fmt.Print("New display name for you: ")
+			PrintOptionalFieldHint()
+			fmt.Printf("Current display name: %s | New display name: ", user.DisplayName)
 			newDisplayName, _ := reader.ReadString('\n')
 			newDisplayName = strings.TrimSpace(newDisplayName)
 			if newDisplayName == "" {
-				fmt.Println("Error: Display name cannot be empty.")
-				continue
+				newDisplayName = user.DisplayName
 			}
 			err := userStore.EditUserDisplayName(user.Username, newDisplayName)
 			if err != nil {
@@ -137,12 +137,13 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			}
 		case "6":
 			// Change your password
-			fmt.Print("New password: ")
+			PrintOptionalFieldHint()
+			fmt.Print("New password (leave empty to keep current): ")
 			newPassword, _ := reader.ReadString('\n')
 			newPassword = strings.TrimSpace(newPassword)
 
 			if newPassword == "" {
-				fmt.Println("Error: Password cannot be empty.")
+				fmt.Println("Password unchanged.")
 				continue
 			}
 
@@ -183,11 +184,12 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Only admin or full_admin users can change their own username.")
 				break
 			}
-			fmt.Print("New username for you: ")
+			PrintOptionalFieldHint()
+			fmt.Printf("Current username: %s | New username: ", user.Username)
 			newUsername, _ := reader.ReadString('\n')
 			newUsername = strings.TrimSpace(newUsername)
 			if newUsername == "" {
-				fmt.Println("Error: Username cannot be empty.")
+				fmt.Println("Username unchanged.")
 				continue
 			}
 			err := userStore.UpdateUsername(user.Username, newUsername)
@@ -221,7 +223,9 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				continue
 			}
 			targetUsername := users[idx-1].Username
-			fmt.Print("New role (user/admin/full_admin): ")
+			targetUser := users[idx-1]
+			PrintOptionalFieldHint()
+			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", targetUser.Role)
 			newRole, _ := reader.ReadString('\n')
 			newRole = strings.TrimSpace(newRole)
 			if targetUsername == "" {
@@ -229,8 +233,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				continue
 			}
 			if newRole == "" {
-				fmt.Println("Error: New role cannot be empty.")
-				continue
+				newRole = targetUser.Role
 			}
 			err = userStore.EditUserRole(user.Username, targetUsername, newRole)
 			if err != nil {

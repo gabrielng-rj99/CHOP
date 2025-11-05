@@ -185,6 +185,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				contract = c
 			}
 			reader := bufio.NewReader(os.Stdin)
+			PrintOptionalFieldHint()
 			fmt.Printf("Current name: %s | New name: ", contract.Model)
 			name, _ := reader.ReadString('\n')
 			fmt.Printf("Current key: %s | New key: ", contract.ProductKey)
@@ -195,29 +196,26 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			endStr, _ := reader.ReadString('\n')
 			fmt.Printf("Current type ID: %s | New type ID: ", contract.LineID)
 			lineID, _ := reader.ReadString('\n')
-			fmt.Printf("Current dependent ID: ")
+			currentDependentID := "-"
 			if contract.DependentID != nil {
-				fmt.Printf("%s | New dependent (optional): ", *contract.DependentID)
-			} else {
-				fmt.Print("(none) | New dependent (optional): ")
+				currentDependentID = *contract.DependentID
 			}
+			fmt.Printf("Current dependent ID: %s | New dependent (optional): ", currentDependentID)
 			dependentID, _ := reader.ReadString('\n')
 
 			name = strings.TrimSpace(name)
 			productKey = strings.TrimSpace(productKey)
 			lineID = strings.TrimSpace(lineID)
 
+			// Handle required fields: empty keeps current value
 			if name == "" {
-				fmt.Println("Error: contract name cannot be empty.")
-				continue
+				name = contract.Model
 			}
 			if productKey == "" {
-				fmt.Println("Error: Product key cannot be empty.")
-				continue
+				productKey = contract.ProductKey
 			}
 			if lineID == "" {
-				fmt.Println("Error: Line ID cannot be empty.")
-				continue
+				lineID = contract.LineID
 			}
 
 			startDate := contract.StartDate
@@ -238,17 +236,20 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				}
 				endDate = parsedEnd
 			}
-			var dependentPtr *string
-			dependentID = strings.TrimSpace(dependentID)
-			if dependentID != "" {
-				dependentPtr = &dependentID
-			}
 			contract.Model = name
 			contract.ProductKey = productKey
 			contract.StartDate = startDate
 			contract.EndDate = endDate
 			contract.LineID = lineID
-			contract.DependentID = dependentPtr
+			// Handle optional dependent ID: "-" clears it, empty keeps it, other value updates it
+			depVal, depUpdate, depClear := HandleOptionalField(dependentID)
+			if depUpdate {
+				if depClear {
+					contract.DependentID = nil
+				} else {
+					contract.DependentID = &depVal
+				}
+			}
 			err := contractStore.UpdateContract(*contract)
 			if err != nil {
 				fmt.Println("Error updating contract:", err)

@@ -108,19 +108,19 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				}
 				lineObj = l
 			}
+			PrintOptionalFieldHint()
 			fmt.Printf("Current name: %s | New name: ", lineObj.Line)
 			line, _ := reader.ReadString('\n')
 			fmt.Printf("Current category: %s | New category for line: ", lineObj.CategoryID)
 			categoryID, _ := reader.ReadString('\n')
 			line = strings.TrimSpace(line)
 			categoryID = strings.TrimSpace(categoryID)
+			// Handle required fields: empty keeps current value
 			if line == "" {
-				fmt.Println("Error: Line name cannot be empty.")
-				continue
+				line = lineObj.Line
 			}
 			if categoryID == "" {
-				fmt.Println("Error: Category ID cannot be empty.")
-				continue
+				categoryID = lineObj.CategoryID
 			}
 			lineObj.Line = line
 			lineObj.CategoryID = categoryID
