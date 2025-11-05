@@ -15,7 +15,8 @@ import (
 // ContractsFlow handles the contracts overview menu (list, filter, create, edit, delete)
 func ContractsFlow(contractStore *store.ContractStore, clientStore *store.ClientStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
-		fmt.Println("\n--- contracts (Overview) ---")
+		fmt.Println("\n--- Contracts (Overview) ---")
+		fmt.Println("0 - Back")
 		fmt.Println("1 - List all contracts")
 		fmt.Println("2 - Filter by client")
 		fmt.Println("3 - Filter by line")
@@ -23,7 +24,6 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 		fmt.Println("5 - Create contract")
 		fmt.Println("6 - Edit contract")
 		fmt.Println("7 - Delete contract")
-		fmt.Println("8 - Back")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -298,7 +298,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			} else {
 				fmt.Println("contract deleted.")
 			}
-		case "8":
+		case "0":
 			return
 		default:
 			fmt.Println("Invalid option.")
