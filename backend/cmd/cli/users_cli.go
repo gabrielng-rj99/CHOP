@@ -92,11 +92,11 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Error: Display name cannot be empty.")
 				continue
 			}
-			genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "admin")
+			genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "admin")
 			if err != nil {
 				fmt.Println("Error creating admin:", err)
 			} else {
-				fmt.Printf("Admin user created: %s\nDisplay Name: %s\nPassword: %s\n", genUsername, genDisplayName, genPassword)
+				fmt.Printf("Admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 			}
 		case "4":
 			// Create full_admin user (full_admin only)
@@ -114,11 +114,11 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Error: Display name cannot be empty.")
 				continue
 			}
-			genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "full_admin")
+			genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "full_admin")
 			if err != nil {
 				fmt.Println("Error creating full_admin:", err)
 			} else {
-				fmt.Printf("Full_admin user created: %s\nDisplay Name: %s\nPassword: %s\n", genUsername, genDisplayName, genPassword)
+				fmt.Printf("Full_admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 			}
 		case "5":
 			// Change your display name

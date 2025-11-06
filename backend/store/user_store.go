@@ -351,7 +351,7 @@ func (s *UserStore) GetUsersByName(name string) ([]domain.User, error) {
 }
 
 // CreateAdminUser cria um usuário admin customizado ou admin-n com senha aleatória de 64 caracteres, onde n é o próximo número disponível
-func (s *UserStore) CreateAdminUser(customUsername, displayName string, role string) (string, string, string, error) {
+func (s *UserStore) CreateAdminUser(customUsername, displayName string, role string) (string, string, string, string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>/?"
 	password := make([]byte, 64)
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -366,10 +366,10 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 		var count int
 		err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", username).Scan(&count)
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", "", err
 		}
 		if count > 0 {
-			return "", "", "", errors.New("nome de usuário já existe")
+			return "", "", "", "", errors.New("nome de usuário já existe")
 		}
 	} else {
 		// Descobre o próximo número disponível para admin-n
@@ -379,7 +379,7 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 			var count int
 			err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", username).Scan(&count)
 			if err != nil {
-				return "", "", "", err
+				return "", "", "", "", err
 			}
 			if count == 0 {
 				break
@@ -390,8 +390,8 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 	if role == "" {
 		role = "admin"
 	}
-	_, err := s.CreateUser(username, displayName, string(password), role)
-	return username, displayName, string(password), err
+	id, err := s.CreateUser(username, displayName, string(password), role)
+	return id, username, displayName, string(password), err
 }
 
 // Função para desbloquear usuário manualmente

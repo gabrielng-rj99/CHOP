@@ -49,11 +49,11 @@ func main() {
 			if role == "" {
 				role = "admin"
 			}
-			genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, role)
+			genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, role)
 			if err != nil {
 				fmt.Println("Erro ao criar admin:", err)
 			} else {
-				fmt.Printf("Usuário admin criado: %s\nDisplay Name: %s\nSenha: %s\n", genUsername, genDisplayName, genPassword)
+				fmt.Printf("Usuário admin criado: %s\nDisplay Name: %s\nSenha: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 			}
 		case "0":
 			fmt.Println("Saindo...")

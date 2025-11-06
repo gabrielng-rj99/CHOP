@@ -714,7 +714,7 @@ func TestCreateAdminUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			username, displayName, password, err := userStore.CreateAdminUser(tt.customUsername, tt.displayName, tt.role)
+			_, username, displayName, password, err := userStore.CreateAdminUser(tt.customUsername, tt.displayName, tt.role)
 
 			if err != nil {
 				t.Errorf("Expected no error but got: %v", err)
