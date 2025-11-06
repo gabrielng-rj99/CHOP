@@ -21,7 +21,7 @@ Contracts Manager é um sistema para gerenciar contratos e licenças de software
 │   - Value Objects           │
 ├─────────────────────────────┤
 │   Database Layer            │  (database/)
-│   - SQLite / PostgreSQL     │
+│   - PostgreSQL              │
 │   - Migrations              │
 └─────────────────────────────┘
 ```
@@ -322,11 +322,12 @@ client.ArchivedAt = time.Now()
 
 ```
 github.com/google/uuid        # Geração de IDs (UUID v4)
-github.com/mattn/go-sqlite3   # Driver SQLite
+github.com/jackc/pgx/v5/stdlib # Driver PostgreSQL
 golang.org/x/crypto           # Hashing de senhas
 ```
 
-**Stack:** Go stdlib + SQLite (desenvolvimento) ou PostgreSQL (produção)
+**Stack:** Go stdlib + PostgreSQL (desenvolvimento e produção)
+
 
 ## 🚀 Escalabilidade e Evolução
 
@@ -447,8 +448,7 @@ go vet ./...
 
 ### Performance
 
-- SQLite para desenvolvimento (embarcado)
-- PostgreSQL para produção (escalável)
+- PostgreSQL para desenvolvimento e produção (escalável)
 - Índices em campos frequentemente consultados
 - Lazy loading de relacionamentos
 
@@ -474,10 +474,10 @@ go test -v -run TestContractCreate ./store --race
 
 ### Inspeção de Banco
 
-SQLite:
+PostgreSQL:
 ```bash
-sqlite3 contracts_manager.db ".tables"
-sqlite3 contracts_manager.db "SELECT * FROM contracts LIMIT 5;"
+psql $POSTGRES_DB -c "\dt"
+psql $POSTGRES_DB -c "SELECT * FROM contracts LIMIT 5;"
 ```
 
 PostgreSQL:

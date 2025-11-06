@@ -297,7 +297,7 @@ func (s *ClientStore) GetByID(id string) (*domain.Client, error) {
     }
 
     client := &domain.Client{}
-    err := s.db.QueryRow("SELECT id, name, registration_id FROM clients WHERE id = ?", id).
+    err := s.db.QueryRow("SELECT id, name, registration_id FROM clients WHERE id = $1", id).
         Scan(&client.ID, &client.Name, &client.RegistrationID)
     
     if err == sql.ErrNoRows {
@@ -409,7 +409,7 @@ Contrato criado sem erro
 
 ## Ambiente
 - Go 1.25
-- SQLite 3
+- PostgreSQL 12+
 ```
 
 ## 💡 Sugestões de Funcionalidades

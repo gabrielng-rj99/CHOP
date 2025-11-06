@@ -6,7 +6,7 @@ Guia completo para instalar, configurar e começar a usar o Contracts Manager em
 
 - **Go** 1.21 ou superior
 - **Git**
-- **PostgreSQL** 12+ (opcional - banco padrão é SQLite)
+- **PostgreSQL** 12+ (banco padrão)
 
 Verifique:
 ```bash
@@ -44,7 +44,8 @@ DB_NAME=contracts_manager
 EOF
 ```
 
-**Nota:** SQLite é usado por padrão. `.env` é necessário apenas para PostgreSQL.
+**Nota:** O banco padrão agora é PostgreSQL. Configure o arquivo `.env` com as variáveis de conexão do PostgreSQL.
+
 
 ### 4. Execute
 
@@ -56,9 +57,11 @@ Você verá o menu interativo da CLI.
 
 ## 🗄️ Banco de Dados
 
-### SQLite (Padrão)
+### PostgreSQL (Padrão)
 
-O banco SQLite é criado automaticamente na primeira execução em `contracts_manager.db`.
+
+O banco PostgreSQL deve estar disponível e configurado antes da primeira execução. As tabelas serão criadas automaticamente se necessário.
+
 
 **Vantagens:**
 - ✅ Sem configuração
@@ -215,11 +218,11 @@ docker-compose up -d
 
 **Solução:**
 ```bash
-# Verifique permissões
-ls -la contracts_manager.db
+# Verifique permissões do usuário do PostgreSQL e se o banco existe
+# Para recriar o banco, utilize comandos do PostgreSQL:
 
-# Se SQLite, delete e recrie
-rm contracts_manager.db
+dropdb contracts_manager
+createdb contracts_manager
 go run cmd/cli/main.go
 ```
 
