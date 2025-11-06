@@ -342,7 +342,7 @@ func TestUpdateCategory(t *testing.T) {
 			if !tt.expectError {
 				// Verify update
 				var name string
-				err = db.QueryRow("SELECT name FROM categories WHERE id = ?", tt.category.ID).Scan(&name)
+				err = db.QueryRow("SELECT name FROM categories WHERE id = $1", tt.category.ID).Scan(&name)
 				if err != nil {
 					t.Errorf("Failed to query updated category: %v", err)
 				}
@@ -419,7 +419,7 @@ func TestDeleteCategory(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted category: %v", err)
 				}

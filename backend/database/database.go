@@ -8,39 +8,56 @@ import (
 	"path/filepath"
 	"runtime"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func getDBPath() string {
-	// Descobre o diretório do arquivo atual (database.go)
-	_, b, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(b)
-	return filepath.Join(basePath, "contracts.db")
+func getPostgresDSN() string {
+	// Exemplo de DSN: "postgres://user:password@localhost:5432/contracts_manager?sslmode=disable"
+	// Recomenda-se usar variáveis de ambiente para dados sensíveis em produção
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	host := os.Getenv("POSTGRES_HOST")
+	port := os.Getenv("POSTGRES_PORT")
+	dbname := os.Getenv("POSTGRES_DB")
+	sslmode := os.Getenv("POSTGRES_SSLMODE")
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	if user == "" {
+		user = "postgres"
+	}
+	if password == "" {
+		password = "postgres"
+	}
+	if host == "" {
+		host = "localhost"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if dbname == "" {
+		dbname = "contracts_manager"
+	}
+	return "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 }
 
 func ConnectDB() (*sql.DB, error) {
-	dbPath := getDBPath()
-	// Garante que o diretório database existe
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
-
-	_, err := os.Stat(dbPath)
-	dbExists := !os.IsNotExist(err)
-
-	dsn := dbPath + "?_loc=auto"
-	db, err := sql.Open("sqlite3", dsn)
+	dsn := getPostgresDSN()
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	if !dbExists {
-		err = initDB(db)
-		if err != nil {
-			return nil, err
-		}
+	// Testa conexão
+	if err := db.Ping(); err != nil {
+		return nil, err
 	}
+
+	// Opcional: rodar initDB se necessário (ex: para criar schema/tabelas)
+	// err = initDB(db)
+	// if err != nil {
+	//     return nil, err
+	// }
 
 	return db, nil
 }

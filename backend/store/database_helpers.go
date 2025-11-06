@@ -4,13 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
@@ -32,99 +30,41 @@ func SetupTestDB() (*sql.DB, error) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	// Always remove old test.db before creating new DB to ensure fresh schema
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, fmt.Errorf("failed to get caller info")
+	// Conexão PostgreSQL para testes
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	host := os.Getenv("POSTGRES_HOST")
+	port := os.Getenv("POSTGRES_PORT")
+	dbname := os.Getenv("POSTGRES_DB")
+	sslmode := os.Getenv("POSTGRES_SSLMODE")
+	if sslmode == "" {
+		sslmode = "disable"
 	}
-	backendDir := filepath.Dir(filepath.Dir(filepath.Dir(filename))) // .../backend
-	dbDir := filepath.Join(backendDir, "tests", "database")
-	dbPath := filepath.Join(dbDir, "test.db")
-
-	// Ensure the directory exists
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create tests/database directory: %v", err)
+	if user == "" {
+		user = "postgres"
 	}
-
-	// Remove old test.db if it exists
-	if _, err := os.Stat(dbPath); err == nil {
-		_ = os.Remove(dbPath)
+	if password == "" {
+		password = "postgres"
 	}
+	if host == "" {
+		host = "localhost"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if dbname == "" {
+		dbname = "contracts_manager"
+	}
+	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
-	// Open (and create if needed) the SQLite database file
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
-	// Enable foreign key enforcement
-	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to enable foreign key enforcement: %v", err)
-	}
-
-	// Create all tables using the exact schema from init.sql
-	tables := []string{
-		`CREATE TABLE IF NOT EXISTS clients (
-			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			registration_id TEXT UNIQUE NOT NULL,
-			email TEXT,
-			phone TEXT,
-			archived_at DATETIME
-		)`,
-		`CREATE TABLE IF NOT EXISTS dependents (
-			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			client_id TEXT NOT NULL,
-			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
-		)`,
-		`CREATE TABLE IF NOT EXISTS categories (
-			id TEXT PRIMARY KEY,
-			name TEXT UNIQUE NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS lines (
-			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			category_id TEXT NOT NULL,
-			FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-		)`,
-		`CREATE TABLE IF NOT EXISTS contracts (
-			id TEXT PRIMARY KEY,
-			model TEXT NOT NULL,
-			product_key TEXT UNIQUE NOT NULL,
-			start_date DATETIME NOT NULL,
-			end_date DATETIME NOT NULL,
-			line_id TEXT NOT NULL,
-			client_id TEXT NOT NULL,
-			dependent_id TEXT,
-			archived_at DATETIME,
-			FOREIGN KEY (line_id) REFERENCES lines(id),
-			FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-			FOREIGN KEY (dependent_id) REFERENCES dependents(id) ON DELETE SET NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS audit_logs (
-			id TEXT PRIMARY KEY,
-			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			operation TEXT NOT NULL,
-			entity TEXT NOT NULL,
-			entity_id TEXT NOT NULL,
-			admin_id TEXT NOT NULL,
-			admin_username TEXT,
-			old_value TEXT,
-			new_value TEXT,
-			status TEXT NOT NULL DEFAULT 'success',
-			error_message TEXT,
-			ip_address TEXT,
-			user_agent TEXT
-		)`,
-	}
-
-	for _, query := range tables {
-		if _, err := db.Exec(query); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to create table: %v", err)
-		}
+	// Testa conexão
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
 	}
 
 	testDB = db
@@ -144,32 +84,9 @@ func CloseDB(db *sql.DB) error {
 	}
 
 	if dbOpened {
-		_, filename, _, ok := runtime.Caller(0)
-		if !ok {
-			return fmt.Errorf("failed to get caller info")
-		}
-		backendDir := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-		dbPath := filepath.Join(backendDir, "tests", "database", "test.db")
-		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove test database file: %v", err)
-		}
-
-		// Remove all temporary directories created during tests
-		os.RemoveAll(filepath.Join(backendDir, "tests"))
-		os.RemoveAll(filepath.Join(backendDir, "logs"))
-		os.RemoveAll(filepath.Join(backendDir, "logs_audit_test"))
-		os.RemoveAll(filepath.Join(backendDir, "backend", "tests"))
-
 		dbOpened = false
 		testDB = nil
 	}
-
-	// Final cleanup to ensure no test directories remain
-	os.RemoveAll("logs")
-	os.RemoveAll("logs_audit_test")
-	os.RemoveAll("tests")
-	os.RemoveAll("backend/tests")
-
 	return nil
 }
 
@@ -189,7 +106,7 @@ func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
 	// Usa o registrationID passado como argumento
 	id := fmt.Sprintf("test-client-%s", registrationID)
 	_, err := db.Exec(
-		"INSERT INTO clients (id, name, registration_id) VALUES (?, ?, ?)",
+		"INSERT INTO clients (id, name, registration_id) VALUES ($1, $2, $3)",
 		id, name, registrationID,
 	)
 	if err != nil {
@@ -202,7 +119,7 @@ func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
 func InsertTestDependent(db *sql.DB, name string, clientID string) (string, error) {
 	id := fmt.Sprintf("test-dependent-%s-%s", name, clientID)
 	_, err := db.Exec(
-		"INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)",
+		"INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 		id, name, clientID,
 	)
 	if err != nil {
@@ -215,7 +132,7 @@ func InsertTestDependent(db *sql.DB, name string, clientID string) (string, erro
 func InsertTestCategory(db *sql.DB, name string) (string, error) {
 	id := fmt.Sprintf("test-category-%s", name)
 	_, err := db.Exec(
-		"INSERT INTO categories (id, name) VALUES (?, ?)",
+		"INSERT INTO categories (id, name) VALUES ($1, $2)",
 		id, name,
 	)
 	if err != nil {
@@ -228,7 +145,7 @@ func InsertTestCategory(db *sql.DB, name string) (string, error) {
 func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) {
 	id := fmt.Sprintf("test-line-%s-%s", name, categoryID)
 	_, err := db.Exec(
-		"INSERT INTO lines (id, name, category_id) VALUES (?, ?, ?)",
+		"INSERT INTO lines (id, name, category_id) VALUES ($1, $2, $3)",
 		id, name, categoryID,
 	)
 	if err != nil {
@@ -241,7 +158,7 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
 		id, model, productKey, startDate, endDate, lineID, clientID, entityID, nil,
 	)
 	if err != nil {

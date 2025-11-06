@@ -16,7 +16,7 @@ func insertTestDependencies(db *sql.DB) (string, string, string, string, error) 
 	// Helper para inserir entidade no banco
 	dependentID := "test-dependent-123"
 	_, err = db.Exec(
-		"INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)",
+		"INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 		dependentID,
 		"Test Dependent",
 		clientID,
@@ -452,7 +452,7 @@ func TestGetContractByID(t *testing.T) {
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		"test-contract-123",
 		"Test Contract",
 		"TEST-KEY-123",
@@ -534,7 +534,7 @@ func TestGetContractsByClientID(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := db.Exec(
-			"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 			"test-contract-"+string(rune('a'+i)),
 			"Test Contract "+string(rune('A'+i)),
 			"TEST-KEY-"+string(rune('a'+i)),
@@ -613,10 +613,10 @@ func TestUpdateContract(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	contractID := "test-contract-123"
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		contractID,
 		"Test Contract",
-		"TEST-KEY-123",
+		"TEST-KEY-UPDATE",
 		startDate,
 		endDate,
 		lineID,
@@ -699,7 +699,7 @@ func TestUpdateContract(t *testing.T) {
 
 			if !tt.expectError {
 				var model string
-				err = db.QueryRow("SELECT model FROM contracts WHERE id = ?", tt.contract.ID).Scan(&model)
+				err = db.QueryRow("SELECT model FROM contracts WHERE id = $1", tt.contract.ID).Scan(&model)
 				if err != nil {
 					t.Errorf("Failed to query updated contract: %v", err)
 				}
@@ -731,10 +731,10 @@ func TestDeleteContract(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	contractID := "test-contract-123"
 	_, err = db.Exec(
-		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		contractID,
 		"Test Contract",
-		"TEST-KEY-123",
+		"TEST-KEY-DELETE",
 		startDate,
 		endDate,
 		lineID,
@@ -781,7 +781,7 @@ func TestDeleteContract(t *testing.T) {
 
 			if !tt.expectError {
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted contract: %v", err)
 				}
@@ -1438,7 +1438,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 
 			// Create dependent for client 1
 			dependent1ID := "dependent-1"
-			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)",
+			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 				dependent1ID, "Dependent 1", client1ID)
 			if errSetup != nil {
 				t.Fatalf("Failed to insert dependent 1: %v", errSetup)
@@ -1446,7 +1446,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 
 			// Create dependent for client 2
 			dependent2ID := "dependent-2"
-			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)",
+			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 				dependent2ID, "Dependent 2", client2ID)
 			if errSetup != nil {
 				t.Fatalf("Failed to insert dependent 2: %v", errSetup)
@@ -1649,7 +1649,7 @@ func TestCreateContractWithArchivedClient(t *testing.T) {
 	}
 
 	// Archive the client
-	_, err = db.Exec("UPDATE clients SET archived_at = ? WHERE id = ?", time.Now(), clientID)
+	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id = $2", time.Now(), clientID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
@@ -2116,7 +2116,7 @@ func TestGetContractsByCategoryID(t *testing.T) {
 			// Verify contracts belong to lines in the queried category
 			for _, contract := range contracts {
 				var lineCategory string
-				err := db.QueryRow("SELECT category_id FROM lines WHERE id = ?", contract.LineID).Scan(&lineCategory)
+				err := db.QueryRow("SELECT category_id FROM lines WHERE id = $1", contract.LineID).Scan(&lineCategory)
 				if err != nil {
 					t.Errorf("Failed to verify contract's line category: %v", err)
 				}

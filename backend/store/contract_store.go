@@ -49,7 +49,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	}
 	// Check if type exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", contract.LineID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", contract.LineID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 		return "", sql.ErrNoRows // Or use errors.New("type does not exist")
 	}
 	// Check if client exists e não está arquivado
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ? AND archived_at IS NULL", contract.ClientID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1 AND archived_at IS NULL", contract.ClientID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +66,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	}
 	// If dependentID is provided, check if dependent exists and belongs to the client
 	if contract.DependentID != nil && *contract.DependentID != "" {
-		err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = ? AND client_id = ?", *contract.DependentID, contract.ClientID).Scan(&count)
+		err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1 AND client_id = $2", *contract.DependentID, contract.ClientID).Scan(&count)
 		if err != nil {
 			return "", err
 		}
@@ -75,7 +75,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 		}
 	}
 	// Check for duplicate product key
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE product_key = ?", contract.ProductKey).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE product_key = $1", contract.ProductKey).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -88,9 +88,9 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	if contract.DependentID != nil && *contract.DependentID != "" {
 		err = s.db.QueryRow(`
 			SELECT COUNT(*) FROM contracts
-			WHERE line_id = ? AND client_id = ? AND dependent_id = ? AND (
-				(start_date <= ? AND end_date >= ?) OR
-				(start_date <= ? AND end_date >= ?)
+			WHERE line_id = $1 AND client_id = $2 AND dependent_id = $3 AND (
+				(start_date <= $4 AND end_date >= $5) OR
+				(start_date <= $6 AND end_date >= $7)
 			)
 		`, contract.LineID, contract.ClientID, *contract.DependentID,
 			contract.EndDate, contract.EndDate,
@@ -99,9 +99,9 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	} else {
 		err = s.db.QueryRow(`
 			SELECT COUNT(*) FROM contracts
-			WHERE line_id = ? AND client_id = ? AND dependent_id IS NULL AND (
-				(start_date <= ? AND end_date >= ?) OR
-				(start_date <= ? AND end_date >= ?)
+			WHERE line_id = $1 AND client_id = $2 AND dependent_id IS NULL AND (
+				(start_date <= $3 AND end_date >= $4) OR
+				(start_date <= $5 AND end_date >= $6)
 			)
 		`, contract.LineID, contract.ClientID,
 			contract.EndDate, contract.EndDate,
@@ -118,7 +118,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	newID := uuid.New().String()
 	sqlStatement := `
 		INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err = s.db.Exec(sqlStatement,
 		newID,
@@ -143,7 +143,7 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 	}
 	// Check if client exists and is not archived
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ? AND archived_at IS NULL", clientID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1 AND archived_at IS NULL", clientID).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 		return nil, errors.New("client not found or archived")
 	}
 	// ... rest of the function ...
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE client_id = ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE client_id = $1`
 	rows, err := s.db.Query(sqlStatement, clientID)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.C
 	now := time.Now()
 	limitDate := now.AddDate(0, 0, days) // Adiciona 'days' dias à data atual
 
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE end_date BETWEEN ? AND ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE end_date BETWEEN $1 AND $2`
 
 	rows, err := s.db.Query(sqlStatement, now, limitDate)
 	if err != nil {
@@ -231,7 +231,7 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	// If dependentID is provided, check if dependent exists and belongs to the client
 	if contract.DependentID != nil && *contract.DependentID != "" {
 		var depCount int
-		err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = ? AND client_id = ?", *contract.DependentID, contract.ClientID).Scan(&depCount)
+		err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1 AND client_id = $2", *contract.DependentID, contract.ClientID).Scan(&depCount)
 		if err != nil {
 			return err
 		}
@@ -241,14 +241,14 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	}
 	// Check if contract exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = ?", contract.ID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", contract.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("contract does not exist")
 	}
-	sqlStatement := `UPDATE contracts SET model = ?, product_key = ?, start_date = ?, end_date = ? WHERE id = ?`
+	sqlStatement := `UPDATE contracts SET model = $1, product_key = $2, start_date = $3, end_date = $4 WHERE id = $5`
 	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedProductKey, contract.StartDate, contract.EndDate, contract.ID)
 	if err != nil {
 		return err
@@ -271,7 +271,7 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 	sqlStatement := `
 		SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
 		FROM contracts
-		WHERE id = ?`
+		WHERE id = $1`
 
 	var contract domain.Contract
 	err := s.db.QueryRow(sqlStatement, id).Scan(
@@ -324,7 +324,7 @@ func (s *ContractStore) DeleteContract(id string) error {
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("contract does not exist")
 	}
-	sqlStatement := `DELETE FROM contracts WHERE id = ?`
+	sqlStatement := `DELETE FROM contracts WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -374,7 +374,7 @@ func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, erro
 		return nil, errors.New("name cannot be empty")
 	}
 	// Busca case-insensitive
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE LOWER(model) LIKE LOWER(?)`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE LOWER(model) LIKE LOWER($1)`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -407,7 +407,7 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 	}
 	// Check if line exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", lineID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", lineID).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 		return nil, errors.New("line not found")
 	}
 
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE line_id = ?`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE line_id = $1`
 	rows, err := s.db.Query(sqlStatement, lineID)
 	if err != nil {
 		return nil, err
@@ -448,7 +448,7 @@ func (s *ContractStore) GetContractsByCategoryID(categoryID string) (contracts [
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", categoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", categoryID).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -460,8 +460,7 @@ func (s *ContractStore) GetContractsByCategoryID(categoryID string) (contracts [
 		SELECT c.id, c.model, c.product_key, c.start_date, c.end_date, c.line_id, c.client_id, c.dependent_id
 		FROM contracts c
 		INNER JOIN lines ln ON c.line_id = ln.id
-		WHERE ln.category_id = ?
-	`
+		WHERE ln.category_id = $1`
 	rows, err := s.db.Query(sqlStatement, categoryID)
 	if err != nil {
 		return nil, err

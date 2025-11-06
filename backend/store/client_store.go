@@ -45,7 +45,7 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 
 	// Check for duplicate registration ID (check both formatted and unformatted versions)
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = ?", formattedID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1", formattedID).Scan(&count)
 	if err != nil && err != sql.ErrNoRows {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 	}
 
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO clients (id, name, registration_id, email, phone) VALUES (?, ?, ?, ?, ?)`
+	sqlStatement := `INSERT INTO clients (id, name, registration_id, email, phone) VALUES ($1, $2, $3, $4, $5)`
 	_, err = s.db.Exec(sqlStatement, newID, trimmedName, formattedID, client.Email, client.Phone)
 	if err != nil {
 		// Handle unique constraint violation for registration ID
@@ -73,7 +73,7 @@ func (s *ClientStore) GetClientByID(id string) (*domain.Client, error) {
 	if id == "" {
 		return nil, errors.New("client ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE id = ?`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE id = $1`
 	row := s.db.QueryRow(sqlStatement, id)
 
 	var client domain.Client
@@ -105,7 +105,7 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE LOWER(name) LIKE LOWER(?) AND archived_at IS NULL`
+	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE LOWER(name) LIKE LOWER($1) AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -158,14 +158,14 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 
 	// Check if client exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", client.ID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", client.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return errors.New("client does not exist")
 	}
-	sqlStatement := `UPDATE clients SET name = ?, registration_id = ?, email = ?, phone = ? WHERE id = ?`
+	sqlStatement := `UPDATE clients SET name = $1, registration_id = $2, email = $3, phone = $4 WHERE id = $5`
 	result, err := s.db.Exec(sqlStatement, trimmedName, formattedID, client.Email, client.Phone, client.ID)
 	if err != nil {
 		return err
@@ -279,7 +279,7 @@ func (s *ClientStore) ArchiveClient(id string) error {
 	}
 	// Check if client exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (s *ClientStore) ArchiveClient(id string) error {
 	}
 
 	// Arquivar cliente
-	sqlStatement := `UPDATE clients SET archived_at = ? WHERE id = ?`
+	sqlStatement := `UPDATE clients SET archived_at = $1 WHERE id = $2`
 	result, err := s.db.Exec(sqlStatement, time.Now(), id)
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func (s *ClientStore) ArchiveClient(id string) error {
 
 	// Arquivar todos os contratos associados ao cliente (não só permanentes)
 	_, err = s.db.Exec(
-		`UPDATE contracts SET archived_at = ? WHERE client_id = ? AND archived_at IS NULL`,
+		`UPDATE contracts SET archived_at = $1 WHERE client_id = $2 AND archived_at IS NULL`,
 		time.Now(), id,
 	)
 	if err != nil {
@@ -320,14 +320,14 @@ func (s *ClientStore) UnarchiveClient(id string) error {
 	}
 	// Check if client exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return errors.New("client not found")
 	}
-	sqlStatement := `UPDATE clients SET archived_at = NULL WHERE id = ?`
+	sqlStatement := `UPDATE clients SET archived_at = NULL WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -351,7 +351,7 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 	}
 	// Check if client exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -362,9 +362,9 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 	var blockedContracts int
 	err = s.db.QueryRow(`
 		SELECT COUNT(*) FROM contracts
-		WHERE client_id = ?
+		WHERE client_id = $1
 		AND archived_at IS NULL
-		AND end_date > ?
+		AND end_date > $2
 	`, id, time.Now()).Scan(&blockedContracts)
 	if err != nil {
 		return err
@@ -373,15 +373,15 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 		return errors.New("cannot delete client with active or unarchived contracts")
 	}
 	// Cascade delete: remover dependentes e contratos associados ao cliente
-	_, err = s.db.Exec("DELETE FROM contracts WHERE client_id = ?", id)
+	_, err = s.db.Exec("DELETE FROM contracts WHERE client_id = $1", id)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec("DELETE FROM dependents WHERE client_id = ?", id)
+	_, err = s.db.Exec("DELETE FROM dependents WHERE client_id = $1", id)
 	if err != nil {
 		return err
 	}
-	sqlStatement := `DELETE FROM clients WHERE id = ?`
+	sqlStatement := `DELETE FROM clients WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err

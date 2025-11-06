@@ -32,7 +32,7 @@ func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, er
 	}
 	// Check if client exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", dependent.ClientID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", dependent.ClientID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, er
 		return "", sql.ErrNoRows // Or use errors.New("client does not exist")
 	}
 	// NOVA REGRA: Nome único por empresa
-	err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE client_id = ? AND name = ?", dependent.ClientID, dependent.Name).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE client_id = $1 AND name = $2", dependent.ClientID, dependent.Name).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +48,7 @@ func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, er
 		return "", errors.New("dependent name must be unique per client")
 	}
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)`
+	sqlStatement := `INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)`
 	_, err = s.db.Exec(sqlStatement, newID, trimmedName, dependent.ClientID)
 	if err != nil {
 		return "", err
@@ -63,7 +63,7 @@ func (s *DependentStore) GetDependentsByClientID(clientID string) (dependents []
 	}
 	// Check if client exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", clientID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", clientID).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (s *DependentStore) GetDependentsByClientID(clientID string) (dependents []
 		return []domain.Dependent{}, nil // No dependents for non-existent client
 	}
 
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = ?`
+	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = $1`
 
 	rows, err := s.db.Query(sqlStatement, clientID)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *DependentStore) GetDependentsByName(clientID, name string) ([]domain.De
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = ? AND LOWER(name) LIKE LOWER(?)`
+	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = $1 AND LOWER(name) LIKE LOWER($2)`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, clientID, likePattern)
 	if err != nil {
@@ -149,14 +149,14 @@ func (s *DependentStore) UpdateDependent(dependent domain.Dependent) error {
 	}
 	// Check if client exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", dependent.ClientID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", dependent.ClientID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("client does not exist")
 	}
-	sqlStatement := `UPDATE dependents SET name = ?, client_id = ? WHERE id = ?`
+	sqlStatement := `UPDATE dependents SET name = $1, client_id = $2 WHERE id = $3`
 	result, err := s.db.Exec(sqlStatement, trimmedName, dependent.ClientID, dependent.ID)
 	if err != nil {
 		return err
@@ -180,7 +180,7 @@ func (s *DependentStore) DeleteDependent(id string) error {
 	}
 	// Check if dependent exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -188,11 +188,11 @@ func (s *DependentStore) DeleteDependent(id string) error {
 		return sql.ErrNoRows // Or use errors.New("dependent does not exist")
 	}
 	// NOVA REGRA: Desassociar contratos antes de deletar dependente
-	_, err = s.db.Exec("UPDATE contracts SET dependent_id = NULL WHERE dependent_id = ?", id)
+	_, err = s.db.Exec("UPDATE contracts SET dependent_id = NULL WHERE dependent_id = $1", id)
 	if err != nil {
 		return err
 	}
-	sqlStatement := `DELETE FROM dependents WHERE id = ?`
+	sqlStatement := `DELETE FROM dependents WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -214,7 +214,7 @@ func (s *DependentStore) GetDependentByID(id string) (*domain.Dependent, error) 
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("dependent ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE id = ?`
+	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE id = $1`
 
 	var dependent domain.Dependent
 	err := s.db.QueryRow(sqlStatement, id).Scan(

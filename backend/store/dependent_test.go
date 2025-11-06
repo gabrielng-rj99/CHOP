@@ -390,7 +390,7 @@ func TestUpdateDependent(t *testing.T) {
 			if !tt.expectError {
 				// Verify update
 				var name, clientID string
-				err = db.QueryRow("SELECT name, client_id FROM dependents WHERE id = ?", tt.dependent.ID).
+				err = db.QueryRow("SELECT name, client_id FROM dependents WHERE id = $1", tt.dependent.ID).
 					Scan(&name, &clientID)
 				if err != nil {
 					t.Errorf("Failed to query updated dependent: %v", err)
@@ -458,7 +458,7 @@ func TestDeleteDependent(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted dependent: %v", err)
 				}

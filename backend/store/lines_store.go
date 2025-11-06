@@ -35,7 +35,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +43,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
 	// NOVA REGRA: Nome único por categoria (case-insensitive)
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = ? AND LOWER(name) = LOWER(?)", licenseline.CategoryID, trimmedName).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1 AND LOWER(name) = LOWER($2)", licenseline.CategoryID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +51,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 		return "", errors.New("line name must be unique per category")
 	}
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO lines (id, name, category_id) VALUES (?, ?, ?)`
+	sqlStatement := `INSERT INTO lines (id, name, category_id) VALUES ($1, $2, $3)`
 
 	_, err = s.db.Exec(sqlStatement, newID, trimmedName, licenseline.CategoryID)
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", categoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", categoryID).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 		return nil, nil // No lines for non-existent category
 	}
 
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE category_id = ?`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE category_id = $1`
 
 	rows, err := s.db.Query(sqlStatement, categoryID)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE id = ?`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE id = $1`
 
 	var t domain.Line
 	err := s.db.QueryRow(sqlStatement, id).Scan(
@@ -166,7 +166,7 @@ func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE LOWER(name) LIKE LOWER(?)`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE LOWER(name) LIKE LOWER($1)`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", licenseline.CategoryID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -214,14 +214,14 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	}
 	// NOVA REGRA: Não permitir mover linha entre categorias
 	var currentCategoryID string
-	err = s.db.QueryRow("SELECT category_id FROM lines WHERE id = ?", licenseline.ID).Scan(&currentCategoryID)
+	err = s.db.QueryRow("SELECT category_id FROM lines WHERE id = $1", licenseline.ID).Scan(&currentCategoryID)
 	if err != nil {
 		return err
 	}
 	if currentCategoryID != licenseline.CategoryID {
 		return errors.New("cannot move line between categories")
 	}
-	sqlStatement := `UPDATE lines SET name = ? WHERE id = ?`
+	sqlStatement := `UPDATE lines SET name = $1 WHERE id = $2`
 	result, err := s.db.Exec(sqlStatement, trimmedName, licenseline.ID)
 	if err != nil {
 		return err
@@ -242,7 +242,7 @@ func (s *LineStore) DeleteLine(id string) error {
 	}
 	// Check if type exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -251,14 +251,14 @@ func (s *LineStore) DeleteLine(id string) error {
 	}
 	// NOVA REGRA: Não permitir deletar linha com contratos associados
 	var contractCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE line_id = ?", id).Scan(&contractCount)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE line_id = $1", id).Scan(&contractCount)
 	if err != nil {
 		return err
 	}
 	if contractCount > 0 {
 		return errors.New("cannot delete line with associated contracts")
 	}
-	sqlStatement := `DELETE FROM lines WHERE id = ?`
+	sqlStatement := `DELETE FROM lines WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err

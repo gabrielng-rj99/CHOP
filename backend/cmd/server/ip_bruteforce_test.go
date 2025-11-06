@@ -70,11 +70,11 @@ func SetupTestDBIP(t *testing.T) (*sql.DB, func()) {
 func getIPLockDB(db *sql.DB, ip string) *IPLock {
 	var failedAttempts, lockLevel int
 	var lockedUntil sql.NullTime
-	row := db.QueryRow("SELECT failed_attempts, lock_level, locked_until FROM login_attempts WHERE ip_address = ?", ip)
+	row := db.QueryRow("SELECT failed_attempts, lock_level, locked_until FROM login_attempts WHERE ip_address = $1", ip)
 	err := row.Scan(&failedAttempts, &lockLevel, &lockedUntil)
 	if err == sql.ErrNoRows {
 		// Insere registro novo
-		_, _ = db.Exec("INSERT INTO login_attempts (ip_address, failed_attempts, lock_level) VALUES (?, 0, 0)", ip)
+		_, _ = db.Exec("INSERT INTO login_attempts (ip_address, failed_attempts, lock_level) VALUES ($1, 0, 0)", ip)
 		return &IPLock{IP: ip}
 	} else if err != nil {
 		return &IPLock{IP: ip}
@@ -87,7 +87,7 @@ func getIPLockDB(db *sql.DB, ip string) *IPLock {
 }
 
 func updateIPLockDB(db *sql.DB, lock *IPLock) {
-	_, _ = db.Exec("UPDATE login_attempts SET failed_attempts = ?, lock_level = ?, locked_until = ? WHERE ip_address = ?",
+	_, _ = db.Exec("UPDATE login_attempts SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE ip_address = $4",
 		lock.FailedAttempts, lock.LockLevel, lock.LockedUntil, lock.IP)
 }
 

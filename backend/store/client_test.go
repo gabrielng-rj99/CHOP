@@ -274,7 +274,7 @@ func TestArchiveClient(t *testing.T) {
 
 			if !tt.expectError {
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = ?", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = $1", tt.id).Scan(&archivedAt)
 				if err != nil {
 					t.Errorf("Failed to query archived client: %v", err)
 				}
@@ -295,7 +295,7 @@ func TestUnarchiveClient(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	_, err = db.Exec("UPDATE clients SET archived_at = ? WHERE id = ?", time.Now(), clientID)
+	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id = $2", time.Now(), clientID)
 	if err != nil {
 		t.Fatalf("Failed to archive test client: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestUnarchiveClient(t *testing.T) {
 
 			if !tt.expectError {
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = ?", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = $1", tt.id).Scan(&archivedAt)
 				if err != nil {
 					t.Errorf("Failed to query unarchived client: %v", err)
 				}
@@ -393,7 +393,7 @@ func TestDeleteClientPermanently(t *testing.T) {
 
 			if !tt.expectError {
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted client: %v", err)
 				}
@@ -453,7 +453,7 @@ func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = ?", contractID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", contractID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query contract after client deletion: %v", err)
 	}
@@ -678,7 +678,7 @@ func TestGetAllClientsCritical(t *testing.T) {
 	}
 
 	now := time.Now()
-	_, err = db.Exec("UPDATE clients SET archived_at = ? WHERE id = ?", now, client2ID)
+	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id = $2", now, client2ID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
@@ -718,7 +718,7 @@ func TestGetArchivedClientsCritical(t *testing.T) {
 	}
 
 	now := time.Now()
-	_, err = db.Exec("UPDATE clients SET archived_at = ? WHERE id IN (?, ?)", now, client1ID, client2ID)
+	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id IN ($2, $3)", now, client1ID, client2ID)
 	if err != nil {
 		t.Fatalf("Failed to archive clients: %v", err)
 	}
@@ -772,7 +772,7 @@ func TestDeleteClientPermanentlyWithActiveContracts(t *testing.T) {
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", clientID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", clientID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query client: %v", err)
 	}
@@ -814,7 +814,7 @@ func TestDeleteClientPermanentlyWithExpiredContracts(t *testing.T) {
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = ?", clientID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", clientID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query client: %v", err)
 	}
@@ -1272,4 +1272,3 @@ func TestClientNameTrimming(t *testing.T) {
 		})
 	}
 }
-

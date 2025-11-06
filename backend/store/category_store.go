@@ -33,7 +33,7 @@ func (s *CategoryStore) CreateCategory(category domain.Category) (string, error)
 	}
 
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO categories (id, name) VALUES (?, ?)`
+	sqlStatement := `INSERT INTO categories (id, name) VALUES ($1, $2)`
 
 	_, err = s.db.Exec(sqlStatement, newID, trimmedName)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *CategoryStore) GetCategoriesByName(name string) ([]domain.Category, err
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name FROM categories WHERE LOWER(name) LIKE LOWER(?)`
+	sqlStatement := `SELECT id, name FROM categories WHERE LOWER(name) LIKE LOWER($1)`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *CategoryStore) GetCategoryByID(id string) (*domain.Category, error) {
 	if id == "" {
 		return nil, errors.New("category ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name FROM categories WHERE id = ?`
+	sqlStatement := `SELECT id, name FROM categories WHERE id = $1`
 
 	var category domain.Category
 	err := s.db.QueryRow(sqlStatement, id).Scan(
@@ -147,14 +147,14 @@ func (s *CategoryStore) UpdateCategory(category domain.Category) error {
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", category.ID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", category.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return errors.New("category does not exist")
 	}
-	sqlStatement := `UPDATE categories SET name = ? WHERE id = ?`
+	sqlStatement := `UPDATE categories SET name = $1 WHERE id = $2`
 	result, err := s.db.Exec(sqlStatement, trimmedName, category.ID)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 	}
 	// Check if category exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -184,14 +184,14 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 	}
 	// NOVA REGRA: Não permitir deletar categoria com linhas associadas
 	var linesCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = ?", id).Scan(&linesCount)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1", id).Scan(&linesCount)
 	if err != nil {
 		return err
 	}
 	if linesCount > 0 {
 		return errors.New("cannot delete category with associated lines")
 	}
-	sqlStatement := `DELETE FROM categories WHERE id = ?`
+	sqlStatement := `DELETE FROM categories WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
