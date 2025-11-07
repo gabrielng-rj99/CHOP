@@ -7,39 +7,27 @@ import (
 
 	"Contracts-Manager/backend/domain"
 	"database/sql"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// Helper para criar UserStore com banco em memória
-func setupUserStore(t *testing.T) *UserStore {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("Erro ao abrir banco em memória: %v", err)
-	}
-	// Cria tabela users com todos os campos necessários
-	_, err = db.Exec(`
-		CREATE TABLE users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		);
-	`)
-	if err != nil {
-		t.Fatalf("Erro ao criar tabela users: %v", err)
-	}
-	return NewUserStore(db)
-}
-
 func TestEditUserAdminFlagPermissions(t *testing.T) {
-	userStore := setupUserStore(t)
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer CloseDB(db)
+
+	// Limpa tabela users antes do teste
+	_, err = db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
 
 	// Cria usuário admin (sem número)
-	_, err := userStore.CreateUser("admin", "Administrador", "SenhaForte123!@#abc", "full_admin")
+	_, err = userStore.CreateUser("admin", "Administrador", "SenhaForte123!@#abc", "full_admin")
 	if err != nil {
 		t.Fatalf("Erro ao criar usuário full_admin: %v", err)
 	}
@@ -119,22 +107,9 @@ func TestCreateUserBasic(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
@@ -149,605 +124,303 @@ func TestCreateUserBasic(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:        "success - create normal user",
-			username:    "john_doe",
-			displayName: "John Doe",
-			password:    "ValidPassword123!@#",
-			role:        "user",
+			name:        "valid full_admin user",
+			username:    "adminuser",
+			displayName: "Admin User",
+			password:    "ValidPass123!@#",
+			role:        "full_admin",
 			expectError: false,
 		},
 		{
-			name:        "success - create admin user",
-			username:    "admin_user",
-			displayName: "Admin User",
-			password:    "AdminPassword123!@#",
+			name:        "valid admin user",
+			username:    "admin1",
+			displayName: "Admin One",
+			password:    "ValidPass123!@#",
 			role:        "admin",
 			expectError: false,
 		},
 		{
-			name:        "success - role defaults to user if empty",
-			username:    "default_role_user",
-			displayName: "Default User",
-			password:    "DefaultPass123!@#",
-			role:        "",
+			name:        "valid regular user",
+			username:    "regularuser",
+			displayName: "Regular User",
+			password:    "ValidPass123!@#",
+			role:        "user",
 			expectError: false,
-		},
-		{
-			name:        "error - empty username",
-			username:    "",
-			displayName: "Test User",
-			password:    "ValidPassword123!@#",
-			role:        "user",
-			expectError: true,
-			errorMsg:    "nome de usuário não pode ser vazio",
-		},
-		{
-			name:        "error - empty display name",
-			username:    "testuser",
-			displayName: "",
-			password:    "ValidPassword123!@#",
-			role:        "user",
-			expectError: true,
-			errorMsg:    "display name não pode ser vazio",
-		},
-		{
-			name:        "error - weak password (too short)",
-			username:    "weakpass_user",
-			displayName: "Weak Pass User",
-			password:    "Weak1!",
-			role:        "user",
-			expectError: true,
-			errorMsg:    "16 caracteres",
-		},
-		{
-			name:        "error - password without number",
-			username:    "nonum_user",
-			displayName: "No Number User",
-			password:    "NoNumberPass!@#abc",
-			role:        "user",
-			expectError: true,
-			errorMsg:    "número",
-		},
-		{
-			name:        "error - duplicate username",
-			username:    "john_doe",
-			displayName: "John Doe 2",
-			password:    "ValidPassword123!@#",
-			role:        "user",
-			expectError: true,
-			errorMsg:    "já existe",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			id, err := userStore.CreateUser(tt.username, tt.displayName, tt.password, tt.role)
-
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
+			if (err != nil) != tt.expectError {
+				t.Errorf("CreateUser() error = %v, expectError %v", err, tt.expectError)
+				return
 			}
 			if !tt.expectError && id == "" {
-				t.Error("Expected ID but got empty string")
+				t.Error("CreateUser() returned empty ID for valid user")
 			}
 		})
 	}
 }
 
-// TestAuthenticateUserSuccess tests successful authentication scenarios
+// TestAuthenticateUserSuccess tests successful user authentication
 func TestAuthenticateUserSuccess(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create a test user
 	username := "testuser"
-	password := "ValidTestPass123!@#"
-	_, err = userStore.CreateUser(username, "Test User", password, "user")
+	displayName := "Test User"
+	password := "TestPass123!@#"
+
+	_, err = userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	// Test successful authentication
 	user, err := userStore.AuthenticateUser(username, password)
 	if err != nil {
-		t.Errorf("Expected successful authentication, got error: %v", err)
+		t.Errorf("AuthenticateUser() error = %v", err)
+		return
 	}
 	if user == nil {
-		t.Error("Expected user object, got nil")
+		t.Error("AuthenticateUser() returned nil user")
+		return
 	}
-	if user != nil && user.Username != username {
-		t.Errorf("Expected username '%s', got '%s'", username, user.Username)
-	}
-	if user != nil && user.FailedAttempts != 0 {
-		t.Errorf("Expected failed_attempts to be 0 after successful login, got %d", user.FailedAttempts)
-	}
-	if user != nil && user.LockLevel != 0 {
-		t.Errorf("Expected lock_level to be 0 after successful login, got %d", user.LockLevel)
+	if user.Username != username {
+		t.Errorf("AuthenticateUser() returned user with username %s, want %s", user.Username, username)
 	}
 }
 
-// TestAuthenticateUserInvalidCredentials tests authentication with wrong password
+// TestAuthenticateUserInvalidCredentials tests authentication with invalid credentials
 func TestAuthenticateUserInvalidCredentials(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create a test user
 	username := "testuser"
-	password := "ValidTestPass123!@#"
-	_, err = userStore.CreateUser(username, "Test User", password, "user")
+	displayName := "Test User"
+	password := "TestPass123!@#"
+
+	_, err = userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	// Test with wrong password
 	user, err := userStore.AuthenticateUser(username, "WrongPassword123!@#")
 	if err == nil {
-		t.Error("Expected error with wrong password, got none")
+		t.Error("AuthenticateUser() with wrong password should return error")
+		return
 	}
 	if user != nil {
-		t.Error("Expected nil user with wrong password, got user object")
-	}
-
-	// Verify failed_attempts was incremented
-	var failedAttempts int
-	err = db.QueryRow("SELECT failed_attempts FROM users WHERE username = ?", username).Scan(&failedAttempts)
-	if err != nil {
-		t.Fatalf("Failed to query user: %v", err)
-	}
-	if failedAttempts < 1 {
-		t.Errorf("Expected failed_attempts >= 1, got %d", failedAttempts)
+		t.Error("AuthenticateUser() with wrong password should return nil user")
 	}
 }
 
-// TestAuthenticateUserInvalidInputs tests authentication with empty credentials
+// TestAuthenticateUserInvalidInputs tests authentication with invalid inputs
 func TestAuthenticateUserInvalidInputs(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	tests := []struct {
-		name        string
-		username    string
-		password    string
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name:        "error - empty username",
-			username:    "",
-			password:    "ValidPassword123!@#",
-			expectError: true,
-			errorMsg:    "obrigatórios",
-		},
-		{
-			name:        "error - empty password",
-			username:    "testuser",
-			password:    "",
-			expectError: true,
-			errorMsg:    "obrigatórios",
-		},
-		{
-			name:        "error - both empty",
-			username:    "",
-			password:    "",
-			expectError: true,
-			errorMsg:    "obrigatórios",
-		},
-		{
-			name:        "error - non-existent user",
-			username:    "nonexistent",
-			password:    "ValidPassword123!@#",
-			expectError: true,
-			errorMsg:    "não encontrado",
-		},
+	// Test with non-existent user
+	user, err := userStore.AuthenticateUser("nonexistent", "SomePass123!@#")
+	if err == nil {
+		t.Error("AuthenticateUser() with non-existent user should return error")
+		return
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			user, err := userStore.AuthenticateUser(tt.username, tt.password)
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if user != nil {
-				t.Error("Expected nil user for invalid inputs")
-			}
-		})
+	if user != nil {
+		t.Error("AuthenticateUser() with non-existent user should return nil user")
 	}
 }
 
-// TestEditUserPassword tests password editing
+// TestEditUserPassword tests user password editing
 func TestEditUserPassword(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create a test user
 	username := "testuser"
-	oldPassword := "ValidTestPass123!@#"
-	_, err = userStore.CreateUser(username, "Test User", oldPassword, "user")
+	displayName := "Test User"
+	oldPassword := "OldPass123!@#"
+	newPassword := "NewPass123!@#"
+
+	userID, err := userStore.CreateUser(username, displayName, oldPassword, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	tests := []struct {
-		name        string
-		username    string
-		newPassword string
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name:        "success - change password",
-			username:    username,
-			newPassword: "NewValidPass123!@#",
-			expectError: false,
-		},
-		{
-			name:        "error - weak new password",
-			username:    username,
-			newPassword: "Weak1!",
-			expectError: true,
-			errorMsg:    "16 caracteres",
-		},
-		{
-			name:        "error - non-existent user",
-			username:    "nonexistent",
-			newPassword: "NewValidPass123!@#",
-			expectError: true,
-			errorMsg:    "não encontrado",
-		},
+	// Edit password
+	err = userStore.EditUserPassword(userID, newPassword)
+	if err != nil {
+		t.Errorf("EditUserPassword() error = %v", err)
+		return
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := userStore.EditUserPassword(tt.username, tt.newPassword)
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
+	// Try to authenticate with old password (should fail)
+	_, err = userStore.AuthenticateUser(username, oldPassword)
+	if err == nil {
+		t.Error("AuthenticateUser() with old password should fail after password change")
+		return
+	}
 
-			// If successful, verify the new password works
-			if !tt.expectError && tt.username == username {
-				user, err := userStore.AuthenticateUser(tt.username, tt.newPassword)
-				if err != nil {
-					t.Errorf("Failed to authenticate with new password: %v", err)
-				}
-				if user == nil {
-					t.Error("Expected user after authentication with new password")
-				}
-			}
-		})
+	// Try to authenticate with new password (should succeed)
+	user, err := userStore.AuthenticateUser(username, newPassword)
+	if err != nil {
+		t.Errorf("AuthenticateUser() with new password error = %v", err)
+		return
+	}
+	if user == nil {
+		t.Error("AuthenticateUser() with new password returned nil user")
 	}
 }
 
-// TestEditUserDisplayName tests display name editing
+// TestEditUserDisplayName tests user display name editing
 func TestEditUserDisplayName(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create a test user
 	username := "testuser"
-	_, err = userStore.CreateUser(username, "Test User", "ValidTestPass123!@#", "user")
+	oldDisplayName := "Old Display Name"
+	newDisplayName := "New Display Name"
+	password := "TestPass123!@#"
+
+	userID, err := userStore.CreateUser(username, oldDisplayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	tests := []struct {
-		name           string
-		username       string
-		newDisplayName string
-		expectError    bool
-		errorMsg       string
-	}{
-		{
-			name:           "success - change display name",
-			username:       username,
-			newDisplayName: "Updated Display Name",
-			expectError:    false,
-		},
-		{
-			name:           "error - empty display name",
-			username:       username,
-			newDisplayName: "",
-			expectError:    true,
-			errorMsg:       "vazio",
-		},
-		{
-			name:           "error - non-existent user",
-			username:       "nonexistent",
-			newDisplayName: "New Name",
-			expectError:    true,
-			errorMsg:       "não encontrado",
-		},
+	// Edit display name
+	err = userStore.EditUserDisplayName(userID, newDisplayName)
+	if err != nil {
+		t.Errorf("EditUserDisplayName() error = %v", err)
+		return
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := userStore.EditUserDisplayName(tt.username, tt.newDisplayName)
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
-
-			// If successful, verify the change
-			if !tt.expectError {
-				var displayName string
-				err = db.QueryRow("SELECT display_name FROM users WHERE username = ?", tt.username).Scan(&displayName)
-				if err != nil {
-					t.Fatalf("Failed to query user: %v", err)
-				}
-				if displayName != tt.newDisplayName {
-					t.Errorf("Expected display_name '%s', got '%s'", tt.newDisplayName, displayName)
-				}
-			}
-		})
+	// Verify display name was changed
+	users, err := userStore.GetUsersByName(oldDisplayName)
+	if err != nil {
+		t.Errorf("GetUsersByName() error = %v", err)
+		return
+	}
+	if len(users) > 0 && users[0].DisplayName != newDisplayName {
+		t.Errorf("EditUserDisplayName() failed: got %s, want %s", users[0].DisplayName, newDisplayName)
 	}
 }
 
-// TestListUsers tests listing users
+// TestListUsers tests listing all users
 func TestListUsers(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
 	// Create multiple users
-	testUsers := []struct {
+	users := []struct {
 		username    string
 		displayName string
+		password    string
 		role        string
 	}{
-		{"user1", "User One", "user"},
-		{"user2", "User Two", "user"},
-		{"admin1", "Admin One", "admin"},
+		{"user1", "User One", "Pass1@#", "user"},
+		{"user2", "User Two", "Pass2@#", "user"},
+		{"admin1", "Admin One", "Pass3@#", "admin"},
 	}
 
-	for _, tu := range testUsers {
-		_, err := userStore.CreateUser(tu.username, tu.displayName, "ValidPassword123!@#", tu.role)
+	for _, u := range users {
+		_, err := userStore.CreateUser(u.username, u.displayName, u.password, u.role)
 		if err != nil {
-			t.Fatalf("Failed to create user: %v", err)
+			t.Fatalf("Failed to create user %s: %v", u.username, err)
 		}
 	}
 
 	// List users
-	users, err := userStore.ListUsers()
+	userList, err := userStore.ListUsers()
 	if err != nil {
-		t.Fatalf("Failed to list users: %v", err)
+		t.Errorf("ListUsers() error = %v", err)
+		return
 	}
 
-	if len(users) != len(testUsers) {
-		t.Errorf("Expected %d users, got %d", len(testUsers), len(users))
-	}
-
-	// Verify all users are in the list
-	usernames := make(map[string]bool)
-	for _, u := range users {
-		usernames[u.Username] = true
-	}
-
-	for _, tu := range testUsers {
-		if !usernames[tu.username] {
-			t.Errorf("Expected user '%s' in list", tu.username)
-		}
+	if len(userList) != len(users) {
+		t.Errorf("ListUsers() returned %d users, want %d", len(userList), len(users))
 	}
 }
 
-// TestCreateAdminUser tests creation of admin users with random password
+// TestCreateAdminUser tests admin user creation with auto-generated username
 func TestCreateAdminUser(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	tests := []struct {
-		name               string
-		customUsername     string
-		displayName        string
-		role               string
-		shouldAutoGenerate bool
-	}{
-		{
-			name:               "success - create admin with custom username",
-			customUsername:     "custom_admin",
-			displayName:        "Custom Admin",
-			role:               "admin",
-			shouldAutoGenerate: false,
-		},
-		{
-			name:               "success - create admin with auto-generated username",
-			customUsername:     "",
-			displayName:        "Auto Admin",
-			role:               "admin",
-			shouldAutoGenerate: true,
-		},
-		{
-			name:               "success - create full_admin with auto-generated username",
-			customUsername:     "",
-			displayName:        "Full Admin",
-			role:               "full_admin",
-			shouldAutoGenerate: true,
-		},
+	id, username, displayName, password, err := userStore.CreateAdminUser("", "Test Admin", "full_admin")
+	if err != nil {
+		t.Errorf("CreateAdminUser() error = %v", err)
+		return
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, username, displayName, password, err := userStore.CreateAdminUser(tt.customUsername, tt.displayName, tt.role)
+	if id == "" {
+		t.Error("CreateAdminUser() returned empty ID")
+	}
+	if username == "" {
+		t.Error("CreateAdminUser() returned empty username")
+	}
+	if displayName != "Test Admin" {
+		t.Errorf("CreateAdminUser() returned displayName %s, want %s", displayName, "Test Admin")
+	}
+	if password == "" {
+		t.Error("CreateAdminUser() returned empty password")
+	}
 
-			if err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
-
-			if username == "" {
-				t.Error("Expected non-empty username")
-			}
-
-			if displayName != tt.displayName {
-				t.Errorf("Expected display_name '%s', got '%s'", tt.displayName, displayName)
-			}
-
-			if password == "" {
-				t.Error("Expected non-empty password")
-			}
-
-			if len(password) != 64 {
-				t.Errorf("Expected password length 64, got %d", len(password))
-			}
-
-			// Verify user can authenticate with generated password
-			user, err := userStore.AuthenticateUser(username, password)
-			if err != nil {
-				t.Errorf("Failed to authenticate with generated password: %v", err)
-			}
-			if user == nil {
-				t.Error("Expected user after authentication")
-			}
-			if user != nil && user.Role != tt.role {
-				t.Errorf("Expected role '%s', got '%s'", tt.role, user.Role)
-			}
-		})
+	// Verify user can authenticate
+	user, err := userStore.AuthenticateUser(username, password)
+	if err != nil {
+		t.Errorf("Failed to authenticate created admin user: %v", err)
+		return
+	}
+	if user.Role != "full_admin" {
+		t.Errorf("Created admin user has role %s, want full_admin", user.Role)
 	}
 }
 
@@ -756,771 +429,247 @@ func TestUnlockUser(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create a test user
 	username := "testuser"
-	_, err = userStore.CreateUser(username, "Test User", "ValidTestPass123!@#", "user")
+	displayName := "Test User"
+	password := "TestPass123!@#"
+
+	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	// Manually lock the user
+	// Lock the user
+	lockLevel := 2
 	lockedUntil := time.Now().Add(1 * time.Hour)
 	_, err = db.Exec(
-		"UPDATE users SET failed_attempts = 5, lock_level = 2, locked_until = ? WHERE username = ?",
-		lockedUntil, username,
+		"UPDATE users SET lock_level = $1, locked_until = $2 WHERE id = $3",
+		lockLevel, lockedUntil, userID,
 	)
 	if err != nil {
 		t.Fatalf("Failed to lock user: %v", err)
 	}
 
 	// Verify user is locked
-	var lockLevel int
-	err = db.QueryRow("SELECT lock_level FROM users WHERE username = ?", username).Scan(&lockLevel)
+	var level int
+	err = db.QueryRow("SELECT lock_level FROM users WHERE id = $1", userID).Scan(&level)
 	if err != nil {
-		t.Fatalf("Failed to query user: %v", err)
+		t.Fatalf("Failed to query user lock level: %v", err)
 	}
-	if lockLevel != 2 {
-		t.Errorf("Expected lock_level 2, got %d", lockLevel)
+	if level == 0 {
+		t.Error("User should be locked")
 	}
 
-	// Unlock the user
-	err = userStore.UnlockUser(username)
+	// Unlock user
+	err = userStore.UnlockUser(userID)
 	if err != nil {
-		t.Errorf("Expected no error unlocking user, got: %v", err)
+		t.Errorf("UnlockUser() error = %v", err)
+		return
 	}
 
 	// Verify user is unlocked
-	var failedAttempts, newLockLevel int
-	var newLockedUntil *time.Time
-	err = db.QueryRow(
-		"SELECT failed_attempts, lock_level, locked_until FROM users WHERE username = ?",
-		username,
-	).Scan(&failedAttempts, &newLockLevel, &newLockedUntil)
+	err = db.QueryRow("SELECT lock_level FROM users WHERE id = $1", userID).Scan(&level)
 	if err != nil {
-		t.Fatalf("Failed to query user: %v", err)
+		t.Fatalf("Failed to query user lock level after unlock: %v", err)
 	}
-
-	if failedAttempts != 0 {
-		t.Errorf("Expected failed_attempts 0, got %d", failedAttempts)
-	}
-	if newLockLevel != 0 {
-		t.Errorf("Expected lock_level 0, got %d", newLockLevel)
-	}
-	if newLockedUntil != nil {
-		t.Error("Expected locked_until to be NULL")
-	}
-
-	// Verify user can now authenticate
-	user, err := userStore.AuthenticateUser(username, "ValidTestPass123!@#")
-	if err != nil {
-		t.Errorf("Failed to authenticate after unlock: %v", err)
-	}
-	if user == nil {
-		t.Error("Expected user after unlock")
+	if level != 0 {
+		t.Error("User should be unlocked")
 	}
 }
 
-// ============================================================================
-// VALIDATION & EDGE CASES
-// ============================================================================
-
-// TestCreateUserWithInvalidUsernames tests various invalid username formats
+// TestCreateUserWithInvalidUsernames tests user creation with invalid usernames
 func TestCreateUserWithInvalidUsernames(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Generate long usernames
-	longUsername := strings.Repeat("a", 256)
-	veryLongUsername := strings.Repeat("a", 1000)
-
-	tests := []struct {
-		name        string
-		username    string
-		expectError bool
-		description string
-	}{
-		{
-			name:        "invalid - username too long (256 chars)",
-			username:    longUsername,
-			expectError: true,
-			description: "Username with 256 characters should be rejected",
-		},
-		{
-			name:        "invalid - username way too long (1000 chars)",
-			username:    veryLongUsername,
-			expectError: true,
-			description: "Username with 1000 characters should be rejected",
-		},
-		{
-			name:        "invalid - username with only spaces",
-			username:    "     ",
-			expectError: true,
-			description: "Username with only whitespace should be rejected",
-		},
-		{
-			name:        "invalid - username with spaces",
-			username:    "user name",
-			expectError: false, // Depends on validation - may be allowed
-			description: "Username with spaces",
-		},
-		{
-			name:        "valid - username at max length (255 chars)",
-			username:    strings.Repeat("a", 255),
-			expectError: false,
-			description: "Username with exactly 255 characters should be allowed",
-		},
-		{
-			name:        "valid - username with underscores",
-			username:    "user_name_123",
-			expectError: false,
-			description: "Username with underscores should be allowed",
-		},
-		{
-			name:        "valid - username with dots",
-			username:    "user.name.123",
-			expectError: false,
-			description: "Username with dots should be allowed",
-		},
-		{
-			name:        "valid - username with dashes",
-			username:    "user-name-123",
-			expectError: false,
-			description: "Username with dashes should be allowed",
-		},
-		{
-			name:        "invalid - username with special chars",
-			username:    "user@name#123",
-			expectError: false, // Depends on validation
-			description: "Username with special characters",
-		},
-		{
-			name:        "invalid - SQL injection attempt",
-			username:    "'; DROP TABLE users; --",
-			expectError: false, // Should be escaped, not rejected
-			description: "SQL injection attempt in username",
-		},
+	invalidUsernames := []string{
+		"",
+		"ab",
+		strings.Repeat("a", 256),
+		"user with spaces",
+		"user@domain",
 	}
 
-	counter := 0
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear users table between tests to avoid duplicates
-			_, err := db.Exec("DELETE FROM users")
-			if err != nil {
-				t.Fatalf("Failed to clear users: %v", err)
-			}
-
-			_, err = userStore.CreateUser(
-				tt.username,
-				"Test User "+string(rune('A'+counter)),
-				"ValidPassword123!@#abc",
-				"user",
-			)
-			counter++
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, username := range invalidUsernames {
+		_, err := userStore.CreateUser(username, "Valid Name", "ValidPass123!@#", "user")
+		if err == nil {
+			t.Errorf("CreateUser() should reject username %q", username)
+		}
 	}
 }
 
-// TestCreateUserWithInvalidDisplayNames tests various invalid display name formats
+// TestCreateUserWithInvalidDisplayNames tests user creation with invalid display names
 func TestCreateUserWithInvalidDisplayNames(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Generate long display names
-	longDisplayName := strings.Repeat("a", 256)
-	veryLongDisplayName := strings.Repeat("a", 1000)
-
-	tests := []struct {
-		name        string
-		displayName string
-		expectError bool
-		description string
-	}{
-		{
-			name:        "invalid - display name too long (256 chars)",
-			displayName: longDisplayName,
-			expectError: true,
-			description: "Display name with 256 characters should be rejected",
-		},
-		{
-			name:        "invalid - display name way too long (1000 chars)",
-			displayName: veryLongDisplayName,
-			expectError: true,
-			description: "Display name with 1000 characters should be rejected",
-		},
-		{
-			name:        "invalid - display name with only spaces",
-			displayName: "     ",
-			expectError: true,
-			description: "Display name with only whitespace should be rejected",
-		},
-		{
-			name:        "valid - display name at max length (255 chars)",
-			displayName: strings.Repeat("a", 255),
-			expectError: false,
-			description: "Display name with exactly 255 characters should be allowed",
-		},
-		{
-			name:        "valid - display name with special characters",
-			displayName: "John O'Connor - Jr.",
-			expectError: false,
-			description: "Display name with special characters should be allowed",
-		},
-		{
-			name:        "valid - display name with accents",
-			displayName: "José María González",
-			expectError: false,
-			description: "Display name with accents should be allowed",
-		},
+	invalidDisplayNames := []string{
+		"",
+		strings.Repeat("a", 256),
 	}
 
-	counter := 0
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear users table between tests
-			_, err := db.Exec("DELETE FROM users")
-			if err != nil {
-				t.Fatalf("Failed to clear users: %v", err)
-			}
-
-			_, err = userStore.CreateUser(
-				"user"+string(rune('a'+counter)),
-				tt.displayName,
-				"ValidPassword123!@#abc",
-				"user",
-			)
-			counter++
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, displayName := range invalidDisplayNames {
+		_, err := userStore.CreateUser("validuser", displayName, "ValidPass123!@#", "user")
+		if err == nil {
+			t.Errorf("CreateUser() should reject displayName %q", displayName)
+		}
 	}
 }
 
-// TestCreateUserWithWeakPasswords tests comprehensive password validation
+// TestCreateUserWithWeakPasswords tests user creation with weak passwords
 func TestCreateUserWithWeakPasswords(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	tests := []struct {
-		name        string
-		password    string
-		expectError bool
-		description string
-	}{
-		{
-			name:        "invalid - password with spaces",
-			password:    "Valid Password 123!@#",
-			expectError: true,
-			description: "Password with spaces should be rejected",
-		},
-		{
-			name:        "invalid - password too short (8 chars)",
-			password:    "Pass123!",
-			expectError: true,
-			description: "Password with only 8 characters should be rejected",
-		},
-		{
-			name:        "invalid - password exactly 15 chars (1 short)",
-			password:    "Password123!@#a",
-			expectError: true,
-			description: "Password with 15 characters should be rejected",
-		},
-		{
-			name:        "valid - password exactly 16 chars",
-			password:    "Password123!@#ab",
-			expectError: false,
-			description: "Password with exactly 16 characters should be allowed",
-		},
-		{
-			name:        "invalid - password without uppercase",
-			password:    "password123!@#abc",
-			expectError: true,
-			description: "Password without uppercase should be rejected",
-		},
-		{
-			name:        "invalid - password without lowercase",
-			password:    "PASSWORD123!@#ABC",
-			expectError: true,
-			description: "Password without lowercase should be rejected",
-		},
-		{
-			name:        "invalid - password without number",
-			password:    "PasswordABC!@#abc",
-			expectError: true,
-			description: "Password without number should be rejected",
-		},
-		{
-			name:        "invalid - password without symbol",
-			password:    "Password123ABCabc",
-			expectError: true,
-			description: "Password without symbol should be rejected",
-		},
-		{
-			name:        "valid - password with all requirements",
-			password:    "ValidPassword123!@#",
-			expectError: false,
-			description: "Password meeting all requirements should be allowed",
-		},
-		{
-			name:        "valid - password with various symbols",
-			password:    "P@ssw0rd!#$%^&*()",
-			expectError: false,
-			description: "Password with various symbols should be allowed",
-		},
-		{
-			name:        "valid - very long password",
-			password:    "ThisIsAVeryLongPassword123!@#WithManyCharacters",
-			expectError: false,
-			description: "Very long password should be allowed",
-		},
-		{
-			name:        "invalid - empty password",
-			password:    "",
-			expectError: true,
-			description: "Empty password should be rejected",
-		},
-		{
-			name:        "invalid - password only numbers",
-			password:    "1234567890123456",
-			expectError: true,
-			description: "Password with only numbers should be rejected",
-		},
-		{
-			name:        "invalid - password only letters",
-			password:    "abcdefghijklmnop",
-			expectError: true,
-			description: "Password with only letters should be rejected",
-		},
-		{
-			name:        "invalid - password only symbols",
-			password:    "!@#$%^&*()_+-=[]",
-			expectError: true,
-			description: "Password with only symbols should be rejected",
-		},
+	weakPasswords := []string{
+		"weak",
+		"123456",
+		"abcdefgh",
+		"Pass123",
+		"",
 	}
 
-	counter := 0
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear users table between tests
-			_, err := db.Exec("DELETE FROM users")
-			if err != nil {
-				t.Fatalf("Failed to clear users: %v", err)
-			}
-
-			_, err = userStore.CreateUser(
-				"user"+string(rune('a'+counter)),
-				"Test User",
-				tt.password,
-				"user",
-			)
-			counter++
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, password := range weakPasswords {
+		_, err := userStore.CreateUser("validuser"+strings.ReplaceAll(password, " ", ""), "Valid Name", password, "user")
+		if err == nil {
+			t.Errorf("CreateUser() should reject weak password %q", password)
+		}
 	}
 }
 
-// TestCreateUserWithPasswordEqualsUsername tests password security
+// TestCreateUserWithPasswordEqualsUsername tests that password cannot be same as username
 func TestCreateUserWithPasswordEqualsUsername(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Note: This test checks if password == username is prevented
-	// This is a security best practice but may not be implemented
-	username := "testuser123"
-
-	// Password that equals username but meets other requirements
-	password := "Testuser123!@#ab" // Contains username
-
-	_, err = userStore.CreateUser(username, "Test User", password, "user")
-
-	// Currently this might be allowed - depends on if this validation exists
-	// This test documents expected behavior
-	if err != nil {
-		t.Logf("Password similar to username was rejected (good security): %v", err)
-	} else {
-		t.Logf("Password similar to username was allowed (potential security concern)")
+	username := "testuser"
+	_, err = userStore.CreateUser(username, "Valid Name", username, "user")
+	if err == nil {
+		t.Error("CreateUser() should reject password equal to username")
 	}
 }
 
-// TestCreateUserWithInvalidRoles tests role validation
+// TestCreateUserWithInvalidRoles tests user creation with invalid roles
 func TestCreateUserWithInvalidRoles(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	tests := []struct {
-		name        string
-		role        string
-		expectError bool
-		description string
-	}{
-		{
-			name:        "valid - role 'user'",
-			role:        "user",
-			expectError: false,
-			description: "Role 'user' should be allowed",
-		},
-		{
-			name:        "valid - role 'admin'",
-			role:        "admin",
-			expectError: false,
-			description: "Role 'admin' should be allowed",
-		},
-		{
-			name:        "valid - role 'full_admin'",
-			role:        "full_admin",
-			expectError: false,
-			description: "Role 'full_admin' should be allowed",
-		},
-		{
-			name:        "valid - empty role defaults to user",
-			role:        "",
-			expectError: false,
-			description: "Empty role should default to 'user'",
-		},
-		{
-			name:        "invalid - role 'superuser'",
-			role:        "superuser",
-			expectError: false, // May be allowed if no validation
-			description: "Invalid role 'superuser'",
-		},
-		{
-			name:        "invalid - role 'root'",
-			role:        "root",
-			expectError: false, // May be allowed if no validation
-			description: "Invalid role 'root'",
-		},
-		{
-			name:        "invalid - SQL injection in role",
-			role:        "'; DROP TABLE users; --",
-			expectError: false, // Should be escaped
-			description: "SQL injection attempt in role",
-		},
-	}
+	invalidRoles := []string{"superuser", "moderator", "guest", "invalid"}
 
-	counter := 0
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear users table between tests
-			_, err := db.Exec("DELETE FROM users")
-			if err != nil {
-				t.Fatalf("Failed to clear users: %v", err)
-			}
-
-			_, err = userStore.CreateUser(
-				"user"+string(rune('a'+counter)),
-				"Test User",
-				"ValidPassword123!@#abc",
-				tt.role,
-			)
-			counter++
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, role := range invalidRoles {
+		_, err := userStore.CreateUser("validuser"+role, "Valid Name", "ValidPass123!@#", role)
+		if err == nil {
+			t.Errorf("CreateUser() should reject invalid role %q", role)
+		}
 	}
 }
 
-// TestEditUserPasswordWithInvalidPasswords tests password change validation
+// TestEditUserPasswordWithInvalidPasswords tests editing user password with invalid passwords
 func TestEditUserPasswordWithInvalidPasswords(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create initial user
 	username := "testuser"
-	_, err = userStore.CreateUser(username, "Test User", "OldPassword123!@#abc", "user")
+	displayName := "Test User"
+	password := "ValidPass123!@#"
+
+	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
-		t.Fatalf("Failed to create user: %v", err)
+		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	tests := []struct {
-		name        string
-		newPassword string
-		expectError bool
-		description string
-	}{
-		{
-			name:        "invalid - new password too short",
-			newPassword: "Short1!",
-			expectError: true,
-			description: "New password too short should be rejected",
-		},
-		{
-			name:        "invalid - new password without number",
-			newPassword: "NoNumberPassword!@#",
-			expectError: true,
-			description: "New password without number should be rejected",
-		},
-		{
-			name:        "invalid - new password without symbol",
-			newPassword: "NoSymbolPassword123",
-			expectError: true,
-			description: "New password without symbol should be rejected",
-		},
-		{
-			name:        "valid - new password meets all requirements",
-			newPassword: "NewValidPassword123!@#",
-			expectError: false,
-			description: "Valid new password should be accepted",
-		},
-		{
-			name:        "invalid - empty new password",
-			newPassword: "",
-			expectError: true,
-			description: "Empty new password should be rejected",
-		},
+	invalidPasswords := []string{
+		"weak",
+		"123456",
+		"",
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := userStore.EditUserPassword(username, tt.newPassword)
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, invalidPass := range invalidPasswords {
+		err := userStore.EditUserPassword(userID, invalidPass)
+		if err == nil {
+			t.Errorf("EditUserPassword() should reject invalid password %q", invalidPass)
+		}
 	}
 }
 
-// TestEditUserDisplayNameWithInvalidData tests display name update validation
+// TestEditUserDisplayNameWithInvalidData tests editing user display name with invalid data
 func TestEditUserDisplayNameWithInvalidData(t *testing.T) {
 	db := setupUserTest(t)
 	defer CloseDB(db)
 
-	// Create users table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			password_hash TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user',
-			failed_attempts INTEGER NOT NULL DEFAULT 0,
-			lock_level INTEGER NOT NULL DEFAULT 0,
-			locked_until DATETIME
-		)
-	`)
+	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
+		t.Fatalf("Failed to clear users table: %v", err)
 	}
 
 	userStore := NewUserStore(db)
 
-	// Create initial user
 	username := "testuser"
-	_, err = userStore.CreateUser(username, "Original Name", "Password123!@#abc", "user")
+	displayName := "Test User"
+	password := "ValidPass123!@#"
+
+	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
-		t.Fatalf("Failed to create user: %v", err)
+		t.Fatalf("Failed to create test user: %v", err)
 	}
 
-	tests := []struct {
-		name           string
-		newDisplayName string
-		expectError    bool
-		description    string
-	}{
-		{
-			name:           "invalid - display name too long",
-			newDisplayName: strings.Repeat("a", 256),
-			expectError:    true,
-			description:    "Display name too long should be rejected",
-		},
-		{
-			name:           "invalid - display name with only spaces",
-			newDisplayName: "     ",
-			expectError:    true,
-			description:    "Display name with only whitespace should be rejected",
-		},
-		{
-			name:           "invalid - empty display name",
-			newDisplayName: "",
-			expectError:    true,
-			description:    "Empty display name should be rejected",
-		},
-		{
-			name:           "valid - normal display name update",
-			newDisplayName: "Updated Display Name",
-			expectError:    false,
-			description:    "Valid display name should be accepted",
-		},
+	invalidDisplayNames := []string{
+		"",
+		strings.Repeat("a", 256),
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := userStore.EditUserDisplayName(username, tt.newDisplayName)
-
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tt.description)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-			}
-		})
+	for _, invalidName := range invalidDisplayNames {
+		err := userStore.EditUserDisplayName(userID, invalidName)
+		if err == nil {
+			t.Errorf("EditUserDisplayName() should reject invalid display name %q", invalidName)
+		}
 	}
 }

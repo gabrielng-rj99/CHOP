@@ -6,12 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Estrutura para simular a tabela de tentativas por IP
@@ -22,35 +20,52 @@ type IPLock struct {
 	LockedUntil    time.Time
 }
 
-// SetupTestDBIP inicializa um banco SQLite3 para testes de IP
+// SetupTestDBIP inicializa um banco PostgreSQL para testes de IP
 func SetupTestDBIP(t *testing.T) (*sql.DB, func()) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatalf("failed to get caller info")
+	// Conexão PostgreSQL para testes
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	host := os.Getenv("POSTGRES_HOST")
+	port := os.Getenv("POSTGRES_PORT")
+	dbname := os.Getenv("POSTGRES_DB")
+	sslmode := os.Getenv("POSTGRES_SSLMODE")
+	if sslmode == "" {
+		sslmode = "disable"
 	}
-	backendDir := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-	dbDir := filepath.Join(backendDir, "tests", "database")
-	dbPath := filepath.Join(dbDir, "test_ip.db")
+	if user == "" {
+		user = "postgres"
+	}
+	if password == "" {
+		password = "postgres"
+	}
+	if host == "" {
+		host = "localhost"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if dbname == "" {
+		dbname = "contracts_manager"
+	}
+	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		t.Fatalf("failed to create tests/database directory: %v", err)
-	}
-	if _, err := os.Stat(dbPath); err == nil {
-		_ = os.Remove(dbPath)
-	}
-
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
+	}
+
+	// Testa conexão
+	if err := db.Ping(); err != nil {
+		t.Fatalf("failed to ping database: %v", err)
 	}
 
 	// Cria tabela de tentativas por IP
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS login_attempts (
-			ip_address TEXT PRIMARY KEY,
+			ip_address VARCHAR(50) PRIMARY KEY,
 			failed_attempts INTEGER DEFAULT 0,
 			lock_level INTEGER DEFAULT 0,
-			locked_until DATETIME
+			locked_until TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -58,9 +73,15 @@ func SetupTestDBIP(t *testing.T) (*sql.DB, func()) {
 		t.Fatalf("failed to create login_attempts table: %v", err)
 	}
 
+	// Limpa dados anteriores
+	_, err = db.Exec("DELETE FROM login_attempts")
+	if err != nil {
+		db.Close()
+		t.Fatalf("failed to clear login_attempts table: %v", err)
+	}
+
 	cleanup := func() {
 		db.Close()
-		os.Remove(dbPath)
 	}
 
 	return db, cleanup
@@ -106,7 +127,7 @@ var bruteForceLevels = []struct {
 	{3, 1440 * time.Minute}, // 24h
 }
 
-func TestIPBruteForceBlocking_SQLite(t *testing.T) {
+func TestIPBruteForceBlocking_PostgreSQL(t *testing.T) {
 	db, cleanup := SetupTestDBIP(t)
 	defer cleanup()
 
