@@ -85,6 +85,11 @@ func TestGetCategoryByID(t *testing.T) {
 		}
 	}()
 
+	// Clean up before test
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	// Insert test category
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -111,7 +116,7 @@ func TestGetCategoryByID(t *testing.T) {
 		},
 		{
 			name:        "não encontrado - id inexistente",
-			id:          "non-existent-id",
+			id:          "550e8400-e29b-41d4-a716-446655440000",
 			expectError: false,
 			expectFound: false,
 		},
@@ -119,17 +124,6 @@ func TestGetCategoryByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up before each test to avoid leftover data
-			if err := ClearTables(db); err != nil {
-				t.Fatalf("Failed to clear tables: %v", err)
-			}
-			// Insert test category for valid cases
-			if tt.id == categoryID {
-				_, err := InsertTestCategory(db, "Test Category")
-				if err != nil {
-					t.Fatalf("Failed to insert test category: %v", err)
-				}
-			}
 			categoryStore := NewCategoryStore(db)
 			category, err := categoryStore.GetCategoryByID(tt.id)
 
@@ -273,6 +267,11 @@ func TestUpdateCategory(t *testing.T) {
 		}
 	}()
 
+	// Clean up before test
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	// Insert test category
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -318,17 +317,24 @@ func TestUpdateCategory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up before each test to avoid leftover data
+			// Clear tables before each subtest to avoid data conflicts
 			if err := ClearTables(db); err != nil {
 				t.Fatalf("Failed to clear tables: %v", err)
 			}
-			// Insert test category for valid cases
+
+			// For each subtest, insert fresh category if needed
+			var testCategoryID string
 			if tt.category.ID == categoryID {
-				_, err := InsertTestCategory(db, "Test Category")
+				id, err := InsertTestCategory(db, "Test Category")
 				if err != nil {
 					t.Fatalf("Failed to insert test category: %v", err)
 				}
+				testCategoryID = id
+				tt.category.ID = testCategoryID
+			} else if tt.category.ID == "non-existent-id" {
+				tt.category.ID = "550e8400-e29b-41d4-a716-446655440000"
 			}
+
 			categoryStore := NewCategoryStore(db)
 			err := categoryStore.UpdateCategory(tt.category)
 
@@ -365,6 +371,11 @@ func TestDeleteCategory(t *testing.T) {
 		}
 	}()
 
+	// Clean up before test
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	// Insert test category
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -388,24 +399,13 @@ func TestDeleteCategory(t *testing.T) {
 		},
 		{
 			name:        "erro - categoria não existe",
-			id:          "non-existent-id",
+			id:          "550e8400-e29b-41d4-a716-446655440000",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up before each test to avoid leftover data
-			if err := ClearTables(db); err != nil {
-				t.Fatalf("Failed to clear tables: %v", err)
-			}
-			// Insert test category for valid cases
-			if tt.id == categoryID {
-				_, err := InsertTestCategory(db, "Test Category")
-				if err != nil {
-					t.Fatalf("Failed to insert test category: %v", err)
-				}
-			}
 			categoryStore := NewCategoryStore(db)
 			err := categoryStore.DeleteCategory(tt.id)
 
@@ -421,10 +421,10 @@ func TestDeleteCategory(t *testing.T) {
 				var count int
 				err = db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
-					t.Errorf("Failed to query deleted category: %v", err)
+					t.Fatalf("Failed to query deleted category: %v", err)
 				}
 				if count != 0 {
-					t.Error("Expected category to be deleted, but it still exists")
+					t.Errorf("Expected category to be deleted but found %d", count)
 				}
 			}
 		})

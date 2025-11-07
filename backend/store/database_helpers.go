@@ -92,7 +92,7 @@ func CloseDB(db *sql.DB) error {
 
 // ClearTables removes all data from the test database tables
 func ClearTables(db *sql.DB) error {
-	tables := []string{"contracts", "dependents", "lines", "categories", "clients"}
+	tables := []string{"contracts", "dependents", "lines", "categories", "clients", "users", "login_attempts"}
 	for _, table := range tables {
 		if _, err := db.Exec("DELETE FROM " + table); err != nil {
 			return fmt.Errorf("failed to clear table %s: %v", table, err)
@@ -103,8 +103,8 @@ func ClearTables(db *sql.DB) error {
 
 // InsertTestClient inserts a test client and returns its ID
 func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
-	// Usa o registrationID passado como argumento
-	id := fmt.Sprintf("test-client-%s", registrationID)
+	// Gera um UUID válido
+	id := uuid.New().String()
 	_, err := db.Exec(
 		"INSERT INTO clients (id, name, registration_id) VALUES ($1, $2, $3)",
 		id, name, registrationID,
@@ -117,7 +117,7 @@ func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
 
 // InsertTestDependent inserts a test entity and returns its ID
 func InsertTestDependent(db *sql.DB, name string, clientID string) (string, error) {
-	id := fmt.Sprintf("test-dependent-%s-%s", name, clientID)
+	id := uuid.New().String()
 	_, err := db.Exec(
 		"INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 		id, name, clientID,
@@ -130,7 +130,7 @@ func InsertTestDependent(db *sql.DB, name string, clientID string) (string, erro
 
 // InsertTestCategory inserts a test category and returns its ID
 func InsertTestCategory(db *sql.DB, name string) (string, error) {
-	id := fmt.Sprintf("test-category-%s", name)
+	id := uuid.New().String()
 	_, err := db.Exec(
 		"INSERT INTO categories (id, name) VALUES ($1, $2)",
 		id, name,
@@ -143,7 +143,7 @@ func InsertTestCategory(db *sql.DB, name string) (string, error) {
 
 // InsertTestLine inserts a test type and returns its ID
 func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) {
-	id := fmt.Sprintf("test-line-%s-%s", name, categoryID)
+	id := uuid.New().String()
 	_, err := db.Exec(
 		"INSERT INTO lines (id, name, category_id) VALUES ($1, $2, $3)",
 		id, name, categoryID,

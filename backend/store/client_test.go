@@ -103,6 +103,14 @@ func TestCreateClient(t *testing.T) {
 }
 
 func TestCreateClientWithFormatStandardization(t *testing.T) {
+	db := setupClientTest(t)
+	defer CloseDB(db)
+
+	// Clean up before test
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	tests := []struct {
 		name               string
 		inputRegistration  string
@@ -137,8 +145,10 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := setupClientTest(t)
-			defer CloseDB(db)
+			// Clear tables before each subtest to avoid data conflicts
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
+			}
 
 			clientStore := NewClientStore(db)
 
@@ -176,6 +186,11 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 func TestGetClientByID(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+
+	// Clean up before test
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {

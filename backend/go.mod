@@ -5,7 +5,6 @@ go 1.25.1
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/nyaruka/phonenumbers v1.6.6
 	golang.org/x/crypto v0.43.0
 )
