@@ -53,7 +53,7 @@ func SetupTestDB() (*sql.DB, error) {
 		port = "5432"
 	}
 	if dbname == "" {
-		dbname = "contracts_manager"
+		dbname = "contracts_manager_test"
 	}
 	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
@@ -92,10 +92,12 @@ func CloseDB(db *sql.DB) error {
 
 // ClearTables removes all data from the test database tables
 func ClearTables(db *sql.DB) error {
+	// Ordem reversa para evitar problemas de FK e usar TRUNCATE CASCADE para garantir limpeza total
 	tables := []string{"contracts", "dependents", "lines", "categories", "clients", "users", "login_attempts"}
 	for _, table := range tables {
-		if _, err := db.Exec("DELETE FROM " + table); err != nil {
-			return fmt.Errorf("failed to clear table %s: %v", table, err)
+		_, err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE")
+		if err != nil {
+			return fmt.Errorf("failed to truncate table %s: %v", table, err)
 		}
 	}
 	return nil
@@ -157,9 +159,11 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 // InsertTestContract inserts a test license and returns its UUID
 func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
 	id := uuid.New().String()
+	// Adicionar UUID ao productKey para garantir unicidade
+	uniqueProductKey := productKey + "-" + uuid.New().String()[:8]
 	_, err := db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-		id, model, productKey, startDate, endDate, lineID, clientID, entityID, nil,
+		id, model, uniqueProductKey, startDate, endDate, lineID, clientID, entityID, nil,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert test license: %v", err)

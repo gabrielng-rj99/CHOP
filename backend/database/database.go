@@ -36,7 +36,12 @@ func getPostgresDSN() string {
 		port = "5432"
 	}
 	if dbname == "" {
-		dbname = "contracts_manager"
+		// Detecta contexto de teste pelo POSTGRES_PORT ou variável de ambiente
+		if port == "65432" || os.Getenv("TEST_DB") == "1" {
+			dbname = "contracts_manager_test"
+		} else {
+			dbname = "contracts_manager"
+		}
 	}
 	return "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 }
