@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ============================================================================
@@ -35,6 +37,9 @@ func setupClientTestDB(t *testing.T) *sql.DB {
 func TestCreateClient(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	tests := []struct {
 		name        string
@@ -105,8 +110,6 @@ func TestCreateClient(t *testing.T) {
 func TestCreateClientWithFormatStandardization(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
-
-	// Clean up before test
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
@@ -217,7 +220,7 @@ func TestGetClientByID(t *testing.T) {
 		},
 		{
 			name:        "não encontrado - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: false,
 			expectFound: false,
 		},
@@ -247,8 +250,11 @@ func TestGetClientByID(t *testing.T) {
 func TestArchiveClient(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", "11.111.111/0001-11")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -304,8 +310,11 @@ func TestArchiveClient(t *testing.T) {
 func TestUnarchiveClient(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", "22.222.222/0002-22")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -366,8 +375,11 @@ func TestUnarchiveClient(t *testing.T) {
 func TestDeleteClientPermanently(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", "33.333.333/0003-33")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -427,6 +439,9 @@ func TestDeleteClientPermanently(t *testing.T) {
 func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	categoryID, err := InsertTestCategory(db, "Categoria Permanente")
 	if err != nil {
@@ -523,8 +538,11 @@ func TestDeleteClientWithActiveContracts(t *testing.T) {
 // ============================================================================
 
 func TestGetClientNameByID(t *testing.T) {
-	db := setupClientTestDB(t)
+	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
@@ -575,10 +593,13 @@ func TestGetClientNameByID(t *testing.T) {
 }
 
 func TestUpdateClientCritical(t *testing.T) {
-	db := setupClientTestDB(t)
+	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
-	clientID, err := InsertTestClient(db, "Original Name", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Original Client", "55.555.555/0005-55")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -677,17 +698,20 @@ func TestUpdateClientCritical(t *testing.T) {
 }
 
 func TestGetAllClientsCritical(t *testing.T) {
-	db := setupClientTestDB(t)
+	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientStore := NewClientStore(db)
 
-	client1ID, err := InsertTestClient(db, "Client 1", "45.723.174/0001-10")
+	client1ID, err := InsertTestClient(db, "Client 1", "66.666.666/0006-66")
 	if err != nil {
 		t.Fatalf("Failed to insert client 1: %v", err)
 	}
 
-	client2ID, err := InsertTestClient(db, "Client 2", "11.222.333/0001-81")
+	client2ID, err := InsertTestClient(db, "Client 2", "99.999.999/0009-99")
 	if err != nil {
 		t.Fatalf("Failed to insert client 2: %v", err)
 	}
@@ -717,12 +741,15 @@ func TestGetAllClientsCritical(t *testing.T) {
 }
 
 func TestGetArchivedClientsCritical(t *testing.T) {
-	db := setupClientTestDB(t)
+	db := setupClientTest(t)
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientStore := NewClientStore(db)
 
-	client1ID, err := InsertTestClient(db, "Client 1", "45.723.174/0001-10")
+	client1ID, err := InsertTestClient(db, "Client 1", "88.888.888/0008-88")
 	if err != nil {
 		t.Fatalf("Failed to insert client 1: %v", err)
 	}

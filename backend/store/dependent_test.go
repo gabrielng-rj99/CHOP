@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func setupDependentTest(t *testing.T) *sql.DB {
@@ -20,7 +22,7 @@ func TestCreateDependent(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client first
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -58,7 +60,7 @@ func TestCreateDependent(t *testing.T) {
 			name: "erro - empresa não existe",
 			dependent: domain.Dependent{
 				Name:     "Test Dependent",
-				ClientID: "non-existent-client",
+				ClientID: uuid.New().String(),
 			},
 			expectError: true,
 		},
@@ -79,7 +81,7 @@ func TestCreateDependent(t *testing.T) {
 					t.Fatalf("Failed to clear tables: %v", err)
 				}
 				// Recreate client after clearing
-				clientID, err = InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+				clientID, err = InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 				if err != nil {
 					t.Fatalf("Failed to insert test client: %v", err)
 				}
@@ -121,7 +123,7 @@ func TestDeleteDependentDisassociatesContracts(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -180,7 +182,7 @@ func TestGetDependentByID(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -210,7 +212,7 @@ func TestGetDependentByID(t *testing.T) {
 		},
 		{
 			name:        "não encontrado - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: false,
 			expectFound: false,
 		},
@@ -242,7 +244,7 @@ func TestGetDependentsByClient(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -276,7 +278,7 @@ func TestGetDependentsByClient(t *testing.T) {
 		},
 		{
 			name:        "sucesso - empresa sem unidades",
-			clientID:    "non-existent-client",
+			clientID:    uuid.New().String(),
 			expectError: false,
 			expectCount: 0,
 		},
@@ -305,7 +307,7 @@ func TestUpdateDependent(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -352,7 +354,7 @@ func TestUpdateDependent(t *testing.T) {
 			dependent: domain.Dependent{
 				ID:       "dependent-id-1",
 				Name:     "Updated Dependent",
-				ClientID: "non-existent-client",
+				ClientID: uuid.New().String(),
 			},
 			expectError: true,
 		},
@@ -364,7 +366,7 @@ func TestUpdateDependent(t *testing.T) {
 			// For the success case, ensure the dependent exists before update
 			if tt.name == "sucesso - atualização normal" {
 				// Create test client first
-				clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+				clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 				if err != nil {
 					t.Fatalf("Failed to insert test client: %v", err)
 				}
@@ -411,7 +413,7 @@ func TestDeleteDependent(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -438,7 +440,7 @@ func TestDeleteDependent(t *testing.T) {
 		},
 		{
 			name:        "erro - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: true,
 		},
 	}

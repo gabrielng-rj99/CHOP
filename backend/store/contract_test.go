@@ -6,29 +6,37 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
+func generateUniqueCNPJ() string {
+	uniqueID := uuid.New().String()[:8]
+	return uniqueID[0:2] + "." + uniqueID[2:5] + ".111/0001-11"
+}
+
 func insertTestDependencies(db *sql.DB) (string, string, string, string, error) {
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	uniqueID := uuid.New().String()[:8]
+	clientID, err := InsertTestClient(db, "Test Client "+uniqueID, generateUniqueCNPJ())
 	if err != nil {
 		return "", "", "", "", err
 	}
 	// Helper para inserir entidade no banco
-	dependentID := "test-dependent-123"
+	dependentID := uuid.New().String()
 	_, err = db.Exec(
 		"INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 		dependentID,
-		"Test Dependent",
+		"Test Dependent "+uniqueID,
 		clientID,
 	)
 	if err != nil {
 		return "", "", "", "", err
 	}
-	categoryID, err := InsertTestCategory(db, "Test Category")
+	categoryID, err := InsertTestCategory(db, "Test Category "+uniqueID)
 	if err != nil {
 		return "", "", "", "", err
 	}
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	lineID, err := InsertTestLine(db, "Test Line "+uniqueID, categoryID)
 	if err != nil {
 		return "", "", "", "", err
 	}
@@ -98,7 +106,7 @@ func TestDeleteLineWithContractsAssociated(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "12.345.678/0001-90")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -385,7 +393,7 @@ func TestUpdateContractEdgeCases(t *testing.T) {
 	}
 
 	// Atualizar licença inexistente
-	contract.ID = "non-existent-id"
+	contract.ID = uuid.New().String()
 	contract.StartDate = startDate
 	contract.EndDate = endDate
 	contractStore = NewContractStore(db)
@@ -408,7 +416,7 @@ func TestDeleteContractEdgeCases(t *testing.T) {
 
 	contractStore := NewContractStore(db)
 	// Tentar deletar licença inexistente
-	err = contractStore.DeleteContract("non-existent-id")
+	err = contractStore.DeleteContract(uuid.New().String())
 	if err == nil {
 		t.Error("Expected error when deleting non-existent contract, got none")
 	}
@@ -427,7 +435,7 @@ func TestDeleteClientEdgeCases(t *testing.T) {
 
 	clientStore := NewClientStore(db)
 	// Tentar deletar empresa inexistente
-	err = clientStore.DeleteClientPermanently("non-existent-id")
+	err = clientStore.DeleteClientPermanently(uuid.New().String())
 	if err == nil {
 		t.Error("Expected error when deleting non-existent client, got none")
 	}
@@ -453,7 +461,7 @@ func TestGetContractByID(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	_, err = db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-		"test-contract-123",
+		uuid.New().String(),
 		"Test Contract",
 		"TEST-KEY-123",
 		startDate,
@@ -474,7 +482,7 @@ func TestGetContractByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - licença encontrada",
-			id:          "test-contract-123",
+			id:          uuid.New().String(),
 			expectError: false,
 			expectFound: true,
 		},
@@ -486,7 +494,7 @@ func TestGetContractByID(t *testing.T) {
 		},
 		{
 			name:        "não encontrado - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: false,
 			expectFound: false,
 		},
@@ -611,7 +619,7 @@ func TestUpdateContract(t *testing.T) {
 
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
-	contractID := "test-contract-123"
+	contractID := uuid.New().String()
 	_, err = db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		contractID,
@@ -729,7 +737,7 @@ func TestDeleteContract(t *testing.T) {
 
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
-	contractID := "test-contract-123"
+	contractID := uuid.New().String()
 	_, err = db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		contractID,
@@ -762,7 +770,7 @@ func TestDeleteContract(t *testing.T) {
 		},
 		{
 			name:        "erro - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: true,
 		},
 	}
@@ -818,7 +826,7 @@ func TestGetContractsExpiringSoon(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -889,7 +897,7 @@ func TestGetContractsByLineIDCritical(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -953,7 +961,7 @@ func TestGetContractsByCategoryIDCritical(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1022,7 +1030,7 @@ func TestCreateContractWithOverlap(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1081,7 +1089,7 @@ func TestCreateContractNonOverlappingValid(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1208,7 +1216,7 @@ func TestCreateContractWithInvalidNames(t *testing.T) {
 
 			// Re-insert dependencies after clearing tables
 			var errInsert error
-			clientID, errInsert = InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+			clientID, errInsert = InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
@@ -1316,7 +1324,7 @@ func TestCreateContractWithInvalidProductKeys(t *testing.T) {
 
 			// Re-insert dependencies after clearing tables
 			var errInsert error
-			clientID, errInsert = InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+			clientID, errInsert = InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
@@ -1416,7 +1424,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			}
 
 			// Setup dependencies for each test
-			client1ID, errSetup := InsertTestClient(db, "Client 1", "45.723.174/0001-10")
+			client1ID, errSetup := InsertTestClient(db, "Client 1", generateUniqueCNPJ())
 			if errSetup != nil {
 				t.Fatalf("Failed to insert client 1: %v", errSetup)
 			}
@@ -1584,7 +1592,7 @@ func TestCreateContractWithInvalidDates(t *testing.T) {
 
 			// Re-insert dependencies after clearing tables
 			var errInsert error
-			clientID, errInsert = InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+			clientID, errInsert = InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
@@ -1633,7 +1641,7 @@ func TestCreateContractWithArchivedClient(t *testing.T) {
 	defer CloseDB(db)
 
 	// Setup dependencies
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1682,7 +1690,7 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 	defer CloseDB(db)
 
 	// Setup dependencies
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1977,7 +1985,7 @@ func TestGetContractsByLineID(t *testing.T) {
 		},
 		{
 			name:          "non-existent line ID",
-			queryLineID:   "non-existent-id",
+			queryLineID:   uuid.New().String(),
 			expectedCount: 0,
 			shouldError:   true,
 		},
@@ -2095,7 +2103,7 @@ func TestGetContractsByCategoryID(t *testing.T) {
 		},
 		{
 			name:            "non-existent category ID",
-			queryCategoryID: "non-existent-id",
+			queryCategoryID: uuid.New().String(),
 			expectedCount:   0,
 			shouldError:     true,
 		},

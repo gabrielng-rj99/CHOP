@@ -3,6 +3,8 @@ package store
 import (
 	"Contracts-Manager/backend/domain"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestCreateLine(t *testing.T) {
@@ -133,7 +135,7 @@ func TestGetLineByID(t *testing.T) {
 		},
 		{
 			name:        "não encontrado - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: false,
 			expectFound: false,
 		},
@@ -365,7 +367,7 @@ func TestDeleteLine(t *testing.T) {
 		},
 		{
 			name:        "erro - id inexistente",
-			id:          "non-existent-id",
+			id:          uuid.New().String(),
 			expectError: true,
 		},
 	}

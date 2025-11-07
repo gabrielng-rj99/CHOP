@@ -127,7 +127,7 @@ func TestCreateUserBasic(t *testing.T) {
 			name:        "valid full_admin user",
 			username:    "adminuser",
 			displayName: "Admin User",
-			password:    "ValidPass123!@#",
+			password:    "ValidPass123!@#a",
 			role:        "full_admin",
 			expectError: false,
 		},
@@ -135,7 +135,7 @@ func TestCreateUserBasic(t *testing.T) {
 			name:        "valid admin user",
 			username:    "admin1",
 			displayName: "Admin One",
-			password:    "ValidPass123!@#",
+			password:    "ValidPass123!@#a",
 			role:        "admin",
 			expectError: false,
 		},
@@ -143,7 +143,7 @@ func TestCreateUserBasic(t *testing.T) {
 			name:        "valid regular user",
 			username:    "regularuser",
 			displayName: "Regular User",
-			password:    "ValidPass123!@#",
+			password:    "ValidPass123!@#a",
 			role:        "user",
 			expectError: false,
 		},
@@ -177,7 +177,7 @@ func TestAuthenticateUserSuccess(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "TestPass123!@#"
+	password := "TestPass123!@#ab"
 
 	_, err = userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
@@ -212,7 +212,7 @@ func TestAuthenticateUserInvalidCredentials(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "TestPass123!@#"
+	password := "TestPass123!@#ab"
 
 	_, err = userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
@@ -266,8 +266,8 @@ func TestEditUserPassword(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	oldPassword := "OldPass123!@#"
-	newPassword := "NewPass123!@#"
+	oldPassword := "OldPass123!@#ab"
+	newPassword := "NewPass123!@#ab"
 
 	userID, err := userStore.CreateUser(username, displayName, oldPassword, "user")
 	if err != nil {
@@ -314,7 +314,7 @@ func TestEditUserDisplayName(t *testing.T) {
 	username := "testuser"
 	oldDisplayName := "Old Display Name"
 	newDisplayName := "New Display Name"
-	password := "TestPass123!@#"
+	password := "TestPass123!@#ab"
 
 	userID, err := userStore.CreateUser(username, oldDisplayName, password, "user")
 	if err != nil {
@@ -438,7 +438,7 @@ func TestUnlockUser(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "TestPass123!@#"
+	password := "TestPass123!@#ab"
 
 	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
@@ -504,7 +504,7 @@ func TestCreateUserWithInvalidUsernames(t *testing.T) {
 	}
 
 	for _, username := range invalidUsernames {
-		_, err := userStore.CreateUser(username, "Valid Name", "ValidPass123!@#", "user")
+		_, err := userStore.CreateUser(username, "Valid Name", "ValidPass123!@#a", "user")
 		if err == nil {
 			t.Errorf("CreateUser() should reject username %q", username)
 		}
@@ -529,7 +529,7 @@ func TestCreateUserWithInvalidDisplayNames(t *testing.T) {
 	}
 
 	for _, displayName := range invalidDisplayNames {
-		_, err := userStore.CreateUser("validuser", displayName, "ValidPass123!@#", "user")
+		_, err := userStore.CreateUser("validuser", displayName, "ValidPass123!@#a", "user")
 		if err == nil {
 			t.Errorf("CreateUser() should reject displayName %q", displayName)
 		}
@@ -598,7 +598,7 @@ func TestCreateUserWithInvalidRoles(t *testing.T) {
 	invalidRoles := []string{"superuser", "moderator", "guest", "invalid"}
 
 	for _, role := range invalidRoles {
-		_, err := userStore.CreateUser("validuser"+role, "Valid Name", "ValidPass123!@#", role)
+		_, err := userStore.CreateUser("validuser"+role, "Valid Name", "ValidPass123!@#a", role)
 		if err == nil {
 			t.Errorf("CreateUser() should reject invalid role %q", role)
 		}
@@ -619,7 +619,7 @@ func TestEditUserPasswordWithInvalidPasswords(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "ValidPass123!@#"
+	password := "ValidPass123!@#a"
 
 	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
@@ -654,7 +654,7 @@ func TestEditUserDisplayNameWithInvalidData(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "ValidPass123!@#"
+	password := "ValidPass123!@#a"
 
 	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {

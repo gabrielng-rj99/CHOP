@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func setupLineTestDB(t *testing.T) *sql.DB {
@@ -136,7 +138,7 @@ func TestUpdateLineCritical(t *testing.T) {
 			line: domain.Line{
 				ID:         lineID,
 				Line:       "Test",
-				CategoryID: "non-existent",
+				CategoryID: uuid.New().String(),
 			},
 			expectError: true,
 		},
@@ -432,7 +434,7 @@ func TestGetLineByIDNonExistent(t *testing.T) {
 
 	lineStore := NewLineStore(db)
 
-	line, err := lineStore.GetLineByID("non-existent-id")
+	line, err := lineStore.GetLineByID(uuid.New().String())
 	if err != nil {
 		t.Fatalf("Expected no error for non-existent line, got: %v", err)
 	}
