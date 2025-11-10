@@ -65,24 +65,30 @@ func HashPassword(password string) (string, error) {
 
 // CreateUser cadastra um novo usuário após validar senha forte
 func (s *UserStore) CreateUser(username, displayName, password, role string) (string, error) {
-	trimmedUsername, err := ValidateName(username, 255)
-	if err != nil {
+	if err := ValidateUsername(username); err != nil {
 		return "", err
 	}
+	trimmedUsername := strings.TrimSpace(username)
 	trimmedDisplayName, errDisplay := ValidateName(displayName, 255)
 	if errDisplay != nil {
 		return "", errDisplay
 	}
+
+	// Validate role - only "user" or "admin" allowed
+	if role != "" && role != "user" && role != "admin" {
+		return "", errors.New("invalid role: must be 'user' or 'admin'")
+	}
 	if role == "" {
 		role = "user"
 	}
+
 	if err := ValidateStrongPassword(password); err != nil {
 		return "", err
 	}
 
 	// Verifica se já existe usuário com esse nome
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", trimmedUsername).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", trimmedUsername).Scan(&count)
 	if err != nil {
 		return "", err
 	}

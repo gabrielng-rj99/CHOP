@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -18,6 +19,32 @@ func ValidateName(name string, maxLength int) (string, error) {
 		return "", fmt.Errorf("name cannot exceed %d characters", maxLength)
 	}
 	return trimmed, nil
+}
+
+// ValidateUsername validates a username for proper format
+// Requirements: 3-255 chars, alphanumeric + underscore only, no spaces or special chars
+func ValidateUsername(username string) error {
+	trimmed := strings.TrimSpace(username)
+
+	if trimmed == "" {
+		return errors.New("username cannot be empty")
+	}
+
+	if len(trimmed) < 3 {
+		return errors.New("username must be at least 3 characters")
+	}
+
+	if len(trimmed) > 255 {
+		return errors.New("username cannot exceed 255 characters")
+	}
+
+	// Only allow alphanumeric and underscore
+	validUsernamePattern := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+	if !validUsernamePattern.MatchString(trimmed) {
+		return errors.New("username can only contain letters, numbers, and underscores")
+	}
+
+	return nil
 }
 
 // ValidateCPF exposes the private isValidCPF function for testing purposes
