@@ -266,8 +266,8 @@ func TestEditUserPassword(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	oldPassword := "OldPass123!@#ab"
-	newPassword := "NewPass123!@#ab"
+	oldPassword := "OldPass123!@#abcd"
+	newPassword := "NewPass123!@#abcd"
 
 	userID, err := userStore.CreateUser(username, displayName, oldPassword, "user")
 	if err != nil {
@@ -314,7 +314,7 @@ func TestEditUserDisplayName(t *testing.T) {
 	username := "testuser"
 	oldDisplayName := "Old Display Name"
 	newDisplayName := "New Display Name"
-	password := "TestPass123!@#ab"
+	password := "TestPass123!@#abcd"
 
 	userID, err := userStore.CreateUser(username, oldDisplayName, password, "user")
 	if err != nil {
@@ -358,9 +358,9 @@ func TestListUsers(t *testing.T) {
 		password    string
 		role        string
 	}{
-		{"user1", "User One", "Pass1@#", "user"},
-		{"user2", "User Two", "Pass2@#", "user"},
-		{"admin1", "Admin One", "Pass3@#", "admin"},
+		{"user1", "User One", "Pass1@#Secure123", "user"},
+		{"user2", "User Two", "Pass2@#Secure123", "user"},
+		{"admin1", "Admin One", "Pass3@#Secure123", "admin"},
 	}
 
 	for _, u := range users {
@@ -438,7 +438,7 @@ func TestUnlockUser(t *testing.T) {
 
 	username := "testuser"
 	displayName := "Test User"
-	password := "TestPass123!@#ab"
+	password := "TestPass123!@#abcd"
 
 	userID, err := userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
