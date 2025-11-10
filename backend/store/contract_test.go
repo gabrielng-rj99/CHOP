@@ -815,6 +815,9 @@ func setupContractTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 	return db
 }
 
@@ -831,7 +834,7 @@ func TestGetContractsExpiringSoon(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -902,7 +905,7 @@ func TestGetContractsByLineIDCritical(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -966,7 +969,7 @@ func TestGetContractsByCategoryIDCritical(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID1, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID1, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category 1: %v", err)
 	}
@@ -1035,7 +1038,7 @@ func TestCreateContractWithOverlap(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -1094,7 +1097,7 @@ func TestCreateContractNonOverlappingValid(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -1221,7 +1224,7 @@ func TestCreateContractWithInvalidNames(t *testing.T) {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
 
-			categoryID, errInsert = InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+			categoryID, errInsert = InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test category: %v", errInsert)
 			}
@@ -1329,7 +1332,7 @@ func TestCreateContractWithInvalidProductKeys(t *testing.T) {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
 
-			categoryID, errInsert = InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+			categoryID, errInsert = InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test category: %v", errInsert)
 			}
@@ -1434,7 +1437,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 				t.Fatalf("Failed to insert client 2: %v", errSetup)
 			}
 
-			categoryID, errSetup := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+			categoryID, errSetup := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 			if errSetup != nil {
 				t.Fatalf("Failed to insert test category: %v", errSetup)
 			}
@@ -1597,7 +1600,7 @@ func TestCreateContractWithInvalidDates(t *testing.T) {
 				t.Fatalf("Failed to insert test client: %v", errInsert)
 			}
 
-			categoryID, errInsert = InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+			categoryID, errInsert = InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 			if errInsert != nil {
 				t.Fatalf("Failed to insert test category: %v", errInsert)
 			}
@@ -1646,7 +1649,7 @@ func TestCreateContractWithArchivedClient(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -1695,7 +1698,7 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	categoryID, err := InsertTestCategory(db, "Software-" + uuid.New().String()[:8])
+	categoryID, err := InsertTestCategory(db, "Software-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}

@@ -99,6 +99,9 @@ func setupUserTest(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 	return db
 }
 
@@ -269,13 +272,13 @@ func TestEditUserPassword(t *testing.T) {
 	oldPassword := "OldPass123!@#abcd"
 	newPassword := "NewPass123!@#abcd"
 
-	userID, err := userStore.CreateUser(username, displayName, oldPassword, "user")
+	_, err = userStore.CreateUser(username, displayName, oldPassword, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
 	// Edit password
-	err = userStore.EditUserPassword(userID, newPassword)
+	err = userStore.EditUserPassword(username, newPassword)
 	if err != nil {
 		t.Errorf("EditUserPassword() error = %v", err)
 		return
@@ -316,13 +319,13 @@ func TestEditUserDisplayName(t *testing.T) {
 	newDisplayName := "New Display Name"
 	password := "TestPass123!@#abcd"
 
-	userID, err := userStore.CreateUser(username, oldDisplayName, password, "user")
+	_, err = userStore.CreateUser(username, oldDisplayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
 
 	// Edit display name
-	err = userStore.EditUserDisplayName(userID, newDisplayName)
+	err = userStore.EditUserDisplayName(username, newDisplayName)
 	if err != nil {
 		t.Errorf("EditUserDisplayName() error = %v", err)
 		return
@@ -440,7 +443,7 @@ func TestUnlockUser(t *testing.T) {
 	displayName := "Test User"
 	password := "TestPass123!@#abcd"
 
-	userID, err := userStore.CreateUser(username, displayName, password, "user")
+	_, err = userStore.CreateUser(username, displayName, password, "user")
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
@@ -449,8 +452,8 @@ func TestUnlockUser(t *testing.T) {
 	lockLevel := 2
 	lockedUntil := time.Now().Add(1 * time.Hour)
 	_, err = db.Exec(
-		"UPDATE users SET lock_level = $1, locked_until = $2 WHERE id = $3",
-		lockLevel, lockedUntil, userID,
+		"UPDATE users SET lock_level = $1, locked_until = $2 WHERE username = $3",
+		lockLevel, lockedUntil, username,
 	)
 	if err != nil {
 		t.Fatalf("Failed to lock user: %v", err)
@@ -458,7 +461,7 @@ func TestUnlockUser(t *testing.T) {
 
 	// Verify user is locked
 	var level int
-	err = db.QueryRow("SELECT lock_level FROM users WHERE id = $1", userID).Scan(&level)
+	err = db.QueryRow("SELECT lock_level FROM users WHERE username = $1", username).Scan(&level)
 	if err != nil {
 		t.Fatalf("Failed to query user lock level: %v", err)
 	}
@@ -467,14 +470,14 @@ func TestUnlockUser(t *testing.T) {
 	}
 
 	// Unlock user
-	err = userStore.UnlockUser(userID)
+	err = userStore.UnlockUser(username)
 	if err != nil {
 		t.Errorf("UnlockUser() error = %v", err)
 		return
 	}
 
 	// Verify user is unlocked
-	err = db.QueryRow("SELECT lock_level FROM users WHERE id = $1", userID).Scan(&level)
+	err = db.QueryRow("SELECT lock_level FROM users WHERE username = $1", username).Scan(&level)
 	if err != nil {
 		t.Fatalf("Failed to query user lock level after unlock: %v", err)
 	}
