@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -50,19 +50,27 @@ func RunIntegrationTestsWithDockerPostgres() {
 	fmt.Println("\n▶ Executando testes Go com cobertura...")
 	fmt.Println("─────────────────────────────────────────────────────────────")
 
-	backendPath := filepath.Join(projectRoot, "backend")
+	backendPath := projectRoot
 	os.Setenv("POSTGRES_PORT", "65432")
 
 	runCmd := fmt.Sprintf("cd %s && go test -v -cover ./...", backendPath)
-	if err := runShell(runCmd); err != nil {
+	report, err := runShell(runCmd)
+	fmt.Println(report)
+
+	if err != nil {
 		fmt.Println("\n⚠ Alguns testes falharam.")
-		fmt.Print("Pressione ENTER para continuar...")
-		bufio.NewReader(os.Stdin).ReadString('\n')
 	} else {
 		fmt.Println("\n✓ Todos os testes passaram com sucesso!")
-		fmt.Print("Pressione ENTER para continuar...")
-		bufio.NewReader(os.Stdin).ReadString('\n')
 	}
+
+	fmt.Print("Deseja salvar o relatório em um arquivo? (s/n): ")
+	resp, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	if strings.TrimSpace(strings.ToLower(resp)) == "s" {
+		os.WriteFile("relatorio_testes.txt", []byte(report), 0644)
+		fmt.Println("Relatório salvo em relatorio_testes.txt")
+	}
+	fmt.Print("Pressione ENTER para continuar...")
+	bufio.NewReader(os.Stdin).ReadString('\n')
 
 	runDockerComposeStop("postgres_test")
 	fmt.Println("\n✓ Ambiente de testes finalizado e limpo!")
@@ -70,6 +78,4 @@ func RunIntegrationTestsWithDockerPostgres() {
 
 // Funções utilitárias agora estão em utils.go
 // runShell executa um comando shell simples
-func runShell(cmd string) error {
-	return nil // implemente conforme necessário
-}
+// Implementação está em utils.go

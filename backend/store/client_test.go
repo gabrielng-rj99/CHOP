@@ -27,6 +27,9 @@ func setupClientTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 	return db
 }
 
@@ -1077,6 +1080,9 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientStore := NewClientStore(db)
 
@@ -1163,6 +1169,9 @@ func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientStore := NewClientStore(db)
 

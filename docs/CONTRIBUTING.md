@@ -46,11 +46,11 @@ func (s *ClientStore) CreateClient(client *domain.Client) (string, error) {
     if client == nil {
         return "", errors.New("client cannot be nil")
     }
-    
+
     if len(client.Name) == 0 {
         return "", errors.New("name is required")
     }
-    
+
     id := uuid.New().String()
     // INSERT
     return id, nil
@@ -88,12 +88,12 @@ func (s *ContractStore) Create(contract *domain.Contract) (string, error) {
     if len(contract.Model) < 1 || len(contract.Model) > 255 {
         return "", fmt.Errorf("model must be 1-255 characters")
     }
-    
+
     // Validação: datas válidas
     if !contract.StartDate.Before(contract.EndDate) {
         return "", errors.New("end_date must be after start_date")
     }
-    
+
     // ... resto da lógica ...
     return id, nil
 }
@@ -103,28 +103,28 @@ func (s *ContractStore) Create(contract *domain.Contract) (string, error) {
 ```go
 func TestCreateContract_ValidatesModel(t *testing.T) {
     store := setupTestStore()
-    
+
     contract := &domain.Contract{
         Model: "", // inválido
     }
-    
+
     _, err := store.Create(contract)
-    
+
     require.Error(t, err)
     require.Contains(t, err.Error(), "model must be 1-255")
 }
 
 func TestCreateContract_ValidatesDates(t *testing.T) {
     store := setupTestStore()
-    
+
     contract := &domain.Contract{
         Model:     "Windows 10",
         StartDate: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
         EndDate:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), // ❌
     }
-    
+
     _, err := store.Create(contract)
-    
+
     require.Error(t, err)
     require.Contains(t, err.Error(), "end_date must be after start_date")
 }
@@ -132,12 +132,12 @@ func TestCreateContract_ValidatesDates(t *testing.T) {
 
 **4. Database** (`database/init.sql`):
 ```sql
-ALTER TABLE contracts 
-ADD CONSTRAINT check_model_length 
+ALTER TABLE contracts
+ADD CONSTRAINT check_model_length
 CHECK (char_length(model) >= 1 AND char_length(model) <= 255);
 
-ALTER TABLE contracts 
-ADD CONSTRAINT check_dates 
+ALTER TABLE contracts
+ADD CONSTRAINT check_dates
 CHECK (end_date > start_date);
 ```
 
@@ -177,14 +177,14 @@ func TestCreateContract_Success(t *testing.T) {
         LineID:     "line-id",
         ClientID:   "client-id",
     }
-    
+
     // ACT: Executa
     id, err := store.Create(contract)
-    
+
     // ASSERT: Verifica
     require.NoError(t, err)
     require.NotEmpty(t, id)
-    
+
     // Verifica se foi salvo
     saved, err := store.GetByID(id)
     require.NoError(t, err)
@@ -198,9 +198,9 @@ func TestCreateContract_InvalidDates(t *testing.T) {
         StartDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
         EndDate:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), // ❌
     }
-    
+
     _, err := store.Create(contract)
-    
+
     require.Error(t, err)
     require.Contains(t, err.Error(), "end_date must be after start_date")
 }
@@ -299,11 +299,11 @@ func (s *ClientStore) GetByID(id string) (*domain.Client, error) {
     client := &domain.Client{}
     err := s.db.QueryRow("SELECT id, name, registration_id FROM clients WHERE id = $1", id).
         Scan(&client.ID, &client.Name, &client.RegistrationID)
-    
+
     if err == sql.ErrNoRows {
         return nil, fmt.Errorf("client not found: %s", id)
     }
-    
+
     if err != nil {
         return nil, err
     }
@@ -313,7 +313,7 @@ func (s *ClientStore) GetByID(id string) (*domain.Client, error) {
 
 // ✗ Ruim
 func GetClient(id string) (domain.Client, error) {
-    row := db.QueryRow("SELECT * FROM clients WHERE id = ?", id)
+    row := db.QueryRow("SELECT * FROM clients WHERE id = $1", id)
     var c domain.Client
     row.Scan(&c)
     return c, nil
@@ -341,7 +341,7 @@ const (
 ```go
 // ✓ Descritivo
 return fmt.Errorf("contract not found: %s", id)
-return fmt.Errorf("end_date must be after start_date, got %s <= %s", 
+return fmt.Errorf("end_date must be after start_date, got %s <= %s",
     endDate, startDate)
 
 // ✗ Genérico

@@ -92,12 +92,25 @@ func CloseDB(db *sql.DB) error {
 
 // ClearTables removes all data from the test database tables
 func ClearTables(db *sql.DB) error {
-	// Ordem reversa para evitar problemas de FK e usar TRUNCATE CASCADE para garantir limpeza total
-	tables := []string{"contracts", "dependents", "lines", "categories", "clients", "users", "login_attempts"}
+	// Desabilitar temporariamente as constraints FK
+	_, err := db.Exec("SET session_replication_role = 'replica'")
+	if err != nil {
+		return fmt.Errorf("failed to disable constraints: %v", err)
+	}
+	defer db.Exec("SET session_replication_role = 'origin'")
+
+	// Limpar todas as tabelas
+	tables := []string{"contracts", "dependents", "lines", "categories", "clients", "users"}
 	for _, table := range tables {
-		_, err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE")
+		// Deletar em vez de truncate para evitar problemas com sequences
+		_, err := db.Exec("DELETE FROM " + table)
 		if err != nil {
-			return fmt.Errorf("failed to truncate table %s: %v", table, err)
+			return fmt.Errorf("failed to clear table %s: %v", table, err)
+		}
+		// Resetar sequences para que IDs comecem do 1 novamente
+		_, err = db.Exec("ALTER SEQUENCE " + table + "_id_seq RESTART WITH 1")
+		if err != nil {
+			// Ignorar erros se a sequence não existir (tabelas com UUIDs não têm sequences numéricas)
 		}
 	}
 	return nil

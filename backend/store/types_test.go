@@ -17,6 +17,9 @@ func TestCreateLine(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	// Create a test category first
 	categoryID, err := InsertTestCategory(db, "Test Category")
@@ -103,7 +106,11 @@ func TestGetLineByID(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
+	// Create a test category first
 	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -172,8 +179,11 @@ func TestGetLinesByCategoryID(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
-	// Create test category
+	// Create test categories
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
@@ -242,7 +252,11 @@ func TestUpdateLine(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
+	// Create a test category first
 	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -312,7 +326,7 @@ func TestUpdateLine(t *testing.T) {
 			if !tt.expectError {
 				// Verify update
 				var name, categoryID string
-				err = db.QueryRow("SELECT name, category_id FROM lines WHERE id = ?", tt.lineData.ID).
+				err = db.QueryRow("SELECT name, category_id FROM lines WHERE id = $1", tt.lineData.ID).
 					Scan(&name, &categoryID)
 				if err != nil {
 					t.Errorf("Failed to query updated line: %v", err)
@@ -338,7 +352,11 @@ func TestDeleteLine(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
+	// Create a test category first
 	// Create test category and line
 	categoryID, err := InsertTestCategory(db, "Test Category")
 	if err != nil {
@@ -387,7 +405,7 @@ func TestDeleteLine(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1?", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted line: %v", err)
 				}

@@ -15,6 +15,9 @@ func setupLineTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 	return db
 }
 
@@ -184,7 +187,7 @@ func TestDeleteLineCritical(t *testing.T) {
 
 	// Verify line is deleted
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", lineID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", lineID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}
@@ -231,7 +234,7 @@ func TestDeleteLineWithActiveContracts(t *testing.T) {
 
 	// Verify line still exists
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = ?", lineID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", lineID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}
@@ -277,7 +280,7 @@ func TestUpdateLineCannotMoveBetweenCategories(t *testing.T) {
 
 	// Verify line is still in original category
 	var currentCategoryID string
-	err = db.QueryRow("SELECT category_id FROM lines WHERE id = ?", lineID).Scan(&currentCategoryID)
+	err = db.QueryRow("SELECT category_id FROM lines WHERE id = $1", lineID).Scan(&currentCategoryID)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}

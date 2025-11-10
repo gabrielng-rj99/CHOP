@@ -317,7 +317,7 @@ func (s *ContractStore) DeleteContract(id string) error {
 	}
 	// Check if contract exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = ?", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
