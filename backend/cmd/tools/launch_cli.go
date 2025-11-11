@@ -34,19 +34,20 @@ func LaunchCLI() {
 	fmt.Println("✓ Banco de dados está pronto!\n")
 
 	fmt.Println("▶ Iniciando CLI principal...")
-	fmt.Println("─────────────────────────────────────────────────────────────")
+	fmt.Println("─────────────────────────────────────────────────────────────\n")
 
-	projectRoot, err := os.Getwd()
+	// Get current working directory (should be backend directory)
+	backendDir, err := os.Getwd()
 	if err != nil {
-		fmt.Println("❌ Erro ao determinar raiz do projeto:", err)
-		fmt.Print("Pressione ENTER para voltar ao menu...")
+		fmt.Println("❌ Erro ao determinar diretório de trabalho:", err)
+		fmt.Print("\nPressione ENTER para voltar ao menu...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
 
-	// Execute the CLI from the cmd/cli directory
-	cmd := exec.Command("go", "run", "main.go")
-	cmd.Dir = projectRoot + "/backend/cmd/cli"
+	// Execute: go run ./cmd/cli
+	cmd := exec.Command("go", "run", "./cmd/cli")
+	cmd.Dir = backendDir
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
