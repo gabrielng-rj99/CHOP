@@ -19,13 +19,36 @@ func PrintOptionalFieldHint() {
 
 // CreateAdminCLI executa o fluxo de criação de admin via CLI
 func CreateAdminCLI() {
-	fmt.Print("\033[H\033[2J")
+	clearTerminal()
+
+	// Verifica se o banco principal está rodando
+	if !isContainerRunning("contract_manager_postgres") {
+		fmt.Println("❌ O banco de dados principal NÃO está inicializado!")
+		fmt.Println("\nSugestão: Execute a opção 11 primeiro para inicializar o banco principal via Docker.")
+		fmt.Println("\nOpção 11: Inicializar banco principal do zero via Docker")
+		fmt.Print("\nPressione ENTER para voltar ao menu...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		return
+	}
+
+	fmt.Println("✓ Banco de dados principal está rodando!")
+	fmt.Println("⏳ Aguardando postgres ficar pronto...")
+	if !waitForPostgresReady("localhost", "5432", 30*time.Second) {
+		fmt.Println("❌ Banco de dados não ficou pronto no tempo esperado.")
+		fmt.Println("\nSugestão: Verifique a opção 11 ou verifique o status do Docker.")
+		fmt.Print("Pressione ENTER para voltar ao menu...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		return
+	}
+	fmt.Println("✓ Banco de dados está pronto!")
 
 	// Garante que o banco principal está rodando
 	db, err := database.ConnectDB()
 	if err != nil {
-		fmt.Println("Erro ao conectar ao banco de dados:", err)
-		fmt.Print("Pressione ENTER para continuar...")
+		fmt.Println("❌ Erro ao conectar ao banco de dados:", err)
+		fmt.Println("\nSugestão: Execute a opção 11 para inicializar o banco principal via Docker.")
+		fmt.Println("Ou verifique a opção 22 para usar o banco de testes como exemplo.")
+		fmt.Print("Pressione ENTER para voltar ao menu...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
