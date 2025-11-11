@@ -16,6 +16,10 @@ func main() {
 		fmt.Println("\nEscolha uma função para executar:")
 
 		fmt.Println("----------------------------------------------------------------------------")
+		fmt.Println("==== APLICAÇÃO PRINCIPAL ====")
+		fmt.Println("10 - Executar CLI principal (requer banco principal UP)")
+
+		fmt.Println("\n----------------------------------------------------------------------------")
 		fmt.Println("==== BANCO PRINCIPAL ====")
 		fmt.Println("11 - Inicializar banco principal do zero via Docker")
 		fmt.Println("12 - Criar usuário admin com senha aleatória (requer banco principal UP)")
@@ -24,7 +28,7 @@ func main() {
 
 		fmt.Println("\n----------------------------------------------------------------------------")
 		fmt.Println("==== BANCO DE TESTE ====")
-		fmt.Println("\n21 - Inicializar banco de testes do zero via Docker")
+		fmt.Println("21 - Inicializar banco de testes do zero via Docker")
 		fmt.Println("22 - Rodar testes automatizados do projeto com PostgreSQL via Docker Compose (exemplo com banco de testes)")
 		fmt.Println("23 - Excluir banco de teste (remover dados e volumes)")
 
@@ -37,6 +41,8 @@ func main() {
 		opt = strings.TrimSpace(opt)
 
 		switch opt {
+		case "10":
+			LaunchCLI()
 		case "11":
 			InitMainDatabaseDocker()
 		case "12":
