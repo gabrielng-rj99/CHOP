@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -26,4 +30,23 @@ func HandleOptionalField(input string) (string, bool, bool) {
 		return "", false, false
 	}
 	return input, true, false
+}
+
+func clearTerminal() {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default: // linux, darwin, etc
+		cmd = exec.Command("clear")
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
+func waitForEnter() {
+	fmt.Print("\nPressione ENTER para continuar...")
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }

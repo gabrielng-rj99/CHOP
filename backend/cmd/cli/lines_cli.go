@@ -14,6 +14,7 @@ import (
 // LinesMenu handles the lines (contract types) administration menu
 func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
+		clearTerminal()
 		fmt.Println("\n--- contract Lines ---")
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - List lines")
@@ -29,20 +30,25 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 		case "0":
 			return
 		case "1":
+			clearTerminal()
 			lines, err := lineStore.GetAllLines()
 			if err != nil {
 				fmt.Println("Error listing lines:", err)
+				waitForEnter()
 				continue
 			}
 			if len(lines) == 0 {
 				fmt.Println("No lines found.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("Lines:")
 			for i, t := range lines {
 				fmt.Printf("%d - %s (Category: %s)\n", i+1, t.Line, t.CategoryID)
 			}
+			waitForEnter()
 		case "2":
+			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("Line name: ")
 			line, _ := reader.ReadString('\n')
@@ -52,10 +58,12 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			categoryID = strings.TrimSpace(categoryID)
 			if line == "" {
 				fmt.Println("Error: Line name cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			if categoryID == "" {
 				fmt.Println("Error: Category ID cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			id, err := lineStore.CreateLine(domain.Line{
@@ -64,10 +72,13 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			})
 			if err != nil {
 				fmt.Println("Error creating line:", err)
+				waitForEnter()
 			} else {
 				fmt.Println("Line created with ID:", id)
+				waitForEnter()
 			}
 		case "3":
+			clearTerminal()
 			fmt.Print("Buscar linha para editar por (1) ID ou (2) nome? ")
 			searchOpt, _ := reader.ReadString('\n')
 			searchOpt = strings.TrimSpace(searchOpt)
@@ -79,6 +90,7 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				lines, err := lineStore.GetLinesByName(searchName)
 				if err != nil || len(lines) == 0 {
 					fmt.Println("Nenhuma linha encontrada.")
+					waitForEnter()
 					continue
 				}
 				for i, l := range lines {
@@ -90,6 +102,7 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				idx, err := strconv.Atoi(idxStr)
 				if err != nil || idx < 1 || idx > len(lines) {
 					fmt.Println("Opção inválida.")
+					waitForEnter()
 					continue
 				}
 				lineObj = &lines[idx-1]
@@ -99,11 +112,13 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				id = strings.TrimSpace(id)
 				if id == "" {
 					fmt.Println("Error: Line ID cannot be empty.")
+					waitForEnter()
 					continue
 				}
 				l, err := lineStore.GetLineByID(id)
 				if err != nil || l == nil {
 					fmt.Println("Linha não encontrada.")
+					waitForEnter()
 					continue
 				}
 				lineObj = l
@@ -127,13 +142,17 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			err := lineStore.UpdateLine(*lineObj)
 			if err != nil {
 				fmt.Println("Error updating line:", err)
+				waitForEnter()
 			} else {
 				fmt.Println("Line updated.")
+				waitForEnter()
 			}
 		case "4":
+			clearTerminal()
 			lines, err := lineStore.GetAllLines()
 			if err != nil || len(lines) == 0 {
 				fmt.Println("No lines found.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a line to delete by number:")
@@ -149,14 +168,17 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			idx, err := strconv.Atoi(idxStr)
 			if err != nil || idx < 1 || idx > len(lines) {
 				fmt.Println("Invalid selection.")
+				waitForEnter()
 				continue
 			}
 			lineID := lines[idx-1].ID
 			err = lineStore.DeleteLine(lineID)
 			if err != nil {
 				fmt.Println("Error deleting line:", err)
+				waitForEnter()
 			} else {
 				fmt.Println("Line deleted.")
+				waitForEnter()
 			}
 		default:
 			fmt.Println("Invalid option.")

@@ -13,6 +13,7 @@ import (
 // AdministrationFlow handles the administration menu and routes to subcategories
 func AdministrationFlow(categoryStore *store.CategoryStore, lineStore *store.LineStore, userStore *store.UserStore, user *domain.User) {
 	for {
+		clearTerminal()
 		fmt.Println("\n--- Administration ---")
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - Categories")

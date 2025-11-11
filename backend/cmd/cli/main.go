@@ -11,9 +11,11 @@ import (
 )
 
 func main() {
+	clearTerminal()
 	db, err := database.ConnectDB()
 	if err != nil {
 		fmt.Println("Error connecting to the database:", err)
+		waitForEnter()
 		return
 	}
 	defer db.Close()
@@ -30,6 +32,7 @@ func main() {
 	rows, err := db.Query("SELECT id, username, display_name FROM users")
 	if err != nil {
 		fmt.Println("Erro ao consultar usuários:", err)
+		waitForEnter()
 	} else {
 		for rows.Next() {
 			var id, username, displayName string
@@ -46,11 +49,14 @@ func main() {
 	user, err := userStore.AuthenticateUser(username, password)
 	if err != nil {
 		fmt.Println("Login failed:", err)
+		waitForEnter()
 		return
 	}
 	fmt.Printf("Welcome, %s!\n\n", user.DisplayName)
+	waitForEnter()
 
 	for {
+		clearTerminal()
 		switch mainMenu() {
 		case "1":
 			ClientsFlow(clientStore, dependentStore, contractStore, lineStore, categoryStore)
@@ -63,6 +69,7 @@ func main() {
 			return
 		default:
 			fmt.Println("Invalid option.")
+			waitForEnter()
 		}
 	}
 }

@@ -15,6 +15,7 @@ import (
 // ContractsFlow handles the contracts overview menu (list, filter, create, edit, delete)
 func ContractsFlow(contractStore *store.ContractStore, clientStore *store.ClientStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	for {
+		clearTerminal()
 		fmt.Println("\n--- Contracts (Overview) ---")
 		fmt.Println("0 - Back")
 		fmt.Println("1 - List all contracts")
@@ -31,14 +32,17 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 
 		switch opt {
 		case "1":
+			clearTerminal()
 			// List all contracts
 			contracts, err := contractStore.GetAllContracts()
 			if err != nil {
 				fmt.Println("Error listing contracts:", err)
+				waitForEnter()
 				continue
 			}
 			if len(contracts) == 0 {
 				fmt.Println("No contracts found.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("\n=== All contracts ===")
@@ -51,22 +55,27 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
 					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
+			waitForEnter()
 
 		case "2":
+			clearTerminal()
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
 			clientID = strings.TrimSpace(clientID)
 			if clientID == "" {
 				fmt.Println("Error: Client ID cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			contracts, err := contractStore.GetContractsByClientID(clientID)
 			if err != nil {
 				fmt.Println("Error listing contracts:", err)
+				waitForEnter()
 				continue
 			}
 			if len(contracts) == 0 {
 				fmt.Println("No contracts found for this client.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("\n=== contracts by Client ===")
@@ -79,21 +88,26 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
 					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
+			waitForEnter()
 		case "3":
+			clearTerminal()
 			fmt.Print("Line ID: ")
 			lineID, _ := reader.ReadString('\n')
 			lineID = strings.TrimSpace(lineID)
 			if lineID == "" {
 				fmt.Println("Error: Line ID cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			contracts, err := contractStore.GetContractsByLineID(lineID)
 			if err != nil {
 				fmt.Println("Error listing contracts:", err)
+				waitForEnter()
 				continue
 			}
 			if len(contracts) == 0 {
 				fmt.Println("No contracts found for this line.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("\n=== contracts by Line ===")
@@ -106,21 +120,26 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
 					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
+			waitForEnter()
 		case "4":
+			clearTerminal()
 			fmt.Print("Category ID: ")
 			categoryID, _ := reader.ReadString('\n')
 			categoryID = strings.TrimSpace(categoryID)
 			if categoryID == "" {
 				fmt.Println("Error: Category ID cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			contracts, err := contractStore.GetContractsByCategoryID(categoryID)
 			if err != nil {
 				fmt.Println("Error listing contracts:", err)
+				waitForEnter()
 				continue
 			}
 			if len(contracts) == 0 {
 				fmt.Println("No contracts found for this category.")
+				waitForEnter()
 				continue
 			}
 			fmt.Println("\n=== contracts by Category ===")
@@ -133,17 +152,21 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				fmt.Printf("ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
 					l.ID, l.Model, l.ProductKey, status, l.StartDate.Format("2006-01-02"), l.EndDate.Format("2006-01-02"), dependent)
 			}
+			waitForEnter()
 
 		case "5":
+			clearTerminal()
 			fmt.Print("Client ID: ")
 			clientID, _ := reader.ReadString('\n')
 			clientID = strings.TrimSpace(clientID)
 			if clientID == "" {
 				fmt.Println("Error: Client ID cannot be empty.")
+				waitForEnter()
 				continue
 			}
 			ContractsSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
 		case "6":
+			clearTerminal()
 			fmt.Print("Buscar contrato para editar por (1) ID ou (2) nome/modelo? ")
 			searchOpt, _ := reader.ReadString('\n')
 			searchOpt = strings.TrimSpace(searchOpt)
@@ -155,6 +178,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				contracts, err := contractStore.GetContractsByName(searchName)
 				if err != nil || len(contracts) == 0 {
 					fmt.Println("Nenhum contrato encontrado.")
+					waitForEnter()
 					continue
 				}
 				for i, c := range contracts {
@@ -166,6 +190,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				idx, err := strconv.Atoi(idxStr)
 				if err != nil || idx < 1 || idx > len(contracts) {
 					fmt.Println("Opção inválida.")
+					waitForEnter()
 					continue
 				}
 				contract = &contracts[idx-1]
@@ -175,11 +200,13 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				id = strings.TrimSpace(id)
 				if id == "" {
 					fmt.Println("Error: contract ID cannot be empty.")
+					waitForEnter()
 					continue
 				}
 				c, err := contractStore.GetContractByID(id)
 				if err != nil || c == nil {
 					fmt.Println("contract not found.")
+					waitForEnter()
 					continue
 				}
 				contract = c
@@ -224,6 +251,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				parsedStart, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
 				if errStart != nil {
 					fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
+					waitForEnter()
 					continue
 				}
 				startDate = parsedStart
@@ -232,6 +260,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				parsedEnd, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
 				if errEnd != nil {
 					fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
+					waitForEnter()
 					continue
 				}
 				endDate = parsedEnd
@@ -253,10 +282,13 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			err := contractStore.UpdateContract(*contract)
 			if err != nil {
 				fmt.Println("Error updating contract:", err)
+				waitForEnter()
 			} else {
 				fmt.Println("contract updated.")
+				waitForEnter()
 			}
 		case "7":
+			clearTerminal()
 			fmt.Print("Buscar contrato para excluir por (1) ID ou (2) nome/modelo? ")
 			searchOpt, _ := reader.ReadString('\n')
 			searchOpt = strings.TrimSpace(searchOpt)
@@ -268,6 +300,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				contracts, err := contractStore.GetContractsByName(searchName)
 				if err != nil || len(contracts) == 0 {
 					fmt.Println("Nenhum contrato encontrado.")
+					waitForEnter()
 					continue
 				}
 				for i, c := range contracts {
@@ -279,6 +312,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				idx, err := strconv.Atoi(idxStr)
 				if err != nil || idx < 1 || idx > len(contracts) {
 					fmt.Println("Opção inválida.")
+					waitForEnter()
 					continue
 				}
 				contractID = contracts[idx-1].ID
@@ -288,6 +322,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				id = strings.TrimSpace(id)
 				if id == "" {
 					fmt.Println("Error: contract ID cannot be empty.")
+					waitForEnter()
 					continue
 				}
 				contractID = id
@@ -295,8 +330,10 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			err := contractStore.DeleteContract(contractID)
 			if err != nil {
 				fmt.Println("Error deleting contract:", err)
+				waitForEnter()
 			} else {
 				fmt.Println("contract deleted.")
+				waitForEnter()
 			}
 		case "0":
 			return
@@ -308,6 +345,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 
 // ContractsSubmenu handles contract creation for a specific client
 func ContractsSubmenu(clientID string, contractStore *store.ContractStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+	clearTerminal()
 	reader := bufio.NewReader(os.Stdin)
 
 	// 1. Select Category
@@ -315,6 +353,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	categories, err := categoryStore.GetAllCategories()
 	if err != nil || len(categories) == 0 {
 		fmt.Println("Error: No categories available.")
+		waitForEnter()
 		return
 	}
 	for i, c := range categories {
@@ -326,6 +365,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	catIdx, err := strconv.Atoi(catIdxStr)
 	if err != nil || catIdx < 1 || catIdx > len(categories) {
 		fmt.Println("Error: Invalid category selection.")
+		waitForEnter()
 		return
 	}
 	categoryID := categories[catIdx-1].ID
@@ -335,6 +375,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	lines, err := lineStore.GetLinesByCategoryID(categoryID)
 	if err != nil || len(lines) == 0 {
 		fmt.Println("Error: No lines available for this category.")
+		waitForEnter()
 		return
 	}
 	for i, l := range lines {
@@ -346,6 +387,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	lineIdx, err := strconv.Atoi(lineIdxStr)
 	if err != nil || lineIdx < 1 || lineIdx > len(lines) {
 		fmt.Println("Error: Invalid line selection.")
+		waitForEnter()
 		return
 	}
 	lineID := lines[lineIdx-1].ID
@@ -356,6 +398,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	name = strings.TrimSpace(name)
 	if name == "" {
 		fmt.Println("Error: Contract model/name cannot be empty.")
+		waitForEnter()
 		return
 	}
 
@@ -365,6 +408,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	productKey = strings.TrimSpace(productKey)
 	if productKey == "" {
 		fmt.Println("Error: Product key cannot be empty.")
+		waitForEnter()
 		return
 	}
 
@@ -376,11 +420,13 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	startDate, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
 	if errStart != nil {
 		fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
+		waitForEnter()
 		return
 	}
 	endDate, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
 	if errEnd != nil {
 		fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
+		waitForEnter()
 		return
 	}
 
@@ -405,6 +451,7 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 			idx, err := strconv.Atoi(idxStr)
 			if err != nil || idx < 1 || idx > len(dependents) {
 				fmt.Println("Error: Invalid dependent selection.")
+				waitForEnter()
 				return
 			}
 			depID := dependents[idx-1].ID
@@ -424,7 +471,9 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	id, err := contractStore.CreateContract(contract)
 	if err != nil {
 		fmt.Println("Error creating contract:", err)
+		waitForEnter()
 	} else {
 		fmt.Println("Contract created with ID:", id)
+		waitForEnter()
 	}
 }
