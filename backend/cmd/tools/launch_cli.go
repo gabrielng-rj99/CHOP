@@ -31,10 +31,10 @@ func LaunchCLI() {
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
-	fmt.Println("✓ Banco de dados está pronto!\n")
+	fmt.Println("✓ Banco de dados está pronto!\n ")
 
 	fmt.Println("▶ Iniciando CLI principal...")
-	fmt.Println("─────────────────────────────────────────────────────────────\n")
+	fmt.Println("─────────────────────────────────────────────────────────────\n ")
 
 	// Get current working directory (should be backend directory)
 	backendDir, err := os.Getwd()
