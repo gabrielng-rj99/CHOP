@@ -11,7 +11,7 @@ import (
 
 // RunIntegrationTestsWithDockerPostgres executa todos os testes do projeto usando PostgreSQL via Docker Compose
 func RunIntegrationTestsWithDockerPostgres() {
-	fmt.Print("\033[H\033[2J")
+	clearTerminal()
 	fmt.Println("\n=== Testes de Integração com PostgreSQL (porta 65432) ===")
 
 	projectRoot, err := os.Getwd()

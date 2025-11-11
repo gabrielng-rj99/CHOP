@@ -21,7 +21,7 @@ const (
 
 // InitMainDatabaseDocker sobe o container do banco principal e inicializa o schema
 func InitMainDatabaseDocker() {
-	fmt.Print("\033[H\033[2J")
+	clearTerminal()
 	projectRoot, err := os.Getwd()
 	if err != nil {
 		fmt.Println("❌ Erro ao determinar raiz do projeto:", err)

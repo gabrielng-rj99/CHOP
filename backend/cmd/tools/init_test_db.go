@@ -21,7 +21,7 @@ const (
 
 // Exclui o banco de dados de teste, derruba o container e recria tudo do zero
 func InitTestDatabaseDocker() {
-	fmt.Print("\033[H\033[2J")
+	clearTerminal()
 	projectRoot, err := os.Getwd()
 	if err != nil {
 		fmt.Println("❌ Erro ao determinar raiz do projeto:", err)

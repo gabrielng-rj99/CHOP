@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -128,4 +129,18 @@ func runShell(cmd string) error {
 	command.Stderr = os.Stderr
 	command.Env = os.Environ()
 	return command.Run()
+}
+
+func clearTerminal() {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default: // linux, darwin, etc
+		cmd = exec.Command("clear")
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }

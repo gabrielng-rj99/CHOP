@@ -9,7 +9,7 @@ import (
 
 // DropMainDatabase para o banco principal (container), sem remover dados ou volumes.
 func DropMainDatabase() {
-	fmt.Print("\033[H\033[2J")
+	clearTerminal()
 	fmt.Println("⚠ Esta ação irá parar o banco principal (container), mas não irá remover dados ou volumes.")
 	fmt.Print("Tem certeza que deseja continuar? (digite 'sim' para confirmar): ")
 	reader := bufio.NewReader(os.Stdin)
