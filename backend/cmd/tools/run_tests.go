@@ -4,12 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 )
 
 // RunIntegrationTestsWithDockerPostgres executa todos os testes do projeto usando PostgreSQL via Docker Compose
-// Utiliza um serviço separado na porta 65432 para não interferir com o banco principal
 func RunIntegrationTestsWithDockerPostgres() {
 	fmt.Print("\033[H\033[2J")
 	fmt.Println("\n=== Testes de Integração com PostgreSQL (porta 65432) ===")
@@ -23,17 +21,15 @@ func RunIntegrationTestsWithDockerPostgres() {
 	}
 
 	// Verifica se o container de teste já está rodando
-	if isContainerRunning("contract_manager_postgres_test") {
-		fmt.Println("ℹ Container postgres_test já está rodando. Aguardando ficar pronto...")
-	} else {
-		fmt.Println("▶ Iniciando serviço postgres_test (porta 65432)...")
-		if err := runDockerComposeUp("postgres_test"); err != nil {
-			fmt.Println("❌ Erro ao subir serviço postgres_test:", err)
-			fmt.Print("Pressione ENTER para continuar...")
-			bufio.NewReader(os.Stdin).ReadString('\n')
-			return
-		}
+	if !isContainerRunning("contract_manager_postgres_test") {
+		fmt.Println("❌ O banco de testes NÃO está inicializado!")
+		fmt.Println("Sugestão: Rode a opção 21 antes para inicializar o banco de testes.")
+		fmt.Print("Pressione ENTER para voltar ao menu...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		return
 	}
+
+	fmt.Println("✓ Banco de testes está rodando!")
 
 	// Aguarda o banco ficar pronto
 	fmt.Println("⏳ Aguardando postgres_test ficar pronto...")
@@ -41,21 +37,26 @@ func RunIntegrationTestsWithDockerPostgres() {
 		fmt.Println("❌ postgres_test não ficou pronto no tempo esperado.")
 		fmt.Print("Pressione ENTER para continuar...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
-		runDockerComposeStop("postgres_test")
 		return
 	}
 	fmt.Println("✓ postgres_test está pronto!")
+
+	// Configura variáveis de ambiente
+	os.Setenv("POSTGRES_PORT", "65432")
+	os.Setenv("POSTGRES_HOST", "localhost")
+	os.Setenv("POSTGRES_USER", "postgres")
+	os.Setenv("POSTGRES_PASSWORD", "postgres")
+	os.Setenv("POSTGRES_DB", "contracts_manager_test")
+	os.Setenv("POSTGRES_SSLMODE", "disable")
 
 	// Executa os testes
 	fmt.Println("\n▶ Executando testes Go com cobertura...")
 	fmt.Println("─────────────────────────────────────────────────────────────")
 
-	backendPath := projectRoot
-	os.Setenv("POSTGRES_PORT", "65432")
+	runCmd := "cd " + projectRoot + " && go test -v -cover ./..."
+	err = runShell(runCmd)
 
-	runCmd := fmt.Sprintf("cd %s && go test -v -cover ./...", backendPath)
-	report, err := runShell(runCmd)
-	fmt.Println(report)
+	fmt.Println("─────────────────────────────────────────────────────────────")
 
 	if err != nil {
 		fmt.Println("\n⚠ Alguns testes falharam.")
@@ -63,19 +64,10 @@ func RunIntegrationTestsWithDockerPostgres() {
 		fmt.Println("\n✓ Todos os testes passaram com sucesso!")
 	}
 
-	fmt.Print("Deseja salvar o relatório em um arquivo? (s/n): ")
-	resp, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	if strings.TrimSpace(strings.ToLower(resp)) == "s" {
-		os.WriteFile("relatorio_testes.txt", []byte(report), 0644)
-		fmt.Println("Relatório salvo em relatorio_testes.txt")
-	}
-	fmt.Print("Pressione ENTER para continuar...")
+	fmt.Print("\nPressione ENTER para continuar...")
 	bufio.NewReader(os.Stdin).ReadString('\n')
 
-	runDockerComposeStop("postgres_test")
-	fmt.Println("\n✓ Ambiente de testes finalizado e limpo!")
+	fmt.Println("\n🛑 Apagando banco de testes...")
+	runDockerComposeDownWithVolumes("postgres_test")
+	fmt.Println("✓ Banco de testes removido!")
 }
-
-// Funções utilitárias agora estão em utils.go
-// runShell executa um comando shell simples
-// Implementação está em utils.go

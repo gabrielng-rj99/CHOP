@@ -74,9 +74,9 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		return "", errDisplay
 	}
 
-	// Validate role - only "user" or "admin" allowed
-	if role != "" && role != "user" && role != "admin" {
-		return "", errors.New("invalid role: must be 'user' or 'admin'")
+	// Validate role - only "user", "admin" or "full_admin" allowed
+	if role != "" && role != "user" && role != "admin" && role != "full_admin" {
+		return "", errors.New("invalid role: must be 'user', 'admin' or 'full_admin'")
 	}
 	if role == "" {
 		role = "user"
@@ -378,10 +378,10 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 			return "", "", "", "", errors.New("nome de usuário já existe")
 		}
 	} else {
-		// Descobre o próximo número disponível para admin-n
+		// Descobre o próximo número disponível para adminn
 		var n int
 		for {
-			username = fmt.Sprintf("admin-%d", n)
+			username = fmt.Sprintf("admin%d", n)
 			var count int
 			err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", username).Scan(&count)
 			if err != nil {

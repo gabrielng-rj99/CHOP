@@ -452,6 +452,10 @@ func TestGetContractByID(t *testing.T) {
 		}
 	}()
 
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	clientID, dependentID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
@@ -459,9 +463,10 @@ func TestGetContractByID(t *testing.T) {
 
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
+	contractID := uuid.New().String()
 	_, err = db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-		uuid.New().String(),
+		contractID,
 		"Test Contract",
 		"TEST-KEY-123",
 		startDate,
@@ -482,7 +487,7 @@ func TestGetContractByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - licença encontrada",
-			id:          uuid.New().String(),
+			id:          contractID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -541,11 +546,12 @@ func TestGetContractsByClientID(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 
 	for i := 0; i < 3; i++ {
+		contractID := uuid.New().String()
 		_, err := db.Exec(
 			"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-			"test-contract-"+string(rune('a'+i)),
+			contractID,
 			"Test Contract "+string(rune('A'+i)),
-			"TEST-KEY-"+string(rune('a'+i)),
+			"TEST-KEY-"+uuid.New().String()[:8],
 			startDate,
 			endDate,
 			lineID,
@@ -611,6 +617,10 @@ func TestUpdateContract(t *testing.T) {
 			t.Errorf("Failed to close test database: %v", err)
 		}
 	}()
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	clientID, dependentID, _, lineID, err := insertTestDependencies(db)
 	if err != nil {
@@ -825,6 +835,10 @@ func setupContractTestDB(t *testing.T) *sql.DB {
 func TestGetContractsExpiringSoon(t *testing.T) {
 	db := setupContractTestDB(t)
 	defer CloseDB(db)
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 
 	contractStore := NewContractStore(db)
 
@@ -1448,7 +1462,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			}
 
 			// Create dependent for client 1
-			dependent1ID := "dependent-1"
+			dependent1ID := uuid.New().String()
 			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 				dependent1ID, "Dependent 1", client1ID)
 			if errSetup != nil {
@@ -1456,7 +1470,7 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			}
 
 			// Create dependent for client 2
-			dependent2ID := "dependent-2"
+			dependent2ID := uuid.New().String()
 			_, errSetup = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 				dependent2ID, "Dependent 2", client2ID)
 			if errSetup != nil {

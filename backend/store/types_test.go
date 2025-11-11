@@ -218,7 +218,7 @@ func TestGetLinesByCategoryID(t *testing.T) {
 		},
 		{
 			name:        "sucesso - categoria sem tipos",
-			categoryID:  "non-existent-category",
+			categoryID:  uuid.New().String(),
 			expectError: false,
 			expectCount: 0,
 		},
@@ -405,7 +405,7 @@ func TestDeleteLine(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1?", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted line: %v", err)
 				}

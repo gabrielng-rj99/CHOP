@@ -914,10 +914,14 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 	}
 	defer CloseDB(db)
 
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
 	lineStore := NewLineStore(db)
 
 	// Create category and line
-	categoryID, err := InsertTestCategory(db, "Test Category")
+	categoryID, err := InsertTestCategory(db, "TestCategory-"+uuid.New().String()[:8])
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
@@ -997,8 +1001,12 @@ func TestCreateDependentWithInvalidNames(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	// Create client first
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	// Create test client first
+	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -1143,8 +1151,8 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentID := "test-dependent-id"
-	_, err = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES (?, ?, ?)",
+	dependentID := uuid.New().String()
+	_, err = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
 		dependentID, "Original Dependent", clientID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
@@ -1220,8 +1228,12 @@ func TestDependentNameTrimming(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	// Create client first
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	// Create test client first
+	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}

@@ -14,6 +14,9 @@ func setupDependentTest(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
 	return db
 }
 
@@ -21,81 +24,77 @@ func TestCreateDependent(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
-	// Create test client first
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
-	if err != nil {
-		t.Fatalf("Failed to insert test client: %v", err)
-	}
+	dependentStore := NewDependentStore(db)
 
 	tests := []struct {
 		name        string
-		dependent   domain.Dependent
+		dependName  string
+		clientID    string
+		setup       func() (string, error)
 		expectError bool
 	}{
 		{
-			name: "sucesso - criação normal",
-			dependent: domain.Dependent{
-				Name:     "Test Dependent",
-				ClientID: clientID,
+			name:       "sucesso - criação normal",
+			dependName: "Test Dependent",
+			setup: func() (string, error) {
+				return InsertTestClient(db, "TestClient1-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: false,
 		},
 		{
-			name: "erro - nome vazio",
-			dependent: domain.Dependent{
-				Name:     "",
-				ClientID: clientID,
+			name:       "erro - nome vazio",
+			dependName: "",
+			setup: func() (string, error) {
+				return InsertTestClient(db, "TestClient2-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: true,
 		},
 		{
-			name: "erro - nome duplicado para mesma empresa",
-			dependent: domain.Dependent{
-				Name:     "Test Dependent",
-				ClientID: clientID,
+			name:       "erro - nome duplicado para mesma empresa",
+			dependName: "Duplicate Dependent",
+			setup: func() (string, error) {
+				return InsertTestClient(db, "TestClient3-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: true,
 		},
 		{
-			name: "erro - empresa não existe",
-			dependent: domain.Dependent{
-				Name:     "Test Dependent",
-				ClientID: uuid.New().String(),
-			},
+			name:        "erro - empresa não existe",
+			dependName:  "Test Dependent",
+			clientID:    uuid.New().String(),
 			expectError: true,
 		},
 		{
-			name: "erro - sem client_id",
-			dependent: domain.Dependent{
-				Name: "Test Dependent",
-			},
+			name:        "erro - sem client_id",
+			dependName:  "Test Dependent",
+			clientID:    "",
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.name != "erro - empresa não existe" {
-				err := ClearTables(db)
-				if err != nil {
-					t.Fatalf("Failed to clear tables: %v", err)
-				}
-				// Recreate client after clearing
-				clientID, err = InsertTestClient(db, "Test Client", generateUniqueCNPJ())
-				if err != nil {
-					t.Fatalf("Failed to insert test client: %v", err)
-				}
-				if tt.dependent.ClientID == clientID {
-					tt.dependent.ClientID = clientID
-				}
+			if err := ClearTables(db); err != nil {
+				t.Fatalf("Failed to clear tables: %v", err)
 			}
 
-			dependentStore := NewDependentStore(db)
+			clientID := tt.clientID
+			if tt.setup != nil {
+				id, err := tt.setup()
+				if err != nil {
+					t.Fatalf("Failed to setup test: %v", err)
+				}
+				clientID = id
+			}
+
+			dependent := domain.Dependent{
+				Name:     tt.dependName,
+				ClientID: clientID,
+			}
 
 			// Para o teste de nome duplicado, insere a primeira entidade antes
 			if tt.name == "erro - nome duplicado para mesma empresa" {
 				_, err := dependentStore.CreateDependent(domain.Dependent{
-					Name:     "Test Dependent",
+					Name:     "Duplicate Dependent",
 					ClientID: clientID,
 				})
 				if err != nil {
@@ -103,7 +102,7 @@ func TestCreateDependent(t *testing.T) {
 				}
 			}
 
-			id, err := dependentStore.CreateDependent(tt.dependent)
+			id, err := dependentStore.CreateDependent(dependent)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")

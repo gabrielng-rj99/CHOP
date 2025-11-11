@@ -32,10 +32,10 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		t.Fatalf("Erro ao criar usuário full_admin: %v", err)
 	}
 
-	// Cria usuário admin-0
-	_, err = userStore.CreateUser("admin-0", "Admin Zero", "SenhaForte123!@#abc", "admin")
+	// Cria usuário admin0
+	_, err = userStore.CreateUser("admin0", "Admin Zero", "SenhaForte123!@#abc", "admin")
 	if err != nil {
-		t.Fatalf("Erro ao criar usuário admin-0: %v", err)
+		t.Fatalf("Erro ao criar usuário admin0: %v", err)
 	}
 
 	// Cria usuário normal
@@ -50,10 +50,10 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		t.Error("admin-0 NÃO deveria poder alterar o role de outro usuário")
 	}
 
-	// Tenta alterar role de admin-0 usando admin-0 (não deve permitir)
-	err = userStore.EditUserRole("admin-0", "admin-0", "user")
+	// Tenta alterar role de admin0 usando admin0 (não deve permitir)
+	err = userStore.EditUserRole("admin0", "admin0", "user")
 	if err == nil {
-		t.Error("admin-0 NÃO deveria poder alterar o role de outro admin")
+		t.Error("admin0 NÃO deveria poder alterar o role de outro admin")
 	}
 
 	// Tenta alterar role de user1 usando admin (deve permitir)
@@ -62,8 +62,8 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		t.Errorf("full_admin deveria poder alterar o role de outro usuário: %v", err)
 	}
 
-	// Tenta remover role admin de admin-0 usando admin (deve permitir)
-	err = userStore.EditUserRole("admin", "admin-0", "user")
+	// Tenta remover role admin de admin0 usando admin (deve permitir)
+	err = userStore.EditUserRole("admin", "admin0", "user")
 	if err != nil {
 		t.Errorf("full_admin deveria poder remover o role admin de outro admin: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		if u.Username == "user1" {
 			user1 = u
 		}
-		if u.Username == "admin-0" {
+		if u.Username == "admin0" {
 			admin0 = u
 		}
 	}
@@ -86,7 +86,7 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		t.Error("user1 deveria ser admin após alteração feita por full_admin")
 	}
 	if admin0.Role != "user" {
-		t.Error("admin-0 NÃO deveria ser admin após remoção feita por full_admin")
+		t.Error("admin0 NÃO deveria ser admin após remoção feita por full_admin")
 	}
 }
 
@@ -128,8 +128,8 @@ func TestCreateUserBasic(t *testing.T) {
 	}{
 		{
 			name:        "valid full_admin user",
-			username:    "adminuser",
-			displayName: "Admin User",
+			username:    "fulladminuser",
+			displayName: "Full Admin User",
 			password:    "ValidPass123!@#a",
 			role:        "full_admin",
 			expectError: false,
