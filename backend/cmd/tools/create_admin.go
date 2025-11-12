@@ -18,8 +18,19 @@ func PrintOptionalFieldHint() {
 }
 
 // CreateAdminCLI executa o fluxo de criação de admin via CLI
+// ⚠️ IMPORTANTE: Esta função usa APENAS o banco PRINCIPAL (porta 5432)
+// O banco de testes (porta 65432) é usado APENAS para testes automatizados
 func CreateAdminCLI() {
 	clearTerminal()
+
+	// Garante que variáveis de ambiente NÃO estejam configuradas para banco de testes
+	os.Unsetenv("POSTGRES_PORT")
+	os.Unsetenv("TEST_DB")
+
+	// Define explicitamente porta do banco PRINCIPAL
+	os.Setenv("POSTGRES_PORT", "5432")
+	os.Setenv("POSTGRES_DB", "contracts_manager")
+	os.Setenv("POSTGRES_HOST", "localhost")
 
 	// Verifica se o banco principal está rodando
 	if !isContainerRunning("contract_manager_postgres") {
@@ -42,7 +53,7 @@ func CreateAdminCLI() {
 	}
 	fmt.Println("✓ Banco de dados está pronto!")
 
-	// Garante que o banco principal está rodando
+	// Conecta ao banco PRINCIPAL
 	db, err := database.ConnectDB()
 	if err != nil {
 		fmt.Println("❌ Erro ao conectar ao banco de dados:", err)
@@ -53,43 +64,57 @@ func CreateAdminCLI() {
 		return
 	}
 	defer func() {
-		fmt.Print("Pressione ENTER para continuar...")
-		bufio.NewReader(os.Stdin).ReadString('\n')
 		db.Close()
 	}()
 
 	userStore := store.NewUserStore(db)
 
 	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("\n=== CRIAR USUÁRIO ADMIN ===")
+	fmt.Println("Conectado ao banco: contracts_manager (porta 5432)")
+	fmt.Println()
+
 	fmt.Print("Username do admin (deixe vazio para auto gerar admin-n): ")
 	username, _ := reader.ReadString('\n')
 	username = strings.TrimSpace(username)
+
 	fmt.Print("Display Name do admin: ")
 	displayName, _ := reader.ReadString('\n')
 	displayName = strings.TrimSpace(displayName)
+
 	fmt.Print("Role do admin (admin/full_admin): ")
 	role, _ := reader.ReadString('\n')
 	role = strings.TrimSpace(role)
 	if role == "" {
 		role = "admin"
 	}
+
 	genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, role)
 	if err != nil {
-		fmt.Println("Erro ao criar admin:", err)
-		fmt.Print("Pressione ENTER para continuar...")
-		bufio.NewReader(os.Stdin).ReadString('\n')
-		return
-	} else {
-		fmt.Printf("Usuário admin criado: %s\nDisplay Name: %s\nSenha: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
-		fmt.Print("Pressione ENTER para continuar...")
+		fmt.Println("\n❌ Erro ao criar admin:", err)
+		fmt.Print("\nPressione ENTER para continuar...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
+
+	fmt.Println("\n✅ Usuário admin criado com sucesso!")
+	fmt.Printf("┌────────────────────────────────────────────────────────────────┐\n")
+	fmt.Printf("│ Username:     %-48s │\n", genUsername)
+	fmt.Printf("│ Display Name: %-48s │\n", genDisplayName)
+	fmt.Printf("│ Role:         %-48s │\n", role)
+	fmt.Printf("│ User ID:      %-48s │\n", genID)
+	fmt.Printf("├────────────────────────────────────────────────────────────────┤\n")
+	fmt.Printf("│ SENHA GERADA (GUARDE EM LOCAL SEGURO):                        │\n")
+	fmt.Printf("│ %-62s │\n", genPassword)
+	fmt.Printf("└────────────────────────────────────────────────────────────────┘\n")
+	fmt.Print("\nPressione ENTER para continuar...")
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
 // CreateAdminUser creates an admin user with a randomly generated 64-character password.
 // Prints the generated password to the terminal to be saved securely.
 // Use this function only manually, never in production or in the normal system flow.
+// ⚠️ IMPORTANTE: Esta função assume que o banco principal JÁ está conectado
 func CreateAdminUser(userStore *store.UserStore) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>/?"
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))

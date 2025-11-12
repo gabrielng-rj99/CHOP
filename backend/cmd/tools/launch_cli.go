@@ -9,8 +9,19 @@ import (
 )
 
 // LaunchCLI launches the main CLI application
+// ⚠️ IMPORTANTE: Esta função usa APENAS o banco PRINCIPAL (porta 5432)
+// O banco de testes (porta 65432) é usado APENAS para testes automatizados
 func LaunchCLI() {
 	clearTerminal()
+
+	// Garante que variáveis de ambiente NÃO estejam configuradas para banco de testes
+	os.Unsetenv("POSTGRES_PORT")
+	os.Unsetenv("TEST_DB")
+
+	// Define explicitamente porta do banco PRINCIPAL
+	os.Setenv("POSTGRES_PORT", "5432")
+	os.Setenv("POSTGRES_DB", "contracts_manager")
+	os.Setenv("POSTGRES_HOST", "localhost")
 
 	// Verifica se o banco principal está rodando
 	if !isContainerRunning("contract_manager_postgres") {

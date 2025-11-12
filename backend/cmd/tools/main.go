@@ -33,6 +33,10 @@ func main() {
 		fmt.Println("23 - Excluir banco de teste (remover dados e volumes)")
 
 		fmt.Println("\n----------------------------------------------------------------------------")
+		fmt.Println("==== DIAGNÓSTICO ====")
+		fmt.Println("99 - Validar separação dos bancos de dados")
+
+		fmt.Println("\n----------------------------------------------------------------------------")
 		fmt.Println("00 - Sair")
 		fmt.Println("----------------------------------------------------------------------------")
 		fmt.Print("\nOpção: ")
@@ -57,6 +61,8 @@ func main() {
 			RunIntegrationTestsWithDockerPostgres()
 		case "23":
 			DropTestDatabase()
+		case "99":
+			ValidateDBSeparation()
 		case "0", "00":
 			fmt.Println("Saindo...")
 			<-time.After(1200 * time.Millisecond)
