@@ -8,17 +8,27 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
 // isContainerRunning verifica se um container específico está rodando
 func isContainerRunning(containerName string) bool {
-	cmd := exec.Command("docker", "ps", "--filter", fmt.Sprintf("name=%s", containerName), "--format", "{{.Names}}")
+	cmd := exec.Command("docker", "ps", "--format", "{{.Names}}")
 	output, err := cmd.Output()
 	if err != nil {
 		return false
 	}
-	return len(output) > 0
+
+	// Split output by newlines and check for exact match
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == containerName {
+			return true
+		}
+	}
+
+	return false
 }
 
 // waitForPostgresReady aguarda até que o PostgreSQL esteja pronto na porta especificada
