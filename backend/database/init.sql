@@ -15,17 +15,42 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS clients (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    registration_id VARCHAR(255) UNIQUE NOT NULL,
+    registration_id VARCHAR(255),
+    nickname VARCHAR(255),
+    birth_date DATE,
     email VARCHAR(255),
     phone VARCHAR(50),
-    archived_at TIMESTAMP
+    address TEXT,
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'ativo',
+    tags TEXT,
+    contact_preference VARCHAR(50),
+    last_contact_date TIMESTAMP,
+    next_action_date TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    documents TEXT,
+    archived_at TIMESTAMP,
+    CONSTRAINT unique_registration_id_when_not_null UNIQUE NULLS NOT DISTINCT (registration_id)
 );
+
+CREATE UNIQUE INDEX unique_name_when_no_registration ON clients(name) WHERE registration_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS dependents (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     client_id UUID NOT NULL,
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    description TEXT,
+    birth_date DATE,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'ativo',
+    tags TEXT,
+    contact_preference VARCHAR(50),
+    documents TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+    CONSTRAINT unique_dependent_name_per_client UNIQUE (client_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS categories (

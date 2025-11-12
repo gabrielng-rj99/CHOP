@@ -8,19 +8,40 @@ import (
 
 // Client representa a tabela 'clients'
 type Client struct {
-	ID             string     `json:"id"`
-	Name           string     `json:"name"`
-	RegistrationID string     `json:"registration_id"`
-	Email          *string    `json:"email,omitempty"`       // Email do cliente (opcional)
-	Phone          *string    `json:"phone,omitempty"`       // Telefone do cliente (opcional)
-	ArchivedAt     *time.Time `json:"archived_at,omitempty"` // Soft delete via archived_at
+	ID                string     `json:"id"`
+	Name              string     `json:"name"`
+	RegistrationID    *string    `json:"registration_id,omitempty"`    // CPF/CNPJ (opcional)
+	Nickname          *string    `json:"nickname,omitempty"`           // Apelido/Nome fantasia (opcional)
+	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email do cliente (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone do cliente (opcional)
+	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
+	Notes             *string    `json:"notes,omitempty"`              // Observações gerais (opcional)
+	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
+	Tags              *string    `json:"tags,omitempty"`               // Tags separadas por vírgula (opcional)
+	ContactPreference *string    `json:"contact_preference,omitempty"` // Preferência de contato (whatsapp, email, etc.)
+	LastContactDate   *time.Time `json:"last_contact_date,omitempty"`  // Data do último contato (opcional)
+	NextActionDate    *time.Time `json:"next_action_date,omitempty"`   // Próxima ação planejada (opcional)
+	CreatedAt         time.Time  `json:"created_at"`                   // Data de cadastro
+	Documents         *string    `json:"documents,omitempty"`          // Lista de documentos/links (opcional)
+	ArchivedAt        *time.Time `json:"archived_at,omitempty"`        // Soft delete via archived_at
 }
 
 // Dependent representa a tabela 'dependents' (Client Dependent, como unidades, filhos, parentes)
 type Dependent struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	ClientID string `json:"client_id"`
+	ID                string     `json:"id"`
+	Name              string     `json:"name"`
+	ClientID          string     `json:"client_id"`
+	Description       *string    `json:"description,omitempty"`        // Descrição livre (opcional)
+	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email do dependente (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone do dependente (opcional)
+	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
+	Notes             *string    `json:"notes,omitempty"`              // Observações (opcional)
+	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
+	Tags              *string    `json:"tags,omitempty"`               // Tags separadas por vírgula (opcional)
+	ContactPreference *string    `json:"contact_preference,omitempty"` // Preferência de contato (opcional)
+	Documents         *string    `json:"documents,omitempty"`          // Lista de documentos/links (opcional)
 }
 
 // Category representa a tabela 'categories'
