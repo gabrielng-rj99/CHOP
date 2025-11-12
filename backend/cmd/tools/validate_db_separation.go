@@ -9,12 +9,14 @@ import (
 // ValidateDBSeparation valida que os bancos estão corretamente separados
 func ValidateDBSeparation() {
 	clearTerminal()
-	fmt.Println("=== VALIDAÇÃO DE SEPARAÇÃO DOS BANCOS DE DADOS ===\n ")
+	fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
+	fmt.Println("║           VALIDAÇÃO DE SEPARAÇÃO DOS BANCOS DE DADOS                      ║")
+	fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
 
 	allGood := true
 
 	// 1. Verificar containers Docker
-	fmt.Println("1️⃣  Verificando containers Docker...")
+	fmt.Println("\n1️⃣  Verificando containers Docker...")
 	mainRunning := isContainerRunning("contract_manager_postgres")
 	testRunning := isContainerRunning("contract_manager_postgres_test")
 
@@ -117,30 +119,35 @@ func ValidateDBSeparation() {
 	}
 
 	// 5. Resumo
-	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("\n╔════════════════════════════════════════════════════════════════════════════╗")
 	if allGood {
-		fmt.Println("✅ VALIDAÇÃO COMPLETA: Separação de bancos está CORRETA!")
-		fmt.Println("\n📋 REGRAS DE USO:")
-		fmt.Println("   🟢 Banco PRINCIPAL (porta 5432):")
-		fmt.Println("      - Usar para: CLI, Admin, Desenvolvimento, Produção")
-		fmt.Println("      - Container: contract_manager_postgres")
-		fmt.Println("      - Database: contracts_manager")
-		fmt.Println("\n   🔵 Banco de TESTES (porta 65432):")
-		fmt.Println("      - Usar APENAS para: go test")
-		fmt.Println("      - Container: contract_manager_postgres_test")
-		fmt.Println("      - Database: contracts_manager_test")
-		fmt.Println("      - Comando: POSTGRES_PORT=65432 go test ./...")
+		fmt.Println("║ ✅ VALIDAÇÃO COMPLETA: Separação de bancos está CORRETA!                  ║")
+		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║                          📋 REGRAS DE USO                                  ║")
+		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║ 🟢 Banco PRINCIPAL (porta 5432):                                          ║")
+		fmt.Println("║    • Usar para: CLI, Admin, Desenvolvimento, Produção                     ║")
+		fmt.Println("║    • Container: contract_manager_postgres                                 ║")
+		fmt.Println("║    • Database: contracts_manager                                          ║")
+		fmt.Println("║                                                                            ║")
+		fmt.Println("║ 🔵 Banco de TESTES (porta 65432):                                         ║")
+		fmt.Println("║    • Usar APENAS para: go test                                            ║")
+		fmt.Println("║    • Container: contract_manager_postgres_test                            ║")
+		fmt.Println("║    • Database: contracts_manager_test                                     ║")
+		fmt.Println("║    • Comando: POSTGRES_PORT=65432 go test ./...                           ║")
 	} else {
-		fmt.Println("⚠️  ATENÇÃO: Possível problema de configuração detectado")
-		fmt.Println("\n📝 RECOMENDAÇÕES:")
-		fmt.Println("   1. Se estiver rodando testes: ignore os avisos")
-		fmt.Println("   2. Se estiver usando CLI/Admin: limpe as variáveis:")
-		fmt.Println("      unset POSTGRES_PORT")
-		fmt.Println("      unset POSTGRES_DB")
-		fmt.Println("      unset TEST_DB")
-		fmt.Println("   3. Consulte docs/DATABASE_SEPARATION.md para mais info")
+		fmt.Println("║ ⚠️  ATENÇÃO: Possível problema de configuração detectado                  ║")
+		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║                        📝 RECOMENDAÇÕES                                    ║")
+		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║ 1. Se estiver rodando testes: ignore os avisos                            ║")
+		fmt.Println("║                                                                            ║")
+		fmt.Println("║ 2. Se estiver usando CLI/Admin: limpe as variáveis:                       ║")
+		fmt.Println("║    $ unset POSTGRES_PORT                                                  ║")
+		fmt.Println("║    $ unset POSTGRES_DB                                                    ║")
+		fmt.Println("║    $ unset TEST_DB                                                        ║")
 	}
-	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
 
 	fmt.Print("\nPressione ENTER para continuar...")
 	fmt.Scanln()

@@ -13,6 +13,13 @@ import (
 func RunIntegrationTestsWithDockerPostgres() {
 	clearTerminal()
 	fmt.Println("\n=== Testes de Integração com PostgreSQL (porta 65432) ===")
+	fmt.Println("\n📋 USO:")
+	fmt.Println("   Esta opção executa todos os testes automatizados do projeto")
+	fmt.Println("   usando o banco de dados de testes (porta 65432).")
+	fmt.Println("\n   Ou execute manualmente via terminal:")
+	fmt.Println("   $ cd backend")
+	fmt.Println("   $ POSTGRES_PORT=65432 go test ./... -v")
+	fmt.Println()
 
 	projectRoot, err := os.Getwd()
 	if err != nil {
