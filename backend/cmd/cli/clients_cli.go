@@ -18,9 +18,10 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 		clearTerminal()
 		fmt.Println("\n--- Clients Menu ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List clients")
-		fmt.Println("2 - Create client")
-		fmt.Println("3 - Select client")
+		fmt.Println("1 - List all clients")
+		fmt.Println("2 - Search/Filter clients")
+		fmt.Println("3 - Create client")
+		fmt.Println("4 - Select client")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -37,56 +38,121 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Active clients:")
-			for _, c := range clients {
-				email := "-"
-				if c.Email != nil {
-					email = *c.Email
-				}
-				phone := "-"
-				if c.Phone != nil {
-					phone = *c.Phone
-				}
-				fmt.Printf("ID: %s | Name: %s | Registration ID: %s | Email: %s | Phone: %s\n", c.ID, c.Name, c.RegistrationID, email, phone)
-			}
+			displayClientsList(clients)
 			waitForEnter()
 		case "2":
 			clearTerminal()
+			fmt.Println("\n=== Search/Filter Clients ===")
+			fmt.Print("Enter search term (name, nickname, or registration ID): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			if searchTerm == "" {
+				fmt.Println("Search term cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			clients, err := clientStore.GetAllClients()
+			if err != nil {
+				fmt.Println("Error listing clients:", err)
+				waitForEnter()
+				continue
+			}
+
+			filtered := filterClients(clients, searchTerm)
+			displayClientsList(filtered)
+			waitForEnter()
+		case "3":
+			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Client name: ")
+			fmt.Println("=== Create New Client ===")
+			fmt.Print("Client name (required): ")
 			name, _ := reader.ReadString('\n')
-			fmt.Print("Registration ID: ")
+			fmt.Print("Registration ID (optional, CPF/CNPJ): ")
 			registrationID, _ := reader.ReadString('\n')
+			fmt.Print("Nickname/Trade name (optional): ")
+			nickname, _ := reader.ReadString('\n')
+			fmt.Print("Birth/Foundation date (optional, YYYY-MM-DD): ")
+			birthDateStr, _ := reader.ReadString('\n')
 			fmt.Print("Email (optional): ")
 			email, _ := reader.ReadString('\n')
-			fmt.Print("Phone (optional): ")
+			fmt.Print("Phone (optional, E.164 format): ")
 			phone, _ := reader.ReadString('\n')
+			fmt.Print("Address (optional): ")
+			address, _ := reader.ReadString('\n')
+			fmt.Print("Notes (optional): ")
+			notes, _ := reader.ReadString('\n')
+			fmt.Print("Contact preference (optional: whatsapp/email/phone/sms/outros): ")
+			contactPref, _ := reader.ReadString('\n')
+			fmt.Print("Tags (optional, comma-separated): ")
+			tags, _ := reader.ReadString('\n')
+
 			name = strings.TrimSpace(name)
 			registrationID = strings.TrimSpace(registrationID)
+			nickname = strings.TrimSpace(nickname)
+			birthDateStr = strings.TrimSpace(birthDateStr)
 			email = strings.TrimSpace(email)
 			phone = strings.TrimSpace(phone)
+			address = strings.TrimSpace(address)
+			notes = strings.TrimSpace(notes)
+			contactPref = strings.TrimSpace(contactPref)
+			tags = strings.TrimSpace(tags)
+
 			if name == "" {
 				fmt.Println("Error: Client name cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			if registrationID == "" {
-				fmt.Println("Error: Registration ID cannot be empty.")
-				waitForEnter()
-				continue
-			}
-			var emailPtr, phonePtr *string
+
+			var emailPtr, phonePtr, regIDPtr, nicknamePtr, addressPtr, notesPtr, contactPrefPtr, tagsPtr *string
 			if email != "" {
 				emailPtr = &email
 			}
 			if phone != "" {
 				phonePtr = &phone
 			}
+			if registrationID != "" {
+				regIDPtr = &registrationID
+			}
+			if nickname != "" {
+				nicknamePtr = &nickname
+			}
+			if address != "" {
+				addressPtr = &address
+			}
+			if notes != "" {
+				notesPtr = &notes
+			}
+			if contactPref != "" {
+				contactPrefPtr = &contactPref
+			}
+			if tags != "" {
+				tagsPtr = &tags
+			}
+
+			var birthDate *time.Time
+			if birthDateStr != "" {
+				parsedDate, err := time.Parse("2006-01-02", birthDateStr)
+				if err != nil {
+					fmt.Printf("Warning: Invalid date format '%s'. Ignoring birth date.\n", birthDateStr)
+				} else {
+					birthDate = &parsedDate
+				}
+			}
+
 			client := domain.Client{
-				Name:           name,
-				RegistrationID: registrationID,
-				Email:          emailPtr,
-				Phone:          phonePtr,
+				Name:              name,
+				RegistrationID:    regIDPtr,
+				Nickname:          nicknamePtr,
+				BirthDate:         birthDate,
+				Status:            "ativo",
+				Email:             emailPtr,
+				Phone:             phonePtr,
+				Address:           addressPtr,
+				Notes:             notesPtr,
+				ContactPreference: contactPrefPtr,
+				Tags:              tagsPtr,
 			}
 			validationErrors := domain.ValidateClient(&client)
 			if !validationErrors.IsValid() {
@@ -106,19 +172,32 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				waitForEnter()
 			}
 			continue
-		case "3":
+		case "4":
 			clearTerminal()
+			fmt.Println("\n=== Select Client ===")
+			fmt.Print("Search term (or leave empty for all): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
 			clients, err := clientStore.GetAllClients()
 			if err != nil || len(clients) == 0 {
 				fmt.Println("No clients found.")
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Select a client by number:")
-			for i, c := range clients {
-				fmt.Printf("%d - %s | %s\n", i+1, c.Name, c.RegistrationID)
+
+			if searchTerm != "" {
+				clients = filterClients(clients, searchTerm)
 			}
-			fmt.Print("Enter the number of the client: ")
+
+			if len(clients) == 0 {
+				fmt.Println("No clients match your search.")
+				waitForEnter()
+				continue
+			}
+
+			displayClientsList(clients)
+			fmt.Print("\nEnter the number of the client (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
 			if idxStr == "0" {
@@ -138,16 +217,77 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 	}
 }
 
+// displayClientsList shows a compact list of clients with essential information
+func displayClientsList(clients []domain.Client) {
+	fmt.Println("\n=== Clients ===")
+	if len(clients) == 0 {
+		fmt.Println("No clients found.")
+		return
+	}
+
+	fmt.Printf("\n%-4s | %-30s | %-25s | %-20s\n", "#", "Name", "Nickname", "Registration ID")
+	fmt.Println(strings.Repeat("-", 85))
+
+	for i, c := range clients {
+		nickname := "-"
+		if c.Nickname != nil && *c.Nickname != "" {
+			nickname = *c.Nickname
+			if len(nickname) > 25 {
+				nickname = nickname[:22] + "..."
+			}
+		}
+
+		regID := "-"
+		if c.RegistrationID != nil && *c.RegistrationID != "" {
+			regID = *c.RegistrationID
+		}
+
+		name := c.Name
+		if len(name) > 30 {
+			name = name[:27] + "..."
+		}
+
+		fmt.Printf("%-4d | %-30s | %-25s | %-20s\n", i+1, name, nickname, regID)
+	}
+	fmt.Println()
+}
+
+// filterClients filters clients by name, nickname, or registration ID
+func filterClients(clients []domain.Client, searchTerm string) []domain.Client {
+	var filtered []domain.Client
+	searchTerm = strings.ToLower(searchTerm)
+
+	for _, c := range clients {
+		if strings.Contains(strings.ToLower(c.Name), searchTerm) {
+			filtered = append(filtered, c)
+			continue
+		}
+
+		if c.Nickname != nil && strings.Contains(strings.ToLower(*c.Nickname), searchTerm) {
+			filtered = append(filtered, c)
+			continue
+		}
+
+		if c.RegistrationID != nil && strings.Contains(strings.ToLower(*c.RegistrationID), searchTerm) {
+			filtered = append(filtered, c)
+			continue
+		}
+	}
+
+	return filtered
+}
+
 // DependentsSubmenu handles the dependents management for a specific client
 func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 	for {
 		clearTerminal()
 		fmt.Printf("\n--- Dependents of Client %s ---\n", clientID)
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List dependents")
-		fmt.Println("2 - Create dependent")
-		fmt.Println("3 - Edit dependent")
-		fmt.Println("4 - Delete dependent")
+		fmt.Println("1 - List all dependents")
+		fmt.Println("2 - Search/Filter dependents")
+		fmt.Println("3 - Create dependent")
+		fmt.Println("4 - Edit dependent")
+		fmt.Println("5 - Delete dependent")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -164,25 +304,127 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				waitForEnter()
 				continue
 			}
-			for _, e := range dependents {
-				fmt.Printf("ID: %s | Name: %s\n", e.ID, e.Name)
-			}
+			displayDependentsList(dependents)
 			waitForEnter()
 		case "2":
 			clearTerminal()
+			fmt.Println("\n=== Search/Filter Dependents ===")
+			fmt.Print("Enter search term (name, email, or description): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			if searchTerm == "" {
+				fmt.Println("Search term cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			dependents, err := dependentStore.GetDependentsByClientID(clientID)
+			if err != nil {
+				fmt.Println("Error listing dependents:", err)
+				waitForEnter()
+				continue
+			}
+
+			filtered := filterDependents(dependents, searchTerm)
+			displayDependentsList(filtered)
+			waitForEnter()
+		case "3":
+			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Dependent name: ")
+			fmt.Println("=== Create New Dependent ===")
+			fmt.Print("Dependent name (required): ")
 			name, _ := reader.ReadString('\n')
+			fmt.Print("Description (optional): ")
+			description, _ := reader.ReadString('\n')
+			fmt.Print("Birth/Foundation date (optional, YYYY-MM-DD): ")
+			birthDateStr, _ := reader.ReadString('\n')
+			fmt.Print("Email (optional): ")
+			email, _ := reader.ReadString('\n')
+			fmt.Print("Phone (optional, E.164 format): ")
+			phone, _ := reader.ReadString('\n')
+			fmt.Print("Address (optional): ")
+			address, _ := reader.ReadString('\n')
+			fmt.Print("Notes (optional): ")
+			notes, _ := reader.ReadString('\n')
+			fmt.Print("Contact preference (optional: whatsapp/email/phone/sms/outros): ")
+			contactPref, _ := reader.ReadString('\n')
+			fmt.Print("Tags (optional, comma-separated): ")
+			tags, _ := reader.ReadString('\n')
+
 			name = strings.TrimSpace(name)
+			description = strings.TrimSpace(description)
+			birthDateStr = strings.TrimSpace(birthDateStr)
+			email = strings.TrimSpace(email)
+			phone = strings.TrimSpace(phone)
+			address = strings.TrimSpace(address)
+			notes = strings.TrimSpace(notes)
+			contactPref = strings.TrimSpace(contactPref)
+			tags = strings.TrimSpace(tags)
+
 			if name == "" {
 				fmt.Println("Error: Dependent name cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			dependent := domain.Dependent{
-				Name:     name,
-				ClientID: clientID,
+
+			var descPtr, emailPtr, phonePtr, addressPtr, notesPtr, contactPrefPtr, tagsPtr *string
+			if description != "" {
+				descPtr = &description
 			}
+			if email != "" {
+				emailPtr = &email
+			}
+			if phone != "" {
+				phonePtr = &phone
+			}
+			if address != "" {
+				addressPtr = &address
+			}
+			if notes != "" {
+				notesPtr = &notes
+			}
+			if contactPref != "" {
+				contactPrefPtr = &contactPref
+			}
+			if tags != "" {
+				tagsPtr = &tags
+			}
+
+			var birthDate *time.Time
+			if birthDateStr != "" {
+				parsedDate, err := time.Parse("2006-01-02", birthDateStr)
+				if err != nil {
+					fmt.Printf("Warning: Invalid date format '%s'. Ignoring birth date.\n", birthDateStr)
+				} else {
+					birthDate = &parsedDate
+				}
+			}
+
+			dependent := domain.Dependent{
+				Name:              name,
+				ClientID:          clientID,
+				Description:       descPtr,
+				BirthDate:         birthDate,
+				Email:             emailPtr,
+				Phone:             phonePtr,
+				Address:           addressPtr,
+				Notes:             notesPtr,
+				Status:            "ativo",
+				ContactPreference: contactPrefPtr,
+				Tags:              tagsPtr,
+			}
+
+			validationErrors := domain.ValidateDependent(&dependent)
+			if !validationErrors.IsValid() {
+				fmt.Println("Validation errors:")
+				for _, err := range validationErrors {
+					fmt.Printf("  - %s: %s\n", err.Field, err.Message)
+				}
+				waitForEnter()
+				continue
+			}
+
 			id, err := dependentStore.CreateDependent(dependent)
 			if err != nil {
 				fmt.Println("Error creating dependent:", err)
@@ -191,7 +433,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				fmt.Println("Dependent created with ID:", id)
 				waitForEnter()
 			}
-		case "3":
+		case "4":
 			clearTerminal()
 			dependents, err := dependentStore.GetDependentsByClientID(clientID)
 			if err != nil || len(dependents) == 0 {
@@ -199,10 +441,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Select a dependent to edit by number:")
-			for i, d := range dependents {
-				fmt.Printf("%d - %s\n", i+1, d.Name)
-			}
+			displayDependentsList(dependents)
 			fmt.Print("Enter the number of the dependent: ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -233,7 +472,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				fmt.Println("Dependent updated.")
 				waitForEnter()
 			}
-		case "4":
+		case "5":
 			clearTerminal()
 			dependents, err := dependentStore.GetDependentsByClientID(clientID)
 			if err != nil || len(dependents) == 0 {
@@ -241,10 +480,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Select a dependent to delete by number:")
-			for i, d := range dependents {
-				fmt.Printf("%d - %s\n", i+1, d.Name)
-			}
+			displayDependentsList(dependents)
 			fmt.Print("Enter the number of the dependent: ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -316,11 +552,28 @@ func ClientSubmenu(clientID string,
 				continue
 			}
 			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("=== Edit Client ===")
 			PrintOptionalFieldHint()
 			fmt.Printf("Current name: %s | New name: ", client.Name)
 			name, _ := reader.ReadString('\n')
-			fmt.Printf("Current Registration ID: %s | New Registration ID: ", client.RegistrationID)
+			currentRegID := "-"
+			if client.RegistrationID != nil {
+				currentRegID = *client.RegistrationID
+			}
+			fmt.Printf("Current registration ID: %s | New registration ID (optional): ", currentRegID)
 			registrationID, _ := reader.ReadString('\n')
+			currentNickname := "-"
+			if client.Nickname != nil {
+				currentNickname = *client.Nickname
+			}
+			fmt.Printf("Current nickname: %s | New nickname: ", currentNickname)
+			nickname, _ := reader.ReadString('\n')
+			currentBirthDate := "-"
+			if client.BirthDate != nil {
+				currentBirthDate = client.BirthDate.Format("2006-01-02")
+			}
+			fmt.Printf("Current birth date: %s | New birth date (YYYY-MM-DD): ", currentBirthDate)
+			birthDateStr, _ := reader.ReadString('\n')
 			currentEmail := "-"
 			if client.Email != nil {
 				currentEmail = *client.Email
@@ -333,20 +586,83 @@ func ClientSubmenu(clientID string,
 			}
 			fmt.Printf("Current phone: %s | New phone: ", currentPhone)
 			phone, _ := reader.ReadString('\n')
+			currentAddress := "-"
+			if client.Address != nil {
+				currentAddress = *client.Address
+			}
+			fmt.Printf("Current address: %s | New address: ", currentAddress)
+			address, _ := reader.ReadString('\n')
+			currentNotes := "-"
+			if client.Notes != nil {
+				currentNotes = *client.Notes
+			}
+			fmt.Printf("Current notes: %s | New notes: ", currentNotes)
+			notes, _ := reader.ReadString('\n')
+			currentContactPref := "-"
+			if client.ContactPreference != nil {
+				currentContactPref = *client.ContactPreference
+			}
+			fmt.Printf("Current contact preference: %s | New contact preference: ", currentContactPref)
+			contactPref, _ := reader.ReadString('\n')
+			currentTags := "-"
+			if client.Tags != nil {
+				currentTags = *client.Tags
+			}
+			fmt.Printf("Current tags: %s | New tags: ", currentTags)
+			tags, _ := reader.ReadString('\n')
+
 			name = strings.TrimSpace(name)
 			registrationID = strings.TrimSpace(registrationID)
+			nickname = strings.TrimSpace(nickname)
+			birthDateStr = strings.TrimSpace(birthDateStr)
 			email = strings.TrimSpace(email)
 			phone = strings.TrimSpace(phone)
+			address = strings.TrimSpace(address)
+			notes = strings.TrimSpace(notes)
+			contactPref = strings.TrimSpace(contactPref)
+			tags = strings.TrimSpace(tags)
 
 			// Handle required fields: empty keeps current value
 			if name == "" {
 				name = client.Name
 			}
-			if registrationID == "" {
-				registrationID = client.RegistrationID
-			}
 			client.Name = name
-			client.RegistrationID = registrationID
+
+			// Handle optional registration ID: "-" clears it, empty keeps it, other value updates it
+			regIDVal, regIDUpdate, regIDClear := HandleOptionalField(registrationID)
+			if regIDUpdate {
+				if regIDClear {
+					client.RegistrationID = nil
+				} else {
+					client.RegistrationID = &regIDVal
+				}
+			}
+
+			// Handle optional nickname
+			nicknameVal, nicknameUpdate, nicknameClear := HandleOptionalField(nickname)
+			if nicknameUpdate {
+				if nicknameClear {
+					client.Nickname = nil
+				} else {
+					client.Nickname = &nicknameVal
+				}
+			}
+
+			// Handle optional birth date
+			birthDateVal, birthDateUpdate, birthDateClear := HandleOptionalField(birthDateStr)
+			if birthDateUpdate {
+				if birthDateClear {
+					client.BirthDate = nil
+				} else {
+					parsedDate, err := time.Parse("2006-01-02", birthDateVal)
+					if err != nil {
+						fmt.Printf("Warning: Invalid date format '%s'. Keeping previous value.\n", birthDateVal)
+					} else {
+						client.BirthDate = &parsedDate
+					}
+				}
+			}
+
 			// Handle optional email: "-" clears it, empty keeps it, other value updates it
 			emailVal, emailUpdate, emailClear := HandleOptionalField(email)
 			if emailUpdate {
@@ -356,6 +672,7 @@ func ClientSubmenu(clientID string,
 					client.Email = &emailVal
 				}
 			}
+
 			// Handle optional phone: "-" clears it, empty keeps it, other value updates it
 			phoneVal, phoneUpdate, phoneClear := HandleOptionalField(phone)
 			if phoneUpdate {
@@ -363,6 +680,46 @@ func ClientSubmenu(clientID string,
 					client.Phone = nil
 				} else {
 					client.Phone = &phoneVal
+				}
+			}
+
+			// Handle optional address
+			addressVal, addressUpdate, addressClear := HandleOptionalField(address)
+			if addressUpdate {
+				if addressClear {
+					client.Address = nil
+				} else {
+					client.Address = &addressVal
+				}
+			}
+
+			// Handle optional notes
+			notesVal, notesUpdate, notesClear := HandleOptionalField(notes)
+			if notesUpdate {
+				if notesClear {
+					client.Notes = nil
+				} else {
+					client.Notes = &notesVal
+				}
+			}
+
+			// Handle optional contact preference
+			contactPrefVal, contactPrefUpdate, contactPrefClear := HandleOptionalField(contactPref)
+			if contactPrefUpdate {
+				if contactPrefClear {
+					client.ContactPreference = nil
+				} else {
+					client.ContactPreference = &contactPrefVal
+				}
+			}
+
+			// Handle optional tags
+			tagsVal, tagsUpdate, tagsClear := HandleOptionalField(tags)
+			if tagsUpdate {
+				if tagsClear {
+					client.Tags = nil
+				} else {
+					client.Tags = &tagsVal
 				}
 			}
 			validationErrors := domain.ValidateClient(client)
@@ -572,4 +929,59 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 			fmt.Println("Invalid option.")
 		}
 	}
+}
+
+// displayDependentsList shows a compact list of dependents with essential information
+func displayDependentsList(dependents []domain.Dependent) {
+	fmt.Println("\n=== Dependents ===")
+	if len(dependents) == 0 {
+		fmt.Println("No dependents found.")
+		return
+	}
+
+	fmt.Printf("\n%-4s | %-35s | %-40s | %-15s\n", "#", "Name", "Description", "Status")
+	fmt.Println(strings.Repeat("-", 100))
+
+	for i, d := range dependents {
+		description := "-"
+		if d.Description != nil && *d.Description != "" {
+			description = *d.Description
+			if len(description) > 40 {
+				description = description[:37] + "..."
+			}
+		}
+
+		name := d.Name
+		if len(name) > 35 {
+			name = name[:32] + "..."
+		}
+
+		fmt.Printf("%-4d | %-35s | %-40s | %-15s\n", i+1, name, description, d.Status)
+	}
+	fmt.Println()
+}
+
+// filterDependents filters dependents by name, email, or description
+func filterDependents(dependents []domain.Dependent, searchTerm string) []domain.Dependent {
+	var filtered []domain.Dependent
+	searchTerm = strings.ToLower(searchTerm)
+
+	for _, d := range dependents {
+		if strings.Contains(strings.ToLower(d.Name), searchTerm) {
+			filtered = append(filtered, d)
+			continue
+		}
+
+		if d.Description != nil && strings.Contains(strings.ToLower(*d.Description), searchTerm) {
+			filtered = append(filtered, d)
+			continue
+		}
+
+		if d.Email != nil && strings.Contains(strings.ToLower(*d.Email), searchTerm) {
+			filtered = append(filtered, d)
+			continue
+		}
+	}
+
+	return filtered
 }
