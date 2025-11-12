@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS clients (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     documents TEXT,
     archived_at TIMESTAMP,
-    CONSTRAINT unique_registration_id_when_not_null UNIQUE NULLS NOT DISTINCT (registration_id)
+    CONSTRAINT unique_registration_id_when_not_null UNIQUE (registration_id)
 );
 
 CREATE UNIQUE INDEX unique_name_when_no_registration ON clients(name) WHERE registration_id IS NULL;
