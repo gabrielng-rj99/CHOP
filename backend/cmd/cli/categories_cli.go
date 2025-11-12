@@ -17,10 +17,11 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 		clearTerminal()
 		fmt.Println("\n--- Categories Menu ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List categories")
-		fmt.Println("2 - Create category")
-		fmt.Println("3 - Select category")
-		fmt.Println("4 - Delete category")
+		fmt.Println("1 - List all categories")
+		fmt.Println("2 - Search/Filter categories")
+		fmt.Println("3 - Create category")
+		fmt.Println("4 - Select category")
+		fmt.Println("5 - Delete category")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -37,17 +38,32 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 				waitForEnter()
 				continue
 			}
-			if len(categories) == 0 {
-				fmt.Println("No categories found.")
+			displayCategoriesList(categories)
+			waitForEnter()
+		case "2":
+			clearTerminal()
+			fmt.Println("\n=== Search/Filter Categories ===")
+			fmt.Print("Enter search term (category name): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			if searchTerm == "" {
+				fmt.Println("Search term cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Categories:")
-			for i, c := range categories {
-				fmt.Printf("%d - %s\n", i+1, c.Name)
+
+			categories, err := categoryStore.GetAllCategories()
+			if err != nil {
+				fmt.Println("Error listing categories:", err)
+				waitForEnter()
+				continue
 			}
+
+			filtered := filterCategories(categories, searchTerm)
+			displayCategoriesList(filtered)
 			waitForEnter()
-		case "2":
+		case "4":
 			clearTerminal()
 			fmt.Print("Enter category name: ")
 			name, _ := reader.ReadString('\n')
@@ -76,13 +92,13 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Select a category by number:")
-			for i, c := range categories {
-				fmt.Printf("%d - %s\n", i+1, c.Name)
-			}
-			fmt.Print("Enter the number of the category: ")
+			displayCategoriesList(categories)
+			fmt.Print("\nEnter the number of the category (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
+			if idxStr == "0" {
+				continue
+			}
 			idx, err := strconv.Atoi(idxStr)
 			if err != nil || idx < 1 || idx > len(categories) {
 				fmt.Println("Invalid selection.")
@@ -91,7 +107,7 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 			}
 			category := categories[idx-1]
 			CategorySubmenu(category, categoryStore, lineStore)
-		case "4":
+		case "5":
 			clearTerminal()
 			categories, err := categoryStore.GetAllCategories()
 			if err != nil || len(categories) == 0 {
@@ -99,11 +115,8 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Select a category to delete by number:")
-			for i, c := range categories {
-				fmt.Printf("%d - %s\n", i+1, c.Name)
-			}
-			fmt.Print("Enter the number of the category: ")
+			displayCategoriesList(categories)
+			fmt.Print("\nEnter the number of the category (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
 			if idxStr == "0" {
@@ -128,6 +141,21 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 			fmt.Println("Invalid option.")
 		}
 	}
+}
+
+// filterCategories filters categories by name
+func filterCategories(categories []domain.Category, searchTerm string) []domain.Category {
+	var filtered []domain.Category
+	searchTerm = strings.ToLower(searchTerm)
+
+	for _, c := range categories {
+		if strings.Contains(strings.ToLower(c.Name), searchTerm) {
+			filtered = append(filtered, c)
+			continue
+		}
+	}
+
+	return filtered
 }
 
 // CategorySubmenu handles operations for a selected category

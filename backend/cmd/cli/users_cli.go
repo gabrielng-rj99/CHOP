@@ -17,15 +17,16 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 		clearTerminal()
 		fmt.Println("\n--- Users ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List users")
-		fmt.Println("2 - Create regular user (admin or full_admin only)")
-		fmt.Println("3 - Create admin user (admin or full_admin only)")
-		fmt.Println("4 - Create full_admin user (full_admin only)")
-		fmt.Println("5 - Change display name")
-		fmt.Println("6 - Change password")
-		fmt.Println("7 - Change your own username (admin or full_admin only)")
-		fmt.Println("8 - Change user role (full_admin only)")
-		fmt.Println("9 - Unlock user (full_admin only)")
+		fmt.Println("1 - List all users")
+		fmt.Println("2 - Search/Filter users")
+		fmt.Println("3 - Create regular user (admin or full_admin only)")
+		fmt.Println("4 - Create admin user (admin or full_admin only)")
+		fmt.Println("5 - Create full_admin user (full_admin only)")
+		fmt.Println("6 - Change display name")
+		fmt.Println("7 - Change password")
+		fmt.Println("8 - Change your own username (admin or full_admin only)")
+		fmt.Println("9 - Change user role (full_admin only)")
+		fmt.Println("10 - Unlock user (full_admin only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -42,12 +43,32 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				waitForEnter()
 				continue
 			}
-			fmt.Println("Registered users:")
-			for i, u := range users {
-				fmt.Printf("%d - Username: %s | Display Name: %s | Role: %s | Created at: %s\n", i+1, u.Username, u.DisplayName, u.Role, u.CreatedAt.Format("2006-01-02 15:04:05"))
-			}
+			displayUsersList(users)
 			waitForEnter()
 		case "2":
+			clearTerminal()
+			fmt.Println("\n=== Search/Filter Users ===")
+			fmt.Print("Enter search term (username or display name): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			if searchTerm == "" {
+				fmt.Println("Search term cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			users, err := userStore.ListUsers()
+			if err != nil {
+				fmt.Println("Error listing users:", err)
+				waitForEnter()
+				continue
+			}
+
+			filtered := filterUsers(users, searchTerm)
+			displayUsersList(filtered)
+			waitForEnter()
+		case "3":
 			clearTerminal()
 			// Create regular user (admin or full_admin only)
 			if user.Role != "admin" && user.Role != "full_admin" {
@@ -87,7 +108,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Printf("User created with ID: %s\n", id)
 				waitForEnter()
 			}
-		case "3":
+		case "4":
 			clearTerminal()
 			// Create admin user (admin or full_admin only)
 			if user.Role != "admin" && user.Role != "full_admin" {
@@ -114,7 +135,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Printf("Admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 				waitForEnter()
 			}
-		case "4":
+		case "5":
 			clearTerminal()
 			// Create full_admin user (full_admin only)
 			if user.Role != "full_admin" {
@@ -141,9 +162,9 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Printf("Full_admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 				waitForEnter()
 			}
-		case "5":
+		case "6":
 			clearTerminal()
-			// Change your display name
+			// Change display name
 			PrintOptionalFieldHint()
 			fmt.Printf("Current display name: %s | New display name: ", user.DisplayName)
 			newDisplayName, _ := reader.ReadString('\n')
@@ -159,7 +180,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Display name changed successfully!")
 				waitForEnter()
 			}
-		case "6":
+		case "7":
 			clearTerminal()
 			// Change your password
 			PrintOptionalFieldHint()
@@ -207,7 +228,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Password changed successfully!")
 				waitForEnter()
 			}
-		case "7":
+		case "8":
 			clearTerminal()
 			// Change your own username (admin or full_admin only)
 			if user.Role != "admin" && user.Role != "full_admin" {
@@ -233,7 +254,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				waitForEnter()
 				return
 			}
-		case "8":
+		case "9":
 			clearTerminal()
 			// Change user role (full_admin only)
 			if user.Role != "full_admin" {
@@ -282,7 +303,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("Role changed successfully!")
 				waitForEnter()
 			}
-		case "9":
+		case "10":
 			clearTerminal()
 			// Unlock user (full_admin only)
 			if user.Role != "full_admin" {
@@ -323,10 +344,58 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Println("User unlocked successfully!")
 				waitForEnter()
 			}
-		case "10":
-			return
+
 		default:
 			fmt.Println("Invalid option.")
 		}
 	}
+}
+
+// displayUsersList shows a compact list of users with essential information
+func displayUsersList(users []domain.User) {
+	fmt.Println("\n=== Users ===")
+	if len(users) == 0 {
+		fmt.Println("No users found.")
+		return
+	}
+
+	fmt.Printf("\n%-4s | %-25s | %-30s | %-15s | %-20s\n", "#", "Username", "Display Name", "Role", "Created At")
+	fmt.Println(strings.Repeat("-", 100))
+
+	for i, u := range users {
+		username := u.Username
+		if len(username) > 25 {
+			username = username[:22] + "..."
+		}
+
+		displayName := u.DisplayName
+		if len(displayName) > 30 {
+			displayName = displayName[:27] + "..."
+		}
+
+		createdAt := u.CreatedAt.Format("2006-01-02 15:04:05")
+
+		fmt.Printf("%-4d | %-25s | %-30s | %-15s | %-20s\n", i+1, username, displayName, u.Role, createdAt)
+	}
+	fmt.Println()
+}
+
+// filterUsers filters users by username or display name
+func filterUsers(users []domain.User, searchTerm string) []domain.User {
+	var filtered []domain.User
+	searchTerm = strings.ToLower(searchTerm)
+
+	for _, u := range users {
+		if strings.Contains(strings.ToLower(u.Username), searchTerm) {
+			filtered = append(filtered, u)
+			continue
+		}
+
+		if strings.Contains(strings.ToLower(u.DisplayName), searchTerm) {
+			filtered = append(filtered, u)
+			continue
+		}
+	}
+
+	return filtered
 }

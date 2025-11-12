@@ -17,10 +17,11 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 		clearTerminal()
 		fmt.Println("\n--- contract Lines ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List lines")
-		fmt.Println("2 - Create line")
-		fmt.Println("3 - Edit line")
-		fmt.Println("4 - Delete line")
+		fmt.Println("1 - List all lines")
+		fmt.Println("2 - Search/Filter lines")
+		fmt.Println("3 - Create line")
+		fmt.Println("4 - Edit line")
+		fmt.Println("5 - Delete line")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -37,35 +38,64 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				waitForEnter()
 				continue
 			}
-			if len(lines) == 0 {
-				fmt.Println("No lines found.")
-				waitForEnter()
-				continue
-			}
-			fmt.Println("Lines:")
-			for i, t := range lines {
-				fmt.Printf("%d - %s (Category: %s)\n", i+1, t.Line, t.CategoryID)
-			}
+			displayLinesList(lines)
 			waitForEnter()
 		case "2":
 			clearTerminal()
+			fmt.Println("\n=== Search/Filter Lines ===")
+			fmt.Print("Enter search term (line name): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			if searchTerm == "" {
+				fmt.Println("Search term cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			lines, err := lineStore.GetAllLines()
+			if err != nil {
+				fmt.Println("Error listing lines:", err)
+				waitForEnter()
+				continue
+			}
+
+			filtered := filterLines(lines, searchTerm)
+			displayLinesList(filtered)
+			waitForEnter()
+		case "4":
+			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
+
+			categories, err := categoryStore.GetAllCategories()
+			if err != nil || len(categories) == 0 {
+				fmt.Println("No categories found. Please create a category first.")
+				waitForEnter()
+				continue
+			}
+
+			fmt.Println("\n=== Select Category ===")
+			displayCategoriesList(categories)
+			fmt.Print("\nEnter the number of the category: ")
+			idxStr, _ := reader.ReadString('\n')
+			idxStr = strings.TrimSpace(idxStr)
+			idx, err := strconv.Atoi(idxStr)
+			if err != nil || idx < 1 || idx > len(categories) {
+				fmt.Println("Invalid selection.")
+				waitForEnter()
+				continue
+			}
+			categoryID := categories[idx-1].ID
+
 			fmt.Print("Line name: ")
 			line, _ := reader.ReadString('\n')
-			fmt.Print("Category ID: ")
-			categoryID, _ := reader.ReadString('\n')
 			line = strings.TrimSpace(line)
-			categoryID = strings.TrimSpace(categoryID)
 			if line == "" {
 				fmt.Println("Error: Line name cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			if categoryID == "" {
-				fmt.Println("Error: Category ID cannot be empty.")
-				waitForEnter()
-				continue
-			}
+
 			id, err := lineStore.CreateLine(domain.Line{
 				Line:       line,
 				CategoryID: categoryID,
@@ -147,7 +177,7 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				fmt.Println("Line updated.")
 				waitForEnter()
 			}
-		case "4":
+		case "5":
 			clearTerminal()
 			lines, err := lineStore.GetAllLines()
 			if err != nil || len(lines) == 0 {
@@ -184,4 +214,19 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			fmt.Println("Invalid option.")
 		}
 	}
+}
+
+// filterLines filters lines by name
+func filterLines(lines []domain.Line, searchTerm string) []domain.Line {
+	var filtered []domain.Line
+	searchTerm = strings.ToLower(searchTerm)
+
+	for _, l := range lines {
+		if strings.Contains(strings.ToLower(l.Line), searchTerm) {
+			filtered = append(filtered, l)
+			continue
+		}
+	}
+
+	return filtered
 }
