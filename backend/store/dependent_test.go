@@ -89,6 +89,7 @@ func TestCreateDependent(t *testing.T) {
 			dependent := domain.Dependent{
 				Name:     tt.dependName,
 				ClientID: clientID,
+				Status:   "ativo",
 			}
 
 			// Para o teste de nome duplicado, insere a primeira entidade antes
@@ -96,6 +97,7 @@ func TestCreateDependent(t *testing.T) {
 				_, err := dependentStore.CreateDependent(domain.Dependent{
 					Name:     "Duplicate Dependent",
 					ClientID: clientID,
+					Status:   "ativo",
 				})
 				if err != nil {
 					t.Fatalf("Failed to insert dependent for duplicate test: %v", err)
@@ -327,6 +329,7 @@ func TestUpdateDependent(t *testing.T) {
 				ID:       "",
 				Name:     "Updated Dependent",
 				ClientID: "",
+				Status:   "ativo",
 			},
 			expectError: false,
 		},
@@ -336,6 +339,7 @@ func TestUpdateDependent(t *testing.T) {
 				ID:       "",
 				Name:     "Updated Dependent",
 				ClientID: "client-id-1",
+				Status:   "ativo",
 			},
 			expectError: true,
 		},
@@ -345,6 +349,7 @@ func TestUpdateDependent(t *testing.T) {
 				ID:       "dependent-id-1",
 				Name:     "",
 				ClientID: "client-id-1",
+				Status:   "ativo",
 			},
 			expectError: true,
 		},
@@ -354,6 +359,7 @@ func TestUpdateDependent(t *testing.T) {
 				ID:       "dependent-id-1",
 				Name:     "Updated Dependent",
 				ClientID: uuid.New().String(),
+				Status:   "ativo",
 			},
 			expectError: true,
 		},
@@ -372,6 +378,7 @@ func TestUpdateDependent(t *testing.T) {
 				createdID, err := dependentStore.CreateDependent(domain.Dependent{
 					Name:     "Original Dependent",
 					ClientID: clientID,
+					Status:   "ativo",
 				})
 				if err != nil {
 					t.Fatalf("Failed to create dependent before update: %v", err)
@@ -402,6 +409,140 @@ func TestUpdateDependent(t *testing.T) {
 				if clientID != tt.dependent.ClientID {
 					t.Errorf("Expected client_id %q but got %q", tt.dependent.ClientID, clientID)
 				}
+			}
+		})
+	}
+}
+
+// TestGetDependentsByName tests the GetDependentsByName function
+func TestGetDependentsByName(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test database: %v", err)
+	}
+	defer CloseDB(db)
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	dependentStore := NewDependentStore(db)
+
+	// Create test client
+	clientID, err := InsertTestClient(db, "Test Company", "45.723.174/0001-10")
+	if err != nil {
+		t.Fatalf("Failed to create test client: %v", err)
+	}
+
+	// Create test dependents
+	_, err = dependentStore.CreateDependent(domain.Dependent{
+		Name:     "Branch Office Alpha",
+		ClientID: clientID,
+		Status:   "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create dependent 1: %v", err)
+	}
+
+	_, err = dependentStore.CreateDependent(domain.Dependent{
+		Name:     "Branch Office Beta",
+		ClientID: clientID,
+		Status:   "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create dependent 2: %v", err)
+	}
+
+	_, err = dependentStore.CreateDependent(domain.Dependent{
+		Name:     "Warehouse Unit",
+		ClientID: clientID,
+		Status:   "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create dependent 3: %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		clientID      string
+		searchName    string
+		expectedCount int
+		expectError   bool
+	}{
+		{
+			name:          "search 'Branch' - should find 2",
+			clientID:      clientID,
+			searchName:    "Branch",
+			expectedCount: 2,
+			expectError:   false,
+		},
+		{
+			name:          "search 'branch' (case-insensitive) - should find 2",
+			clientID:      clientID,
+			searchName:    "branch",
+			expectedCount: 2,
+			expectError:   false,
+		},
+		{
+			name:          "search 'Office' - should find 2",
+			clientID:      clientID,
+			searchName:    "Office",
+			expectedCount: 2,
+			expectError:   false,
+		},
+		{
+			name:          "search 'Alpha' - should find 1",
+			clientID:      clientID,
+			searchName:    "Alpha",
+			expectedCount: 1,
+			expectError:   false,
+		},
+		{
+			name:          "search 'Warehouse' - should find 1",
+			clientID:      clientID,
+			searchName:    "Warehouse",
+			expectedCount: 1,
+			expectError:   false,
+		},
+		{
+			name:          "search 'NonExistent' - should find 0",
+			clientID:      clientID,
+			searchName:    "NonExistent",
+			expectedCount: 0,
+			expectError:   false,
+		},
+		{
+			name:        "empty client ID - should error",
+			clientID:    "",
+			searchName:  "Branch",
+			expectError: true,
+		},
+		{
+			name:        "empty search name - should error",
+			clientID:    clientID,
+			searchName:  "",
+			expectError: true,
+		},
+		{
+			name:        "only spaces - should error",
+			clientID:    clientID,
+			searchName:  "   ",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dependents, err := dependentStore.GetDependentsByName(tt.clientID, tt.searchName)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectError && len(dependents) != tt.expectedCount {
+				t.Errorf("Expected %d dependents, got %d", tt.expectedCount, len(dependents))
 			}
 		})
 	}

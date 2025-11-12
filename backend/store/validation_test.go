@@ -1,6 +1,7 @@
 package store
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -387,6 +388,304 @@ func TestHashPassword(t *testing.T) {
 			result := CompareHashAndPassword(hash, tt.password)
 			if result != tt.valid {
 				t.Errorf("expected %v for password '%s', got %v", tt.valid, tt.password, result)
+			}
+		})
+	}
+}
+
+// TestValidateName tests the ValidateName function
+func TestValidateName(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		maxLength   int
+		expected    string
+		expectError bool
+	}{
+		{
+			name:        "valid name",
+			input:       "Test Name",
+			maxLength:   255,
+			expected:    "Test Name",
+			expectError: false,
+		},
+		{
+			name:        "valid name with leading/trailing spaces",
+			input:       "  Test Name  ",
+			maxLength:   255,
+			expected:    "Test Name",
+			expectError: false,
+		},
+		{
+			name:        "empty string",
+			input:       "",
+			maxLength:   255,
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "only whitespace",
+			input:       "   ",
+			maxLength:   255,
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "exceeds max length",
+			input:       strings.Repeat("a", 256),
+			maxLength:   255,
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "exactly max length",
+			input:       strings.Repeat("a", 255),
+			maxLength:   255,
+			expected:    strings.Repeat("a", 255),
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ValidateName(tt.input, tt.maxLength)
+			if tt.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("expected no error but got: %v", err)
+			}
+			if !tt.expectError && result != tt.expected {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestValidateUsername tests the ValidateUsername function
+func TestValidateUsername(t *testing.T) {
+	tests := []struct {
+		name        string
+		username    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid username - alphanumeric",
+			username:    "user123",
+			expectError: false,
+		},
+		{
+			name:        "valid username - with underscore",
+			username:    "user_name_123",
+			expectError: false,
+		},
+		{
+			name:        "valid username - exactly 3 chars",
+			username:    "usr",
+			expectError: false,
+		},
+		{
+			name:        "valid username - 255 chars",
+			username:    strings.Repeat("a", 255),
+			expectError: false,
+		},
+		{
+			name:        "invalid - too short (2 chars)",
+			username:    "ab",
+			expectError: true,
+			errorMsg:    "username must be at least 3 characters",
+		},
+		{
+			name:        "invalid - empty",
+			username:    "",
+			expectError: true,
+			errorMsg:    "username cannot be empty",
+		},
+		{
+			name:        "invalid - only spaces",
+			username:    "   ",
+			expectError: true,
+			errorMsg:    "username cannot be empty",
+		},
+		{
+			name:        "invalid - too long (256 chars)",
+			username:    strings.Repeat("a", 256),
+			expectError: true,
+			errorMsg:    "username cannot exceed 255 characters",
+		},
+		{
+			name:        "invalid - contains space",
+			username:    "user name",
+			expectError: true,
+			errorMsg:    "username can only contain letters, numbers, and underscores",
+		},
+		{
+			name:        "invalid - contains hyphen",
+			username:    "user-name",
+			expectError: true,
+			errorMsg:    "username can only contain letters, numbers, and underscores",
+		},
+		{
+			name:        "invalid - contains special chars",
+			username:    "user@name",
+			expectError: true,
+			errorMsg:    "username can only contain letters, numbers, and underscores",
+		},
+		{
+			name:        "invalid - contains dot",
+			username:    "user.name",
+			expectError: true,
+			errorMsg:    "username can only contain letters, numbers, and underscores",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateUsername(tt.username)
+			if tt.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("expected no error but got: %v", err)
+			}
+			if tt.expectError && err != nil && tt.errorMsg != "" {
+				if err.Error() != tt.errorMsg {
+					t.Errorf("expected error message '%s', got '%s'", tt.errorMsg, err.Error())
+				}
+			}
+		})
+	}
+}
+
+// TestValidateCPFOrCNPJ tests the combined CPF/CNPJ validation
+func TestValidateCPFOrCNPJ(t *testing.T) {
+	tests := []struct {
+		name     string
+		id       string
+		expected bool
+	}{
+		{
+			name:     "valid CPF",
+			id:       "11144477735",
+			expected: true,
+		},
+		{
+			name:     "valid CPF with formatting",
+			id:       "111.444.777-35",
+			expected: true,
+		},
+		{
+			name:     "valid CNPJ",
+			id:       "45723174000110",
+			expected: true,
+		},
+		{
+			name:     "valid CNPJ with formatting",
+			id:       "45.723.174/0001-10",
+			expected: true,
+		},
+		{
+			name:     "invalid - wrong length",
+			id:       "123456789",
+			expected: false,
+		},
+		{
+			name:     "invalid - empty",
+			id:       "",
+			expected: false,
+		},
+		{
+			name:     "invalid CPF",
+			id:       "11144477734",
+			expected: false,
+		},
+		{
+			name:     "invalid CNPJ",
+			id:       "45723174000111",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ValidateCPFOrCNPJ(tt.id)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v for ID: %s", tt.expected, result, tt.id)
+			}
+		})
+	}
+}
+
+// TestFormatCPFOrCNPJ tests the formatting function
+func TestFormatCPFOrCNPJ(t *testing.T) {
+	tests := []struct {
+		name        string
+		id          string
+		expected    string
+		expectError bool
+	}{
+		{
+			name:        "format CPF without formatting",
+			id:          "11144477735",
+			expected:    "111.444.777-35",
+			expectError: false,
+		},
+		{
+			name:        "format CPF already formatted",
+			id:          "111.444.777-35",
+			expected:    "111.444.777-35",
+			expectError: false,
+		},
+		{
+			name:        "format CNPJ without formatting",
+			id:          "45723174000110",
+			expected:    "45.723.174/0001-10",
+			expectError: false,
+		},
+		{
+			name:        "format CNPJ already formatted",
+			id:          "45.723.174/0001-10",
+			expected:    "45.723.174/0001-10",
+			expectError: false,
+		},
+		{
+			name:        "invalid CPF",
+			id:          "11144477734",
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "invalid CNPJ",
+			id:          "45723174000111",
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "invalid length",
+			id:          "123456789",
+			expected:    "",
+			expectError: true,
+		},
+		{
+			name:        "empty string",
+			id:          "",
+			expected:    "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := FormatCPFOrCNPJ(tt.id)
+			if tt.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("expected no error but got: %v", err)
+			}
+			if !tt.expectError && result != tt.expected {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
 		})
 	}

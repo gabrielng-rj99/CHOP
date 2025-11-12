@@ -41,9 +41,11 @@ func TestClientContractIntegration(t *testing.T) {
 	// Criar cliente
 	email := "empresa@teste.com"
 	phone := "+5511987654321"
+	regID := "45.723.174/0001-10"
 	client := domain.Client{
 		Name:           "Empresa Teste",
-		RegistrationID: "45.723.174/0001-10",
+		RegistrationID: &regID,
+		Status:         "ativo",
 		Email:          &email,
 		Phone:          &phone,
 	}
@@ -84,6 +86,7 @@ func TestClientContractIntegration(t *testing.T) {
 	dependent := domain.Dependent{
 		Name:     "Dependente Teste",
 		ClientID: clientID,
+		Status:   "ativo",
 	}
 	dependentID, err := dependentStore.CreateDependent(dependent)
 	if err != nil {
@@ -156,12 +159,12 @@ func TestClientDependentContractIntegration(t *testing.T) {
 	contractStore := NewContractStore(db)
 
 	// Criar Cliente
-	email := "integration@test.com"
 	phone := "+5511999999999"
+	regID2 := "45.723.174/0001-10"
 	client := domain.Client{
 		Name:           "Full Integration Test Client",
-		RegistrationID: "45.723.174/0001-10",
-		Email:          &email,
+		RegistrationID: &regID2,
+		Status:         "ativo",
 		Phone:          &phone,
 	}
 
@@ -174,6 +177,7 @@ func TestClientDependentContractIntegration(t *testing.T) {
 	dependent := domain.Dependent{
 		Name:     "Test Dependent",
 		ClientID: clientID,
+		Status:   "ativo",
 	}
 
 	dependentID, err := dependentStore.CreateDependent(dependent)

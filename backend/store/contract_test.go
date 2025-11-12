@@ -812,9 +812,6 @@ func TestDeleteContract(t *testing.T) {
 }
 
 // Helper function to create a string pointer
-func stringPtr(s string) *string {
-	return &s
-}
 
 // ============================================================================
 // CRITICAL TESTS

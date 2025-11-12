@@ -1072,6 +1072,7 @@ func TestCreateDependentWithInvalidNames(t *testing.T) {
 			dependent := domain.Dependent{
 				Name:     tt.dependentName,
 				ClientID: clientID,
+				Status:   "ativo",
 			}
 
 			_, err = dependentStore.CreateDependent(dependent)
@@ -1121,6 +1122,7 @@ func TestCreateDependentWithInvalidClient(t *testing.T) {
 			dependent := domain.Dependent{
 				Name:     "Test Dependent",
 				ClientID: tt.clientID,
+				Status:   "ativo",
 			}
 
 			_, err := dependentStore.CreateDependent(dependent)
@@ -1170,6 +1172,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 				ID:       dependentID,
 				Name:     strings.Repeat("a", 256),
 				ClientID: clientID,
+				Status:   "ativo",
 			},
 			expectError: true,
 			description: "Update with name too long should fail",
@@ -1180,6 +1183,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 				ID:       dependentID,
 				Name:     "    ",
 				ClientID: clientID,
+				Status:   "ativo",
 			},
 			expectError: true,
 			description: "Update with whitespace-only name should fail",
@@ -1190,6 +1194,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 				ID:       dependentID,
 				Name:     "",
 				ClientID: clientID,
+				Status:   "ativo",
 			},
 			expectError: true,
 			description: "Update with empty name should fail",
@@ -1200,6 +1205,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 				ID:       dependentID,
 				Name:     "Updated Dependent Name",
 				ClientID: clientID,
+				Status:   "ativo",
 			},
 			expectError: false,
 			description: "Update with valid name should succeed",
@@ -1282,6 +1288,7 @@ func TestDependentNameTrimming(t *testing.T) {
 			dependent := domain.Dependent{
 				Name:     tt.inputName,
 				ClientID: clientID,
+				Status:   "ativo",
 			}
 
 			id, err := dependentStore.CreateDependent(dependent)

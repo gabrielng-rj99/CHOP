@@ -11,6 +11,14 @@ import (
 )
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+// ============================================================================
 // SETUP HELPERS
 // ============================================================================
 
@@ -53,7 +61,8 @@ func TestCreateClient(t *testing.T) {
 			name: "sucesso - criação normal",
 			client: domain.Client{
 				Name:           "Test Client",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 				Email:          stringPtr("test@example.com"),
 				Phone:          stringPtr("+5511987654321"),
 			},
@@ -63,27 +72,30 @@ func TestCreateClient(t *testing.T) {
 			name: "erro - CNPJ duplicado",
 			client: domain.Client{
 				Name:           "Another Client",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 				Email:          stringPtr("another@example.com"),
 				Phone:          stringPtr("+5511987654321"),
 			},
 			expectError: true,
 		},
 		{
-			name: "erro - CNPJ vazio",
+			name: "sucesso - CNPJ vazio (opcional)",
 			client: domain.Client{
-				Name:           "Test Client",
-				RegistrationID: "",
+				Name:           "Test Client Without CNPJ",
+				RegistrationID: nil,
+				Status:         "ativo",
 				Email:          stringPtr("test@example.com"),
 				Phone:          stringPtr("+5511987654321"),
 			},
-			expectError: true,
+			expectError: false,
 		},
 		{
 			name: "erro - nome vazio",
 			client: domain.Client{
 				Name:           "",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 				Email:          stringPtr("test@example.com"),
 				Phone:          stringPtr("+5511987654321"),
 			},
@@ -103,10 +115,92 @@ func TestCreateClient(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
+
 			if !tt.expectError && id == "" {
-				t.Error("Expected ID but got empty string")
+				t.Error("Expected non-empty ID but got empty string")
 			}
 		})
+	}
+}
+
+func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
+	db := setupClientTestDB(t)
+	defer CloseDB(db)
+
+	clientStore := NewClientStore(db)
+
+	// Test 1: Create client with name "Test Company" and registration_id
+	regID1 := "45.723.174/0001-10"
+	client1 := domain.Client{
+		Name:           "Test Company",
+		RegistrationID: &regID1,
+		Status:         "ativo",
+	}
+	id1, err := clientStore.CreateClient(client1)
+	if err != nil {
+		t.Fatalf("Failed to create first client with registration_id: %v", err)
+	}
+	if id1 == "" {
+		t.Error("Expected non-empty ID for first client")
+	}
+
+	// Test 2: Create another client with SAME name but DIFFERENT registration_id - should succeed
+	regID2 := "11.222.333/0001-81"
+	client2 := domain.Client{
+		Name:           "Test Company",
+		RegistrationID: &regID2,
+		Status:         "ativo",
+	}
+	id2, err := clientStore.CreateClient(client2)
+	if err != nil {
+		t.Errorf("Should allow duplicate name when both have different registration_id, but got error: %v", err)
+	}
+	if id2 == "" {
+		t.Error("Expected non-empty ID for second client")
+	}
+
+	// Test 3: Create client with name "Another Company" WITHOUT registration_id
+	client3 := domain.Client{
+		Name:           "Another Company",
+		RegistrationID: nil,
+		Status:         "ativo",
+	}
+	id3, err := clientStore.CreateClient(client3)
+	if err != nil {
+		t.Fatalf("Failed to create client without registration_id: %v", err)
+	}
+	if id3 == "" {
+		t.Error("Expected non-empty ID for third client")
+	}
+
+	// Test 4: Try to create another client with SAME name WITHOUT registration_id - should fail
+	client4 := domain.Client{
+		Name:           "Another Company",
+		RegistrationID: nil,
+		Status:         "ativo",
+	}
+	_, err = clientStore.CreateClient(client4)
+	if err == nil {
+		t.Error("Should NOT allow duplicate name when both have NULL registration_id")
+	}
+	if err != nil && !strings.Contains(err.Error(), "name already exists") {
+		t.Errorf("Expected 'name already exists' error, got: %v", err)
+	}
+
+	// Test 5: Create client with name "Another Company" WITH registration_id - should succeed
+	// (same name as client3, but this one has registration_id)
+	regID5 := "33.444.555/0001-81"
+	client5 := domain.Client{
+		Name:           "Another Company",
+		RegistrationID: &regID5,
+		Status:         "ativo",
+	}
+	id5, err := clientStore.CreateClient(client5)
+	if err != nil {
+		t.Errorf("Should allow same name when one has NULL registration_id and other has registration_id, but got error: %v", err)
+	}
+	if id5 == "" {
+		t.Error("Expected non-empty ID for fifth client")
 	}
 }
 
@@ -160,7 +254,8 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 
 			client := domain.Client{
 				Name:           "Test Client " + tt.name,
-				RegistrationID: tt.inputRegistration,
+				RegistrationID: &tt.inputRegistration,
+				Status:         "ativo",
 			}
 
 			id, err := clientStore.CreateClient(client)
@@ -180,9 +275,13 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 				if retrievedClient == nil {
 					t.Error("Expected client but got nil")
 				}
-				if retrievedClient.RegistrationID != tt.expectedFormatting {
+				if retrievedClient.RegistrationID == nil || *retrievedClient.RegistrationID != tt.expectedFormatting {
+					var actual string
+					if retrievedClient.RegistrationID != nil {
+						actual = *retrievedClient.RegistrationID
+					}
 					t.Errorf("Expected registration ID to be '%s', but got '%s'",
-						tt.expectedFormatting, retrievedClient.RegistrationID)
+						tt.expectedFormatting, actual)
 				}
 			}
 		})
@@ -620,7 +719,8 @@ func TestUpdateClientCritical(t *testing.T) {
 			client: domain.Client{
 				ID:             clientID,
 				Name:           "Updated Name",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: false,
 		},
@@ -629,7 +729,8 @@ func TestUpdateClientCritical(t *testing.T) {
 			client: domain.Client{
 				ID:             "",
 				Name:           "Test",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			errorMsg:    "ID",
@@ -639,7 +740,8 @@ func TestUpdateClientCritical(t *testing.T) {
 			client: domain.Client{
 				ID:             clientID,
 				Name:           "",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			errorMsg:    "name",
@@ -649,27 +751,29 @@ func TestUpdateClientCritical(t *testing.T) {
 			client: domain.Client{
 				ID:             clientID,
 				Name:           string(make([]byte, 256)),
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			errorMsg:    "255",
 		},
 		{
-			name: "error - empty registration ID",
+			name: "success - empty registration ID (opcional)",
 			client: domain.Client{
 				ID:             clientID,
-				Name:           "Test",
-				RegistrationID: "",
+				Name:           "Test Without Reg",
+				RegistrationID: nil,
+				Status:         "ativo",
 			},
-			expectError: true,
-			errorMsg:    "registration",
+			expectError: false,
 		},
 		{
 			name: "error - invalid registration ID",
 			client: domain.Client{
 				ID:             clientID,
 				Name:           "Test",
-				RegistrationID: "invalid",
+				RegistrationID: stringPtr("invalid"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			errorMsg:    "valid",
@@ -679,7 +783,8 @@ func TestUpdateClientCritical(t *testing.T) {
 			client: domain.Client{
 				ID:             "non-existent-id",
 				Name:           "Test",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			errorMsg:    "not exist",
@@ -953,7 +1058,8 @@ func TestCreateClientWithInvalidCPFCNPJ(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := domain.Client{
 				Name:           "Test Client - " + tt.name,
-				RegistrationID: tt.registrationID,
+				RegistrationID: &tt.registrationID,
+				Status:         "ativo",
 			}
 
 			_, err := clientStore.CreateClient(client)
@@ -1059,7 +1165,8 @@ func TestCreateClientWithInvalidNames(t *testing.T) {
 
 			client := domain.Client{
 				Name:           tt.clientName,
-				RegistrationID: cnpj,
+				RegistrationID: &cnpj,
+				Status:         "ativo",
 			}
 
 			_, err := clientStore.CreateClient(client)
@@ -1102,7 +1209,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 			updateData: domain.Client{
 				ID:             clientID,
 				Name:           "Updated Name",
-				RegistrationID: "111.ABC.777-35",
+				RegistrationID: stringPtr("111.ABC.777-35"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			description: "Update with invalid CPF should fail",
@@ -1112,7 +1220,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 			updateData: domain.Client{
 				ID:             clientID,
 				Name:           "Updated Name",
-				RegistrationID: "invalid-cnpj",
+				RegistrationID: stringPtr("invalid-cnpj"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			description: "Update with invalid CNPJ should fail",
@@ -1122,7 +1231,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 			updateData: domain.Client{
 				ID:             clientID,
 				Name:           strings.Repeat("a", 256),
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			description: "Update with name too long should fail",
@@ -1132,7 +1242,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 			updateData: domain.Client{
 				ID:             clientID,
 				Name:           "    ",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: true,
 			description: "Update with whitespace-only name should fail",
@@ -1142,7 +1253,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 			updateData: domain.Client{
 				ID:             clientID,
 				Name:           "Valid Updated Name",
-				RegistrationID: "45.723.174/0001-10",
+				RegistrationID: stringPtr("45.723.174/0001-10"),
+				Status:         "ativo",
 			},
 			expectError: false,
 			description: "Update with valid data should succeed",
@@ -1177,7 +1289,8 @@ func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
 
 	_, err = clientStore.CreateClient(domain.Client{
 		Name:           "First Client",
-		RegistrationID: "45.723.174/0001-10",
+		RegistrationID: stringPtr("45.723.174/0001-10"),
+		Status:         "ativo",
 	})
 	if err != nil {
 		t.Fatalf("Failed to create first client: %v", err)
@@ -1213,7 +1326,8 @@ func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := domain.Client{
 				Name:           "Test Client - " + tt.name,
-				RegistrationID: tt.registrationID,
+				RegistrationID: &tt.registrationID,
+				Status:         "ativo",
 			}
 
 			_, err := clientStore.CreateClient(client)
@@ -1299,7 +1413,8 @@ func TestClientNameTrimming(t *testing.T) {
 
 			client := domain.Client{
 				Name:           tt.inputName,
-				RegistrationID: cnpj,
+				RegistrationID: &cnpj,
+				Status:         "ativo",
 			}
 
 			id, err := clientStore.CreateClient(client)
@@ -1319,6 +1434,124 @@ func TestClientNameTrimming(t *testing.T) {
 				if retrievedClient != nil && retrievedClient.Name != tt.expectedName {
 					t.Errorf("Expected name '%s', got '%s'", tt.expectedName, retrievedClient.Name)
 				}
+			}
+		})
+	}
+}
+
+// TestGetClientsByName tests the GetClientsByName function
+func TestGetClientsByName(t *testing.T) {
+	db := setupClientTestDB(t)
+	defer CloseDB(db)
+
+	clientStore := NewClientStore(db)
+
+	// Create test clients
+	regID1 := "45.723.174/0001-10"
+	_, err := clientStore.CreateClient(domain.Client{
+		Name:           "Acme Corporation",
+		RegistrationID: &regID1,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create client 1: %v", err)
+	}
+
+	regID2 := "11.222.333/0001-81"
+	_, err = clientStore.CreateClient(domain.Client{
+		Name:           "Acme Industries",
+		RegistrationID: &regID2,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create client 2: %v", err)
+	}
+
+	regID3 := "33.444.555/0001-81"
+	_, err = clientStore.CreateClient(domain.Client{
+		Name:           "Global Tech",
+		RegistrationID: &regID3,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create client 3: %v", err)
+	}
+
+	// Archive one client
+	archivedRegID := "55.666.777/0001-81"
+	archivedID, err := clientStore.CreateClient(domain.Client{
+		Name:           "Acme Archived",
+		RegistrationID: &archivedRegID,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create archived client: %v", err)
+	}
+	err = clientStore.ArchiveClient(archivedID)
+	if err != nil {
+		t.Fatalf("Failed to archive client: %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		searchName    string
+		expectedCount int
+		expectError   bool
+	}{
+		{
+			name:          "search 'Acme' - should find 2 active clients",
+			searchName:    "Acme",
+			expectedCount: 2,
+			expectError:   false,
+		},
+		{
+			name:          "search 'acme' (case-insensitive) - should find 2",
+			searchName:    "acme",
+			expectedCount: 2,
+			expectError:   false,
+		},
+		{
+			name:          "search 'Corporation' - should find 1",
+			searchName:    "Corporation",
+			expectedCount: 1,
+			expectError:   false,
+		},
+		{
+			name:          "search 'Global' - should find 1",
+			searchName:    "Global",
+			expectedCount: 1,
+			expectError:   false,
+		},
+		{
+			name:          "search 'NonExistent' - should find 0",
+			searchName:    "NonExistent",
+			expectedCount: 0,
+			expectError:   false,
+		},
+		{
+			name:        "empty search name - should error",
+			searchName:  "",
+			expectError: true,
+		},
+		{
+			name:        "only spaces - should error",
+			searchName:  "   ",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, err := clientStore.GetClientsByName(tt.searchName)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectError && len(clients) != tt.expectedCount {
+				t.Errorf("Expected %d clients, got %d", tt.expectedCount, len(clients))
 			}
 		})
 	}
