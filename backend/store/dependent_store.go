@@ -23,6 +23,12 @@ func NewDependentStore(db DBInterface) *DependentStore {
 }
 
 func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, error) {
+	// Validar dependente usando validações do domínio
+	validationErrors := domain.ValidateDependent(&dependent)
+	if !validationErrors.IsValid() {
+		return "", errors.New(validationErrors.Error())
+	}
+
 	trimmedName, err := ValidateName(dependent.Name, 255)
 	if err != nil {
 		return "", err
@@ -40,16 +46,29 @@ func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, er
 		return "", sql.ErrNoRows // Or use errors.New("client does not exist")
 	}
 	// NOVA REGRA: Nome único por empresa
-	err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE client_id = $1 AND name = $2", dependent.ClientID, dependent.Name).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE client_id = $1 AND name = $2", dependent.ClientID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
 	if count > 0 {
 		return "", errors.New("dependent name must be unique per client")
 	}
+
+	// Default status to 'ativo' if not provided
+	status := dependent.Status
+	if status == "" {
+		status = "ativo"
+	}
+
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)`
-	_, err = s.db.Exec(sqlStatement, newID, trimmedName, dependent.ClientID)
+	sqlStatement := `INSERT INTO dependents
+		(id, name, client_id, description, birth_date, email, phone, address,
+		 notes, status, tags, contact_preference, documents)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName, dependent.ClientID,
+		dependent.Description, dependent.BirthDate, dependent.Email, dependent.Phone,
+		dependent.Address, dependent.Notes, status, dependent.Tags,
+		dependent.ContactPreference, dependent.Documents)
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +90,9 @@ func (s *DependentStore) GetDependentsByClientID(clientID string) (dependents []
 		return []domain.Dependent{}, nil // No dependents for non-existent client
 	}
 
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = $1`
+	sqlStatement := `SELECT id, name, client_id, description, birth_date, email, phone,
+		address, notes, status, tags, contact_preference, documents
+		FROM dependents WHERE client_id = $1`
 
 	rows, err := s.db.Query(sqlStatement, clientID)
 	if err != nil {
@@ -87,7 +108,10 @@ func (s *DependentStore) GetDependentsByClientID(clientID string) (dependents []
 	dependents = []domain.Dependent{}
 	for rows.Next() {
 		var dependent domain.Dependent
-		if err = rows.Scan(&dependent.ID, &dependent.Name, &dependent.ClientID); err != nil {
+		if err = rows.Scan(&dependent.ID, &dependent.Name, &dependent.ClientID,
+			&dependent.Description, &dependent.BirthDate, &dependent.Email, &dependent.Phone,
+			&dependent.Address, &dependent.Notes, &dependent.Status, &dependent.Tags,
+			&dependent.ContactPreference, &dependent.Documents); err != nil {
 			return nil, err
 		}
 		dependents = append(dependents, dependent)
@@ -109,7 +133,9 @@ func (s *DependentStore) GetDependentsByName(clientID, name string) ([]domain.De
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE client_id = $1 AND LOWER(name) LIKE LOWER($2)`
+	sqlStatement := `SELECT id, name, client_id, description, birth_date, email, phone,
+		address, notes, status, tags, contact_preference, documents
+		FROM dependents WHERE client_id = $1 AND LOWER(name) LIKE LOWER($2)`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, clientID, likePattern)
 	if err != nil {
@@ -124,7 +150,10 @@ func (s *DependentStore) GetDependentsByName(clientID, name string) ([]domain.De
 	var dependents []domain.Dependent
 	for rows.Next() {
 		var dependent domain.Dependent
-		if err = rows.Scan(&dependent.ID, &dependent.Name, &dependent.ClientID); err != nil {
+		if err = rows.Scan(&dependent.ID, &dependent.Name, &dependent.ClientID,
+			&dependent.Description, &dependent.BirthDate, &dependent.Email, &dependent.Phone,
+			&dependent.Address, &dependent.Notes, &dependent.Status, &dependent.Tags,
+			&dependent.ContactPreference, &dependent.Documents); err != nil {
 			return nil, err
 		}
 		dependents = append(dependents, dependent)
@@ -140,6 +169,13 @@ func (s *DependentStore) UpdateDependent(dependent domain.Dependent) error {
 	if dependent.ID == "" {
 		return sql.ErrNoRows // Or use errors.New("dependent ID cannot be empty")
 	}
+
+	// Validar dependente usando validações do domínio
+	validationErrors := domain.ValidateDependent(&dependent)
+	if !validationErrors.IsValid() {
+		return errors.New(validationErrors.Error())
+	}
+
 	trimmedName, err := ValidateName(dependent.Name, 255)
 	if err != nil {
 		return err
@@ -156,8 +192,32 @@ func (s *DependentStore) UpdateDependent(dependent domain.Dependent) error {
 	if count == 0 {
 		return sql.ErrNoRows // Or use errors.New("client does not exist")
 	}
-	sqlStatement := `UPDATE dependents SET name = $1, client_id = $2 WHERE id = $3`
-	result, err := s.db.Exec(sqlStatement, trimmedName, dependent.ClientID, dependent.ID)
+
+	// Check if name is already taken by another dependent of the same client
+	err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE client_id = $1 AND name = $2 AND id != $3",
+		dependent.ClientID, trimmedName, dependent.ID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("dependent name must be unique per client")
+	}
+
+	// Default status if empty
+	status := dependent.Status
+	if status == "" {
+		status = "ativo"
+	}
+
+	sqlStatement := `UPDATE dependents SET
+		name = $1, client_id = $2, description = $3, birth_date = $4,
+		email = $5, phone = $6, address = $7, notes = $8,
+		status = $9, tags = $10, contact_preference = $11, documents = $12
+		WHERE id = $13`
+	result, err := s.db.Exec(sqlStatement, trimmedName, dependent.ClientID,
+		dependent.Description, dependent.BirthDate, dependent.Email, dependent.Phone,
+		dependent.Address, dependent.Notes, status, dependent.Tags,
+		dependent.ContactPreference, dependent.Documents, dependent.ID)
 	if err != nil {
 		return err
 	}
@@ -214,13 +274,25 @@ func (s *DependentStore) GetDependentByID(id string) (*domain.Dependent, error) 
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("dependent ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, client_id FROM dependents WHERE id = $1`
+	sqlStatement := `SELECT id, name, client_id, description, birth_date, email, phone,
+		address, notes, status, tags, contact_preference, documents
+		FROM dependents WHERE id = $1`
 
 	var dependent domain.Dependent
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&dependent.ID,
 		&dependent.Name,
 		&dependent.ClientID,
+		&dependent.Description,
+		&dependent.BirthDate,
+		&dependent.Email,
+		&dependent.Phone,
+		&dependent.Address,
+		&dependent.Notes,
+		&dependent.Status,
+		&dependent.Tags,
+		&dependent.ContactPreference,
+		&dependent.Documents,
 	)
 
 	if err == sql.ErrNoRows {

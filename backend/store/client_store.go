@@ -22,62 +22,107 @@ func NewClientStore(db DBInterface) *ClientStore {
 	}
 }
 
-// CreateClient foi atualizado para incluir a nova coluna (que será NULL por padrão)
+// CreateClient cria um novo cliente com todos os campos
 func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
+	// Validar cliente usando validações do domínio
+	validationErrors := domain.ValidateClient(&client)
+	if !validationErrors.IsValid() {
+		return "", errors.New(validationErrors.Error())
+	}
+
 	// Trim and validate name
 	trimmedName, err := ValidateName(client.Name, 255)
 	if err != nil {
 		return "", err
 	}
 
-	if client.RegistrationID == "" {
-		return "", errors.New("client registration ID cannot be empty")
-	}
-	if !isValidCPFOrCNPJ(client.RegistrationID) {
-		return "", errors.New("registration ID must be a valid CPF or CNPJ")
-	}
-
-	// Format CPF/CNPJ
-	formattedID, err := FormatCPFOrCNPJ(client.RegistrationID)
-	if err != nil {
-		return "", errors.New("registration ID must be a valid CPF or CNPJ")
-	}
-
-	// Check for duplicate registration ID (check both formatted and unformatted versions)
+	// Check for duplicate name only if registration_id is NULL
+	// If registration_id is provided, it will be the unique identifier
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1", formattedID).Scan(&count)
-	if err != nil && err != sql.ErrNoRows {
-		return "", err
+	if client.RegistrationID == nil {
+		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE name = $1 AND registration_id IS NULL", trimmedName).Scan(&count)
+		if err != nil && err != sql.ErrNoRows {
+			return "", err
+		}
+		if count > 0 {
+			return "", errors.New("client name already exists (when registration ID is not provided, name must be unique)")
+		}
 	}
-	if count > 0 {
-		return "", errors.New("client registration ID already exists")
+
+	// Validate and format registration ID if provided
+	var formattedID *string
+	if client.RegistrationID != nil && *client.RegistrationID != "" {
+		if !isValidCPFOrCNPJ(*client.RegistrationID) {
+			return "", errors.New("registration ID must be a valid CPF or CNPJ")
+		}
+		formatted, err := FormatCPFOrCNPJ(*client.RegistrationID)
+		if err != nil {
+			return "", errors.New("registration ID must be a valid CPF or CNPJ")
+		}
+
+		// Check for duplicate registration ID
+		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1", formatted).Scan(&count)
+		if err != nil && err != sql.ErrNoRows {
+			return "", err
+		}
+		if count > 0 {
+			return "", errors.New("client registration ID already exists")
+		}
+		formattedID = &formatted
+	}
+
+	// Default status to 'ativo' if not provided
+	status := client.Status
+	if status == "" {
+		status = "ativo"
 	}
 
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO clients (id, name, registration_id, email, phone) VALUES ($1, $2, $3, $4, $5)`
-	_, err = s.db.Exec(sqlStatement, newID, trimmedName, formattedID, client.Email, client.Phone)
+	createdAt := time.Now()
+
+	sqlStatement := `INSERT INTO clients
+		(id, name, registration_id, nickname, birth_date, email, phone, address, notes,
+		 status, tags, contact_preference, last_contact_date, next_action_date, created_at, documents)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
+
+	_, err = s.db.Exec(sqlStatement,
+		newID, trimmedName, formattedID, client.Nickname, client.BirthDate,
+		client.Email, client.Phone, client.Address, client.Notes,
+		status, client.Tags, client.ContactPreference, client.LastContactDate,
+		client.NextActionDate, createdAt, client.Documents)
+
 	if err != nil {
-		// Handle unique constraint violation for registration ID
-		if err.Error() != "" &&
-			(strings.Contains(err.Error(), "UNIQUE constraint failed: clients.registration_id") ||
-				strings.Contains(err.Error(), "restrição UNIQUE falhou: clients.registration_id")) {
-			return "", errors.New("client registration ID already exists")
+		// Handle unique constraint violations
+		if err.Error() != "" {
+			if strings.Contains(err.Error(), "unique_registration_id") ||
+				strings.Contains(err.Error(), "registration_id") {
+				return "", errors.New("client registration ID already exists")
+			}
+			if strings.Contains(err.Error(), "unique_name_when_no_registration") {
+				return "", errors.New("client name already exists (when registration ID is not provided, name must be unique)")
+			}
 		}
 		return "", err
 	}
 	return newID, nil
 }
 
-// GetClientByID foi atualizado para ler a nova coluna
+// GetClientByID retorna um cliente pelo ID
 func (s *ClientStore) GetClientByID(id string) (*domain.Client, error) {
 	if id == "" {
 		return nil, errors.New("client ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE id = $1`
+	sqlStatement := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients WHERE id = $1`
 	row := s.db.QueryRow(sqlStatement, id)
 
 	var client domain.Client
-	err := row.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt)
+	err := row.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+		&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+		&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+		&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -105,7 +150,10 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE LOWER(name) LIKE LOWER($1) AND archived_at IS NULL`
+	sqlStatement := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients WHERE LOWER(name) LIKE LOWER($1) AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -120,7 +168,10 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	var clients []domain.Client
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+			&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+			&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+			&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
@@ -131,10 +182,16 @@ func (s *ClientStore) GetClientsByName(name string) ([]domain.Client, error) {
 	return clients, nil
 }
 
-// UpdateClient também foi atualizado
+// UpdateClient atualiza um cliente existente
 func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if client.ID == "" {
 		return errors.New("client ID cannot be empty")
+	}
+
+	// Validar cliente usando validações do domínio
+	validationErrors := domain.ValidateClient(&client)
+	if !validationErrors.IsValid() {
+		return errors.New(validationErrors.Error())
 	}
 
 	// Trim and validate name
@@ -143,21 +200,42 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 		return err
 	}
 
-	if client.RegistrationID == "" {
-		return errors.New("client registration ID cannot be empty")
-	}
-	if !isValidCPFOrCNPJ(client.RegistrationID) {
-		return errors.New("registration ID must be a valid CPF or CNPJ")
+	// Check if name is already taken by another client (only when registration_id is NULL)
+	var count int
+	if client.RegistrationID == nil {
+		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE name = $1 AND id != $2 AND registration_id IS NULL", trimmedName, client.ID).Scan(&count)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if count > 0 {
+			return errors.New("client name already exists (when registration ID is not provided, name must be unique)")
+		}
 	}
 
-	// Format CPF/CNPJ
-	formattedID, err := FormatCPFOrCNPJ(client.RegistrationID)
-	if err != nil {
-		return errors.New("registration ID must be a valid CPF or CNPJ")
+	// Validate and format registration ID if provided
+	var formattedID *string
+	if client.RegistrationID != nil && *client.RegistrationID != "" {
+		if !isValidCPFOrCNPJ(*client.RegistrationID) {
+			return errors.New("registration ID must be a valid CPF or CNPJ")
+		}
+		formatted, err := FormatCPFOrCNPJ(*client.RegistrationID)
+		if err != nil {
+			return errors.New("registration ID must be a valid CPF or CNPJ")
+		}
+
+		// Check for duplicate registration ID (excluding current client)
+		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1 AND id != $2",
+			formatted, client.ID).Scan(&count)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if count > 0 {
+			return errors.New("client registration ID already exists")
+		}
+		formattedID = &formatted
 	}
 
 	// Check if client exists
-	var count int
 	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", client.ID).Scan(&count)
 	if err != nil {
 		return err
@@ -165,9 +243,37 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if count == 0 {
 		return errors.New("client does not exist")
 	}
-	sqlStatement := `UPDATE clients SET name = $1, registration_id = $2, email = $3, phone = $4 WHERE id = $5`
-	result, err := s.db.Exec(sqlStatement, trimmedName, formattedID, client.Email, client.Phone, client.ID)
+
+	// Default status if empty
+	status := client.Status
+	if status == "" {
+		status = "ativo"
+	}
+
+	sqlStatement := `UPDATE clients SET
+		name = $1, registration_id = $2, nickname = $3, birth_date = $4,
+		email = $5, phone = $6, address = $7, notes = $8,
+		status = $9, tags = $10, contact_preference = $11,
+		last_contact_date = $12, next_action_date = $13, documents = $14
+		WHERE id = $15`
+
+	result, err := s.db.Exec(sqlStatement,
+		trimmedName, formattedID, client.Nickname, client.BirthDate,
+		client.Email, client.Phone, client.Address, client.Notes,
+		status, client.Tags, client.ContactPreference,
+		client.LastContactDate, client.NextActionDate, client.Documents,
+		client.ID)
+
 	if err != nil {
+		if err.Error() != "" {
+			if strings.Contains(err.Error(), "unique_registration_id") ||
+				strings.Contains(err.Error(), "registration_id") {
+				return errors.New("client registration ID already exists")
+			}
+			if strings.Contains(err.Error(), "unique_name_when_no_registration") {
+				return errors.New("client name already exists (when registration ID is not provided, name must be unique)")
+			}
+		}
 		return err
 	}
 	rows, err := result.RowsAffected()
@@ -398,7 +504,10 @@ func (s *ClientStore) DeleteClientPermanently(id string) error {
 
 // GetAllClients retorna todos os clientes não arquivados
 func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE archived_at IS NULL`
+	sqlStatement := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients WHERE archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -412,7 +521,10 @@ func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
 	}()
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+			&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+			&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+			&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
@@ -427,7 +539,10 @@ func (s *ClientStore) GetAllClients() (clients []domain.Client, err error) {
 
 // GetArchivedClients retorna todos os clientes arquivados
 func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) {
-	sqlStatement := `SELECT id, name, registration_id, email, phone, archived_at FROM clients WHERE archived_at IS NOT NULL`
+	sqlStatement := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients WHERE archived_at IS NOT NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -442,7 +557,10 @@ func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) 
 
 	for rows.Next() {
 		var client domain.Client
-		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Email, &client.Phone, &client.ArchivedAt); err != nil {
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+			&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+			&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+			&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt); err != nil {
 			return nil, err
 		}
 		clients = append(clients, client)
