@@ -50,25 +50,30 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 	}
 
 	// Validate and format registration ID if provided
+	// Treat empty strings as NULL
 	var formattedID *string
-	if client.RegistrationID != nil && *client.RegistrationID != "" {
-		if !isValidCPFOrCNPJ(*client.RegistrationID) {
-			return "", errors.New("registration ID must be a valid CPF or CNPJ")
-		}
-		formatted, err := FormatCPFOrCNPJ(*client.RegistrationID)
-		if err != nil {
-			return "", errors.New("registration ID must be a valid CPF or CNPJ")
-		}
+	if client.RegistrationID != nil {
+		trimmedRegID := strings.TrimSpace(*client.RegistrationID)
+		if trimmedRegID != "" {
+			if !isValidCPFOrCNPJ(trimmedRegID) {
+				return "", errors.New("registration ID must be a valid CPF or CNPJ")
+			}
+			formatted, err := FormatCPFOrCNPJ(trimmedRegID)
+			if err != nil {
+				return "", errors.New("registration ID must be a valid CPF or CNPJ")
+			}
 
-		// Check for duplicate registration ID
-		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1", formatted).Scan(&count)
-		if err != nil && err != sql.ErrNoRows {
-			return "", err
+			// Check for duplicate registration ID
+			err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1", formatted).Scan(&count)
+			if err != nil && err != sql.ErrNoRows {
+				return "", err
+			}
+			if count > 0 {
+				return "", errors.New("client registration ID already exists")
+			}
+			formattedID = &formatted
 		}
-		if count > 0 {
-			return "", errors.New("client registration ID already exists")
-		}
-		formattedID = &formatted
+		// If trimmedRegID is empty, formattedID stays nil
 	}
 
 	// Default status to 'ativo' if not provided
@@ -80,16 +85,26 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 	newID := uuid.New().String()
 	createdAt := time.Now()
 
+	// Normalize all optional string fields (empty strings become NULL)
+	nickname := normalizeOptionalString(client.Nickname)
+	email := normalizeOptionalString(client.Email)
+	phone := normalizeOptionalString(client.Phone)
+	address := normalizeOptionalString(client.Address)
+	notes := normalizeOptionalString(client.Notes)
+	tags := normalizeOptionalString(client.Tags)
+	contactPreference := normalizeOptionalString(client.ContactPreference)
+	documents := normalizeOptionalString(client.Documents)
+
 	sqlStatement := `INSERT INTO clients
 		(id, name, registration_id, nickname, birth_date, email, phone, address, notes,
 		 status, tags, contact_preference, last_contact_date, next_action_date, created_at, documents)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
 	_, err = s.db.Exec(sqlStatement,
-		newID, trimmedName, formattedID, client.Nickname, client.BirthDate,
-		client.Email, client.Phone, client.Address, client.Notes,
-		status, client.Tags, client.ContactPreference, client.LastContactDate,
-		client.NextActionDate, createdAt, client.Documents)
+		newID, trimmedName, formattedID, nickname, client.BirthDate,
+		email, phone, address, notes,
+		status, tags, contactPreference, client.LastContactDate,
+		client.NextActionDate, createdAt, documents)
 
 	if err != nil {
 		// Handle unique constraint violations
@@ -213,26 +228,31 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	}
 
 	// Validate and format registration ID if provided
+	// Treat empty strings as NULL
 	var formattedID *string
-	if client.RegistrationID != nil && *client.RegistrationID != "" {
-		if !isValidCPFOrCNPJ(*client.RegistrationID) {
-			return errors.New("registration ID must be a valid CPF or CNPJ")
-		}
-		formatted, err := FormatCPFOrCNPJ(*client.RegistrationID)
-		if err != nil {
-			return errors.New("registration ID must be a valid CPF or CNPJ")
-		}
+	if client.RegistrationID != nil {
+		trimmedRegID := strings.TrimSpace(*client.RegistrationID)
+		if trimmedRegID != "" {
+			if !isValidCPFOrCNPJ(trimmedRegID) {
+				return errors.New("registration ID must be a valid CPF or CNPJ")
+			}
+			formatted, err := FormatCPFOrCNPJ(trimmedRegID)
+			if err != nil {
+				return errors.New("registration ID must be a valid CPF or CNPJ")
+			}
 
-		// Check for duplicate registration ID (excluding current client)
-		err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1 AND id != $2",
-			formatted, client.ID).Scan(&count)
-		if err != nil && err != sql.ErrNoRows {
-			return err
+			// Check for duplicate registration ID (excluding current client)
+			err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE registration_id = $1 AND id != $2",
+				formatted, client.ID).Scan(&count)
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+			if count > 0 {
+				return errors.New("client registration ID already exists")
+			}
+			formattedID = &formatted
 		}
-		if count > 0 {
-			return errors.New("client registration ID already exists")
-		}
-		formattedID = &formatted
+		// If trimmedRegID is empty, formattedID stays nil
 	}
 
 	// Check if client exists
@@ -250,6 +270,16 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 		status = "ativo"
 	}
 
+	// Normalize all optional string fields (empty strings become NULL)
+	nickname := normalizeOptionalString(client.Nickname)
+	email := normalizeOptionalString(client.Email)
+	phone := normalizeOptionalString(client.Phone)
+	address := normalizeOptionalString(client.Address)
+	notes := normalizeOptionalString(client.Notes)
+	tags := normalizeOptionalString(client.Tags)
+	contactPreference := normalizeOptionalString(client.ContactPreference)
+	documents := normalizeOptionalString(client.Documents)
+
 	sqlStatement := `UPDATE clients SET
 		name = $1, registration_id = $2, nickname = $3, birth_date = $4,
 		email = $5, phone = $6, address = $7, notes = $8,
@@ -258,10 +288,10 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 		WHERE id = $15`
 
 	result, err := s.db.Exec(sqlStatement,
-		trimmedName, formattedID, client.Nickname, client.BirthDate,
-		client.Email, client.Phone, client.Address, client.Notes,
-		status, client.Tags, client.ContactPreference,
-		client.LastContactDate, client.NextActionDate, client.Documents,
+		trimmedName, formattedID, nickname, client.BirthDate,
+		email, phone, address, notes,
+		status, tags, contactPreference,
+		client.LastContactDate, client.NextActionDate, documents,
 		client.ID)
 
 	if err != nil {

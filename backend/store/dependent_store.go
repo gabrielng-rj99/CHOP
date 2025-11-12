@@ -61,14 +61,25 @@ func (s *DependentStore) CreateDependent(dependent domain.Dependent) (string, er
 	}
 
 	newID := uuid.New().String()
+
+	// Normalize all optional string fields (empty strings become NULL)
+	description := normalizeOptionalString(dependent.Description)
+	email := normalizeOptionalString(dependent.Email)
+	phone := normalizeOptionalString(dependent.Phone)
+	address := normalizeOptionalString(dependent.Address)
+	notes := normalizeOptionalString(dependent.Notes)
+	tags := normalizeOptionalString(dependent.Tags)
+	contactPreference := normalizeOptionalString(dependent.ContactPreference)
+	documents := normalizeOptionalString(dependent.Documents)
+
 	sqlStatement := `INSERT INTO dependents
 		(id, name, client_id, description, birth_date, email, phone, address,
 		 notes, status, tags, contact_preference, documents)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
 	_, err = s.db.Exec(sqlStatement, newID, trimmedName, dependent.ClientID,
-		dependent.Description, dependent.BirthDate, dependent.Email, dependent.Phone,
-		dependent.Address, dependent.Notes, status, dependent.Tags,
-		dependent.ContactPreference, dependent.Documents)
+		description, dependent.BirthDate, email, phone,
+		address, notes, status, tags,
+		contactPreference, documents)
 	if err != nil {
 		return "", err
 	}
@@ -209,15 +220,25 @@ func (s *DependentStore) UpdateDependent(dependent domain.Dependent) error {
 		status = "ativo"
 	}
 
+	// Normalize all optional string fields (empty strings become NULL)
+	description := normalizeOptionalString(dependent.Description)
+	email := normalizeOptionalString(dependent.Email)
+	phone := normalizeOptionalString(dependent.Phone)
+	address := normalizeOptionalString(dependent.Address)
+	notes := normalizeOptionalString(dependent.Notes)
+	tags := normalizeOptionalString(dependent.Tags)
+	contactPreference := normalizeOptionalString(dependent.ContactPreference)
+	documents := normalizeOptionalString(dependent.Documents)
+
 	sqlStatement := `UPDATE dependents SET
 		name = $1, client_id = $2, description = $3, birth_date = $4,
 		email = $5, phone = $6, address = $7, notes = $8,
 		status = $9, tags = $10, contact_preference = $11, documents = $12
 		WHERE id = $13`
 	result, err := s.db.Exec(sqlStatement, trimmedName, dependent.ClientID,
-		dependent.Description, dependent.BirthDate, dependent.Email, dependent.Phone,
-		dependent.Address, dependent.Notes, status, dependent.Tags,
-		dependent.ContactPreference, dependent.Documents, dependent.ID)
+		description, dependent.BirthDate, email, phone,
+		address, notes, status, tags,
+		contactPreference, documents, dependent.ID)
 	if err != nil {
 		return err
 	}

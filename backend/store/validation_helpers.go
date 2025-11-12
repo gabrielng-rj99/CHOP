@@ -9,6 +9,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// normalizeOptionalString converts empty or whitespace-only strings to nil
+func normalizeOptionalString(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*s)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
 // ValidateName validates a name by trimming whitespace, checking it's not empty, and validating length
 func ValidateName(name string, maxLength int) (string, error) {
 	trimmed := strings.TrimSpace(name)
