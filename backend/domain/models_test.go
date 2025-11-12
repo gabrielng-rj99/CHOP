@@ -210,10 +210,13 @@ func TestContractStatusBoundaryConditions(t *testing.T) {
 // TestClientModel tests the Client domain model
 func TestClientModel(t *testing.T) {
 	t.Run("client model structure", func(t *testing.T) {
+		regID := "12345678000180"
 		client := Client{
 			ID:             "test-id",
 			Name:           "Test Client",
-			RegistrationID: "12345678000180",
+			RegistrationID: &regID,
+			Status:         "ativo",
+			CreatedAt:      time.Now(),
 		}
 
 		if client.ID != "test-id" {
@@ -222,17 +225,20 @@ func TestClientModel(t *testing.T) {
 		if client.Name != "Test Client" {
 			t.Errorf("expected Name 'Test Client', got '%s'", client.Name)
 		}
-		if client.RegistrationID != "12345678000180" {
-			t.Errorf("expected RegistrationID '12345678000180', got '%s'", client.RegistrationID)
+		if client.RegistrationID == nil || *client.RegistrationID != "12345678000180" {
+			t.Errorf("expected RegistrationID '12345678000180', got '%v'", client.RegistrationID)
 		}
 	})
 
 	t.Run("client with archived_at", func(t *testing.T) {
 		archivedTime := time.Now()
+		regID := "12345678000180"
 		client := Client{
 			ID:             "test-id",
 			Name:           "Test Client",
-			RegistrationID: "12345678000180",
+			RegistrationID: &regID,
+			Status:         "ativo",
+			CreatedAt:      time.Now(),
 			ArchivedAt:     &archivedTime,
 		}
 
