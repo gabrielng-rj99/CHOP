@@ -171,7 +171,6 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 		fmt.Println("3 - Add line to this category")
 		fmt.Println("4 - Edit line in this category")
 		fmt.Println("5 - Delete line from this category")
-		fmt.Println("99 - Delete category")
 		fmt.Print("Option: ")
 		opt, _ := reader.ReadString('\n')
 		opt = strings.TrimSpace(opt)
@@ -310,25 +309,6 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 				waitForEnter()
 			} else {
 				fmt.Println("Line deleted.")
-				waitForEnter()
-			}
-		case "99":
-			clearTerminal()
-			fmt.Printf("⚠️  WARNING: Are you sure you want to delete category '%s'? (yes/no): ", category.Name)
-			confirmation, _ := reader.ReadString('\n')
-			confirmation = strings.TrimSpace(strings.ToLower(confirmation))
-			if confirmation == "yes" {
-				err := categoryStore.DeleteCategory(category.ID)
-				if err != nil {
-					fmt.Println("Error deleting category:", err)
-					waitForEnter()
-				} else {
-					fmt.Println("Category deleted successfully.")
-					waitForEnter()
-					return
-				}
-			} else {
-				fmt.Println("Category deletion cancelled.")
 				waitForEnter()
 			}
 		default:

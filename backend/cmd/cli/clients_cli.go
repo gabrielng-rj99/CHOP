@@ -569,8 +569,8 @@ func ClientSubmenu(clientID string,
 		fmt.Println("1 - Edit client")
 		fmt.Println("2 - Dependents")
 		fmt.Println("3 - Contracts")
-		fmt.Println("91 - Archive client")
-		fmt.Println("99 - Delete client")
+		fmt.Println("4 - Archive client")
+		fmt.Println("5 - Delete client permanently")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -779,7 +779,7 @@ func ClientSubmenu(clientID string,
 			DependentsSubmenu(clientID, dependentStore)
 		case "3":
 			ContractsClientSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
-		case "91":
+		case "4":
 			err := clientStore.ArchiveClient(clientID)
 			if err != nil {
 				fmt.Println("Error archiving client:", err)
@@ -789,7 +789,7 @@ func ClientSubmenu(clientID string,
 				waitForEnter()
 				return
 			}
-		case "99":
+		case "5":
 			err := clientStore.DeleteClientPermanently(clientID)
 			if err != nil {
 				fmt.Println("Error deleting client:", err)
