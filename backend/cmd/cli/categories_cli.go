@@ -19,8 +19,8 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - List all categories")
 		fmt.Println("2 - Search/Filter categories")
-		fmt.Println("3 - Create category")
-		fmt.Println("4 - Select category")
+		fmt.Println("3 - Select category")
+		fmt.Println("4 - Create category")
 		fmt.Println("5 - Delete category")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
@@ -63,27 +63,6 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 			filtered := filterCategories(categories, searchTerm)
 			displayCategoriesList(filtered)
 			waitForEnter()
-		case "4":
-			clearTerminal()
-			fmt.Print("Enter category name: ")
-			name, _ := reader.ReadString('\n')
-			name = strings.TrimSpace(name)
-			if name == "" {
-				fmt.Println("Error: Category name cannot be empty.")
-				waitForEnter()
-				continue
-			}
-			category := domain.Category{
-				Name: name,
-			}
-			id, err := categoryStore.CreateCategory(category)
-			if err != nil {
-				fmt.Println("Error creating category:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Category created with ID:", id)
-				waitForEnter()
-			}
 		case "3":
 			clearTerminal()
 			categories, err := categoryStore.GetAllCategories()
@@ -107,6 +86,27 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 			}
 			category := categories[idx-1]
 			CategorySubmenu(category, categoryStore, lineStore)
+		case "4":
+			clearTerminal()
+			fmt.Print("Enter category name: ")
+			name, _ := reader.ReadString('\n')
+			name = strings.TrimSpace(name)
+			if name == "" {
+				fmt.Println("Error: Category name cannot be empty.")
+				waitForEnter()
+				continue
+			}
+			category := domain.Category{
+				Name: name,
+			}
+			id, err := categoryStore.CreateCategory(category)
+			if err != nil {
+				fmt.Println("Error creating category:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Category created with ID:", id)
+				waitForEnter()
+			}
 		case "5":
 			clearTerminal()
 			categories, err := categoryStore.GetAllCategories()
@@ -171,6 +171,7 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 		fmt.Println("3 - Add line to this category")
 		fmt.Println("4 - Edit line in this category")
 		fmt.Println("5 - Delete line from this category")
+		fmt.Println("99 - Delete category")
 		fmt.Print("Option: ")
 		opt, _ := reader.ReadString('\n')
 		opt = strings.TrimSpace(opt)
@@ -309,6 +310,25 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 				waitForEnter()
 			} else {
 				fmt.Println("Line deleted.")
+				waitForEnter()
+			}
+		case "99":
+			clearTerminal()
+			fmt.Printf("⚠️  WARNING: Are you sure you want to delete category '%s'? (yes/no): ", category.Name)
+			confirmation, _ := reader.ReadString('\n')
+			confirmation = strings.TrimSpace(strings.ToLower(confirmation))
+			if confirmation == "yes" {
+				err := categoryStore.DeleteCategory(category.ID)
+				if err != nil {
+					fmt.Println("Error deleting category:", err)
+					waitForEnter()
+				} else {
+					fmt.Println("Category deleted successfully.")
+					waitForEnter()
+					return
+				}
+			} else {
+				fmt.Println("Category deletion cancelled.")
 				waitForEnter()
 			}
 		default:
