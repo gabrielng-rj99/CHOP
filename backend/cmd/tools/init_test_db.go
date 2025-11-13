@@ -31,11 +31,11 @@ func InitTestDatabaseDocker() {
 	}
 	initSQLPath := filepath.Join(projectRoot, "database", "init.sql")
 
-	// Derruba o container de teste se estiver rodando
+	// Para o container de teste se estiver rodando
 	if isContainerRunning(testContainer) {
 		fmt.Println("▶ Parando container de teste...")
-		if err := runDockerComposeDown(); err != nil {
-			fmt.Println("❌ Erro ao derrubar container:", err)
+		if err := runDockerComposeStop("postgres_test"); err != nil {
+			fmt.Println("❌ Erro ao parar container:", err)
 			fmt.Print("Pressione ENTER para continuar...")
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
