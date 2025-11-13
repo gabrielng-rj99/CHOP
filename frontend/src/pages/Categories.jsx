@@ -57,7 +57,7 @@ export default function Categories({ token, apiUrl }) {
                         Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
 
             if (!response.ok) {
@@ -105,25 +105,41 @@ export default function Categories({ token, apiUrl }) {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(categoryForm),
-                }
+                },
             );
 
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(
-                    errorData.error || "Erro ao atualizar categoria"
+                    errorData.error || "Erro ao atualizar categoria",
                 );
             }
 
             await loadCategories();
             closeCategoryModal();
+            // Reload selected category
+            if (selectedCategory) {
+                const updated = categories.find(
+                    (c) => c.id === selectedCategory.id,
+                );
+                if (updated) {
+                    setSelectedCategory({
+                        ...updated,
+                        name: categoryForm.name,
+                    });
+                }
+            }
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const deleteCategory = async (categoryId) => {
-        if (!window.confirm("Tem certeza que deseja deletar esta categoria?"))
+    const deleteCategory = async (categoryId, categoryName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja deletar a categoria "${categoryName}"?\n\nIsso pode afetar contratos vinculados a esta categoria.`,
+            )
+        )
             return;
 
         try {
@@ -135,7 +151,7 @@ export default function Categories({ token, apiUrl }) {
                         Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
 
             if (!response.ok) {
@@ -191,7 +207,7 @@ export default function Categories({ token, apiUrl }) {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(lineForm),
-                }
+                },
             );
 
             if (!response.ok) {
@@ -206,8 +222,12 @@ export default function Categories({ token, apiUrl }) {
         }
     };
 
-    const deleteLine = async (lineId) => {
-        if (!window.confirm("Tem certeza que deseja deletar esta linha?"))
+    const deleteLine = async (lineId, lineName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja deletar a linha "${lineName}"?\n\nIsso pode afetar contratos vinculados a esta linha.`,
+            )
+        )
             return;
 
         try {
@@ -244,7 +264,6 @@ export default function Categories({ token, apiUrl }) {
 
     const closeCategoryModal = () => {
         setShowCategoryModal(false);
-        setSelectedCategory(null);
         setCategoryForm({ name: "" });
         setError("");
     };
@@ -296,7 +315,7 @@ export default function Categories({ token, apiUrl }) {
     const filteredCategories = categories.filter((category) =>
         searchTerm === ""
             ? true
-            : category.name?.toLowerCase().includes(searchTerm.toLowerCase())
+            : category.name?.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     if (loading) {
@@ -487,7 +506,10 @@ export default function Categories({ token, apiUrl }) {
                                         </button>
                                         <button
                                             onClick={() =>
-                                                deleteCategory(category.id)
+                                                deleteCategory(
+                                                    category.id,
+                                                    category.name,
+                                                )
                                             }
                                             style={{
                                                 padding: "4px 10px",
@@ -525,11 +547,26 @@ export default function Categories({ token, apiUrl }) {
                                 color: "#7f8c8d",
                             }}
                         >
-                            <div style={{ fontSize: "18px", marginBottom: "8px" }}>
+                            <div
+                                style={{
+                                    fontSize: "48px",
+                                    marginBottom: "16px",
+                                    opacity: 0.3,
+                                }}
+                            >
+                                ←
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: "18px",
+                                    marginBottom: "8px",
+                                }}
+                            >
                                 Selecione uma categoria
                             </div>
                             <div style={{ fontSize: "14px" }}>
-                                Clique em uma categoria à esquerda para ver suas linhas
+                                Clique em uma categoria à esquerda para
+                                gerenciar suas linhas
                             </div>
                         </div>
                     ) : (
@@ -630,7 +667,10 @@ export default function Categories({ token, apiUrl }) {
                                                 </button>
                                                 <button
                                                     onClick={() =>
-                                                        deleteLine(line.id)
+                                                        deleteLine(
+                                                            line.id,
+                                                            line.line,
+                                                        )
                                                     }
                                                     style={{
                                                         padding: "6px 12px",
@@ -802,7 +842,9 @@ export default function Categories({ token, apiUrl }) {
                                 color: "#2c3e50",
                             }}
                         >
-                            {lineMode === "create" ? "Nova Linha" : "Editar Linha"}
+                            {lineMode === "create"
+                                ? "Nova Linha"
+                                : "Editar Linha"}
                         </h2>
 
                         <form onSubmit={handleLineSubmit}>
