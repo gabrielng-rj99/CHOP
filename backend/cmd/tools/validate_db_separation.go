@@ -14,35 +14,21 @@ func ValidateDBSeparation() {
 	fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
 
 	allGood := true
-	hasWarnings := false
 
-	// 1. Verificar containers Docker
-	fmt.Println("\n1️⃣  Verificando containers Docker...")
+	// 0. Verificar containers Docker
 	mainRunning := isContainerRunning("contract_manager_postgres")
 	testRunning := isContainerRunning("contract_manager_postgres_test")
 
-	if mainRunning {
-		fmt.Println("   ✅ Banco PRINCIPAL está rodando (contract_manager_postgres)")
-	} else {
-		fmt.Println("   ⚠️  Banco PRINCIPAL não está rodando")
-		hasWarnings = true
-	}
+	// Estado ideal: main UP + test OFF
+	idealState := mainRunning && !testRunning
 
-	if testRunning {
-		fmt.Println("   ⚠️  Banco de TESTES está rodando (contract_manager_postgres_test)")
-		fmt.Println("   📝 Nota: Banco de testes deve ser usado APENAS para 'go test'")
-		hasWarnings = true
-	} else {
-		fmt.Println("   ✅ Banco de TESTES não está rodando (correto para uso normal)")
-	}
+	// 1. Verificar variáveis de ambiente
+	fmt.Println("\n1️⃣  Verificando variáveis de ambiente...")
+	port, portSet := os.LookupEnv("POSTGRES_PORT")
+	db, dbSet := os.LookupEnv("POSTGRES_DB")
+	testDB, testDBSet := os.LookupEnv("TEST_DB")
 
-	// 2. Verificar variáveis de ambiente
-	fmt.Println("\n2️⃣  Verificando variáveis de ambiente...")
-	port := os.Getenv("POSTGRES_PORT")
-	db := os.Getenv("POSTGRES_DB")
-	testDB := os.Getenv("TEST_DB")
-
-	if port == "" {
+	if !portSet {
 		fmt.Println("   ✅ POSTGRES_PORT não definida (usará 5432 por padrão)")
 	} else if port == "5432" {
 		fmt.Println("   ✅ POSTGRES_PORT = 5432 (banco principal)")
@@ -55,7 +41,7 @@ func ValidateDBSeparation() {
 		allGood = false
 	}
 
-	if db == "" {
+	if !dbSet {
 		fmt.Println("   ✅ POSTGRES_DB não definida (usará contracts_manager por padrão)")
 	} else if db == "contracts_manager" {
 		fmt.Println("   ✅ POSTGRES_DB = contracts_manager (banco principal)")
@@ -68,7 +54,7 @@ func ValidateDBSeparation() {
 		allGood = false
 	}
 
-	if testDB == "1" {
+	if testDBSet && testDB == "1" {
 		fmt.Println("   ⚠️  TEST_DB = 1 (modo de teste ativado)")
 		fmt.Println("   📝 Isso está correto APENAS durante execução de testes")
 		allGood = false
@@ -77,7 +63,7 @@ func ValidateDBSeparation() {
 	}
 
 	// 3. Verificar arquivos críticos
-	fmt.Println("\n3️⃣  Verificando arquivos críticos...")
+	fmt.Println("\n2️⃣  Verificando arquivos críticos...")
 	criticalFiles := []string{
 		"database/database.go",
 		"cmd/tools/create_admin.go",
@@ -96,7 +82,7 @@ func ValidateDBSeparation() {
 	}
 
 	// 4. Verificar conteúdo do database.go
-	fmt.Println("\n4️⃣  Verificando lógica de detecção de banco...")
+	fmt.Println("\n3️⃣  Verificando lógica de detecção de banco...")
 	content, err := os.ReadFile("database/database.go")
 	if err != nil {
 		fmt.Println("   ❌ Erro ao ler database.go")
@@ -124,54 +110,31 @@ func ValidateDBSeparation() {
 	// 5. Resumo
 	fmt.Println("\n╔═══════════════════════════════════════════════════════════════════════════╗")
 
-	if !allGood && !hasWarnings {
-		// Problemas de configuração (variáveis de ambiente erradas)
+	if idealState && allGood {
+		fmt.Println("║ ✅ VALIDAÇÃO 100% COMPLETA: Estado IDEAL alcançado!                       ║")
+	} else if !allGood {
 		fmt.Println("║ ❌ ERRO: Problema de configuração detectado                               ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║                        📝 RECOMENDAÇÕES                                    ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║ 1. Se estiver rodando testes: ignore os avisos                            ║")
-		fmt.Println("║                                                                            ║")
-		fmt.Println("║ 2. Se estiver usando CLI/Admin: limpe as variáveis:                       ║")
-		fmt.Println("║    $ unset POSTGRES_PORT                                                  ║")
-		fmt.Println("║    $ unset POSTGRES_DB                                                    ║")
-		fmt.Println("║    $ unset TEST_DB                                                        ║")
-	} else if allGood && hasWarnings {
-		// Avisos (bancos não rodando ou teste rodando)
-		fmt.Println("║ ⚠️  AVISOS: Configuração OK, mas há avisos sobre containers               ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║                        📝 OBSERVAÇÕES                                      ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		if !mainRunning {
-			fmt.Println("║ • Banco PRINCIPAL não está rodando                                        ║")
-			fmt.Println("║   Para usar CLI/Admin, rode: opção 11 no menu tools                      ║")
-		}
-		if testRunning {
-			fmt.Println("║ • Banco de TESTES está rodando                                            ║")
-			fmt.Println("║   Isso é normal durante 'go test', mas deve ser parado após testes       ║")
-		}
-	} else if !allGood && hasWarnings {
-		// Ambos os problemas
-		fmt.Println("║ ❌ MÚLTIPLOS PROBLEMAS DETECTADOS                                          ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║ 1. Limpe as variáveis de ambiente (se não estiver rodando testes)         ║")
-		fmt.Println("║ 2. Verifique os containers Docker (se precisar usar a aplicação)          ║")
+		fmt.Println("╠═══════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║ Limpe as variáveis de ambiente se não estiver rodando testes              ║")
 	} else {
-		// Tudo OK
-		fmt.Println("║ ✅ VALIDAÇÃO COMPLETA: Separação de bancos está CORRETA!                  ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║                          📋 REGRAS DE USO                                  ║")
-		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║ 🟢 Banco PRINCIPAL (porta 5432):                                          ║")
-		fmt.Println("║    • Usar para: CLI, Admin, Desenvolvimento, Produção                     ║")
-		fmt.Println("║    • Container: contract_manager_postgres                                 ║")
-		fmt.Println("║    • Database: contracts_manager                                          ║")
-		fmt.Println("║                                                                            ║")
-		fmt.Println("║ 🔵 Banco de TESTES (porta 65432):                                         ║")
-		fmt.Println("║    • Usar APENAS para: go test                                            ║")
-		fmt.Println("║    • Container: contract_manager_postgres_test                            ║")
-		fmt.Println("║    • Database: contracts_manager_test                                     ║")
-		fmt.Println("║    • Comando: POSTGRES_PORT=65432 go test ./...                           ║")
+		fmt.Println("║ ⚠️  AVISOS: Containers não estão no estado ideal                           ║")
+	}
+
+	fmt.Println("╠═══════════════════════════════════════════════════════════════════════════╣")
+	fmt.Println("║                        📊 STATUS DOS CONTAINERS                           ║")
+	fmt.Println("╠═══════════════════════════════════════════════════════════════════════════╣")
+
+	if mainRunning {
+		fmt.Println("║ ✅ Banco PRINCIPAL: RODANDO                                               ║")
+	} else {
+		fmt.Println("║ ❌ Banco PRINCIPAL: PARADO  (use opção 21 para iniciar)                   ║")
+	}
+
+	if testRunning {
+		fmt.Println("║ ⚠️  Banco de TESTES: RODANDO ( Use a opção 91 para executar testes         ║")
+		fmt.Println("║                              ou use opção 39 para parar o banco de teste) ║")
+	} else {
+		fmt.Println("║ ✅ Banco de TESTES: PARADO                                                ║")
 	}
 
 	fmt.Println("╚═══════════════════════════════════════════════════════════════════════════╝")
