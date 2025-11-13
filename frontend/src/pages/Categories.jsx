@@ -339,9 +339,30 @@ export default function Categories({ token, apiUrl }) {
                 }}
             >
                 <h1 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>
-                    Categorias e Linhas
+                    {selectedCategory
+                        ? `${selectedCategory.name} - Linhas`
+                        : "Categorias"}
                 </h1>
                 <div style={{ display: "flex", gap: "12px" }}>
+                    {selectedCategory && (
+                        <button
+                            onClick={() => {
+                                setSelectedCategory(null);
+                                setLines([]);
+                            }}
+                            style={{
+                                padding: "10px 20px",
+                                background: "white",
+                                color: "#7f8c8d",
+                                border: "1px solid #ddd",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                            }}
+                        >
+                            ← Voltar
+                        </button>
+                    )}
                     <button
                         onClick={loadCategories}
                         style={{
@@ -356,21 +377,39 @@ export default function Categories({ token, apiUrl }) {
                     >
                         Atualizar
                     </button>
-                    <button
-                        onClick={openCreateCategoryModal}
-                        style={{
-                            padding: "10px 20px",
-                            background: "#27ae60",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                        }}
-                    >
-                        + Nova Categoria
-                    </button>
+                    {!selectedCategory ? (
+                        <button
+                            onClick={openCreateCategoryModal}
+                            style={{
+                                padding: "10px 20px",
+                                background: "#27ae60",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "600",
+                            }}
+                        >
+                            + Nova Categoria
+                        </button>
+                    ) : (
+                        <button
+                            onClick={openCreateLineModal}
+                            style={{
+                                padding: "10px 20px",
+                                background: "#27ae60",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "600",
+                            }}
+                        >
+                            + Nova Linha
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -389,310 +428,399 @@ export default function Categories({ token, apiUrl }) {
                 </div>
             )}
 
-            <div style={{ marginBottom: "24px" }}>
-                <input
-                    type="text"
-                    placeholder="Buscar categorias..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        width: "100%",
-                        maxWidth: "400px",
-                        padding: "10px 16px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
-                />
-            </div>
+            {!selectedCategory ? (
+                <>
+                    <div style={{ marginBottom: "24px" }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar categorias..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: "100%",
+                                maxWidth: "400px",
+                                padding: "10px 16px",
+                                border: "1px solid #ddd",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                            }}
+                        />
+                    </div>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 2fr",
-                    gap: "24px",
-                }}
-            >
-                <div
-                    style={{
-                        background: "white",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        border: "1px solid #ecf0f1",
-                        padding: "20px",
-                        height: "fit-content",
-                    }}
-                >
-                    <h2
+                    <div
                         style={{
-                            marginTop: 0,
-                            marginBottom: "20px",
-                            fontSize: "20px",
-                            color: "#2c3e50",
+                            background: "white",
+                            borderRadius: "8px",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            border: "1px solid #ecf0f1",
+                            overflow: "hidden",
                         }}
                     >
-                        Categorias
-                    </h2>
-
-                    {filteredCategories.length === 0 ? (
-                        <div
-                            style={{
-                                padding: "20px",
-                                textAlign: "center",
-                                color: "#7f8c8d",
-                            }}
-                        >
-                            Nenhuma categoria encontrada
-                        </div>
-                    ) : (
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "8px",
-                            }}
-                        >
-                            {filteredCategories.map((category) => (
-                                <div
-                                    key={category.id}
-                                    style={{
-                                        padding: "12px",
-                                        border: "1px solid #ecf0f1",
-                                        borderRadius: "6px",
-                                        background:
-                                            selectedCategory?.id === category.id
-                                                ? "#e8f4f8"
-                                                : "white",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                    }}
-                                    onClick={() => selectCategory(category)}
-                                >
-                                    <div>
-                                        <div
-                                            style={{
-                                                fontSize: "16px",
-                                                fontWeight: "500",
-                                                color: "#2c3e50",
-                                            }}
-                                        >
-                                            {category.name}
-                                        </div>
-                                    </div>
-                                    <div
+                        {filteredCategories.length === 0 ? (
+                            <div
+                                style={{
+                                    padding: "40px",
+                                    textAlign: "center",
+                                    color: "#7f8c8d",
+                                }}
+                            >
+                                Nenhuma categoria encontrada
+                            </div>
+                        ) : (
+                            <table
+                                style={{
+                                    width: "100%",
+                                    borderCollapse: "collapse",
+                                }}
+                            >
+                                <thead>
+                                    <tr
                                         style={{
-                                            display: "flex",
-                                            gap: "6px",
+                                            background: "#f8f9fa",
+                                            borderBottom: "2px solid #ecf0f1",
                                         }}
-                                        onClick={(e) => e.stopPropagation()}
                                     >
-                                        <button
-                                            onClick={() =>
-                                                openEditCategoryModal(category)
-                                            }
+                                        <th
                                             style={{
-                                                padding: "4px 10px",
-                                                background: "#3498db",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                                fontSize: "12px",
+                                                padding: "16px",
+                                                textAlign: "left",
+                                                fontSize: "13px",
+                                                fontWeight: "600",
+                                                color: "#7f8c8d",
                                             }}
                                         >
-                                            Editar
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                deleteCategory(
-                                                    category.id,
-                                                    category.name,
-                                                )
-                                            }
+                                            NOME
+                                        </th>
+                                        <th
                                             style={{
-                                                padding: "4px 10px",
-                                                background: "#e74c3c",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                                fontSize: "12px",
+                                                padding: "16px",
+                                                textAlign: "center",
+                                                fontSize: "13px",
+                                                fontWeight: "600",
+                                                color: "#7f8c8d",
+                                                width: "250px",
                                             }}
                                         >
-                                            Deletar
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
+                                            AÇÕES
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredCategories.map((category) => (
+                                        <tr
+                                            key={category.id}
+                                            style={{
+                                                borderBottom:
+                                                    "1px solid #ecf0f1",
+                                                cursor: "pointer",
+                                            }}
+                                            onClick={() =>
+                                                selectCategory(category)
+                                            }
+                                        >
+                                            <td
+                                                style={{
+                                                    padding: "16px",
+                                                    fontSize: "16px",
+                                                    color: "#2c3e50",
+                                                    fontWeight: "500",
+                                                }}
+                                            >
+                                                {category.name}
+                                            </td>
+                                            <td
+                                                style={{
+                                                    padding: "16px",
+                                                    textAlign: "center",
+                                                }}
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "8px",
+                                                        justifyContent:
+                                                            "center",
+                                                    }}
+                                                >
+                                                    <button
+                                                        onClick={() =>
+                                                            selectCategory(
+                                                                category,
+                                                            )
+                                                        }
+                                                        style={{
+                                                            padding: "6px 12px",
+                                                            background:
+                                                                "#9b59b6",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontSize: "12px",
+                                                        }}
+                                                    >
+                                                        Ver Linhas
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            openEditCategoryModal(
+                                                                category,
+                                                            )
+                                                        }
+                                                        style={{
+                                                            padding: "6px 12px",
+                                                            background:
+                                                                "#3498db",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontSize: "12px",
+                                                        }}
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            deleteCategory(
+                                                                category.id,
+                                                                category.name,
+                                                            )
+                                                        }
+                                                        style={{
+                                                            padding: "6px 12px",
+                                                            background:
+                                                                "#e74c3c",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontSize: "12px",
+                                                        }}
+                                                    >
+                                                        Deletar
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </>
+            ) : (
                 <div
                     style={{
-                        background: "white",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        border: "1px solid #ecf0f1",
-                        padding: "20px",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "24px",
                     }}
                 >
-                    {!selectedCategory ? (
-                        <div
+                    <div
+                        style={{
+                            background: "white",
+                            borderRadius: "8px",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            border: "1px solid #ecf0f1",
+                            padding: "20px",
+                        }}
+                    >
+                        <h2
                             style={{
-                                padding: "60px 20px",
-                                textAlign: "center",
-                                color: "#7f8c8d",
+                                marginTop: 0,
+                                marginBottom: "20px",
+                                fontSize: "20px",
+                                color: "#2c3e50",
                             }}
                         >
-                            <div
-                                style={{
-                                    fontSize: "48px",
-                                    marginBottom: "16px",
-                                    opacity: 0.3,
-                                }}
-                            >
-                                ←
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: "18px",
-                                    marginBottom: "8px",
-                                }}
-                            >
-                                Selecione uma categoria
-                            </div>
-                            <div style={{ fontSize: "14px" }}>
-                                Clique em uma categoria à esquerda para
-                                gerenciar suas linhas
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: "24px",
-                                }}
-                            >
-                                <h2
+                            Informações da Categoria
+                        </h2>
+                        <div
+                            style={{
+                                padding: "16px",
+                                background: "#f8f9fa",
+                                borderRadius: "6px",
+                            }}
+                        >
+                            <div style={{ marginBottom: "8px" }}>
+                                <div
                                     style={{
-                                        margin: 0,
-                                        fontSize: "20px",
+                                        fontSize: "12px",
+                                        color: "#7f8c8d",
+                                        marginBottom: "4px",
+                                    }}
+                                >
+                                    NOME
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: "18px",
+                                        fontWeight: "500",
                                         color: "#2c3e50",
                                     }}
                                 >
-                                    Linhas de {selectedCategory.name}
-                                </h2>
-                                <button
-                                    onClick={openCreateLineModal}
-                                    style={{
-                                        padding: "8px 16px",
-                                        background: "#27ae60",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                    }}
-                                >
-                                    + Nova Linha
-                                </button>
-                            </div>
-
-                            {lines.length === 0 ? (
-                                <div
-                                    style={{
-                                        padding: "40px 20px",
-                                        textAlign: "center",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    Nenhuma linha cadastrada nesta categoria
+                                    {selectedCategory.name}
                                 </div>
-                            ) : (
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: "10px",
-                                    }}
-                                >
-                                    {lines.map((line) => (
+                            </div>
+                        </div>
+                        <div
+                            style={{
+                                marginTop: "20px",
+                                display: "flex",
+                                gap: "12px",
+                            }}
+                        >
+                            <button
+                                onClick={() =>
+                                    openEditCategoryModal(selectedCategory)
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: "10px",
+                                    background: "#3498db",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                }}
+                            >
+                                Editar Categoria
+                            </button>
+                            <button
+                                onClick={() =>
+                                    deleteCategory(
+                                        selectedCategory.id,
+                                        selectedCategory.name,
+                                    )
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: "10px",
+                                    background: "#e74c3c",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                }}
+                            >
+                                Deletar Categoria
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        style={{
+                            background: "white",
+                            borderRadius: "8px",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            border: "1px solid #ecf0f1",
+                            padding: "20px",
+                        }}
+                    >
+                        <h2
+                            style={{
+                                marginTop: 0,
+                                marginBottom: "20px",
+                                fontSize: "20px",
+                                color: "#2c3e50",
+                            }}
+                        >
+                            Linhas
+                        </h2>
+
+                        {lines.length === 0 ? (
+                            <div
+                                style={{
+                                    padding: "40px 20px",
+                                    textAlign: "center",
+                                    color: "#7f8c8d",
+                                }}
+                            >
+                                Nenhuma linha cadastrada nesta categoria
+                            </div>
+                        ) : (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                }}
+                            >
+                                {lines.map((line) => (
+                                    <div
+                                        key={line.id}
+                                        style={{
+                                            padding: "16px",
+                                            border: "1px solid #ecf0f1",
+                                            borderRadius: "6px",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                        }}
+                                    >
                                         <div
-                                            key={line.id}
                                             style={{
-                                                padding: "16px",
-                                                border: "1px solid #ecf0f1",
-                                                borderRadius: "6px",
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
+                                                fontSize: "16px",
+                                                color: "#2c3e50",
                                             }}
                                         >
-                                            <div
-                                                style={{
-                                                    fontSize: "16px",
-                                                    color: "#2c3e50",
-                                                }}
-                                            >
-                                                {line.line}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                }}
-                                            >
-                                                <button
-                                                    onClick={() =>
-                                                        openEditLineModal(line)
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#3498db",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        deleteLine(
-                                                            line.id,
-                                                            line.line,
-                                                        )
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#e74c3c",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Deletar
-                                                </button>
-                                            </div>
+                                            {line.line}
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    )}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: "8px",
+                                            }}
+                                        >
+                                            <button
+                                                onClick={() =>
+                                                    openEditLineModal(line)
+                                                }
+                                                style={{
+                                                    padding: "6px 12px",
+                                                    background: "#3498db",
+                                                    color: "white",
+                                                    border: "none",
+                                                    borderRadius: "4px",
+                                                    cursor: "pointer",
+                                                    fontSize: "12px",
+                                                }}
+                                            >
+                                                Editar
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    deleteLine(
+                                                        line.id,
+                                                        line.line,
+                                                    )
+                                                }
+                                                style={{
+                                                    padding: "6px 12px",
+                                                    background: "#e74c3c",
+                                                    color: "white",
+                                                    border: "none",
+                                                    borderRadius: "4px",
+                                                    cursor: "pointer",
+                                                    fontSize: "12px",
+                                                }}
+                                            >
+                                                Deletar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {showCategoryModal && (
                 <div

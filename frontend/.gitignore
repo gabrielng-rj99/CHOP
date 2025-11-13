@@ -37,3 +37,6 @@ build
 
 # Misc
 .turbo
+
+# Binaries
+.backend/cmd/server/server

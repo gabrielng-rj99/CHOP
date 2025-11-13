@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS lines (
 
 CREATE TABLE IF NOT EXISTS contracts (
     id UUID PRIMARY KEY,
-    model VARCHAR(255) NOT NULL,
-    product_key VARCHAR(255) UNIQUE NOT NULL,
+    model VARCHAR(255),
+    product_key VARCHAR(255) UNIQUE,
     start_date TIMESTAMP NOT NULL,
     end_date TIMESTAMP NOT NULL,
     line_id UUID NOT NULL,

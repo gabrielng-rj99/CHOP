@@ -901,152 +901,19 @@ export default function Contracts({ token, apiUrl }) {
                         <form onSubmit={handleSubmit}>
                             <div
                                 style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
+                                    padding: "12px",
+                                    background: "#e8f4f8",
+                                    borderRadius: "4px",
+                                    marginBottom: "20px",
+                                    fontSize: "13px",
+                                    color: "#2c3e50",
                                 }}
                             >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Modelo *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.model}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                model: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Chave do Produto *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.product_key}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                product_key: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Data de Início *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.start_date}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                start_date: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Data de Término *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.end_date}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                end_date: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
+                                <strong>
+                                    Campos obrigatórios marcados com *
+                                </strong>
+                                <br />
+                                Os demais campos são opcionais
                             </div>
 
                             <div style={{ marginBottom: "16px" }}>
@@ -1055,11 +922,12 @@ export default function Contracts({ token, apiUrl }) {
                                         display: "block",
                                         marginBottom: "6px",
                                         fontSize: "14px",
-                                        fontWeight: "500",
+                                        fontWeight: "600",
                                         color: "#2c3e50",
                                     }}
                                 >
-                                    Cliente *
+                                    Cliente{" "}
+                                    <span style={{ color: "#e74c3c" }}>*</span>
                                 </label>
                                 <select
                                     value={formData.client_id}
@@ -1070,7 +938,7 @@ export default function Contracts({ token, apiUrl }) {
                                     style={{
                                         width: "100%",
                                         padding: "10px",
-                                        border: "1px solid #ddd",
+                                        border: "2px solid #3498db",
                                         borderRadius: "4px",
                                         fontSize: "14px",
                                         boxSizing: "border-box",
@@ -1098,10 +966,13 @@ export default function Contracts({ token, apiUrl }) {
                                             marginBottom: "6px",
                                             fontSize: "14px",
                                             fontWeight: "500",
-                                            color: "#2c3e50",
+                                            color: "#7f8c8d",
                                         }}
                                     >
-                                        Dependente (Opcional)
+                                        Dependente{" "}
+                                        <span style={{ fontSize: "12px" }}>
+                                            (opcional)
+                                        </span>
                                     </label>
                                     <select
                                         value={formData.dependent_id}
@@ -1148,11 +1019,14 @@ export default function Contracts({ token, apiUrl }) {
                                             display: "block",
                                             marginBottom: "6px",
                                             fontSize: "14px",
-                                            fontWeight: "500",
+                                            fontWeight: "600",
                                             color: "#2c3e50",
                                         }}
                                     >
-                                        Categoria *
+                                        Categoria{" "}
+                                        <span style={{ color: "#e74c3c" }}>
+                                            *
+                                        </span>
                                     </label>
                                     <select
                                         value={formData.category_id}
@@ -1163,7 +1037,7 @@ export default function Contracts({ token, apiUrl }) {
                                         style={{
                                             width: "100%",
                                             padding: "10px",
-                                            border: "1px solid #ddd",
+                                            border: "2px solid #3498db",
                                             borderRadius: "4px",
                                             fontSize: "14px",
                                             boxSizing: "border-box",
@@ -1189,11 +1063,14 @@ export default function Contracts({ token, apiUrl }) {
                                             display: "block",
                                             marginBottom: "6px",
                                             fontSize: "14px",
-                                            fontWeight: "500",
+                                            fontWeight: "600",
                                             color: "#2c3e50",
                                         }}
                                     >
-                                        Linha *
+                                        Linha{" "}
+                                        <span style={{ color: "#e74c3c" }}>
+                                            *
+                                        </span>
                                     </label>
                                     <select
                                         value={formData.line_id}
@@ -1208,14 +1085,19 @@ export default function Contracts({ token, apiUrl }) {
                                         style={{
                                             width: "100%",
                                             padding: "10px",
-                                            border: "1px solid #ddd",
+                                            border: "2px solid #3498db",
                                             borderRadius: "4px",
                                             fontSize: "14px",
                                             boxSizing: "border-box",
+                                            opacity: formData.category_id
+                                                ? 1
+                                                : 0.5,
                                         }}
                                     >
                                         <option value="">
-                                            Selecione uma linha
+                                            {formData.category_id
+                                                ? "Selecione uma linha"
+                                                : "Selecione categoria primeiro"}
                                         </option>
                                         {lines.map((line) => (
                                             <option
@@ -1229,6 +1111,168 @@ export default function Contracts({ token, apiUrl }) {
                                 </div>
                             </div>
 
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "16px",
+                                    marginBottom: "16px",
+                                }}
+                            >
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            marginBottom: "6px",
+                                            fontSize: "14px",
+                                            fontWeight: "600",
+                                            color: "#2c3e50",
+                                        }}
+                                    >
+                                        Data de Início{" "}
+                                        <span style={{ color: "#e74c3c" }}>
+                                            *
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.start_date}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                start_date: e.target.value,
+                                            })
+                                        }
+                                        required
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            border: "2px solid #3498db",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            marginBottom: "6px",
+                                            fontSize: "14px",
+                                            fontWeight: "600",
+                                            color: "#2c3e50",
+                                        }}
+                                    >
+                                        Data de Término{" "}
+                                        <span style={{ color: "#e74c3c" }}>
+                                            *
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.end_date}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                end_date: e.target.value,
+                                            })
+                                        }
+                                        required
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            border: "2px solid #3498db",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "16px",
+                                    marginBottom: "16px",
+                                }}
+                            >
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            marginBottom: "6px",
+                                            fontSize: "14px",
+                                            fontWeight: "500",
+                                            color: "#7f8c8d",
+                                        }}
+                                    >
+                                        Modelo{" "}
+                                        <span style={{ fontSize: "12px" }}>
+                                            (opcional)
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.model}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                model: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Ex: Premium, Básico..."
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            border: "1px solid #ddd",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            marginBottom: "6px",
+                                            fontSize: "14px",
+                                            fontWeight: "500",
+                                            color: "#7f8c8d",
+                                        }}
+                                    >
+                                        Chave do Produto{" "}
+                                        <span style={{ fontSize: "12px" }}>
+                                            (opcional)
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.product_key}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                product_key: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Ex: XXXX-XXXX-XXXX..."
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            border: "1px solid #ddd",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
                             <div style={{ marginBottom: "24px" }}>
                                 <label
                                     style={{
@@ -1236,10 +1280,13 @@ export default function Contracts({ token, apiUrl }) {
                                         marginBottom: "6px",
                                         fontSize: "14px",
                                         fontWeight: "500",
-                                        color: "#2c3e50",
+                                        color: "#7f8c8d",
                                     }}
                                 >
-                                    Dados Adicionais (JSON, opcional)
+                                    Dados Adicionais{" "}
+                                    <span style={{ fontSize: "12px" }}>
+                                        (opcional - JSON)
+                                    </span>
                                 </label>
                                 <textarea
                                     value={formData.additional_data}

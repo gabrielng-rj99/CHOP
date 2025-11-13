@@ -14,7 +14,7 @@ import (
 
 func startServer() {
 	clearTerminal()
-	fmt.Println("=== Iniciar Servidor HTTP ===\n")
+	fmt.Println("=== Iniciar Servidor HTTP ===\n ")
 
 	// Descobre o diretório raiz do projeto
 	_, filename, _, ok := runtime.Caller(0)

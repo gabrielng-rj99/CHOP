@@ -15,7 +15,7 @@ import (
 
 func checkServices() {
 	clearTerminal()
-	fmt.Println("=== Diagnóstico de Serviços ===\n")
+	fmt.Println("=== Diagnóstico de Serviços ===\n ")
 
 	// Verifica servidor HTTP (porta 3000)
 	fmt.Println("🔍 Verificando Servidor HTTP (porta 3000)...")

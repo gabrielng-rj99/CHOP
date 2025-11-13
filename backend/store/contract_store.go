@@ -27,13 +27,20 @@ func NewContractStore(db DBInterface) *ContractStore {
 
 // CreateContract insere um novo contrato no banco de dados.
 func (s *ContractStore) CreateContract(contract domain.Contract) (string, error) {
-	trimmedModel, err := ValidateName(contract.Model, 255)
-	if err != nil {
-		return "", err
+	// Model and ProductKey are now optional
+	var trimmedModel, trimmedProductKey string
+	var err error
+	if contract.Model != "" {
+		trimmedModel, err = ValidateName(contract.Model, 255)
+		if err != nil {
+			return "", err
+		}
 	}
-	trimmedProductKey, errProdKey := ValidateName(contract.ProductKey, 255)
-	if errProdKey != nil {
-		return "", errProdKey
+	if contract.ProductKey != "" {
+		trimmedProductKey, err = ValidateName(contract.ProductKey, 255)
+		if err != nil {
+			return "", err
+		}
 	}
 	if contract.StartDate.IsZero() || contract.EndDate.IsZero() {
 		return "", sql.ErrNoRows // Or use errors.New("start and end date must be set")
@@ -74,13 +81,15 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 			return "", errors.New("dependent does not exist or does not belong to the specified client")
 		}
 	}
-	// Check for duplicate product key
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE product_key = $1", contract.ProductKey).Scan(&count)
-	if err != nil {
-		return "", err
-	}
-	if count > 0 {
-		return "", sql.ErrNoRows // Or use errors.New("product key already exists")
+	// Check for duplicate product key only if provided
+	if contract.ProductKey != "" {
+		err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE product_key = $1", contract.ProductKey).Scan(&count)
+		if err != nil {
+			return "", err
+		}
+		if count > 0 {
+			return "", errors.New("product key already exists")
+		}
 	}
 
 	// NOVA REGRA: Verificar sobreposição temporal de contratos do mesmo tipo para empresa/dependente
@@ -214,13 +223,20 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	if contract.ID == "" {
 		return sql.ErrNoRows // Or use errors.New("contract ID cannot be empty")
 	}
-	trimmedModel, err := ValidateName(contract.Model, 255)
-	if err != nil {
-		return err
+	// Model and ProductKey are now optional
+	var trimmedModel, trimmedProductKey string
+	var err error
+	if contract.Model != "" {
+		trimmedModel, err = ValidateName(contract.Model, 255)
+		if err != nil {
+			return err
+		}
 	}
-	trimmedProductKey, errProdKey := ValidateName(contract.ProductKey, 255)
-	if errProdKey != nil {
-		return errProdKey
+	if contract.ProductKey != "" {
+		trimmedProductKey, err = ValidateName(contract.ProductKey, 255)
+		if err != nil {
+			return err
+		}
 	}
 	if contract.StartDate.IsZero() || contract.EndDate.IsZero() {
 		return sql.ErrNoRows // Or use errors.New("start and end date must be set")

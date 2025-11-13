@@ -14,7 +14,7 @@ import (
 
 func startFrontend() {
 	clearTerminal()
-	fmt.Println("=== Iniciar Frontend ===\n")
+	fmt.Println("=== Iniciar Frontend ===\n ")
 
 	// Descobre o diretório raiz do projeto
 	_, filename, _, ok := runtime.Caller(0)
@@ -57,7 +57,7 @@ func startFrontend() {
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
-		fmt.Println("\n✅ Dependências instaladas com sucesso!\n")
+		fmt.Println("\n✅ Dependências instaladas com sucesso!\n ")
 	}
 
 	// Verifica se já está rodando
