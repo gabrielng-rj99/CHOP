@@ -3,6 +3,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Contracts from "./pages/Contracts";
 import Clients from "./pages/Clients";
+import Categories from "./pages/Categories";
+import Users from "./pages/Users";
 
 const API_URL = "http://localhost:3000";
 
@@ -144,6 +146,48 @@ function App() {
                     Clientes
                 </button>
 
+                <button
+                    onClick={() => navigate("categories")}
+                    style={{
+                        background:
+                            currentPage === "categories"
+                                ? "#34495e"
+                                : "transparent",
+                        color: "white",
+                        border: "none",
+                        padding: "12px 16px",
+                        marginBottom: "8px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                    }}
+                >
+                    Categorias
+                </button>
+
+                {(user.role === "admin" || user.role === "full_admin") && (
+                    <button
+                        onClick={() => navigate("users")}
+                        style={{
+                            background:
+                                currentPage === "users"
+                                    ? "#34495e"
+                                    : "transparent",
+                            color: "white",
+                            border: "none",
+                            padding: "12px 16px",
+                            marginBottom: "8px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            borderRadius: "4px",
+                            fontSize: "14px",
+                        }}
+                    >
+                        Usuários
+                    </button>
+                )}
+
                 <div
                     style={{
                         marginTop: "auto",
@@ -193,6 +237,12 @@ function App() {
                 )}
                 {currentPage === "clients" && (
                     <Clients token={token} apiUrl={API_URL} />
+                )}
+                {currentPage === "categories" && (
+                    <Categories token={token} apiUrl={API_URL} />
+                )}
+                {currentPage === "users" && (
+                    <Users token={token} apiUrl={API_URL} user={user} />
                 )}
             </main>
         </div>
