@@ -126,10 +126,37 @@ func runDockerComposeDownWithVolumes(service string) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("docker", "compose", "-f", dockerComposePath, "down", "-v")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+
+	// Para remover apenas um serviço específico com volumes, precisamos:
+	// 1. Parar o container
+	// 2. Remover o container
+	// 3. Remover o volume associado
+
+	// Parar e remover o container
+	stopCmd := exec.Command("docker", "compose", "-f", dockerComposePath, "rm", "-s", "-f", service)
+	stopCmd.Stdout = os.Stdout
+	stopCmd.Stderr = os.Stderr
+	if err := stopCmd.Run(); err != nil {
+		return err
+	}
+
+	// Remover o volume específico do serviço
+	volumeName := ""
+	if service == "postgres_test" {
+		volumeName = "database_postgres_test_data"
+	} else if service == "postgres" {
+		volumeName = "database_postgres_data"
+	}
+
+	if volumeName != "" {
+		volumeCmd := exec.Command("docker", "volume", "rm", "-f", volumeName)
+		volumeCmd.Stdout = os.Stdout
+		volumeCmd.Stderr = os.Stderr
+		// Ignora erro se o volume não existir
+		_ = volumeCmd.Run()
+	}
+
+	return nil
 }
 
 // runShell executa um comando shell com saída direta no terminal
