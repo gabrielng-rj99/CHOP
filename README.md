@@ -5,24 +5,51 @@ Gerenciador centralizado de contratos e licenças de software. Rastreie, valide 
 ## ⚡ Quick Start
 
 ### Pré-requisitos
+
+**Backend:**
 - Go 1.21+
 - SQLite 3 (incluído no sistema)
 
-### Instalação em 3 passos
+**Frontend:**
+- Node.js 18+
+- npm ou yarn
+
+### Instalação
+
+#### Backend (API Server)
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/seu-usuario/Contracts-Manager.git
-cd Contracts-Manager/backend
+# 1. Navegue até o backend
+cd backend
 
 # 2. Instale dependências
 go mod tidy
 
-# 3. Execute
-go run cmd/cli/main.go
+# 3. Execute o servidor
+go run cmd/server/main.go
 ```
 
-**Pronto!** O banco de dados SQLite é criado automaticamente na primeira execução.
+O servidor estará disponível em `http://localhost:8080`
+
+#### Frontend
+
+```bash
+# 1. Navegue até o frontend
+cd frontend
+
+# 2. Instale dependências
+npm install
+
+# 3. Configure variáveis de ambiente
+cp .env.example .env
+
+# 4. Execute em modo desenvolvimento
+npm run dev
+```
+
+O frontend estará disponível em `http://localhost:3000`
+
+**Pronto!** O banco de dados SQLite é criado automaticamente na primeira execução do servidor.
 
 ## 📚 Documentação
 
@@ -33,12 +60,28 @@ go run cmd/cli/main.go
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Devs | 20 min |
 | **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | Contribuidores | 15 min |
 
-## 🎯 O que você pode fazer
+## 🎯 Funcionalidades
+
+### Interface Web (Frontend)
+- 🎨 Dashboard moderno com estatísticas em tempo real
+- 📊 Visualização de contratos expirando e expirados
+- 🔐 Sistema de autenticação seguro
+- 📱 Design responsivo (mobile-first)
+- ⚡ Interface rápida e intuitiva
+
+### API REST (Backend)
+- 🔒 Autenticação com Bearer Token
+- 📝 CRUD completo para todas as entidades
+- ✅ Validações robustas de dados
+- 🛡️ Proteção contra brute-force
+- 🔄 CORS configurado
+- 📡 Endpoints RESTful
 
 ### Gerenciar Contratos
 - Criar, listar, atualizar e arquivar contratos
 - Validação automática de datas
 - Status em tempo real: Ativo / Expirando / Expirado
+- Notificação de contratos expirando
 
 ### Organizar por Categorias
 - Antivírus, Banco de Dados, Sistemas Operacionais, etc
@@ -49,28 +92,45 @@ go run cmd/cli/main.go
 - Cadastro de empresas (clientes)
 - Suporte a dependentes (unidades, filiais)
 - Soft delete para auditoria
+- Informações detalhadas (contatos, documentos, etc)
 
-### Autenticação
+### Autenticação e Segurança
 - Login com usuário e senha
+- Senhas fortes (16+ caracteres)
 - Controle de tentativas falhadas
-- Sistema de bloqueio automático
+- Sistema de bloqueio automático progressivo
+- Roles: user, admin, full_admin
 
-## 🏗️ Estrutura
+## 🏗️ Estrutura do Projeto
 
 ```
-backend/
-├── cmd/
-│   ├── cli/           # Interface de linha de comando
-│   ├── server/        # API (futuro)
-│   └── tools/         # Utilitários (criar admin, etc)
-├── domain/            # Modelos de negócio
-├── store/             # Lógica de dados e validações
-├── database/          # Camada de persistência
-├── config/            # Configurações
-└── tests/             # Testes (integrados nos arquivos)
+Contract-Manager/
+├── backend/
+│   ├── cmd/
+│   │   ├── cli/           # Interface de linha de comando
+│   │   ├── server/        # API REST HTTP
+│   │   └── tools/         # Utilitários
+│   ├── domain/            # Modelos de negócio
+│   ├── store/             # Lógica de dados e validações
+│   ├── database/          # Camada de persistência
+│   └── tests/             # Testes
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/         # Páginas React
+│   │   ├── services/      # Chamadas à API
+│   │   ├── store/         # Estado global (Zustand)
+│   │   ├── types/         # TypeScript interfaces
+│   │   └── utils/         # Funções utilitárias
+│   ├── public/            # Assets estáticos
+│   └── package.json
+│
+└── docs/                  # Documentação
 ```
 
-**Stack:** Go 1.21+ | SQLite | CLI
+**Stack Backend:** Go 1.21+ | SQLite | net/http
+
+**Stack Frontend:** React 18 | TypeScript | Vite | Tailwind CSS | Zustand
 
 ## 📊 Entidades Principais
 
@@ -103,6 +163,7 @@ Line → Contracts (1:N)
 
 ## 🧪 Testes
 
+**Backend:**
 ```bash
 cd backend
 
@@ -116,21 +177,77 @@ go test ./store -cover
 go test -run TestContractCreate ./store
 ```
 
+**Frontend:**
+```bash
+cd frontend
+
+# Lint
+npm run lint
+
+# Type check
+npm run type-check
+```
+
 ## 🚀 Build para Produção
 
+**Backend:**
 ```bash
 cd backend
-go build -o contracts-manager cmd/cli/main.go
+go build -o contracts-manager cmd/server/main.go
 ./contracts-manager
 ```
 
+**Frontend:**
+```bash
+cd frontend
+npm run build
+# Arquivos gerados em: frontend/dist/
+```
+
+## 📡 API Endpoints
+
+**Autenticação:**
+- `POST /api/register` - Registrar novo usuário
+- `POST /api/login` - Login
+
+**Contratos:**
+- `GET /api/contracts` - Listar contratos
+- `POST /api/contracts/create` - Criar contrato
+- `GET /api/contracts/get?id=` - Obter contrato
+- `PUT /api/contracts/update` - Atualizar contrato
+- `DELETE /api/contracts/archive?id=` - Arquivar contrato
+
+**Clientes:**
+- `GET /api/clients` - Listar clientes
+- `POST /api/clients/create` - Criar cliente
+- `GET /api/clients/get?id=` - Obter cliente
+- `PUT /api/clients/update` - Atualizar cliente
+- `DELETE /api/clients/archive?id=` - Arquivar cliente
+
+**Dependentes:**
+- `GET /api/dependents?client_id=` - Listar dependentes
+- `POST /api/dependents/create` - Criar dependente
+- `PUT /api/dependents/update` - Atualizar dependente
+- `DELETE /api/dependents/delete?id=` - Deletar dependente
+
+**Categorias & Linhas:**
+- `GET /api/categories` - Listar categorias
+- `POST /api/categories/create` - Criar categoria
+- `GET /api/lines` - Listar linhas
+- `POST /api/lines/create` - Criar linha
+
 ## 📋 Roadmap
 
-- [ ] API REST
-- [ ] Dashboard web
+- [x] API REST completa
+- [x] Dashboard web com React
+- [x] Autenticação e autorização
+- [x] Interface responsiva
+- [ ] Importação/Exportação Excel
 - [ ] Notificações (email/Slack)
-- [ ] Exportação (CSV/PDF)
-- [ ] Auditoria detalhada
+- [ ] Relatórios em PDF
+- [ ] Auditoria detalhada com logs
+- [ ] Sistema de permissões granular
+- [ ] Multi-tenancy
 
 ## 🤝 Contribuindo
 
@@ -146,6 +263,19 @@ Veja [CONTRIBUTING.md](docs/CONTRIBUTING.md) para:
 
 ---
 
-**Primeira vez?** Siga o [Quick Start](#-quick-start) acima, depois leia [SETUP.md](docs/SETUP.md).
+## 🎓 Começando
+
+1. **Backend:** Siga as instruções em [Quick Start](#-quick-start) para iniciar o servidor
+2. **Frontend:** Configure e execute o frontend
+3. **Primeiro Acesso:** Registre um usuário em `/register` ou crie via CLI
+4. **Explore:** Acesse o dashboard e comece a gerenciar contratos
+
+## 📚 Mais Informações
+
+- **Frontend:** [frontend/README.md](frontend/README.md)
+- **Setup:** [docs/SETUP.md](docs/SETUP.md)
+- **Arquitetura:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Uso CLI:** [docs/USAGE.md](docs/USAGE.md)
+- **Contribuir:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 **Dúvidas?** Consulte a [documentação completa](docs/) ou abra uma [issue](https://github.com/seu-usuario/Contracts-Manager/issues).

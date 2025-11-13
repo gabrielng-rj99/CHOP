@@ -20,6 +20,10 @@ func main() {
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
 		fmt.Println("║ 11 - Executar CLI principal (requer banco principal UP)                    ║")
 		fmt.Println("║ 12 - Criar usuário admin com senha aleatória (requer banco principal UP)   ║")
+		fmt.Println("║ 13 - Iniciar servidor HTTP API (porta 3000)                                ║")
+		fmt.Println("║ 14 - Parar servidor HTTP API                                               ║")
+		fmt.Println("║ 15 - Iniciar frontend Web (porta 8080)                                     ║")
+		fmt.Println("║ 16 - Parar frontend Web                                                    ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -42,6 +46,7 @@ func main() {
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
 		fmt.Println("║ 91 - Rodar testes automatizados (requer banco de testes UP)                ║")
 		fmt.Println("║ 92 - Validar separação dos bancos de dados                                 ║")
+		fmt.Println("║ 93 - Verificar status dos serviços (HTTP e Frontend)                       ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -57,6 +62,14 @@ func main() {
 			LaunchCLI()
 		case "12":
 			CreateAdminCLI()
+		case "13":
+			startServer()
+		case "14":
+			stopServer()
+		case "15":
+			startFrontend()
+		case "16":
+			stopFrontend()
 		case "21":
 			InitMainDatabaseDocker()
 		case "28":
@@ -71,6 +84,8 @@ func main() {
 			RunIntegrationTestsWithDockerPostgres()
 		case "92":
 			ValidateDBSeparation()
+		case "93":
+			checkServices()
 		case "0", "00":
 			fmt.Println("Saindo...")
 			<-time.After(1200 * time.Millisecond)

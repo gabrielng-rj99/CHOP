@@ -634,6 +634,6 @@ func main() {
 	http.HandleFunc("/api/lines", corsMiddleware(server.authMiddleware(server.handleListLines)))
 	http.HandleFunc("/api/lines/create", corsMiddleware(server.authMiddleware(server.handleCreateLine)))
 
-	fmt.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server running on http://localhost:3000")
+	log.Fatal(http.ListenAndServe(":3000", nil))
 }
