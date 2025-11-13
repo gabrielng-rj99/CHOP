@@ -146,10 +146,10 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 // filterCategories filters categories by name
 func filterCategories(categories []domain.Category, searchTerm string) []domain.Category {
 	var filtered []domain.Category
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, c := range categories {
-		if strings.Contains(strings.ToLower(c.Name), searchTerm) {
+		if strings.Contains(normalizeString(c.Name), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}

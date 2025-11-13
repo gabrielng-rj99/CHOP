@@ -11,6 +11,8 @@
 # Binários compilados do Go
 # (O nome do seu projeto, se compilar)
 Licenses-Manager
+backend/cli
+backend/tools
 
 # Coverage e relatórios (devem ser gerados localmente)
 coverage.html

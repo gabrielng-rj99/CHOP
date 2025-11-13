@@ -383,15 +383,15 @@ func displayUsersList(users []domain.User) {
 // filterUsers filters users by username or display name
 func filterUsers(users []domain.User, searchTerm string) []domain.User {
 	var filtered []domain.User
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, u := range users {
-		if strings.Contains(strings.ToLower(u.Username), searchTerm) {
+		if strings.Contains(normalizeString(u.Username), searchTerm) {
 			filtered = append(filtered, u)
 			continue
 		}
 
-		if strings.Contains(strings.ToLower(u.DisplayName), searchTerm) {
+		if strings.Contains(normalizeString(u.DisplayName), searchTerm) {
 			filtered = append(filtered, u)
 			continue
 		}

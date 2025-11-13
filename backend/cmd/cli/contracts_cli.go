@@ -528,15 +528,15 @@ func displayContractsList(contracts []domain.Contract) {
 // filterContracts filters contracts by model or product key
 func filterContracts(contracts []domain.Contract, searchTerm string) []domain.Contract {
 	var filtered []domain.Contract
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, c := range contracts {
-		if strings.Contains(strings.ToLower(c.Model), searchTerm) {
+		if strings.Contains(normalizeString(c.Model), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
 
-		if strings.Contains(strings.ToLower(c.ProductKey), searchTerm) {
+		if strings.Contains(normalizeString(c.ProductKey), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}

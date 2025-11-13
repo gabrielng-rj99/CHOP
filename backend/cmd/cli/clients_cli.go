@@ -255,20 +255,20 @@ func displayClientsList(clients []domain.Client) {
 // filterClients filters clients by name, nickname, or registration ID
 func filterClients(clients []domain.Client, searchTerm string) []domain.Client {
 	var filtered []domain.Client
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, c := range clients {
-		if strings.Contains(strings.ToLower(c.Name), searchTerm) {
+		if strings.Contains(normalizeString(c.Name), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
 
-		if c.Nickname != nil && strings.Contains(strings.ToLower(*c.Nickname), searchTerm) {
+		if c.Nickname != nil && strings.Contains(normalizeString(*c.Nickname), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
 
-		if c.RegistrationID != nil && strings.Contains(strings.ToLower(*c.RegistrationID), searchTerm) {
+		if c.RegistrationID != nil && strings.Contains(normalizeString(*c.RegistrationID), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
@@ -964,20 +964,20 @@ func displayDependentsList(dependents []domain.Dependent) {
 // filterDependents filters dependents by name, email, or description
 func filterDependents(dependents []domain.Dependent, searchTerm string) []domain.Dependent {
 	var filtered []domain.Dependent
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, d := range dependents {
-		if strings.Contains(strings.ToLower(d.Name), searchTerm) {
+		if strings.Contains(normalizeString(d.Name), searchTerm) {
 			filtered = append(filtered, d)
 			continue
 		}
 
-		if d.Description != nil && strings.Contains(strings.ToLower(*d.Description), searchTerm) {
+		if d.Description != nil && strings.Contains(normalizeString(*d.Description), searchTerm) {
 			filtered = append(filtered, d)
 			continue
 		}
 
-		if d.Email != nil && strings.Contains(strings.ToLower(*d.Email), searchTerm) {
+		if d.Email != nil && strings.Contains(normalizeString(*d.Email), searchTerm) {
 			filtered = append(filtered, d)
 			continue
 		}

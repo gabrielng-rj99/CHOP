@@ -219,10 +219,10 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 // filterLines filters lines by name
 func filterLines(lines []domain.Line, searchTerm string) []domain.Line {
 	var filtered []domain.Line
-	searchTerm = strings.ToLower(searchTerm)
+	searchTerm = normalizeString(searchTerm)
 
 	for _, l := range lines {
-		if strings.Contains(strings.ToLower(l.Line), searchTerm) {
+		if strings.Contains(normalizeString(l.Line), searchTerm) {
 			filtered = append(filtered, l)
 			continue
 		}

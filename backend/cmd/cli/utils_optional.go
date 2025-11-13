@@ -7,6 +7,11 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"unicode"
+
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 // PrintOptionalFieldHint prints instructions for optional field handling
@@ -49,4 +54,17 @@ func clearTerminal() {
 func waitForEnter() {
 	fmt.Print("\nPressione ENTER para continuar...")
 	bufio.NewReader(os.Stdin).ReadString('\n')
+}
+
+// normalizeString removes accents/diacritics and converts to lowercase for flexible search
+// Example: "João" -> "joao", "Café" -> "cafe"
+func normalizeString(s string) string {
+	// Convert to lowercase first
+	s = strings.ToLower(s)
+
+	// Create transformer that removes combining marks (accents)
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	result, _, _ := transform.String(t, s)
+
+	return result
 }
