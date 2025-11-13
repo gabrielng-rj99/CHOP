@@ -19,8 +19,8 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - List all lines")
 		fmt.Println("2 - Search/Filter lines")
-		fmt.Println("3 - Create line")
-		fmt.Println("4 - Edit line")
+		fmt.Println("3 - Edit line")
+		fmt.Println("4 - Create line")
 		fmt.Println("5 - Delete line")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
@@ -63,50 +63,6 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			filtered := filterLines(lines, searchTerm)
 			displayLinesList(filtered)
 			waitForEnter()
-		case "4":
-			clearTerminal()
-			reader := bufio.NewReader(os.Stdin)
-
-			categories, err := categoryStore.GetAllCategories()
-			if err != nil || len(categories) == 0 {
-				fmt.Println("No categories found. Please create a category first.")
-				waitForEnter()
-				continue
-			}
-
-			fmt.Println("\n=== Select Category ===")
-			displayCategoriesList(categories)
-			fmt.Print("\nEnter the number of the category: ")
-			idxStr, _ := reader.ReadString('\n')
-			idxStr = strings.TrimSpace(idxStr)
-			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(categories) {
-				fmt.Println("Invalid selection.")
-				waitForEnter()
-				continue
-			}
-			categoryID := categories[idx-1].ID
-
-			fmt.Print("Line name: ")
-			line, _ := reader.ReadString('\n')
-			line = strings.TrimSpace(line)
-			if line == "" {
-				fmt.Println("Error: Line name cannot be empty.")
-				waitForEnter()
-				continue
-			}
-
-			id, err := lineStore.CreateLine(domain.Line{
-				Line:       line,
-				CategoryID: categoryID,
-			})
-			if err != nil {
-				fmt.Println("Error creating line:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Line created with ID:", id)
-				waitForEnter()
-			}
 		case "3":
 			clearTerminal()
 			fmt.Print("Buscar linha para editar por (1) ID ou (2) nome? ")
@@ -175,6 +131,50 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				waitForEnter()
 			} else {
 				fmt.Println("Line updated.")
+				waitForEnter()
+			}
+		case "4":
+			clearTerminal()
+			reader := bufio.NewReader(os.Stdin)
+
+			categories, err := categoryStore.GetAllCategories()
+			if err != nil || len(categories) == 0 {
+				fmt.Println("No categories found. Please create a category first.")
+				waitForEnter()
+				continue
+			}
+
+			fmt.Println("\n=== Select Category ===")
+			displayCategoriesList(categories)
+			fmt.Print("\nEnter the number of the category: ")
+			idxStr, _ := reader.ReadString('\n')
+			idxStr = strings.TrimSpace(idxStr)
+			idx, err := strconv.Atoi(idxStr)
+			if err != nil || idx < 1 || idx > len(categories) {
+				fmt.Println("Invalid selection.")
+				waitForEnter()
+				continue
+			}
+			categoryID := categories[idx-1].ID
+
+			fmt.Print("Line name: ")
+			line, _ := reader.ReadString('\n')
+			line = strings.TrimSpace(line)
+			if line == "" {
+				fmt.Println("Error: Line name cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			id, err := lineStore.CreateLine(domain.Line{
+				Line:       line,
+				CategoryID: categoryID,
+			})
+			if err != nil {
+				fmt.Println("Error creating line:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Line created with ID:", id)
 				waitForEnter()
 			}
 		case "5":
