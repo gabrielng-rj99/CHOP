@@ -127,7 +127,7 @@ func ValidateDBSeparation() {
 	if mainRunning {
 		fmt.Println("║ ✅ Banco PRINCIPAL: RODANDO                                               ║")
 	} else {
-		fmt.Println("║ ❌ Banco PRINCIPAL: PARADO  (use opção 21 para iniciar)                   ║")
+		fmt.Println("║ ❌ Banco PRINCIPAL: PARADO  (use opção 11 para iniciar)                   ║")
 	}
 
 	if testRunning {

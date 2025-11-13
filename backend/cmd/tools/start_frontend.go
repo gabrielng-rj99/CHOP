@@ -73,7 +73,7 @@ func startFrontend() {
 
 	fmt.Println("🚀 Iniciando frontend em background...")
 	fmt.Println("🌐 URL: http://localhost:8080")
-	fmt.Println("\n💡 Use a opção 16 para parar o frontend")
+	fmt.Println("\n💡 Use a opção 23 para parar o frontend")
 
 	// Executa o frontend em background
 	var cmd *exec.Cmd

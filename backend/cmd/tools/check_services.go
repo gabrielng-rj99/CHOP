@@ -34,7 +34,7 @@ func checkServices() {
 		}
 	} else {
 		fmt.Println("   ❌ Nenhum processo rodando na porta 3000")
-		fmt.Println("   💡 Use a opção 13 para iniciar o servidor")
+		fmt.Println("   💡 Use a opção 12 para iniciar o servidor")
 	}
 
 	fmt.Println()
@@ -55,7 +55,7 @@ func checkServices() {
 		}
 	} else {
 		fmt.Println("   ❌ Nenhum processo rodando na porta 8080")
-		fmt.Println("   💡 Use a opção 15 para iniciar o frontend")
+		fmt.Println("   💡 Use a opção 14 para iniciar o frontend")
 	}
 
 	fmt.Println()
@@ -83,10 +83,10 @@ func checkServices() {
 	} else {
 		fmt.Println("⚠️  Alguns serviços não estão rodando")
 		if !serverRunning {
-			fmt.Println("   → Inicie o servidor (opção 13)")
+			fmt.Println("   → Inicie o servidor (opção 12)")
 		}
 		if !frontendRunning {
-			fmt.Println("   → Inicie o frontend (opção 15)")
+			fmt.Println("   → Inicie o frontend (opção 13)")
 		}
 	}
 

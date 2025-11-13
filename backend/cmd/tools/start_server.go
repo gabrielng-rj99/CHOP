@@ -53,7 +53,7 @@ func startServer() {
 	fmt.Println("🚀 Iniciando servidor HTTP em background...")
 	fmt.Println("📡 API: http://localhost:3000")
 	fmt.Println("🔍 Health check: http://localhost:3000/health")
-	fmt.Println("\n💡 Use a opção 14 para parar o servidor")
+	fmt.Println("\n💡 Use a opção 22 para parar o servidor")
 
 	// Executa o servidor em background
 	var cmd *exec.Cmd
