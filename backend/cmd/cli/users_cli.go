@@ -15,18 +15,14 @@ import (
 func UsersMenu(userStore *store.UserStore, user *domain.User) {
 	for {
 		clearTerminal()
-		fmt.Println("\n--- Users ---")
+		fmt.Println("\n--- Users Menu ---")
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - List all users")
 		fmt.Println("2 - Search/Filter users")
-		fmt.Println("3 - Create regular user (admin or full_admin only)")
-		fmt.Println("4 - Create admin user (admin or full_admin only)")
-		fmt.Println("5 - Create full_admin user (full_admin only)")
-		fmt.Println("6 - Change display name")
-		fmt.Println("7 - Change password")
-		fmt.Println("8 - Change your own username (admin or full_admin only)")
-		fmt.Println("9 - Change user role (full_admin only)")
-		fmt.Println("10 - Unlock user (full_admin only)")
+		fmt.Println("3 - Select user")
+		fmt.Println("4 - Create regular user (admin or full_admin only)")
+		fmt.Println("5 - Create admin user (admin or full_admin only)")
+		fmt.Println("6 - Create full_admin user (full_admin only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -70,6 +66,45 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			waitForEnter()
 		case "3":
 			clearTerminal()
+			fmt.Println("\n=== Select User ===")
+			fmt.Print("Search term (or leave empty for all): ")
+			searchTerm, _ := reader.ReadString('\n')
+			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
+
+			users, err := userStore.ListUsers()
+			if err != nil || len(users) == 0 {
+				fmt.Println("No users found.")
+				waitForEnter()
+				continue
+			}
+
+			if searchTerm != "" {
+				users = filterUsers(users, searchTerm)
+			}
+
+			if len(users) == 0 {
+				fmt.Println("No users match your search.")
+				waitForEnter()
+				continue
+			}
+
+			displayUsersList(users)
+			fmt.Print("\nEnter the number of the user (0 to cancel): ")
+			idxStr, _ := reader.ReadString('\n')
+			idxStr = strings.TrimSpace(idxStr)
+			if idxStr == "0" {
+				continue
+			}
+			idx, err := strconv.Atoi(idxStr)
+			if err != nil || idx < 1 || idx > len(users) {
+				fmt.Println("Invalid selection.")
+				waitForEnter()
+				continue
+			}
+			selectedUser := users[idx-1]
+			UserSubmenu(&selectedUser, userStore, user)
+		case "4":
+			clearTerminal()
 			// Create regular user (admin or full_admin only)
 			if user.Role != "admin" && user.Role != "full_admin" {
 				fmt.Println("Only admin or full_admin users can create new users.")
@@ -108,7 +143,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Printf("User created with ID: %s\n", id)
 				waitForEnter()
 			}
-		case "4":
+		case "5":
 			clearTerminal()
 			// Create admin user (admin or full_admin only)
 			if user.Role != "admin" && user.Role != "full_admin" {
@@ -135,7 +170,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				fmt.Printf("Admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 				waitForEnter()
 			}
-		case "5":
+		case "6":
 			clearTerminal()
 			// Create full_admin user (full_admin only)
 			if user.Role != "full_admin" {
@@ -160,188 +195,6 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				waitForEnter()
 			} else {
 				fmt.Printf("Full_admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
-				waitForEnter()
-			}
-		case "6":
-			clearTerminal()
-			// Change display name
-			PrintOptionalFieldHint()
-			fmt.Printf("Current display name: %s | New display name: ", user.DisplayName)
-			newDisplayName, _ := reader.ReadString('\n')
-			newDisplayName = strings.TrimSpace(newDisplayName)
-			if newDisplayName == "" {
-				newDisplayName = user.DisplayName
-			}
-			err := userStore.EditUserDisplayName(user.Username, newDisplayName)
-			if err != nil {
-				fmt.Println("Error changing display name:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Display name changed successfully!")
-				waitForEnter()
-			}
-		case "7":
-			clearTerminal()
-			// Change your password
-			PrintOptionalFieldHint()
-			fmt.Print("New password (leave empty to keep current): ")
-			newPassword, _ := reader.ReadString('\n')
-			newPassword = strings.TrimSpace(newPassword)
-
-			if newPassword == "" {
-				fmt.Println("Password unchanged.")
-				waitForEnter()
-				continue
-			}
-
-			// Password requirements: min 12 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
-			var (
-				hasMinLen  = len(newPassword) >= 12
-				hasUpper   = false
-				hasLower   = false
-				hasDigit   = false
-				hasSpecial = false
-			)
-			for _, c := range newPassword {
-				switch {
-				case c >= 'A' && c <= 'Z':
-					hasUpper = true
-				case c >= 'a' && c <= 'z':
-					hasLower = true
-				case c >= '0' && c <= '9':
-					hasDigit = true
-				case (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126):
-					hasSpecial = true
-				}
-			}
-			if !hasMinLen || !hasUpper || !hasLower || !hasDigit || !hasSpecial {
-				fmt.Println("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.")
-				waitForEnter()
-				break
-			}
-
-			err := userStore.EditUserPassword(user.Username, newPassword)
-			if err != nil {
-				fmt.Println("Error changing password:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Password changed successfully!")
-				waitForEnter()
-			}
-		case "8":
-			clearTerminal()
-			// Change your own username (admin or full_admin only)
-			if user.Role != "admin" && user.Role != "full_admin" {
-				fmt.Println("Only admin or full_admin users can change their own username.")
-				waitForEnter()
-				break
-			}
-			PrintOptionalFieldHint()
-			fmt.Printf("Current username: %s | New username: ", user.Username)
-			newUsername, _ := reader.ReadString('\n')
-			newUsername = strings.TrimSpace(newUsername)
-			if newUsername == "" {
-				fmt.Println("Username unchanged.")
-				waitForEnter()
-				continue
-			}
-			err := userStore.UpdateUsername(user.Username, newUsername)
-			if err != nil {
-				fmt.Println("Error changing your username:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Your username was changed successfully! Please log in again with your new username.")
-				waitForEnter()
-				return
-			}
-		case "9":
-			clearTerminal()
-			// Change user role (full_admin only)
-			if user.Role != "full_admin" {
-				fmt.Println("Only full_admin users can change the role of other users.")
-				waitForEnter()
-				break
-			}
-			users, err := userStore.ListUsers()
-			if err != nil || len(users) == 0 {
-				fmt.Println("No users found.")
-				waitForEnter()
-				continue
-			}
-			fmt.Println("Select a user to change role by number:")
-			for i, u := range users {
-				fmt.Printf("%d - Username: %s | Display Name: %s | Role: %s\n", i+1, u.Username, u.DisplayName, u.Role)
-			}
-			fmt.Print("Enter the number of the user: ")
-			idxStr, _ := reader.ReadString('\n')
-			idxStr = strings.TrimSpace(idxStr)
-			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(users) {
-				fmt.Println("Invalid selection.")
-				waitForEnter()
-				continue
-			}
-			targetUsername := users[idx-1].Username
-			targetUser := users[idx-1]
-			PrintOptionalFieldHint()
-			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", targetUser.Role)
-			newRole, _ := reader.ReadString('\n')
-			newRole = strings.TrimSpace(newRole)
-			if targetUsername == "" {
-				fmt.Println("Error: Target username cannot be empty.")
-				waitForEnter()
-				continue
-			}
-			if newRole == "" {
-				newRole = targetUser.Role
-			}
-			err = userStore.EditUserRole(user.Username, targetUsername, newRole)
-			if err != nil {
-				fmt.Println("Error changing role:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("Role changed successfully!")
-				waitForEnter()
-			}
-		case "10":
-			clearTerminal()
-			// Unlock user (full_admin only)
-			if user.Role != "full_admin" {
-				fmt.Println("Only full_admin users can unlock users.")
-				waitForEnter()
-				break
-			}
-			users, err := userStore.ListUsers()
-			if err != nil || len(users) == 0 {
-				fmt.Println("No users found.")
-				waitForEnter()
-				continue
-			}
-			fmt.Println("Select a user to unlock by number:")
-			for i, u := range users {
-				fmt.Printf("%d - Username: %s | Display Name: %s | Role: %s\n", i+1, u.Username, u.DisplayName, u.Role)
-			}
-			fmt.Print("Enter the number of the user: ")
-			idxStr, _ := reader.ReadString('\n')
-			idxStr = strings.TrimSpace(idxStr)
-			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(users) {
-				fmt.Println("Invalid selection.")
-				waitForEnter()
-				continue
-			}
-			targetUsername := users[idx-1].Username
-			if targetUsername == "" {
-				fmt.Println("Error: Target username cannot be empty.")
-				waitForEnter()
-				continue
-			}
-			err = userStore.UnlockUser(targetUsername)
-			if err != nil {
-				fmt.Println("Error unlocking user:", err)
-				waitForEnter()
-			} else {
-				fmt.Println("User unlocked successfully!")
 				waitForEnter()
 			}
 
@@ -398,4 +251,156 @@ func filterUsers(users []domain.User, searchTerm string) []domain.User {
 	}
 
 	return filtered
+}
+
+// UserSubmenu handles operations for a specific user
+func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentUser *domain.User) {
+	for {
+		clearTerminal()
+		fmt.Printf("\n--- User: %s ---\n", selectedUser.Username)
+		fmt.Println("0 - Back")
+		fmt.Println("1 - Edit username")
+		fmt.Println("2 - Edit display name")
+		fmt.Println("3 - Edit password")
+		fmt.Println("4 - Edit role (full_admin only)")
+		fmt.Println("5 - Unlock user (full_admin only)")
+		fmt.Print("Option: ")
+		reader := bufio.NewReader(os.Stdin)
+		opt, _ := reader.ReadString('\n')
+		opt = strings.TrimSpace(opt)
+
+		switch opt {
+		case "0":
+			return
+		case "1":
+			clearTerminal()
+			if currentUser.Role != "admin" && currentUser.Role != "full_admin" {
+				fmt.Println("Only admin or full_admin users can change usernames.")
+				waitForEnter()
+				continue
+			}
+			PrintOptionalFieldHint()
+			fmt.Printf("Current username: %s | New username: ", selectedUser.Username)
+			newUsername, _ := reader.ReadString('\n')
+			newUsername = strings.TrimSpace(newUsername)
+			if newUsername == "" {
+				fmt.Println("Username unchanged.")
+				waitForEnter()
+				continue
+			}
+			err := userStore.UpdateUsername(selectedUser.Username, newUsername)
+			if err != nil {
+				fmt.Println("Error changing username:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Username changed successfully!")
+				selectedUser.Username = newUsername
+				waitForEnter()
+			}
+		case "2":
+			clearTerminal()
+			PrintOptionalFieldHint()
+			fmt.Printf("Current display name: %s | New display name: ", selectedUser.DisplayName)
+			newDisplayName, _ := reader.ReadString('\n')
+			newDisplayName = strings.TrimSpace(newDisplayName)
+			if newDisplayName == "" {
+				newDisplayName = selectedUser.DisplayName
+			}
+			err := userStore.EditUserDisplayName(selectedUser.Username, newDisplayName)
+			if err != nil {
+				fmt.Println("Error changing display name:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Display name changed successfully!")
+				selectedUser.DisplayName = newDisplayName
+				waitForEnter()
+			}
+		case "3":
+			clearTerminal()
+			fmt.Print("New password: ")
+			newPassword, _ := reader.ReadString('\n')
+			newPassword = strings.TrimSpace(newPassword)
+
+			if newPassword == "" {
+				fmt.Println("Password cannot be empty.")
+				waitForEnter()
+				continue
+			}
+
+			// Password requirements: min 12 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
+			var (
+				hasMinLen  = len(newPassword) >= 12
+				hasUpper   = false
+				hasLower   = false
+				hasDigit   = false
+				hasSpecial = false
+			)
+			for _, c := range newPassword {
+				switch {
+				case c >= 'A' && c <= 'Z':
+					hasUpper = true
+				case c >= 'a' && c <= 'z':
+					hasLower = true
+				case c >= '0' && c <= '9':
+					hasDigit = true
+				case (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126):
+					hasSpecial = true
+				}
+			}
+			if !hasMinLen || !hasUpper || !hasLower || !hasDigit || !hasSpecial {
+				fmt.Println("Password must be at least 12 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.")
+				waitForEnter()
+				continue
+			}
+
+			err := userStore.EditUserPassword(selectedUser.Username, newPassword)
+			if err != nil {
+				fmt.Println("Error changing password:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Password changed successfully!")
+				waitForEnter()
+			}
+		case "4":
+			clearTerminal()
+			if currentUser.Role != "full_admin" {
+				fmt.Println("Only full_admin users can change the role of other users.")
+				waitForEnter()
+				continue
+			}
+			PrintOptionalFieldHint()
+			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", selectedUser.Role)
+			newRole, _ := reader.ReadString('\n')
+			newRole = strings.TrimSpace(newRole)
+			if newRole == "" {
+				newRole = selectedUser.Role
+			}
+			err := userStore.EditUserRole(currentUser.Username, selectedUser.Username, newRole)
+			if err != nil {
+				fmt.Println("Error changing role:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Role changed successfully!")
+				selectedUser.Role = newRole
+				waitForEnter()
+			}
+		case "5":
+			clearTerminal()
+			if currentUser.Role != "full_admin" {
+				fmt.Println("Only full_admin users can unlock users.")
+				waitForEnter()
+				continue
+			}
+			err := userStore.UnlockUser(selectedUser.Username)
+			if err != nil {
+				fmt.Println("Error unlocking user:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("User unlocked successfully!")
+				waitForEnter()
+			}
+		default:
+			fmt.Println("Invalid option.")
+		}
+	}
 }
