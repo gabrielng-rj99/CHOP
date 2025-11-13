@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -545,7 +546,7 @@ func filterContracts(contracts []domain.Contract, searchTerm string) []domain.Co
 	return filtered
 }
 
-// displayLinesList shows a compact list of lines
+// displayLinesList shows a compact list of lines sorted by category
 func displayLinesList(lines []domain.Line) {
 	fmt.Println("\n=== Lines ===")
 	if len(lines) == 0 {
@@ -553,21 +554,45 @@ func displayLinesList(lines []domain.Line) {
 		return
 	}
 
-	fmt.Printf("\n%-4s | %-40s | %-30s\n", "#", "Name", "Category")
+	// Group lines by category
+	categoryMap := make(map[string][]domain.Line)
+	for _, l := range lines {
+		categoryMap[l.CategoryID] = append(categoryMap[l.CategoryID], l)
+	}
+
+	// Sort categories
+	categories := make([]string, 0, len(categoryMap))
+	for cat := range categoryMap {
+		categories = append(categories, cat)
+	}
+	sort.Strings(categories)
+
+	fmt.Printf("\n%-4s | %-40s | %-30s\n", "#", "Line Name", "Category")
 	fmt.Println(strings.Repeat("-", 80))
 
-	for i, l := range lines {
-		name := l.Line
-		if len(name) > 40 {
-			name = name[:37] + "..."
-		}
+	count := 0
+	for _, cat := range categories {
+		categoryLines := categoryMap[cat]
 
-		category := l.CategoryID
-		if len(category) > 30 {
-			category = category[:27] + "..."
-		}
+		// Sort lines within category
+		sort.Slice(categoryLines, func(i, j int) bool {
+			return categoryLines[i].Line < categoryLines[j].Line
+		})
 
-		fmt.Printf("%-4d | %-40s | %-30s\n", i+1, name, category)
+		for _, l := range categoryLines {
+			count++
+			name := l.Line
+			if len(name) > 40 {
+				name = name[:37] + "..."
+			}
+
+			category := cat
+			if len(category) > 30 {
+				category = category[:27] + "..."
+			}
+
+			fmt.Printf("%-4d | %-40s | %-30s\n", count, name, category)
+		}
 	}
 	fmt.Println()
 }
