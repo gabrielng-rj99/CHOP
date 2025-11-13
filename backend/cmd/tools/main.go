@@ -16,6 +16,14 @@ func main() {
 		fmt.Println("\nEscolha uma função para executar:")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
+		fmt.Println("║                      🚀 CONTROLE RÁPIDO 🚀                                 ║")
+		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
+		fmt.Println("║ 01 - Iniciar tudo (banco + servidor + frontend + criar admin)              ║")
+		fmt.Println("║ 02 - Derrubar tudo (parar serviços e banco, SEM apagar dados)              ║")
+		fmt.Println("║ 03 - Derrubar tudo e apagar (parar + remover volumes - DESTRUTIVO)         ║")
+		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
+
+		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
 		fmt.Println("║                      💻 INICIALIZAR APLICAÇÃO 💻                           ║")
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
 		fmt.Println("║ 10 - Executar CLI principal (requer banco principal UP)                    ║")
@@ -45,9 +53,9 @@ func main() {
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
 		fmt.Println("║                       🔍    VALIDAÇÃO   🔍                                 ║")
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
-		fmt.Println("║ 32 - Rodar testes (requer banco de testes UP, e o remove no final)         ║")
-		fmt.Println("║ 91 - Validar separação dos bancos de dados                                 ║")
-		fmt.Println("║ 92 - Verificar status dos serviços (HTTP e Frontend)                       ║")
+		fmt.Println("║ 91 - Rodar testes (requer banco de testes UP, e o remove no final)         ║")
+		fmt.Println("║ 92 - Validar separação dos bancos de dados                                 ║")
+		fmt.Println("║ 93 - Verificar status dos serviços (HTTP e Frontend)                       ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -59,6 +67,12 @@ func main() {
 		opt = strings.TrimSpace(opt)
 
 		switch opt {
+		case "01", "1":
+			startupAll()
+		case "02", "2":
+			shutdownAll(false)
+		case "03", "3":
+			shutdownAll(true)
 		case "10":
 			LaunchCLI()
 		case "11":
@@ -79,13 +93,13 @@ func main() {
 			DropMainDatabaseWithVolumes()
 		case "31":
 			InitTestDatabaseDocker()
-		case "32":
+		case "32", "91":
 			RunIntegrationTestsWithDockerPostgres()
 		case "39":
 			DropTestDatabase()
-		case "91":
-			ValidateDBSeparation()
 		case "92":
+			ValidateDBSeparation()
+		case "93":
 			checkServices()
 		case "0", "00":
 			fmt.Println("Saindo...")

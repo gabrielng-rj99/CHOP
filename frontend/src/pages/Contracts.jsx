@@ -23,7 +23,6 @@ export default function Contracts({ token, apiUrl }) {
         dependent_id: "",
         category_id: "",
         line_id: "",
-        additional_data: "",
     });
 
     useEffect(() => {
@@ -146,15 +145,13 @@ export default function Contracts({ token, apiUrl }) {
     const createContract = async () => {
         try {
             const payload = {
-                model: formData.model,
-                product_key: formData.product_key,
+                model: formData.model || "",
+                product_key: formData.product_key || "",
                 start_date: formData.start_date,
                 end_date: formData.end_date,
                 client_id: formData.client_id,
                 dependent_id: formData.dependent_id || null,
-                category_id: formData.category_id,
                 line_id: formData.line_id,
-                additional_data: formData.additional_data || null,
             };
 
             const response = await fetch(`${apiUrl}/api/contracts`, {
@@ -181,15 +178,13 @@ export default function Contracts({ token, apiUrl }) {
     const updateContract = async () => {
         try {
             const payload = {
-                model: formData.model,
-                product_key: formData.product_key,
+                model: formData.model || "",
+                product_key: formData.product_key || "",
                 start_date: formData.start_date,
                 end_date: formData.end_date,
                 client_id: formData.client_id,
                 dependent_id: formData.dependent_id || null,
-                category_id: formData.category_id,
                 line_id: formData.line_id,
-                additional_data: formData.additional_data || null,
             };
 
             const response = await fetch(
@@ -278,7 +273,6 @@ export default function Contracts({ token, apiUrl }) {
             dependent_id: "",
             category_id: "",
             line_id: "",
-            additional_data: "",
         });
         setDependents([]);
         setLines([]);
@@ -302,12 +296,11 @@ export default function Contracts({ token, apiUrl }) {
             start_date: contract.start_date
                 ? contract.start_date.split("T")[0]
                 : "",
-            end_date: contract.end_date ? contract.end_date.split("T")[0] : "",
+            end_date: contract.end_date || "",
             client_id: contract.client_id || "",
             dependent_id: contract.dependent_id || "",
             category_id: contract.category_id || "",
             line_id: contract.line_id || "",
-            additional_data: contract.additional_data || "",
         });
         setShowModal(true);
     };
@@ -1271,44 +1264,6 @@ export default function Contracts({ token, apiUrl }) {
                                         }}
                                     />
                                 </div>
-                            </div>
-
-                            <div style={{ marginBottom: "24px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    Dados Adicionais{" "}
-                                    <span style={{ fontSize: "12px" }}>
-                                        (opcional - JSON)
-                                    </span>
-                                </label>
-                                <textarea
-                                    value={formData.additional_data}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            additional_data: e.target.value,
-                                        })
-                                    }
-                                    rows={3}
-                                    placeholder='{"campo": "valor"}'
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        fontFamily: "monospace",
-                                        resize: "vertical",
-                                    }}
-                                />
                             </div>
 
                             <div
