@@ -76,6 +76,16 @@ func RunIntegrationTestsWithDockerPostgres() {
 		fmt.Println("\n✓ Todos os testes passaram com sucesso!")
 	}
 
+	// Limpa as variáveis de ambiente
+	fmt.Println("\n🧹 Limpando variáveis de ambiente...")
+	os.Unsetenv("POSTGRES_PORT")
+	os.Unsetenv("POSTGRES_HOST")
+	os.Unsetenv("POSTGRES_USER")
+	os.Unsetenv("POSTGRES_PASSWORD")
+	os.Unsetenv("POSTGRES_DB")
+	os.Unsetenv("POSTGRES_SSLMODE")
+	fmt.Println("✓ Variáveis de ambiente limpas!")
+
 	fmt.Print("\nPressione ENTER para continuar...")
 	bufio.NewReader(os.Stdin).ReadString('\n')
 
