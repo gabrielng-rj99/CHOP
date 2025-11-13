@@ -264,6 +264,7 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 		fmt.Println("3 - Edit password")
 		fmt.Println("4 - Edit role (full_admin only)")
 		fmt.Println("5 - Unlock user (full_admin only)")
+		fmt.Println("6 - Block user (full_admin only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -397,6 +398,34 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 			} else {
 				fmt.Println("User unlocked successfully!")
+				waitForEnter()
+			}
+		case "6":
+			clearTerminal()
+			if currentUser.Role != "full_admin" {
+				fmt.Println("Only full_admin users can block users.")
+				waitForEnter()
+				continue
+			}
+			if selectedUser.Username == currentUser.Username {
+				fmt.Println("You cannot block yourself!")
+				waitForEnter()
+				continue
+			}
+			fmt.Printf("⚠️  WARNING: Are you sure you want to block user '%s'? (yes/no): ", selectedUser.Username)
+			confirmation, _ := reader.ReadString('\n')
+			confirmation = strings.TrimSpace(strings.ToLower(confirmation))
+			if confirmation == "yes" {
+				err := userStore.BlockUser(selectedUser.Username)
+				if err != nil {
+					fmt.Println("Error blocking user:", err)
+					waitForEnter()
+				} else {
+					fmt.Println("User blocked successfully!")
+					waitForEnter()
+				}
+			} else {
+				fmt.Println("User block cancelled.")
 				waitForEnter()
 			}
 		default:

@@ -405,3 +405,10 @@ func (s *UserStore) UnlockUser(username string) error {
 	_, err := s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1`, username)
 	return err
 }
+
+// BlockUser blocks a user account permanently until unlocked
+func (s *UserStore) BlockUser(username string) error {
+	// Set lock_level to max (3) and locked_until to far future (100 years)
+	_, err := s.db.Exec(`UPDATE users SET lock_level = 3, locked_until = NOW() + INTERVAL '100 years' WHERE username = $1`, username)
+	return err
+}
