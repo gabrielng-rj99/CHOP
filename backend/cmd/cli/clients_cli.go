@@ -22,6 +22,7 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 		fmt.Println("2 - Search/Filter clients")
 		fmt.Println("3 - Create client")
 		fmt.Println("4 - Select client")
+		fmt.Println("5 - List archived clients")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -211,6 +212,41 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 			}
 			clientID := clients[idx-1].ID
 			ClientSubmenu(clientID, clientStore, dependentStore, contractStore, lineStore, categoryStore)
+		case "5":
+			clearTerminal()
+			clients, err := clientStore.GetArchivedClients()
+			if err != nil {
+				fmt.Println("Error listing archived clients:", err)
+				waitForEnter()
+				continue
+			}
+			if len(clients) == 0 {
+				fmt.Println("No archived clients found.")
+				waitForEnter()
+				continue
+			}
+			displayClientsList(clients)
+			fmt.Print("\nEnter the number of the client to unarchive (0 to cancel): ")
+			idxStr, _ := reader.ReadString('\n')
+			idxStr = strings.TrimSpace(idxStr)
+			if idxStr == "0" {
+				continue
+			}
+			idx, err := strconv.Atoi(idxStr)
+			if err != nil || idx < 1 || idx > len(clients) {
+				fmt.Println("Invalid selection.")
+				waitForEnter()
+				continue
+			}
+			clientID := clients[idx-1].ID
+			err = clientStore.UnarchiveClient(clientID)
+			if err != nil {
+				fmt.Println("Error unarchiving client:", err)
+				waitForEnter()
+			} else {
+				fmt.Println("Client unarchived successfully.")
+				waitForEnter()
+			}
 		default:
 			fmt.Println("Invalid option.")
 		}
@@ -531,10 +567,10 @@ func ClientSubmenu(clientID string,
 		fmt.Printf("\n--- Client %s ---\n", clientName)
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - Edit client")
-		fmt.Println("2 - Archive client")
-		fmt.Println("3 - Delete client")
-		fmt.Println("4 - Dependents")
-		fmt.Println("5 - Contracts")
+		fmt.Println("2 - Dependents")
+		fmt.Println("3 - Contracts")
+		fmt.Println("91 - Archive client")
+		fmt.Println("99 - Delete client")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -740,6 +776,10 @@ func ClientSubmenu(clientID string,
 				waitForEnter()
 			}
 		case "2":
+			DependentsSubmenu(clientID, dependentStore)
+		case "3":
+			ContractsClientSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
+		case "91":
 			err := clientStore.ArchiveClient(clientID)
 			if err != nil {
 				fmt.Println("Error archiving client:", err)
@@ -747,8 +787,9 @@ func ClientSubmenu(clientID string,
 			} else {
 				fmt.Println("Client archived.")
 				waitForEnter()
+				return
 			}
-		case "3":
+		case "99":
 			err := clientStore.DeleteClientPermanently(clientID)
 			if err != nil {
 				fmt.Println("Error deleting client:", err)
@@ -756,11 +797,8 @@ func ClientSubmenu(clientID string,
 			} else {
 				fmt.Println("Client permanently deleted.")
 				waitForEnter()
+				return
 			}
-		case "4":
-			DependentsSubmenu(clientID, dependentStore)
-		case "5":
-			ContractsClientSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
 		default:
 			fmt.Println("Invalid option.")
 		}
