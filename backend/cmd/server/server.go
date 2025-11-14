@@ -41,32 +41,6 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			respondError(w, http.StatusUnauthorized, "Authorization header required")
-			return
-		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			respondError(w, http.StatusUnauthorized, "Invalid authorization header")
-			return
-		}
-
-		// TODO: Validate token properly
-		// For now, we just check if token exists
-		token := parts[1]
-		if token == "" {
-			respondError(w, http.StatusUnauthorized, "Invalid token")
-			return
-		}
-
-		next(w, r)
-	}
-}
-
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

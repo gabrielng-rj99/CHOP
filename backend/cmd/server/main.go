@@ -14,7 +14,7 @@ import (
 func main() {
 	// Configuração de log em arquivo com rotação
 	log.SetOutput(&lumberjack.Logger{
-		Filename:   "backend.log",
+		Filename:   "server.log",
 		MaxSize:    5,    // megabytes
 		MaxBackups: 3,    // quantos arquivos antigos manter
 		MaxAge:     30,   // dias

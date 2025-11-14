@@ -2,9 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
-
-	"github.com/google/uuid"
 )
 
 // ============= AUTH HANDLERS =============
@@ -31,7 +30,12 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := uuid.New().String()
+	token, err := GenerateJWT(user.ID, user.Username, user.Role)
+	if err != nil {
+		log.Printf("Erro ao gerar JWT: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao gerar token")
+		return
+	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{
 		Message: "Login successful",

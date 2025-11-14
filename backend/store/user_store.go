@@ -332,10 +332,41 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 	return users, nil
 }
 
-// DeleteUser remove um usuário pelo username
-func (s *UserStore) DeleteUser(username string) error {
-	_, err := s.db.Exec("DELETE FROM users WHERE username = $1", username)
-	return err
+// DeleteUser remove um usuário pelo username e registra na auditoria
+func (s *UserStore) DeleteUser(adminID, adminUsername, username string) error {
+	// Primeiro, busca o usuário para obter seus dados antes de deletar
+	var userID string
+	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)
+	if err != nil {
+		return errors.New("usuário não encontrado")
+	}
+
+	// Registra na auditoria ANTES do DELETE
+	auditID := uuid.New().String()
+	_, err = s.db.Exec(`
+		INSERT INTO audit_logs (id, operation, entity, entity_id, admin_id, admin_username, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, auditID, "delete", "user", userID, adminID, adminUsername, "success")
+	if err != nil {
+		return err // Agora falha se não registrar auditoria
+	}
+
+	// Agora deleta o usuário
+	result, err := s.db.Exec("DELETE FROM users WHERE username = $1", username)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("usuário não encontrado")
+	}
+
+	return nil
 }
 
 // GetUsersByName busca usuários por nome de usuário ou display name (case-insensitive, parcial)

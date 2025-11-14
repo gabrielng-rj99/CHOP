@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,27 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============= ROUTER SETUP =============
+
+func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString := extractTokenFromHeader(r)
+		if tokenString == "" {
+			log.Printf("Requisição sem token para %s %s", r.Method, r.URL.Path)
+			respondError(w, http.StatusUnauthorized, "Token não fornecido")
+			return
+		}
+
+		claims, err := ValidateJWT(tokenString)
+		if err != nil {
+			log.Printf("Token inválido ou expirado para %s %s: %v", r.Method, r.URL.Path, err)
+			respondError(w, http.StatusUnauthorized, "Token inválido ou expirado")
+			return
+		}
+
+		log.Printf("Requisição autenticada: username=%s, role=%s, method=%s, path=%s", claims.Username, claims.Role, r.Method, r.URL.Path)
+		next(w, r)
+	}
+}
 
 func (s *Server) setupRoutes() {
 	// Health check

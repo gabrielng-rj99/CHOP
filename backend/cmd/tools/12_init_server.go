@@ -62,7 +62,7 @@ func startServer() {
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", "start", "/B", "go", "run", ".")
 	} else {
-		cmd = exec.Command("sh", "-c", "nohup go run . > backend.log 2>&1 &")
+		cmd = exec.Command("sh", "-c", "nohup go run . > server.log 2>&1 &")
 	}
 	cmd.Dir = serverPath
 
