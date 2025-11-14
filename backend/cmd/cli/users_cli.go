@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"Contracts-Manager/backend/domain"
 	"Contracts-Manager/backend/store"
@@ -212,8 +213,8 @@ func displayUsersList(users []domain.User) {
 		return
 	}
 
-	fmt.Printf("\n%-4s | %-25s | %-30s | %-15s | %-20s\n", "#", "Username", "Display Name", "Role", "Created At")
-	fmt.Println(strings.Repeat("-", 100))
+	fmt.Printf("\n%-4s | %-25s | %-30s | %-15s | %-20s | %-10s\n", "#", "Username", "Display Name", "Role", "Created At", "Status")
+	fmt.Println(strings.Repeat("-", 112))
 
 	for i, u := range users {
 		username := u.Username
@@ -228,7 +229,13 @@ func displayUsersList(users []domain.User) {
 
 		createdAt := u.CreatedAt.Format("2006-01-02 15:04:05")
 
-		fmt.Printf("%-4d | %-25s | %-30s | %-15s | %-20s\n", i+1, username, displayName, u.Role, createdAt)
+		// Determina status de bloqueio
+		status := "Ativo"
+		if u.LockLevel >= 3 && u.LockedUntil != nil && u.LockedUntil.After(time.Now()) {
+			status = "Bloqueado"
+		}
+
+		fmt.Printf("%-4d | %-25s | %-30s | %-15s | %-20s | %-10s\n", i+1, username, displayName, u.Role, createdAt, status)
 	}
 	fmt.Println()
 }

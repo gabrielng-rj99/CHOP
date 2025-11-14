@@ -316,13 +316,26 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Você pode adicionar esses campos ao struct User se quiser exibir no CLI
+		// Popular campos extras
+		user.FailedAttempts = failedAttempts
+		user.LockLevel = lockLevel
+		if lockedUntil.Valid {
+			user.LockedUntil = &lockedUntil.Time
+		} else {
+			user.LockedUntil = nil
+		}
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return users, nil
+}
+
+// DeleteUser remove um usuário pelo username
+func (s *UserStore) DeleteUser(username string) error {
+	_, err := s.db.Exec("DELETE FROM users WHERE username = $1", username)
+	return err
 }
 
 // GetUsersByName busca usuários por nome de usuário ou display name (case-insensitive, parcial)

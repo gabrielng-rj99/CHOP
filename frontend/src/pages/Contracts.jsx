@@ -1,4 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { contractsApi } from "../api/contractsApi";
+import {
+    getInitialFormData,
+    formatContractForEdit,
+    filterContracts,
+    formatDate,
+    getContractStatus,
+    getClientName,
+    getCategoryName,
+} from "../utils/contractHelpers";
+import ContractsTable from "../components/contracts/ContractsTable";
+import ContractModal from "../components/contracts/ContractModal";
 
 export default function Contracts({ token, apiUrl }) {
     const [contracts, setContracts] = useState([]);
@@ -14,63 +26,39 @@ export default function Contracts({ token, apiUrl }) {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
     const [selectedContract, setSelectedContract] = useState(null);
-    const [formData, setFormData] = useState({
-        model: "",
-        product_key: "",
-        start_date: "",
-        end_date: "",
-        client_id: "",
-        dependent_id: "",
-        category_id: "",
-        line_id: "",
-    });
+    const [formData, setFormData] = useState(getInitialFormData());
 
     useEffect(() => {
-        loadContracts();
-        loadClients();
-        loadCategories();
+        loadInitialData();
     }, []);
 
-    const loadContracts = async () => {
+    const loadInitialData = async () => {
         setLoading(true);
-        setError("");
-
         try {
-            const response = await fetch(`${apiUrl}/api/contracts`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar contratos");
-            }
-
-            const data = await response.json();
-            setContracts(data.data || []);
-        } catch (err) {
-            setError(err.message);
+            await Promise.all([
+                loadContracts(),
+                loadClients(),
+                loadCategories(),
+            ]);
         } finally {
             setLoading(false);
         }
     };
 
+    const loadContracts = async () => {
+        setError("");
+        try {
+            const data = await contractsApi.loadContracts(apiUrl, token);
+            setContracts(data);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const loadClients = async () => {
         try {
-            const response = await fetch(`${apiUrl}/api/clients`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar clientes");
-            }
-
-            const data = await response.json();
-            setClients(data.data || []);
+            const data = await contractsApi.loadClients(apiUrl, token);
+            setClients(data);
         } catch (err) {
             console.error("Erro ao carregar clientes:", err);
         }
@@ -78,19 +66,8 @@ export default function Contracts({ token, apiUrl }) {
 
     const loadCategories = async () => {
         try {
-            const response = await fetch(`${apiUrl}/api/categories`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar categorias");
-            }
-
-            const data = await response.json();
-            setCategories(data.data || []);
+            const data = await contractsApi.loadCategories(apiUrl, token);
+            setCategories(data);
         } catch (err) {
             console.error("Erro ao carregar categorias:", err);
         }
@@ -98,22 +75,12 @@ export default function Contracts({ token, apiUrl }) {
 
     const loadLines = async (categoryId) => {
         try {
-            const response = await fetch(
-                `${apiUrl}/api/categories/${categoryId}/lines`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
+            const data = await contractsApi.loadLines(
+                apiUrl,
+                token,
+                categoryId,
             );
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar linhas");
-            }
-
-            const data = await response.json();
-            setLines(data.data || []);
+            setLines(data);
         } catch (err) {
             console.error("Erro ao carregar linhas:", err);
         }
@@ -121,53 +88,20 @@ export default function Contracts({ token, apiUrl }) {
 
     const loadDependents = async (clientId) => {
         try {
-            const response = await fetch(
-                `${apiUrl}/api/clients/${clientId}/dependents`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
+            const data = await contractsApi.loadDependents(
+                apiUrl,
+                token,
+                clientId,
             );
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar dependentes");
-            }
-
-            const data = await response.json();
-            setDependents(data.data || []);
+            setDependents(data);
         } catch (err) {
             console.error("Erro ao carregar dependentes:", err);
         }
     };
 
-    const createContract = async () => {
+    const handleCreateContract = async () => {
         try {
-            const payload = {
-                model: formData.model || "",
-                product_key: formData.product_key || "",
-                start_date: formData.start_date,
-                end_date: formData.end_date,
-                client_id: formData.client_id,
-                dependent_id: formData.dependent_id || null,
-                line_id: formData.line_id,
-            };
-
-            const response = await fetch(`${apiUrl}/api/contracts`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Erro ao criar contrato");
-            }
-
+            await contractsApi.createContract(apiUrl, token, formData);
             await loadContracts();
             closeModal();
         } catch (err) {
@@ -175,37 +109,14 @@ export default function Contracts({ token, apiUrl }) {
         }
     };
 
-    const updateContract = async () => {
+    const handleUpdateContract = async () => {
         try {
-            const payload = {
-                model: formData.model || "",
-                product_key: formData.product_key || "",
-                start_date: formData.start_date,
-                end_date: formData.end_date,
-                client_id: formData.client_id,
-                dependent_id: formData.dependent_id || null,
-                line_id: formData.line_id,
-            };
-
-            const response = await fetch(
-                `${apiUrl}/api/contracts/${selectedContract.id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                },
+            await contractsApi.updateContract(
+                apiUrl,
+                token,
+                selectedContract.id,
+                formData,
             );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(
-                    errorData.error || "Erro ao atualizar contrato",
-                );
-            }
-
             await loadContracts();
             closeModal();
         } catch (err) {
@@ -213,49 +124,21 @@ export default function Contracts({ token, apiUrl }) {
         }
     };
 
-    const archiveContract = async (contractId) => {
+    const handleArchiveContract = async (contractId) => {
         if (!window.confirm("Tem certeza que deseja arquivar este contrato?"))
             return;
 
         try {
-            const response = await fetch(
-                `${apiUrl}/api/contracts/${contractId}/archive`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error("Erro ao arquivar contrato");
-            }
-
+            await contractsApi.archiveContract(apiUrl, token, contractId);
             await loadContracts();
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const unarchiveContract = async (contractId) => {
+    const handleUnarchiveContract = async (contractId) => {
         try {
-            const response = await fetch(
-                `${apiUrl}/api/contracts/${contractId}/unarchive`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error("Erro ao desarquivar contrato");
-            }
-
+            await contractsApi.unarchiveContract(apiUrl, token, contractId);
             await loadContracts();
         } catch (err) {
             setError(err.message);
@@ -264,45 +147,24 @@ export default function Contracts({ token, apiUrl }) {
 
     const openCreateModal = () => {
         setModalMode("create");
-        setFormData({
-            model: "",
-            product_key: "",
-            start_date: "",
-            end_date: "",
-            client_id: "",
-            dependent_id: "",
-            category_id: "",
-            line_id: "",
-        });
-        setDependents([]);
+        setFormData(getInitialFormData());
         setLines([]);
+        setDependents([]);
         setShowModal(true);
     };
 
-    const openEditModal = async (contract) => {
+    const openEditModal = (contract) => {
         setModalMode("edit");
         setSelectedContract(contract);
+        setFormData(formatContractForEdit(contract));
+        setShowModal(true);
 
         if (contract.client_id) {
-            await loadDependents(contract.client_id);
+            loadDependents(contract.client_id);
         }
-        if (contract.category_id) {
-            await loadLines(contract.category_id);
+        if (contract.line?.category_id) {
+            loadLines(contract.line.category_id);
         }
-
-        setFormData({
-            model: contract.model || "",
-            product_key: contract.product_key || "",
-            start_date: contract.start_date
-                ? contract.start_date.split("T")[0]
-                : "",
-            end_date: contract.end_date || "",
-            client_id: contract.client_id || "",
-            dependent_id: contract.dependent_id || "",
-            category_id: contract.category_id || "",
-            line_id: contract.line_id || "",
-        });
-        setShowModal(true);
     };
 
     const openDetailsModal = (contract) => {
@@ -313,8 +175,9 @@ export default function Contracts({ token, apiUrl }) {
     const closeModal = () => {
         setShowModal(false);
         setSelectedContract(null);
-        setDependents([]);
+        setFormData(getInitialFormData());
         setLines([]);
+        setDependents([]);
         setError("");
     };
 
@@ -326,97 +189,35 @@ export default function Contracts({ token, apiUrl }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (modalMode === "create") {
-            createContract();
+            handleCreateContract();
         } else {
-            updateContract();
+            handleUpdateContract();
         }
     };
 
-    const handleClientChange = async (clientId) => {
-        setFormData({
-            ...formData,
-            client_id: clientId,
-            dependent_id: "",
-        });
-        setDependents([]);
-        if (clientId) {
-            await loadDependents(clientId);
-        }
-    };
-
-    const handleCategoryChange = async (categoryId) => {
-        setFormData({
-            ...formData,
-            category_id: categoryId,
-            line_id: "",
-        });
-        setLines([]);
+    const handleCategoryChange = (categoryId) => {
         if (categoryId) {
-            await loadLines(categoryId);
-        }
-    };
-
-    const getContractStatus = (contract) => {
-        const endDate = new Date(contract.end_date);
-        const now = new Date();
-        const daysUntilExpiration = Math.ceil(
-            (endDate - now) / (1000 * 60 * 60 * 24),
-        );
-
-        if (daysUntilExpiration < 0) {
-            return { status: "Expirado", color: "#e74c3c" };
-        } else if (daysUntilExpiration <= 30) {
-            return { status: "Expirando", color: "#f39c12" };
+            loadLines(categoryId);
         } else {
-            return { status: "Ativo", color: "#27ae60" };
+            setLines([]);
         }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "-";
-        const date = new Date(dateString);
-        return date.toLocaleDateString("pt-BR");
-    };
-
-    const getClientName = (clientId) => {
-        const client = clients.find((c) => c.id === clientId);
-        return client ? client.name : "-";
-    };
-
-    const getCategoryName = (categoryId) => {
-        const category = categories.find((c) => c.id === categoryId);
-        return category ? category.name : "-";
-    };
-
-    const filteredContracts = contracts.filter((contract) => {
-        const isArchived = !!contract.archived_at;
-
-        if (filter === "archived") {
-            return isArchived;
+    const handleClientChange = (clientId) => {
+        if (clientId) {
+            loadDependents(clientId);
+        } else {
+            setDependents([]);
         }
+    };
 
-        if (isArchived) return false;
-
-        const status = getContractStatus(contract);
-
-        const matchesFilter =
-            filter === "all" ||
-            (filter === "active" && status.status === "Ativo") ||
-            (filter === "expiring" && status.status === "Expirando") ||
-            (filter === "expired" && status.status === "Expirado");
-
-        const matchesSearch =
-            searchTerm === "" ||
-            contract.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            contract.product_key
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            getClientName(contract.client_id)
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase());
-
-        return matchesFilter && matchesSearch;
-    });
+    const filteredContracts = filterContracts(
+        contracts,
+        filter,
+        searchTerm,
+        clients,
+        categories,
+    );
 
     if (loading) {
         return (
@@ -594,722 +395,31 @@ export default function Contracts({ token, apiUrl }) {
                     overflow: "hidden",
                 }}
             >
-                {filteredContracts.length === 0 ? (
-                    <div
-                        style={{
-                            padding: "40px",
-                            textAlign: "center",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        Nenhum contrato encontrado
-                    </div>
-                ) : (
-                    <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                        <thead>
-                            <tr
-                                style={{
-                                    background: "#f8f9fa",
-                                    borderBottom: "2px solid #ecf0f1",
-                                }}
-                            >
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    MODELO
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    CLIENTE
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    CHAVE DO PRODUTO
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    VALIDADE
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    STATUS
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "center",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    AÇÕES
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredContracts.map((contract) => {
-                                const status = getContractStatus(contract);
-                                const isArchived = !!contract.archived_at;
-                                return (
-                                    <tr
-                                        key={contract.id}
-                                        style={{
-                                            borderBottom: "1px solid #ecf0f1",
-                                        }}
-                                    >
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#2c3e50",
-                                                fontWeight: "500",
-                                            }}
-                                        >
-                                            {contract.model}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                            }}
-                                        >
-                                            {getClientName(contract.client_id)}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                                fontFamily: "monospace",
-                                            }}
-                                        >
-                                            {contract.product_key}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                            }}
-                                        >
-                                            {formatDate(contract.start_date)} -{" "}
-                                            {formatDate(contract.end_date)}
-                                        </td>
-                                        <td style={{ padding: "16px" }}>
-                                            <span
-                                                style={{
-                                                    display: "inline-block",
-                                                    padding: "4px 12px",
-                                                    borderRadius: "12px",
-                                                    fontSize: "12px",
-                                                    fontWeight: "600",
-                                                    background: isArchived
-                                                        ? "#95a5a620"
-                                                        : status.color + "20",
-                                                    color: isArchived
-                                                        ? "#95a5a6"
-                                                        : status.color,
-                                                }}
-                                            >
-                                                {isArchived
-                                                    ? "Arquivado"
-                                                    : status.status}
-                                            </span>
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                    justifyContent: "center",
-                                                }}
-                                            >
-                                                <button
-                                                    onClick={() =>
-                                                        openDetailsModal(
-                                                            contract,
-                                                        )
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#9b59b6",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Ver
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        openEditModal(contract)
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#3498db",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Editar
-                                                </button>
-                                                {isArchived ? (
-                                                    <button
-                                                        onClick={() =>
-                                                            unarchiveContract(
-                                                                contract.id,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            padding: "6px 12px",
-                                                            background:
-                                                                "#27ae60",
-                                                            color: "white",
-                                                            border: "none",
-                                                            borderRadius: "4px",
-                                                            cursor: "pointer",
-                                                            fontSize: "12px",
-                                                        }}
-                                                    >
-                                                        Desarquivar
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() =>
-                                                            archiveContract(
-                                                                contract.id,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            padding: "6px 12px",
-                                                            background:
-                                                                "#e74c3c",
-                                                            color: "white",
-                                                            border: "none",
-                                                            borderRadius: "4px",
-                                                            cursor: "pointer",
-                                                            fontSize: "12px",
-                                                        }}
-                                                    >
-                                                        Arquivar
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                )}
+                <ContractsTable
+                    filteredContracts={filteredContracts}
+                    clients={clients}
+                    categories={categories}
+                    onViewDetails={openDetailsModal}
+                    onEdit={openEditModal}
+                    onArchive={handleArchiveContract}
+                    onUnarchive={handleUnarchiveContract}
+                />
             </div>
 
-            {showModal && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        style={{
-                            background: "white",
-                            borderRadius: "8px",
-                            padding: "30px",
-                            width: "90%",
-                            maxWidth: "700px",
-                            maxHeight: "90vh",
-                            overflow: "auto",
-                        }}
-                    >
-                        <h2
-                            style={{
-                                marginTop: 0,
-                                marginBottom: "24px",
-                                fontSize: "24px",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            {modalMode === "create"
-                                ? "Novo Contrato"
-                                : "Editar Contrato"}
-                        </h2>
-
-                        <form onSubmit={handleSubmit}>
-                            <div
-                                style={{
-                                    padding: "12px",
-                                    background: "#e8f4f8",
-                                    borderRadius: "4px",
-                                    marginBottom: "20px",
-                                    fontSize: "13px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                <strong>
-                                    Campos obrigatórios marcados com *
-                                </strong>
-                                <br />
-                                Os demais campos são opcionais
-                            </div>
-
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Cliente{" "}
-                                    <span style={{ color: "#e74c3c" }}>*</span>
-                                </label>
-                                <select
-                                    value={formData.client_id}
-                                    onChange={(e) =>
-                                        handleClientChange(e.target.value)
-                                    }
-                                    required
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "2px solid #3498db",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                >
-                                    <option value="">
-                                        Selecione um cliente
-                                    </option>
-                                    {clients.map((client) => (
-                                        <option
-                                            key={client.id}
-                                            value={client.id}
-                                        >
-                                            {client.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {formData.client_id && (
-                                <div style={{ marginBottom: "16px" }}>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#7f8c8d",
-                                        }}
-                                    >
-                                        Dependente{" "}
-                                        <span style={{ fontSize: "12px" }}>
-                                            (opcional)
-                                        </span>
-                                    </label>
-                                    <select
-                                        value={formData.dependent_id}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                dependent_id: e.target.value,
-                                            })
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    >
-                                        <option value="">Nenhum</option>
-                                        {dependents.map((dependent) => (
-                                            <option
-                                                key={dependent.id}
-                                                value={dependent.id}
-                                            >
-                                                {dependent.name} (
-                                                {dependent.relationship})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "600",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Categoria{" "}
-                                        <span style={{ color: "#e74c3c" }}>
-                                            *
-                                        </span>
-                                    </label>
-                                    <select
-                                        value={formData.category_id}
-                                        onChange={(e) =>
-                                            handleCategoryChange(e.target.value)
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "2px solid #3498db",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    >
-                                        <option value="">
-                                            Selecione uma categoria
-                                        </option>
-                                        {categories.map((category) => (
-                                            <option
-                                                key={category.id}
-                                                value={category.id}
-                                            >
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "600",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Linha{" "}
-                                        <span style={{ color: "#e74c3c" }}>
-                                            *
-                                        </span>
-                                    </label>
-                                    <select
-                                        value={formData.line_id}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                line_id: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        disabled={!formData.category_id}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "2px solid #3498db",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                            opacity: formData.category_id
-                                                ? 1
-                                                : 0.5,
-                                        }}
-                                    >
-                                        <option value="">
-                                            {formData.category_id
-                                                ? "Selecione uma linha"
-                                                : "Selecione categoria primeiro"}
-                                        </option>
-                                        {lines.map((line) => (
-                                            <option
-                                                key={line.id}
-                                                value={line.id}
-                                            >
-                                                {line.line}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "600",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Data de Início{" "}
-                                        <span style={{ color: "#e74c3c" }}>
-                                            *
-                                        </span>
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.start_date}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                start_date: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "2px solid #3498db",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "600",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Data de Término{" "}
-                                        <span style={{ color: "#e74c3c" }}>
-                                            *
-                                        </span>
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.end_date}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                end_date: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "2px solid #3498db",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#7f8c8d",
-                                        }}
-                                    >
-                                        Modelo{" "}
-                                        <span style={{ fontSize: "12px" }}>
-                                            (opcional)
-                                        </span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.model}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                model: e.target.value,
-                                            })
-                                        }
-                                        placeholder="Ex: Premium, Básico..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#7f8c8d",
-                                        }}
-                                    >
-                                        Chave do Produto{" "}
-                                        <span style={{ fontSize: "12px" }}>
-                                            (opcional)
-                                        </span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.product_key}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                product_key: e.target.value,
-                                            })
-                                        }
-                                        placeholder="Ex: XXXX-XXXX-XXXX..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "12px",
-                                    justifyContent: "flex-end",
-                                }}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    style={{
-                                        padding: "10px 24px",
-                                        background: "white",
-                                        color: "#7f8c8d",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                    }}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: "10px 24px",
-                                        background: "#27ae60",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                    }}
-                                >
-                                    {modalMode === "create"
-                                        ? "Criar Contrato"
-                                        : "Salvar Alterações"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <ContractModal
+                showModal={showModal}
+                modalMode={modalMode}
+                formData={formData}
+                setFormData={setFormData}
+                clients={clients}
+                categories={categories}
+                lines={lines}
+                dependents={dependents}
+                onSubmit={handleSubmit}
+                onClose={closeModal}
+                onCategoryChange={handleCategoryChange}
+                onClientChange={handleClientChange}
+            />
 
             {showDetailsModal && selectedContract && (
                 <div
@@ -1324,268 +434,82 @@ export default function Contracts({ token, apiUrl }) {
                         alignItems: "center",
                         justifyContent: "center",
                         zIndex: 1000,
+                        padding: "20px",
                     }}
+                    onClick={closeDetailsModal}
                 >
                     <div
+                        onClick={(e) => e.stopPropagation()}
                         style={{
                             background: "white",
                             borderRadius: "8px",
-                            padding: "30px",
+                            padding: "32px",
                             width: "90%",
                             maxWidth: "600px",
                             maxHeight: "90vh",
-                            overflow: "auto",
+                            overflowY: "auto",
                         }}
                     >
-                        <div
+                        <h2
                             style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
+                                marginTop: 0,
                                 marginBottom: "24px",
+                                fontSize: "24px",
+                                color: "#2c3e50",
                             }}
                         >
-                            <h2
-                                style={{
-                                    margin: 0,
-                                    fontSize: "24px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                Detalhes do Contrato
-                            </h2>
-                            <button
-                                onClick={closeDetailsModal}
-                                style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    fontSize: "24px",
-                                    cursor: "pointer",
-                                    color: "#7f8c8d",
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
+                            Detalhes do Contrato
+                        </h2>
 
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "16px",
-                            }}
-                        >
-                            <div>
-                                <div
-                                    style={{
-                                        fontSize: "12px",
-                                        color: "#7f8c8d",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    MODELO
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    {selectedContract.model}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div
-                                    style={{
-                                        fontSize: "12px",
-                                        color: "#7f8c8d",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    CHAVE DO PRODUTO
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                        fontFamily: "monospace",
-                                    }}
-                                >
-                                    {selectedContract.product_key}
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                }}
-                            >
-                                <div>
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
-                                        DATA INÍCIO
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: "16px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        {formatDate(
-                                            selectedContract.start_date,
-                                        )}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
-                                        DATA FIM
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: "16px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        {formatDate(selectedContract.end_date)}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div
-                                    style={{
-                                        fontSize: "12px",
-                                        color: "#7f8c8d",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    CLIENTE
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    {getClientName(selectedContract.client_id)}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div
-                                    style={{
-                                        fontSize: "12px",
-                                        color: "#7f8c8d",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    CATEGORIA
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    {getCategoryName(
-                                        selectedContract.category_id,
-                                    )}
-                                </div>
-                            </div>
-
-                            {selectedContract.additional_data && (
-                                <div>
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
-                                        DADOS ADICIONAIS
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: "14px",
-                                            color: "#2c3e50",
-                                            fontFamily: "monospace",
-                                            background: "#f8f9fa",
-                                            padding: "12px",
-                                            borderRadius: "4px",
-                                        }}
-                                    >
-                                        {selectedContract.additional_data}
-                                    </div>
-                                </div>
+                        <div style={{ display: "grid", gap: "16px" }}>
+                            <DetailRow
+                                label="Modelo"
+                                value={selectedContract.model || "-"}
+                            />
+                            <DetailRow
+                                label="Chave do Produto"
+                                value={selectedContract.product_key || "-"}
+                            />
+                            <DetailRow
+                                label="Cliente"
+                                value={getClientName(selectedContract.client_id, clients)}
+                            />
+                            {selectedContract.dependent && (
+                                <DetailRow
+                                    label="Dependente"
+                                    value={selectedContract.dependent.name}
+                                />
                             )}
-
-                            <div>
-                                <div
-                                    style={{
-                                        fontSize: "12px",
-                                        color: "#7f8c8d",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    STATUS
-                                </div>
-                                <div>
-                                    {(() => {
-                                        const status =
-                                            getContractStatus(selectedContract);
-                                        return (
-                                            <span
-                                                style={{
-                                                    display: "inline-block",
-                                                    padding: "6px 16px",
-                                                    borderRadius: "12px",
-                                                    fontSize: "14px",
-                                                    fontWeight: "600",
-                                                    background:
-                                                        status.color + "20",
-                                                    color: status.color,
-                                                }}
-                                            >
-                                                {status.status}
-                                            </span>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
+                            <DetailRow
+                                label="Categoria"
+                                value={getCategoryName(selectedContract.line_id, categories)}
+                            />
+                            <DetailRow
+                                label="Linha"
+                                value={selectedContract.line?.line || "-"}
+                            />
+                            <DetailRow
+                                label="Data de Início"
+                                value={formatDate(selectedContract.start_date)}
+                            />
+                            <DetailRow
+                                label="Data de Vencimento"
+                                value={formatDate(selectedContract.end_date)}
+                            />
                         </div>
 
                         <div
                             style={{
-                                marginTop: "24px",
-                                paddingTop: "20px",
-                                borderTop: "1px solid #ecf0f1",
+                                marginTop: "32px",
+                                display: "flex",
+                                justifyContent: "flex-end",
                             }}
                         >
                             <button
                                 onClick={closeDetailsModal}
                                 style={{
                                     padding: "10px 24px",
-                                    background: "#7f8c8d",
+                                    background: "#3498db",
                                     color: "white",
                                     border: "none",
                                     borderRadius: "4px",
@@ -1599,6 +523,37 @@ export default function Contracts({ token, apiUrl }) {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function DetailRow({ label, value }) {
+    return (
+        <div
+            style={{
+                padding: "12px",
+                background: "#f8f9fa",
+                borderRadius: "6px",
+            }}
+        >
+            <div
+                style={{
+                    fontSize: "12px",
+                    color: "#7f8c8d",
+                    marginBottom: "4px",
+                    fontWeight: "600",
+                }}
+            >
+                {label}
+            </div>
+            <div
+                style={{
+                    fontSize: "14px",
+                    color: "#2c3e50",
+                }}
+            >
+                {value}
+            </div>
         </div>
     );
 }

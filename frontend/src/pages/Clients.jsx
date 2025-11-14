@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { clientsApi } from "../api/clientsApi";
+import {
+    filterClients,
+    formatClientForEdit,
+    formatDependentForEdit,
+    getInitialFormData,
+    getInitialDependentForm,
+} from "../utils/clientHelpers";
+import ClientModal from "../components/clients/ClientModal";
+import ClientsTable from "../components/clients/ClientsTable";
+import DependentsModal from "../components/clients/DependentsModal";
 
 export default function Clients({ token, apiUrl }) {
     const [clients, setClients] = useState([]);
@@ -12,24 +23,10 @@ export default function Clients({ token, apiUrl }) {
     const [showDependents, setShowDependents] = useState(false);
     const [dependents, setDependents] = useState([]);
     const [selectedDependent, setSelectedDependent] = useState(null);
-    const [formData, setFormData] = useState({
-        name: "",
-        registration_id: "",
-        nickname: "",
-        birth_date: "",
-        email: "",
-        phone: "",
-        address: "",
-        notes: "",
-        contact_preference: "",
-        tags: "",
-    });
-    const [dependentForm, setDependentForm] = useState({
-        name: "",
-        relationship: "",
-        birth_date: "",
-        phone: "",
-    });
+    const [formData, setFormData] = useState(getInitialFormData());
+    const [dependentForm, setDependentForm] = useState(
+        getInitialDependentForm(),
+    );
 
     useEffect(() => {
         loadClients();
@@ -38,23 +35,8 @@ export default function Clients({ token, apiUrl }) {
     const loadClients = async () => {
         setLoading(true);
         setError("");
-
         try {
-            const response = await fetch(`${apiUrl}/api/clients`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar clientes");
-            }
-
-            const data = await response.json();
-            setClients(data.data || []);
-        } catch (err) {
-            setError(err.message);
+            await clientsApi.loadClients(apiUrl, token, setClients, setError);
         } finally {
             setLoading(false);
         }
@@ -62,22 +44,12 @@ export default function Clients({ token, apiUrl }) {
 
     const loadDependents = async (clientId) => {
         try {
-            const response = await fetch(
-                `${apiUrl}/api/clients/${clientId}/dependents`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
+            const data = await clientsApi.loadDependents(
+                apiUrl,
+                token,
+                clientId,
             );
-
-            if (!response.ok) {
-                throw new Error("Erro ao carregar dependentes");
-            }
-
-            const data = await response.json();
-            setDependents(data.data || []);
+            setDependents(data);
         } catch (err) {
             setError(err.message);
         }
@@ -85,33 +57,7 @@ export default function Clients({ token, apiUrl }) {
 
     const createClient = async () => {
         try {
-            const payload = {
-                name: formData.name,
-                registration_id: formData.registration_id || null,
-                nickname: formData.nickname || null,
-                birth_date: formData.birth_date || null,
-                email: formData.email || null,
-                phone: formData.phone || null,
-                address: formData.address || null,
-                notes: formData.notes || null,
-                contact_preference: formData.contact_preference || null,
-                tags: formData.tags || null,
-            };
-
-            const response = await fetch(`${apiUrl}/api/clients`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Erro ao criar cliente");
-            }
-
+            await clientsApi.createClient(apiUrl, token, formData);
             await loadClients();
             closeModal();
         } catch (err) {
@@ -121,36 +67,12 @@ export default function Clients({ token, apiUrl }) {
 
     const updateClient = async () => {
         try {
-            const payload = {
-                name: formData.name,
-                registration_id: formData.registration_id || null,
-                nickname: formData.nickname || null,
-                birth_date: formData.birth_date || null,
-                email: formData.email || null,
-                phone: formData.phone || null,
-                address: formData.address || null,
-                notes: formData.notes || null,
-                contact_preference: formData.contact_preference || null,
-                tags: formData.tags || null,
-            };
-
-            const response = await fetch(
-                `${apiUrl}/api/clients/${selectedClient.id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                },
+            await clientsApi.updateClient(
+                apiUrl,
+                token,
+                selectedClient.id,
+                formData,
             );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Erro ao atualizar cliente");
-            }
-
             await loadClients();
             closeModal();
         } catch (err) {
@@ -163,21 +85,7 @@ export default function Clients({ token, apiUrl }) {
             return;
 
         try {
-            const response = await fetch(
-                `${apiUrl}/api/clients/${clientId}/archive`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error("Erro ao arquivar cliente");
-            }
-
+            await clientsApi.archiveClient(apiUrl, token, clientId);
             await loadClients();
         } catch (err) {
             setError(err.message);
@@ -186,21 +94,7 @@ export default function Clients({ token, apiUrl }) {
 
     const unarchiveClient = async (clientId) => {
         try {
-            const response = await fetch(
-                `${apiUrl}/api/clients/${clientId}/unarchive`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error("Erro ao desarquivar cliente");
-            }
-
+            await clientsApi.unarchiveClient(apiUrl, token, clientId);
             await loadClients();
         } catch (err) {
             setError(err.message);
@@ -209,37 +103,14 @@ export default function Clients({ token, apiUrl }) {
 
     const createDependent = async () => {
         try {
-            const payload = {
-                name: dependentForm.name,
-                relationship: dependentForm.relationship,
-                birth_date: dependentForm.birth_date || null,
-                phone: dependentForm.phone || null,
-            };
-
-            const response = await fetch(
-                `${apiUrl}/api/clients/${selectedClient.id}/dependents`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                },
+            await clientsApi.createDependent(
+                apiUrl,
+                token,
+                selectedClient.id,
+                dependentForm,
             );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Erro ao criar dependente");
-            }
-
             await loadDependents(selectedClient.id);
-            setDependentForm({
-                name: "",
-                relationship: "",
-                birth_date: "",
-                phone: "",
-            });
+            setDependentForm(getInitialDependentForm());
             setSelectedDependent(null);
         } catch (err) {
             setError(err.message);
@@ -248,39 +119,14 @@ export default function Clients({ token, apiUrl }) {
 
     const updateDependent = async () => {
         try {
-            const payload = {
-                name: dependentForm.name,
-                relationship: dependentForm.relationship,
-                birth_date: dependentForm.birth_date || null,
-                phone: dependentForm.phone || null,
-            };
-
-            const response = await fetch(
-                `${apiUrl}/api/dependents/${selectedDependent.id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                },
+            await clientsApi.updateDependent(
+                apiUrl,
+                token,
+                selectedDependent.id,
+                dependentForm,
             );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(
-                    errorData.error || "Erro ao atualizar dependente",
-                );
-            }
-
             await loadDependents(selectedClient.id);
-            setDependentForm({
-                name: "",
-                relationship: "",
-                birth_date: "",
-                phone: "",
-            });
+            setDependentForm(getInitialDependentForm());
             setSelectedDependent(null);
         } catch (err) {
             setError(err.message);
@@ -292,21 +138,7 @@ export default function Clients({ token, apiUrl }) {
             return;
 
         try {
-            const response = await fetch(
-                `${apiUrl}/api/dependents/${dependentId}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error("Erro ao deletar dependente");
-            }
-
+            await clientsApi.deleteDependent(apiUrl, token, dependentId);
             await loadDependents(selectedClient.id);
         } catch (err) {
             setError(err.message);
@@ -315,38 +147,14 @@ export default function Clients({ token, apiUrl }) {
 
     const openCreateModal = () => {
         setModalMode("create");
-        setFormData({
-            name: "",
-            registration_id: "",
-            nickname: "",
-            birth_date: "",
-            email: "",
-            phone: "",
-            address: "",
-            notes: "",
-            contact_preference: "",
-            tags: "",
-        });
+        setFormData(getInitialFormData());
         setShowModal(true);
     };
 
     const openEditModal = (client) => {
         setModalMode("edit");
         setSelectedClient(client);
-        setFormData({
-            name: client.name || "",
-            registration_id: client.registration_id || "",
-            nickname: client.nickname || "",
-            birth_date: client.birth_date
-                ? client.birth_date.split("T")[0]
-                : "",
-            email: client.email || "",
-            phone: client.phone || "",
-            address: client.address || "",
-            notes: client.notes || "",
-            contact_preference: client.contact_preference || "",
-            tags: client.tags || "",
-        });
+        setFormData(formatClientForEdit(client));
         setShowModal(true);
     };
 
@@ -367,12 +175,7 @@ export default function Clients({ token, apiUrl }) {
         setSelectedClient(null);
         setDependents([]);
         setSelectedDependent(null);
-        setDependentForm({
-            name: "",
-            relationship: "",
-            birth_date: "",
-            phone: "",
-        });
+        setDependentForm(getInitialDependentForm());
         setError("");
     };
 
@@ -396,51 +199,15 @@ export default function Clients({ token, apiUrl }) {
 
     const editDependent = (dependent) => {
         setSelectedDependent(dependent);
-        setDependentForm({
-            name: dependent.name || "",
-            relationship: dependent.relationship || "",
-            birth_date: dependent.birth_date
-                ? dependent.birth_date.split("T")[0]
-                : "",
-            phone: dependent.phone || "",
-        });
+        setDependentForm(formatDependentForEdit(dependent));
     };
 
     const cancelDependentEdit = () => {
         setSelectedDependent(null);
-        setDependentForm({
-            name: "",
-            relationship: "",
-            birth_date: "",
-            phone: "",
-        });
+        setDependentForm(getInitialDependentForm());
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "-";
-        const date = new Date(dateString);
-        return date.toLocaleDateString("pt-BR");
-    };
-
-    const filteredClients = clients.filter((client) => {
-        const matchesFilter =
-            (filter === "active" &&
-                !client.archived_at &&
-                client.status === "ativo") ||
-            (filter === "archived" && !!client.archived_at) ||
-            (filter === "all" && !client.archived_at);
-
-        const matchesSearch =
-            searchTerm === "" ||
-            client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            client.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            client.registration_id
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            client.email?.toLowerCase().includes(searchTerm.toLowerCase());
-
-        return matchesFilter && matchesSearch;
-    });
+    const filteredClients = filterClients(clients, filter, searchTerm);
 
     if (loading) {
         return (
@@ -590,1116 +357,37 @@ export default function Clients({ token, apiUrl }) {
                     overflow: "hidden",
                 }}
             >
-                {filteredClients.length === 0 ? (
-                    <div
-                        style={{
-                            padding: "40px",
-                            textAlign: "center",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        Nenhum cliente encontrado
-                    </div>
-                ) : (
-                    <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                        <thead>
-                            <tr
-                                style={{
-                                    background: "#f8f9fa",
-                                    borderBottom: "2px solid #ecf0f1",
-                                }}
-                            >
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    NOME
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    CPF/CNPJ
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    EMAIL
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    TELEFONE
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "left",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    STATUS
-                                </th>
-                                <th
-                                    style={{
-                                        padding: "16px",
-                                        textAlign: "center",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#7f8c8d",
-                                    }}
-                                >
-                                    AÇÕES
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredClients.map((client) => {
-                                const statusColor =
-                                    client.status === "ativo"
-                                        ? "#27ae60"
-                                        : "#95a5a6";
-                                const isArchived = !!client.archived_at;
-                                return (
-                                    <tr
-                                        key={client.id}
-                                        style={{
-                                            borderBottom: "1px solid #ecf0f1",
-                                        }}
-                                    >
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#2c3e50",
-                                                fontWeight: "500",
-                                            }}
-                                        >
-                                            {client.name}
-                                            {client.nickname && (
-                                                <div
-                                                    style={{
-                                                        fontSize: "12px",
-                                                        color: "#7f8c8d",
-                                                        fontWeight: "normal",
-                                                    }}
-                                                >
-                                                    {client.nickname}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                                fontFamily: "monospace",
-                                            }}
-                                        >
-                                            {client.registration_id || "-"}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                            }}
-                                        >
-                                            {client.email || "-"}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                fontSize: "14px",
-                                                color: "#7f8c8d",
-                                            }}
-                                        >
-                                            {client.phone || "-"}
-                                        </td>
-                                        <td style={{ padding: "16px" }}>
-                                            <span
-                                                style={{
-                                                    display: "inline-block",
-                                                    padding: "4px 12px",
-                                                    borderRadius: "12px",
-                                                    fontSize: "12px",
-                                                    fontWeight: "600",
-                                                    background:
-                                                        statusColor + "20",
-                                                    color: statusColor,
-                                                    textTransform: "capitalize",
-                                                }}
-                                            >
-                                                {isArchived
-                                                    ? "Arquivado"
-                                                    : client.status}
-                                            </span>
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "16px",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                    justifyContent: "center",
-                                                }}
-                                            >
-                                                <button
-                                                    onClick={() =>
-                                                        openEditModal(client)
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#3498db",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        openDependentsModal(
-                                                            client,
-                                                        )
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#9b59b6",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Dependentes
-                                                </button>
-                                                {isArchived ? (
-                                                    <button
-                                                        onClick={() =>
-                                                            unarchiveClient(
-                                                                client.id,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            padding: "6px 12px",
-                                                            background:
-                                                                "#27ae60",
-                                                            color: "white",
-                                                            border: "none",
-                                                            borderRadius: "4px",
-                                                            cursor: "pointer",
-                                                            fontSize: "12px",
-                                                        }}
-                                                    >
-                                                        Desarquivar
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() =>
-                                                            archiveClient(
-                                                                client.id,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            padding: "6px 12px",
-                                                            background:
-                                                                "#e74c3c",
-                                                            color: "white",
-                                                            border: "none",
-                                                            borderRadius: "4px",
-                                                            cursor: "pointer",
-                                                            fontSize: "12px",
-                                                        }}
-                                                    >
-                                                        Arquivar
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                )}
+                <ClientsTable
+                    filteredClients={filteredClients}
+                    openEditModal={openEditModal}
+                    openDependentsModal={openDependentsModal}
+                    archiveClient={archiveClient}
+                    unarchiveClient={unarchiveClient}
+                />
             </div>
 
-            {showModal && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        style={{
-                            background: "white",
-                            borderRadius: "8px",
-                            padding: "30px",
-                            width: "90%",
-                            maxWidth: "600px",
-                            maxHeight: "90vh",
-                            overflow: "auto",
-                        }}
-                    >
-                        <h2
-                            style={{
-                                marginTop: 0,
-                                marginBottom: "24px",
-                                fontSize: "24px",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            {modalMode === "create"
-                                ? "Novo Cliente"
-                                : "Editar Cliente"}
-                        </h2>
+            <ClientModal
+                showModal={showModal}
+                modalMode={modalMode}
+                formData={formData}
+                setFormData={setFormData}
+                handleSubmit={handleSubmit}
+                closeModal={closeModal}
+            />
 
-                        <form onSubmit={handleSubmit}>
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Nome *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            name: e.target.value,
-                                        })
-                                    }
-                                    required
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                />
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        CPF/CNPJ
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.registration_id}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                registration_id: e.target.value,
-                                            })
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Apelido/Nome Fantasia
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.nickname}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                nickname: e.target.value,
-                                            })
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Data de Nascimento/Fundação
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.birth_date}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            birth_date: e.target.value,
-                                        })
-                                    }
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                />
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "16px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                email: e.target.value,
-                                            })
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Telefone
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={formData.phone}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                phone: e.target.value,
-                                            })
-                                        }
-                                        placeholder="+5511999999999"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Endereço
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.address}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            address: e.target.value,
-                                        })
-                                    }
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Preferência de Contato
-                                </label>
-                                <select
-                                    value={formData.contact_preference}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            contact_preference: e.target.value,
-                                        })
-                                    }
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                >
-                                    <option value="">Selecione...</option>
-                                    <option value="whatsapp">WhatsApp</option>
-                                    <option value="email">Email</option>
-                                    <option value="phone">Telefone</option>
-                                    <option value="sms">SMS</option>
-                                    <option value="outros">Outros</option>
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: "16px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Tags (separadas por vírgula)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.tags}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            tags: e.target.value,
-                                        })
-                                    }
-                                    placeholder="vip, corporativo, etc"
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                    }}
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: "24px" }}>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        marginBottom: "6px",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Observações
-                                </label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            notes: e.target.value,
-                                        })
-                                    }
-                                    rows={4}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        resize: "vertical",
-                                    }}
-                                />
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "12px",
-                                    justifyContent: "flex-end",
-                                }}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    style={{
-                                        padding: "10px 24px",
-                                        background: "white",
-                                        color: "#7f8c8d",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                    }}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: "10px 24px",
-                                        background: "#27ae60",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                    }}
-                                >
-                                    {modalMode === "create"
-                                        ? "Criar Cliente"
-                                        : "Salvar Alterações"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {showDependents && selectedClient && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        style={{
-                            background: "white",
-                            borderRadius: "8px",
-                            padding: "30px",
-                            width: "90%",
-                            maxWidth: "800px",
-                            maxHeight: "90vh",
-                            overflow: "auto",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: "24px",
-                            }}
-                        >
-                            <h2
-                                style={{
-                                    margin: 0,
-                                    fontSize: "24px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                Dependentes de {selectedClient.name}
-                            </h2>
-                            <button
-                                onClick={closeDependentsModal}
-                                style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    fontSize: "24px",
-                                    cursor: "pointer",
-                                    color: "#7f8c8d",
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <form
-                            onSubmit={handleDependentSubmit}
-                            style={{
-                                marginBottom: "30px",
-                                padding: "20px",
-                                background: "#f8f9fa",
-                                borderRadius: "8px",
-                            }}
-                        >
-                            <h3
-                                style={{
-                                    marginTop: 0,
-                                    marginBottom: "16px",
-                                    fontSize: "18px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                {selectedDependent
-                                    ? "Editar Dependente"
-                                    : "Adicionar Dependente"}
-                            </h3>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "2fr 1fr",
-                                    gap: "12px",
-                                    marginBottom: "12px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Nome *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={dependentForm.name}
-                                        onChange={(e) =>
-                                            setDependentForm({
-                                                ...dependentForm,
-                                                name: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Parentesco *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={dependentForm.relationship}
-                                        onChange={(e) =>
-                                            setDependentForm({
-                                                ...dependentForm,
-                                                relationship: e.target.value,
-                                            })
-                                        }
-                                        required
-                                        placeholder="Filho, cônjuge..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr",
-                                    gap: "12px",
-                                    marginBottom: "16px",
-                                }}
-                            >
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Data de Nascimento
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={dependentForm.birth_date}
-                                        onChange={(e) =>
-                                            setDependentForm({
-                                                ...dependentForm,
-                                                birth_date: e.target.value,
-                                            })
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        style={{
-                                            display: "block",
-                                            marginBottom: "6px",
-                                            fontSize: "14px",
-                                            fontWeight: "500",
-                                            color: "#2c3e50",
-                                        }}
-                                    >
-                                        Telefone
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={dependentForm.phone}
-                                        onChange={(e) =>
-                                            setDependentForm({
-                                                ...dependentForm,
-                                                phone: e.target.value,
-                                            })
-                                        }
-                                        placeholder="+5511999999999"
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ display: "flex", gap: "12px" }}>
-                                {selectedDependent && (
-                                    <button
-                                        type="button"
-                                        onClick={cancelDependentEdit}
-                                        style={{
-                                            padding: "8px 16px",
-                                            background: "white",
-                                            color: "#7f8c8d",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            fontSize: "14px",
-                                        }}
-                                    >
-                                        Cancelar Edição
-                                    </button>
-                                )}
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: "8px 16px",
-                                        background: "#27ae60",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                    }}
-                                >
-                                    {selectedDependent
-                                        ? "Salvar Alterações"
-                                        : "Adicionar Dependente"}
-                                </button>
-                            </div>
-                        </form>
-
-                        {dependents.length === 0 ? (
-                            <div
-                                style={{
-                                    padding: "40px",
-                                    textAlign: "center",
-                                    color: "#7f8c8d",
-                                }}
-                            >
-                                Nenhum dependente cadastrado
-                            </div>
-                        ) : (
-                            <div>
-                                <h3
-                                    style={{
-                                        marginBottom: "16px",
-                                        fontSize: "18px",
-                                        color: "#2c3e50",
-                                    }}
-                                >
-                                    Lista de Dependentes
-                                </h3>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: "12px",
-                                    }}
-                                >
-                                    {dependents.map((dependent) => (
-                                        <div
-                                            key={dependent.id}
-                                            style={{
-                                                padding: "16px",
-                                                border: "1px solid #ecf0f1",
-                                                borderRadius: "8px",
-                                                background:
-                                                    selectedDependent?.id ===
-                                                    dependent.id
-                                                        ? "#e8f4f8"
-                                                        : "white",
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                            }}
-                                        >
-                                            <div>
-                                                <div
-                                                    style={{
-                                                        fontSize: "16px",
-                                                        fontWeight: "500",
-                                                        color: "#2c3e50",
-                                                        marginBottom: "4px",
-                                                    }}
-                                                >
-                                                    {dependent.name}
-                                                </div>
-                                                <div
-                                                    style={{
-                                                        fontSize: "14px",
-                                                        color: "#7f8c8d",
-                                                    }}
-                                                >
-                                                    {dependent.relationship}
-                                                    {dependent.birth_date &&
-                                                        ` • ${formatDate(dependent.birth_date)}`}
-                                                    {dependent.phone &&
-                                                        ` • ${dependent.phone}`}
-                                                </div>
-                                            </div>
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                }}
-                                            >
-                                                <button
-                                                    onClick={() =>
-                                                        editDependent(dependent)
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#3498db",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        deleteDependent(
-                                                            dependent.id,
-                                                        )
-                                                    }
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        background: "#e74c3c",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "4px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px",
-                                                    }}
-                                                >
-                                                    Deletar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                marginTop: "24px",
-                                paddingTop: "20px",
-                                borderTop: "1px solid #ecf0f1",
-                            }}
-                        >
-                            <button
-                                onClick={closeDependentsModal}
-                                style={{
-                                    padding: "10px 24px",
-                                    background: "#7f8c8d",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "4px",
-                                    cursor: "pointer",
-                                    fontSize: "14px",
-                                }}
-                            >
-                                Fechar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <DependentsModal
+                showDependents={showDependents}
+                selectedClient={selectedClient}
+                dependents={dependents}
+                dependentForm={dependentForm}
+                setDependentForm={setDependentForm}
+                selectedDependent={selectedDependent}
+                handleDependentSubmit={handleDependentSubmit}
+                editDependent={editDependent}
+                deleteDependent={deleteDependent}
+                cancelDependentEdit={cancelDependentEdit}
+                closeDependentsModal={closeDependentsModal}
+            />
         </div>
     );
 }

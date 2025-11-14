@@ -80,7 +80,7 @@ type User struct {
 	Role           string     `json:"role"` // "user", "admin", "full_admin"
 	FailedAttempts int        `json:"failed_attempts"`
 	LockLevel      int        `json:"lock_level"`
-	LockedUntil    *time.Time `json:"locked_until,omitempty"`
+	LockedUntil    *time.Time `json:"locked_until"`
 }
 
 // Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).

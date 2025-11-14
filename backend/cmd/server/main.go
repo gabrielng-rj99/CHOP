@@ -191,6 +191,12 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		s.handleUpdateUser(w, r, username)
+	case http.MethodDelete:
+		if err := s.userStore.DeleteUser(username); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, SuccessResponse{Message: "User deleted successfully"})
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
