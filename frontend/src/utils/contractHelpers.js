@@ -54,7 +54,7 @@ export const formatDate = (dateString) => {
 
 export const getContractStatus = (contract) => {
     // Se não tem data de término, é considerado ativo (contrato permanente)
-    if (!contract.end_date) {
+    if (!contract.end_date || contract.end_date === "") {
         return { status: "Ativo", color: "#27ae60" };
     }
 

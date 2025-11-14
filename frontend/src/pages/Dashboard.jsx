@@ -44,7 +44,7 @@ export default function Dashboard({ token, apiUrl }) {
 
     const getContractStatus = (contract) => {
         // Se não tem data de término, é considerado ativo
-        if (!contract.end_date) {
+        if (!contract.end_date || contract.end_date === "") {
             return { status: "Ativo", color: "#27ae60" };
         }
 
@@ -92,8 +92,12 @@ export default function Dashboard({ token, apiUrl }) {
         return !c.archived_at && status.status === "Expirado";
     });
 
+    const activeClients = clients.filter(
+        (c) => !c.archived_at && c.status === "ativo",
+    );
+
     // Clientes que fazem aniversário no mês atual
-    const activeClients = clients.filter((c) => {
+    const birthdayClients = clients.filter((c) => {
         if (c.archived_at || c.status !== "ativo" || !c.birth_date) {
             return false;
         }
@@ -132,9 +136,7 @@ export default function Dashboard({ token, apiUrl }) {
 
             <div className="dashboard-stats-grid">
                 <div className="dashboard-stat-card">
-                    <div className="dashboard-stat-label">
-                        Aniversariantes do Mês
-                    </div>
+                    <div className="dashboard-stat-label">Clientes Ativos</div>
                     <div className="dashboard-stat-value clients">
                         {activeClients.length}
                     </div>
@@ -185,15 +187,15 @@ export default function Dashboard({ token, apiUrl }) {
             <div className="dashboard-content-grid">
                 <div className="dashboard-section-card">
                     <h2 className="dashboard-section-title">
-                        Aniversariantes do Mês
+                        Aniversariantes do Mês ({birthdayClients.length})
                     </h2>
-                    {activeClients.length === 0 ? (
+                    {birthdayClients.length === 0 ? (
                         <p className="dashboard-section-empty">
                             Nenhum aniversariante este mês
                         </p>
                     ) : (
                         <div className="dashboard-contracts-list">
-                            {activeClients.slice(0, 5).map((client) => {
+                            {birthdayClients.slice(0, 5).map((client) => {
                                 return (
                                     <div
                                         key={client.id}
