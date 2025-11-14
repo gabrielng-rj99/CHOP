@@ -27,10 +27,10 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		claims, err := ValidateJWT(tokenString)
+		claims, err := ValidateJWT(tokenString, s.userStore)
 		if err != nil {
 			log.Printf("Token inválido ou expirado para %s %s: %v", r.Method, r.URL.Path, err)
-			respondError(w, http.StatusUnauthorized, "Token inválido ou expirado")
+			respondError(w, http.StatusUnauthorized, "Token inválido ou expirado. Faça login novamente.")
 			return
 		}
 
@@ -45,6 +45,7 @@ func (s *Server) setupRoutes() {
 
 	// Auth
 	http.HandleFunc("/api/login", corsMiddleware(s.handleLogin))
+	http.HandleFunc("/api/refresh-token", corsMiddleware(s.handleRefreshToken))
 
 	// Users
 	http.HandleFunc("/api/users/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +161,7 @@ func (s *Server) setupRoutes() {
 	// Audit Logs (only accessible to full_admin)
 	http.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas full_admin pode acessar
-		claims, err := ValidateJWT(extractTokenFromHeader(r))
+		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "full_admin" {
 			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
 			return
@@ -176,7 +177,7 @@ func (s *Server) setupRoutes() {
 	})))
 	http.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas full_admin pode acessar
-		claims, err := ValidateJWT(extractTokenFromHeader(r))
+		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "full_admin" {
 			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
 			return

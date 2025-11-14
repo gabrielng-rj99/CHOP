@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Contracts from "./pages/Contracts";
@@ -13,17 +13,51 @@ function App() {
     const [currentPage, setCurrentPage] = useState("login");
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
+    const [refreshToken, setRefreshToken] = useState(null);
+    const refreshTimeoutRef = useRef(null);
 
-    useEffect(() => {
-        const savedToken = localStorage.getItem("token");
-        const savedUser = localStorage.getItem("user");
-
-        if (savedToken && savedUser) {
-            setToken(savedToken);
-            setUser(JSON.parse(savedUser));
-            setCurrentPage("dashboard");
+    // Função para decodificar o JWT e pegar expiração
+    function getTokenExpiration(token) {
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            return payload.exp ? payload.exp * 1000 : null;
+        } catch {
+            return null;
         }
-    }, []);
+    }
+
+    // Função para agendar renovação automática do token
+    function scheduleTokenRefresh(token, refreshToken) {
+        if (!token || !refreshToken) return;
+        const exp = getTokenExpiration(token);
+        if (!exp) return;
+        const now = Date.now();
+        // Renova 2 minutos antes de expirar
+        const msUntilRefresh = Math.max(exp - now - 2 * 60 * 1000, 5000);
+        if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = setTimeout(() => {
+            renewAccessToken(refreshToken);
+        }, msUntilRefresh);
+    }
+
+    // Função para renovar o access token usando o refresh token
+    async function renewAccessToken(refreshToken) {
+        try {
+            const response = await fetch(`${API_URL}/api/refresh-token`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            if (!response.ok) {
+                throw new Error("Sessão expirada. Faça login novamente.");
+            }
+            const data = await response.json();
+            setToken(data.data.token);
+            scheduleTokenRefresh(data.data.token, refreshToken);
+        } catch (err) {
+            logout();
+        }
+    }
 
     const login = async (username, password) => {
         try {
@@ -46,10 +80,10 @@ function App() {
             };
 
             setToken(data.data.token);
+            setRefreshToken(data.data.refresh_token);
             setUser(userData);
-            localStorage.setItem("token", data.data.token);
-            localStorage.setItem("user", JSON.stringify(userData));
             setCurrentPage("dashboard");
+            scheduleTokenRefresh(data.data.token, data.data.refresh_token);
         } catch (error) {
             throw error;
         }
@@ -58,14 +92,24 @@ function App() {
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        setRefreshToken(null);
         setCurrentPage("login");
+        if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     };
 
     const navigate = (page) => {
         setCurrentPage(page);
     };
+
+    useEffect(() => {
+        if (token && refreshToken) {
+            scheduleTokenRefresh(token, refreshToken);
+        }
+        return () => {
+            if (refreshTimeoutRef.current)
+                clearTimeout(refreshTimeoutRef.current);
+        };
+    }, [token, refreshToken]);
 
     if (!token || !user) {
         return <Login onLogin={login} />;

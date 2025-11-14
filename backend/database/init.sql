@@ -6,11 +6,13 @@ CREATE TABLE IF NOT EXISTS users (
     display_name VARCHAR(255),
     password_hash VARCHAR(255),
     created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
     role VARCHAR(50),
     failed_attempts INTEGER NOT NULL DEFAULT 0,
     lock_level INTEGER NOT NULL DEFAULT 0,
-    locked_until TIMESTAMP
+    locked_until TIMESTAMP,
+    auth_secret VARCHAR(64)
 );
 
 CREATE TABLE IF NOT EXISTS clients (

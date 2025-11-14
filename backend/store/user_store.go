@@ -2,6 +2,7 @@ package store
 
 import (
 	"Contracts-Manager/backend/domain"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -102,9 +103,14 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		return "", err
 	}
 	createdAt := time.Now()
+	updatedAt := createdAt
 
-	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, role, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, NULL)`
-	_, err = s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, role)
+	// Gerar auth_secret como SHA256(UUID + updatedAt)
+	authSecretRaw := id + updatedAt.Format(time.RFC3339Nano)
+	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
+
+	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, updated_at, role, deleted_at, auth_secret) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)`
+	_, err = s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, updatedAt, role, authSecret)
 	if err != nil {
 		return "", err
 	}
@@ -112,6 +118,54 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 }
 
 // Permite que um admin altere seu próprio username
+// GetUserByID busca um usuário pelo ID
+func (s *UserStore) GetUserByID(userID string) (*domain.User, error) {
+	var user domain.User
+	var username, displayName, role sql.NullString
+	var deletedAt, lockedUntil sql.NullTime
+
+	query := `SELECT id, username, display_name, password_hash, created_at, updated_at, deleted_at, role, failed_attempts, lock_level, locked_until, auth_secret FROM users WHERE id = $1`
+	err := s.db.QueryRow(query, userID).Scan(
+		&user.ID,
+		&username,
+		&displayName,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&deletedAt,
+		&role,
+		&user.FailedAttempts,
+		&user.LockLevel,
+		&lockedUntil,
+		&user.AuthSecret,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("usuário não encontrado")
+		}
+		return nil, err
+	}
+
+	if username.Valid {
+		user.Username = &username.String
+	}
+	if displayName.Valid {
+		user.DisplayName = &displayName.String
+	}
+	if deletedAt.Valid {
+		user.DeletedAt = &deletedAt.Time
+	}
+	if role.Valid {
+		user.Role = &role.String
+	}
+	if lockedUntil.Valid {
+		user.LockedUntil = &lockedUntil.Time
+	}
+
+	return &user, nil
+}
+
 func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 	if newUsername == "" {
 		return errors.New("novo nome de usuário não pode ser vazio")
@@ -171,7 +225,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	}
 
 	// Busca todos os campos necessários para brute-force (ignorando usuários deletados)
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE username = $1 AND deleted_at IS NULL`
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, updated_at, role, failed_attempts, lock_level, locked_until, auth_secret FROM users WHERE username = $1 AND deleted_at IS NULL`
 	row := s.db.QueryRow(sqlStatement, username)
 
 	var user domain.User
@@ -181,7 +235,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	var displayName sql.NullString
 	var role sql.NullString
 
-	err := row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil)
+	err := row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &user.AuthSecret)
 	if err != nil {
 		fmt.Println("Erro no Scan da autenticação:", err)
 		return nil, errors.New("usuário não encontrado")
@@ -251,8 +305,18 @@ func (s *UserStore) EditUserPassword(username, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	sqlStatement := `UPDATE users SET password_hash = $1 WHERE username = $2 AND deleted_at IS NULL`
-	result, err := s.db.Exec(sqlStatement, passwordHash, username)
+	// Atualiza updated_at e gera novo auth_secret
+	updatedAt := time.Now()
+	var id string
+	err = s.db.QueryRow("SELECT id FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&id)
+	if err != nil {
+		return errors.New("usuário não encontrado")
+	}
+	authSecretRaw := id + updatedAt.Format(time.RFC3339Nano)
+	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
+
+	sqlStatement := `UPDATE users SET password_hash = $1, updated_at = $2, auth_secret = $3 WHERE username = $4 AND deleted_at IS NULL`
+	result, err := s.db.Exec(sqlStatement, passwordHash, updatedAt, authSecret, username)
 	if err != nil {
 		return err
 	}
@@ -272,8 +336,18 @@ func (s *UserStore) EditUserDisplayName(username, newDisplayName string) error {
 	if err != nil {
 		return err
 	}
-	sqlStatement := `UPDATE users SET display_name = $1 WHERE username = $2 AND deleted_at IS NULL`
-	result, err := s.db.Exec(sqlStatement, trimmedDisplayName, username)
+	// Atualiza updated_at e gera novo auth_secret
+	updatedAt := time.Now()
+	var id string
+	err = s.db.QueryRow("SELECT id FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&id)
+	if err != nil {
+		return err
+	}
+	authSecretRaw := id + updatedAt.Format(time.RFC3339Nano)
+	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
+
+	sqlStatement := `UPDATE users SET display_name = $1, updated_at = $2, auth_secret = $3 WHERE username = $4 AND deleted_at IS NULL`
+	result, err := s.db.Exec(sqlStatement, trimmedDisplayName, updatedAt, authSecret, username)
 	if err != nil {
 		return err
 	}
@@ -298,8 +372,18 @@ func (s *UserStore) EditUserRole(requesterUsername, targetUsername, newRole stri
 	if !requesterRole.Valid || requesterRole.String != "full_admin" {
 		return errors.New("apenas usuários com role 'full_admin' podem alterar o role de outros usuários")
 	}
-	sqlStatement := `UPDATE users SET role = $1 WHERE username = $2 AND deleted_at IS NULL`
-	result, err := s.db.Exec(sqlStatement, newRole, targetUsername)
+	// Atualiza role, updated_at e gera novo auth_secret
+	updatedAt := time.Now()
+	var userID string
+	err = s.db.QueryRow("SELECT id FROM users WHERE username = $1 AND deleted_at IS NULL", targetUsername).Scan(&userID)
+	if err != nil {
+		return errors.New("usuário alvo não encontrado")
+	}
+	authSecretRaw := userID + updatedAt.Format(time.RFC3339Nano)
+	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
+
+	sqlStatement := `UPDATE users SET role = $1, updated_at = $2, auth_secret = $3 WHERE username = $4 AND deleted_at IS NULL`
+	result, err := s.db.Exec(sqlStatement, newRole, updatedAt, authSecret, targetUsername)
 	if err != nil {
 		return err
 	}
