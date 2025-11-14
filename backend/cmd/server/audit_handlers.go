@@ -34,9 +34,24 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		adminID = &a
 	}
 
+	var adminSearch *string
+	if as := query.Get("admin_search"); as != "" {
+		adminSearch = &as
+	}
+
 	var entityID *string
 	if ei := query.Get("entity_id"); ei != "" {
 		entityID = &ei
+	}
+
+	var entitySearch *string
+	if es := query.Get("entity_search"); es != "" {
+		entitySearch = &es
+	}
+
+	var changedData *string
+	if cd := query.Get("changed_data"); cd != "" {
+		changedData = &cd
 	}
 
 	var status *string
@@ -81,16 +96,19 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := store.AuditLogFilter{
-		Entity:    entity,
-		Operation: operation,
-		AdminID:   adminID,
-		EntityID:  entityID,
-		Status:    status,
-		IPAddress: ipAddress,
-		StartDate: startDate,
-		EndDate:   endDate,
-		Limit:     limit,
-		Offset:    offset,
+		Entity:       entity,
+		Operation:    operation,
+		AdminID:      adminID,
+		AdminSearch:  adminSearch,
+		EntityID:     entityID,
+		EntitySearch: entitySearch,
+		ChangedData:  changedData,
+		Status:       status,
+		IPAddress:    ipAddress,
+		StartDate:    startDate,
+		EndDate:      endDate,
+		Limit:        limit,
+		Offset:       offset,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)
@@ -229,12 +247,30 @@ func (s *Server) handleAuditLogsExport(w http.ResponseWriter, r *http.Request) {
 		adminID = &a
 	}
 
+	var adminSearch *string
+	if as := query.Get("admin_search"); as != "" {
+		adminSearch = &as
+	}
+
+	var entitySearch *string
+	if es := query.Get("entity_search"); es != "" {
+		entitySearch = &es
+	}
+
+	var changedData *string
+	if cd := query.Get("changed_data"); cd != "" {
+		changedData = &cd
+	}
+
 	filter := store.AuditLogFilter{
-		Entity:    entity,
-		Operation: operation,
-		AdminID:   adminID,
-		Limit:     10000,
-		Offset:    0,
+		Entity:       entity,
+		Operation:    operation,
+		AdminID:      adminID,
+		AdminSearch:  adminSearch,
+		EntitySearch: entitySearch,
+		ChangedData:  changedData,
+		Limit:        10000,
+		Offset:       0,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)

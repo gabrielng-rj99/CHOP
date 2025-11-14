@@ -134,16 +134,19 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 
 // AuditLogFilter contém filtros para buscar logs
 type AuditLogFilter struct {
-	Entity    *string
-	Operation *string
-	AdminID   *string
-	EntityID  *string
-	Status    *string
-	IPAddress *string
-	StartDate *time.Time
-	EndDate   *time.Time
-	Limit     int
-	Offset    int
+	Entity       *string
+	Operation    *string
+	AdminID      *string
+	AdminSearch  *string
+	EntityID     *string
+	EntitySearch *string
+	ChangedData  *string
+	Status       *string
+	IPAddress    *string
+	StartDate    *time.Time
+	EndDate      *time.Time
+	Limit        int
+	Offset       int
 }
 
 // ListAuditLogs retorna logs de auditoria com filtros opcionais, ordenado por timestamp DESC
@@ -180,6 +183,24 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 		query += fmt.Sprintf(" AND admin_id = $%d", argNum)
 		args = append(args, *filter.AdminID)
 		argNum++
+	}
+
+	if filter.AdminSearch != nil && *filter.AdminSearch != "" {
+		query += fmt.Sprintf(" AND (admin_id = $%d OR admin_username ILIKE $%d)", argNum, argNum+1)
+		args = append(args, *filter.AdminSearch, "%"+*filter.AdminSearch+"%")
+		argNum += 2
+	}
+
+	if filter.EntitySearch != nil && *filter.EntitySearch != "" {
+		query += fmt.Sprintf(" AND (entity_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
+		args = append(args, *filter.EntitySearch, "%"+*filter.EntitySearch+"%", "%"+*filter.EntitySearch+"%")
+		argNum += 3
+	}
+
+	if filter.ChangedData != nil && *filter.ChangedData != "" {
+		query += fmt.Sprintf(" AND (old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1)
+		args = append(args, "%"+*filter.ChangedData+"%", "%"+*filter.ChangedData+"%")
+		argNum += 2
 	}
 
 	if filter.EntityID != nil && *filter.EntityID != "" {
@@ -439,6 +460,24 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 		query += fmt.Sprintf(" AND admin_id = $%d", argNum)
 		args = append(args, *filter.AdminID)
 		argNum++
+	}
+
+	if filter.AdminSearch != nil && *filter.AdminSearch != "" {
+		query += fmt.Sprintf(" AND (admin_id = $%d OR admin_username ILIKE $%d)", argNum, argNum+1)
+		args = append(args, *filter.AdminSearch, "%"+*filter.AdminSearch+"%")
+		argNum += 2
+	}
+
+	if filter.EntitySearch != nil && *filter.EntitySearch != "" {
+		query += fmt.Sprintf(" AND (entity_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
+		args = append(args, *filter.EntitySearch, "%"+*filter.EntitySearch+"%", "%"+*filter.EntitySearch+"%")
+		argNum += 3
+	}
+
+	if filter.ChangedData != nil && *filter.ChangedData != "" {
+		query += fmt.Sprintf(" AND (old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1)
+		args = append(args, "%"+*filter.ChangedData+"%", "%"+*filter.ChangedData+"%")
+		argNum += 2
 	}
 
 	if filter.EntityID != nil && *filter.EntityID != "" {
