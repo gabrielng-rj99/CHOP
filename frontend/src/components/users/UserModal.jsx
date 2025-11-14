@@ -80,11 +80,16 @@ export default function UserModal({
                                 fontSize: "14px",
                                 boxSizing: "border-box",
                                 opacity: modalMode === "edit" ? 0.6 : 1,
-                                cursor: modalMode === "edit" ? "not-allowed" : "text",
+                                cursor:
+                                    modalMode === "edit"
+                                        ? "not-allowed"
+                                        : "text",
                             }}
                         />
                         {modalMode === "edit" && (
-                            <small style={{ color: "#7f8c8d", fontSize: "12px" }}>
+                            <small
+                                style={{ color: "#7f8c8d", fontSize: "12px" }}
+                            >
                                 Nome de usuário não pode ser alterado
                             </small>
                         )}
@@ -135,7 +140,10 @@ export default function UserModal({
                                 color: "#495057",
                             }}
                         >
-                            Senha {modalMode === "create" ? "*" : "(deixe em branco para manter)"}
+                            Senha{" "}
+                            {modalMode === "create"
+                                ? "*"
+                                : "(deixe em branco para manter)"}
                         </label>
                         <input
                             type="password"
@@ -147,7 +155,11 @@ export default function UserModal({
                                 })
                             }
                             required={modalMode === "create"}
-                            placeholder={modalMode === "edit" ? "Digite apenas se quiser alterar" : ""}
+                            placeholder={
+                                modalMode === "edit"
+                                    ? "Digite apenas se quiser alterar"
+                                    : ""
+                            }
                             style={{
                                 width: "100%",
                                 padding: "10px",
@@ -192,6 +204,9 @@ export default function UserModal({
                         >
                             <option value="user">Usuário</option>
                             <option value="admin">Administrador</option>
+                            <option value="full_admin">
+                                Administrador Total
+                            </option>
                         </select>
                     </div>
 

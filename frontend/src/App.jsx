@@ -5,6 +5,7 @@ import Contracts from "./pages/Contracts";
 import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
+import AuditLogs from "./pages/AuditLogs";
 
 const API_URL = "http://localhost:3000";
 
@@ -188,6 +189,28 @@ function App() {
                     </button>
                 )}
 
+                {user.role === "full_admin" && (
+                    <button
+                        onClick={() => navigate("audit-logs")}
+                        style={{
+                            background:
+                                currentPage === "audit-logs"
+                                    ? "#34495e"
+                                    : "transparent",
+                            color: "white",
+                            border: "none",
+                            padding: "12px 16px",
+                            marginBottom: "8px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            borderRadius: "4px",
+                            fontSize: "14px",
+                        }}
+                    >
+                        Logs de Auditoria
+                    </button>
+                )}
+
                 <div
                     style={{
                         marginTop: "auto",
@@ -243,6 +266,9 @@ function App() {
                 )}
                 {currentPage === "users" && (
                     <Users token={token} apiUrl={API_URL} user={user} />
+                )}
+                {currentPage === "audit-logs" && (
+                    <AuditLogs token={token} apiUrl={API_URL} user={user} />
                 )}
             </main>
         </div>
