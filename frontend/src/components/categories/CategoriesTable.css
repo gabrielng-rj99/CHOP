@@ -1,0 +1,76 @@
+.categories-table-empty {
+    padding: 40px;
+    text-align: center;
+}
+
+.categories-table-empty p {
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+.categories-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.categories-table thead tr {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.categories-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.categories-table th.actions {
+    text-align: center;
+    width: 200px;
+}
+
+.categories-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+    cursor: pointer;
+    background: transparent;
+}
+
+.categories-table tbody tr.selected {
+    background: #e3f2fd;
+}
+
+.categories-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.categories-table td.actions {
+    text-align: center;
+}
+
+.categories-table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.categories-table-button {
+    padding: 6px 12px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.categories-table-button-edit {
+    background: #3498db;
+}
+
+.categories-table-button-delete {
+    background: #e74c3c;
+}

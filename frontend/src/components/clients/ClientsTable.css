@@ -1,0 +1,111 @@
+.clients-table-empty {
+    padding: 40px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.clients-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.clients-table thead tr {
+    background: #f8f9fa;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.clients-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.clients-table th.actions {
+    text-align: center;
+}
+
+.clients-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.clients-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.clients-table td.name {
+    font-weight: 500;
+}
+
+.clients-table td.registration {
+    color: #7f8c8d;
+    font-family: monospace;
+}
+
+.clients-table td.email,
+.clients-table td.phone {
+    color: #7f8c8d;
+}
+
+.clients-table td.actions {
+    text-align: center;
+}
+
+.clients-table-nickname {
+    font-size: 12px;
+    color: #7f8c8d;
+    font-weight: normal;
+}
+
+.clients-table-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.clients-table-status.active {
+    background: #27ae6020;
+    color: #27ae60;
+}
+
+.clients-table-status.archived {
+    background: #95a5a620;
+    color: #95a5a6;
+}
+
+.clients-table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.clients-table-button {
+    padding: 6px 12px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.clients-table-button-edit {
+    background: #3498db;
+}
+
+.clients-table-button-dependents {
+    background: #9b59b6;
+}
+
+.clients-table-button-unarchive {
+    background: #27ae60;
+}
+
+.clients-table-button-archive {
+    background: #e74c3c;
+}

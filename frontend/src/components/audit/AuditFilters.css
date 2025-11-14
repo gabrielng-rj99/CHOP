@@ -1,0 +1,73 @@
+.audit-filters-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #ecf0f1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.audit-filters-title {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.audit-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.audit-filters-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.audit-filters-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.audit-filters-select,
+.audit-filters-input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.audit-filters-select {
+    background-color: white;
+    cursor: pointer;
+}
+
+.audit-filters-button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.audit-filters-button {
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.audit-filters-button-apply {
+    background: #3498db;
+    color: white;
+    border: none;
+}
+
+.audit-filters-button-clear {
+    background: white;
+    color: #3498db;
+    border: 1px solid #3498db;
+}

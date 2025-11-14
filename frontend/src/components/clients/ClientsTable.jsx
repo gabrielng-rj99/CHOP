@@ -1,4 +1,5 @@
 import React from "react";
+import "./ClientsTable.css";
 
 export default function ClientsTable({
     filteredClients,
@@ -9,93 +10,20 @@ export default function ClientsTable({
 }) {
     if (filteredClients.length === 0) {
         return (
-            <div
-                style={{
-                    padding: "40px",
-                    textAlign: "center",
-                    color: "#7f8c8d",
-                }}
-            >
-                Nenhum cliente encontrado
-            </div>
+            <div className="clients-table-empty">Nenhum cliente encontrado</div>
         );
     }
 
     return (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="clients-table">
             <thead>
-                <tr
-                    style={{
-                        background: "#f8f9fa",
-                        borderBottom: "2px solid #ecf0f1",
-                    }}
-                >
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        NOME
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        CPF/CNPJ
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        EMAIL
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        TELEFONE
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        STATUS
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "center",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#7f8c8d",
-                        }}
-                    >
-                        AÇÕES
-                    </th>
+                <tr>
+                    <th>NOME</th>
+                    <th>CPF/CNPJ</th>
+                    <th>EMAIL</th>
+                    <th>TELEFONE</th>
+                    <th>STATUS</th>
+                    <th className="actions">AÇÕES</th>
                 </tr>
             </thead>
             <tbody>
@@ -104,101 +32,36 @@ export default function ClientsTable({
                         client.status === "ativo" ? "#27ae60" : "#95a5a6";
                     const isArchived = !!client.archived_at;
                     return (
-                        <tr
-                            key={client.id}
-                            style={{
-                                borderBottom: "1px solid #ecf0f1",
-                            }}
-                        >
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#2c3e50",
-                                    fontWeight: "500",
-                                }}
-                            >
+                        <tr key={client.id}>
+                            <td className="name">
                                 {client.name}
                                 {client.nickname && (
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            fontWeight: "normal",
-                                        }}
-                                    >
+                                    <div className="clients-table-nickname">
                                         {client.nickname}
                                     </div>
                                 )}
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#7f8c8d",
-                                    fontFamily: "monospace",
-                                }}
-                            >
+                            <td className="registration">
                                 {client.registration_id || "-"}
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#7f8c8d",
-                                }}
-                            >
-                                {client.email || "-"}
-                            </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#7f8c8d",
-                                }}
-                            >
-                                {client.phone || "-"}
-                            </td>
-                            <td style={{ padding: "16px" }}>
+                            <td className="email">{client.email || "-"}</td>
+                            <td className="phone">{client.phone || "-"}</td>
+                            <td>
                                 <span
+                                    className={`clients-table-status ${isArchived ? "archived" : "active"}`}
                                     style={{
-                                        display: "inline-block",
-                                        padding: "4px 12px",
-                                        borderRadius: "12px",
-                                        fontSize: "12px",
-                                        fontWeight: "600",
                                         background: statusColor + "20",
                                         color: statusColor,
-                                        textTransform: "capitalize",
                                     }}
                                 >
                                     {isArchived ? "Arquivado" : client.status}
                                 </span>
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    textAlign: "center",
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        justifyContent: "center",
-                                    }}
-                                >
+                            <td className="actions">
+                                <div className="clients-table-actions">
                                     <button
                                         onClick={() => openEditModal(client)}
-                                        style={{
-                                            padding: "6px 12px",
-                                            background: "#3498db",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            fontSize: "12px",
-                                        }}
+                                        className="clients-table-button clients-table-button-edit"
                                     >
                                         Editar
                                     </button>
@@ -206,15 +69,7 @@ export default function ClientsTable({
                                         onClick={() =>
                                             openDependentsModal(client)
                                         }
-                                        style={{
-                                            padding: "6px 12px",
-                                            background: "#9b59b6",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            fontSize: "12px",
-                                        }}
+                                        className="clients-table-button clients-table-button-dependents"
                                     >
                                         Dependentes
                                     </button>
@@ -223,15 +78,7 @@ export default function ClientsTable({
                                             onClick={() =>
                                                 unarchiveClient(client.id)
                                             }
-                                            style={{
-                                                padding: "6px 12px",
-                                                background: "#27ae60",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                                fontSize: "12px",
-                                            }}
+                                            className="clients-table-button clients-table-button-unarchive"
                                         >
                                             Desarquivar
                                         </button>
@@ -240,15 +87,7 @@ export default function ClientsTable({
                                             onClick={() =>
                                                 archiveClient(client.id)
                                             }
-                                            style={{
-                                                padding: "6px 12px",
-                                                background: "#e74c3c",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                                fontSize: "12px",
-                                            }}
+                                            className="clients-table-button clients-table-button-archive"
                                         >
                                             Arquivar
                                         </button>

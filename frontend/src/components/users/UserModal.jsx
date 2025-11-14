@@ -1,4 +1,5 @@
 import React from "react";
+import "./UserModal.css";
 
 export default function UserModal({
     showModal,
@@ -11,54 +12,19 @@ export default function UserModal({
     if (!showModal) return null;
 
     return (
-        <div
-            style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0,0,0,0.5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 1000,
-            }}
-            onClick={onClose}
-        >
+        <div className="user-modal-overlay" onClick={onClose}>
             <div
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    padding: "24px",
-                    width: "90%",
-                    maxWidth: "500px",
-                }}
+                className="user-modal-content"
             >
-                <h2
-                    style={{
-                        marginTop: 0,
-                        marginBottom: "24px",
-                        fontSize: "24px",
-                        color: "#2c3e50",
-                    }}
-                >
+                <h2 className="user-modal-title">
                     {modalMode === "create" ? "Novo Usuário" : "Editar Usuário"}
                 </h2>
 
                 <form onSubmit={onSubmit}>
                     {/* Username */}
-                    <div style={{ marginBottom: "20px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#495057",
-                            }}
-                        >
+                    <div className="user-modal-form-group">
+                        <label className="user-modal-label">
                             Nome de Usuário *
                         </label>
                         <input
@@ -72,40 +38,18 @@ export default function UserModal({
                             }
                             required
                             disabled={modalMode === "edit"}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ced4da",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                                opacity: modalMode === "edit" ? 0.6 : 1,
-                                cursor:
-                                    modalMode === "edit"
-                                        ? "not-allowed"
-                                        : "text",
-                            }}
+                            className="user-modal-input"
                         />
                         {modalMode === "edit" && (
-                            <small
-                                style={{ color: "#7f8c8d", fontSize: "12px" }}
-                            >
+                            <small className="user-modal-hint">
                                 Nome de usuário não pode ser alterado
                             </small>
                         )}
                     </div>
 
                     {/* Display Name */}
-                    <div style={{ marginBottom: "20px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#495057",
-                            }}
-                        >
+                    <div className="user-modal-form-group">
+                        <label className="user-modal-label">
                             Nome de Exibição *
                         </label>
                         <input
@@ -118,28 +62,13 @@ export default function UserModal({
                                 })
                             }
                             required
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ced4da",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="user-modal-input"
                         />
                     </div>
 
                     {/* Password */}
-                    <div style={{ marginBottom: "20px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#495057",
-                            }}
-                        >
+                    <div className="user-modal-form-group">
+                        <label className="user-modal-label">
                             Senha{" "}
                             {modalMode === "create"
                                 ? "*"
@@ -160,30 +89,13 @@ export default function UserModal({
                                     ? "Digite apenas se quiser alterar"
                                     : ""
                             }
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ced4da",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="user-modal-input"
                         />
                     </div>
 
                     {/* Role */}
-                    <div style={{ marginBottom: "20px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#495057",
-                            }}
-                        >
-                            Função *
-                        </label>
+                    <div className="user-modal-form-group">
+                        <label className="user-modal-label">Função *</label>
                         <select
                             value={formData.role}
                             onChange={(e) =>
@@ -193,95 +105,35 @@ export default function UserModal({
                                 })
                             }
                             required
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ced4da",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                                background:
-                                    formData.role === "full_admin"
-                                        ? "#1565c0"
-                                        : formData.role === "admin"
-                                          ? "#42a5f5"
-                                          : "#f4f4f4",
-                                color:
-                                    formData.role === "user"
-                                        ? "#2c3e50"
-                                        : "white",
-                                fontWeight:
-                                    formData.role === "full_admin"
-                                        ? "bold"
-                                        : "normal",
-                                transition: "background 0.2s",
-                            }}
+                            className="user-modal-select"
+                            data-role={formData.role}
                         >
-                            <option
-                                value="user"
-                                style={{
-                                    color: "#2c3e50",
-                                    background: "#f4f4f4",
-                                }}
-                            >
+                            <option value="user" className="user-modal-option">
                                 Usuário
                             </option>
-                            <option
-                                value="admin"
-                                style={{
-                                    color: "white",
-                                    background: "#42a5f5",
-                                }}
-                            >
+                            <option value="admin" className="user-modal-option">
                                 Administrador
                             </option>
                             <option
                                 value="full_admin"
-                                style={{
-                                    color: "white",
-                                    background: "#1565c0",
-                                    fontWeight: "bold",
-                                }}
+                                className="user-modal-option user-modal-option-full-admin"
                             >
                                 Administrador Total
                             </option>
                         </select>
                     </div>
 
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: "12px",
-                            justifyContent: "flex-end",
-                        }}
-                    >
+                    <div className="user-modal-button-group">
                         <button
                             type="button"
                             onClick={onClose}
-                            style={{
-                                padding: "10px 20px",
-                                background: "#95a5a6",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                            }}
+                            className="user-modal-button user-modal-button-cancel"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            style={{
-                                padding: "10px 20px",
-                                background: "#27ae60",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "600",
-                            }}
+                            className="user-modal-button user-modal-button-submit"
                         >
                             {modalMode === "create" ? "Criar" : "Salvar"}
                         </button>

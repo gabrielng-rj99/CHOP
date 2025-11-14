@@ -1,0 +1,126 @@
+.users-table-empty {
+    padding: 40px;
+    text-align: center;
+}
+
+.users-table-empty p {
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table thead tr {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.users-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.users-table th.status,
+.users-table th.actions {
+    text-align: center;
+}
+
+.users-table th.actions {
+    width: 250px;
+}
+
+.users-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.users-table tbody tr.blocked {
+    opacity: 0.6;
+}
+
+.users-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.users-table td.status,
+.users-table td.actions {
+    text-align: center;
+}
+
+.users-table-current-badge {
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #3498db20;
+    color: #3498db;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.users-table-role {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.users-table-role.full-admin {
+    background: #1565c0;
+    color: white;
+}
+
+.users-table-role.admin {
+    background: #42a5f5;
+    color: #1565c0;
+}
+
+.users-table-role.user {
+    background: #f4f4f4;
+    color: #333;
+}
+
+.users-table-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.users-table-status.blocked {
+    background: #e74c3c20;
+    color: #e74c3c;
+}
+
+.users-table-status.active {
+    background: #27ae6020;
+    color: #27ae60;
+}
+
+.users-table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.users-table-icon-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.users-table-icon-button svg {
+    width: 22px;
+    height: 22px;
+}

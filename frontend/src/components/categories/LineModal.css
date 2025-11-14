@@ -1,0 +1,72 @@
+.line-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.line-modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.line-modal-title {
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 24px;
+    color: #2c3e50;
+}
+
+.line-modal-form-group {
+    margin-bottom: 20px;
+}
+
+.line-modal-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.line-modal-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.line-modal-button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.line-modal-button {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.line-modal-button-cancel {
+    background: #95a5a6;
+}
+
+.line-modal-button-submit {
+    background: #27ae60;
+    font-weight: 600;
+}

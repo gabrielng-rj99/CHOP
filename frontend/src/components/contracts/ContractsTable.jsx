@@ -5,6 +5,7 @@ import {
     getClientName,
     getCategoryName,
 } from "../../utils/contractHelpers";
+import "./ContractsTable.css";
 
 export default function ContractsTable({
     filteredContracts,
@@ -17,90 +18,22 @@ export default function ContractsTable({
 }) {
     if (filteredContracts.length === 0) {
         return (
-            <div style={{ padding: "40px", textAlign: "center" }}>
-                <p style={{ fontSize: "16px", color: "#7f8c8d" }}>
-                    Nenhum contrato encontrado
-                </p>
+            <div className="contracts-table-empty">
+                <p>Nenhum contrato encontrado</p>
             </div>
         );
     }
 
     return (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="contracts-table">
             <thead>
-                <tr
-                    style={{
-                        background: "#f8f9fa",
-                        borderBottom: "2px solid #dee2e6",
-                    }}
-                >
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Modelo
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Cliente
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Categoria
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Vencimento
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "center",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Status
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "center",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                            width: "250px",
-                        }}
-                    >
-                        Ações
-                    </th>
+                <tr>
+                    <th>Modelo</th>
+                    <th>Cliente</th>
+                    <th>Categoria</th>
+                    <th>Vencimento</th>
+                    <th className="status">Status</th>
+                    <th className="actions">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,91 +44,39 @@ export default function ContractsTable({
                     return (
                         <tr
                             key={contract.id}
-                            style={{
-                                borderBottom: "1px solid #ecf0f1",
-                                opacity: isArchived ? 0.6 : 1,
-                            }}
+                            className={isArchived ? "archived" : ""}
                         >
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                <div style={{ fontWeight: "500" }}>
+                            <td>
+                                <div className="contracts-table-model">
                                     {contract.model || "-"}
                                 </div>
                                 {contract.product_key && (
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginTop: "4px",
-                                        }}
-                                    >
+                                    <div className="contracts-table-product-key">
                                         {contract.product_key}
                                     </div>
                                 )}
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#2c3e50",
-                                }}
-                            >
+                            <td>
                                 {getClientName(contract.client_id, clients)}
                                 {contract.dependent && (
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginTop: "4px",
-                                        }}
-                                    >
+                                    <div className="contracts-table-dependent">
                                         Dep: {contract.dependent.name}
                                     </div>
                                 )}
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#2c3e50",
-                                }}
-                            >
+                            <td>
                                 {getCategoryName(contract.line_id, categories)}
                                 {contract.line && (
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: "#7f8c8d",
-                                            marginTop: "4px",
-                                        }}
-                                    >
+                                    <div className="contracts-table-line">
                                         {contract.line.line}
                                     </div>
                                 )}
                             </td>
-                            <td
-                                style={{
-                                    padding: "16px",
-                                    fontSize: "14px",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                {formatDate(contract.end_date)}
-                            </td>
-                            <td
-                                style={{ padding: "16px", textAlign: "center" }}
-                            >
+                            <td>{formatDate(contract.end_date)}</td>
+                            <td className="status">
                                 <span
+                                    className="contracts-table-status"
                                     style={{
-                                        padding: "4px 12px",
-                                        borderRadius: "12px",
-                                        fontSize: "12px",
-                                        fontWeight: "600",
                                         background: `${status.color}20`,
                                         color: status.color,
                                     }}
@@ -203,28 +84,11 @@ export default function ContractsTable({
                                     {isArchived ? "Arquivado" : status.status}
                                 </span>
                             </td>
-                            <td
-                                style={{ padding: "16px", textAlign: "center" }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        justifyContent: "center",
-                                        flexWrap: "wrap",
-                                    }}
-                                >
+                            <td className="actions">
+                                <div className="contracts-table-actions">
                                     <button
                                         onClick={() => onViewDetails(contract)}
-                                        style={{
-                                            padding: "6px 12px",
-                                            background: "#9b59b6",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            fontSize: "13px",
-                                        }}
+                                        className="contracts-table-button contracts-table-button-details"
                                     >
                                         Detalhes
                                     </button>
@@ -232,15 +96,7 @@ export default function ContractsTable({
                                         <>
                                             <button
                                                 onClick={() => onEdit(contract)}
-                                                style={{
-                                                    padding: "6px 12px",
-                                                    background: "#3498db",
-                                                    color: "white",
-                                                    border: "none",
-                                                    borderRadius: "4px",
-                                                    cursor: "pointer",
-                                                    fontSize: "13px",
-                                                }}
+                                                className="contracts-table-button contracts-table-button-edit"
                                             >
                                                 Editar
                                             </button>
@@ -248,15 +104,7 @@ export default function ContractsTable({
                                                 onClick={() =>
                                                     onArchive(contract.id)
                                                 }
-                                                style={{
-                                                    padding: "6px 12px",
-                                                    background: "#95a5a6",
-                                                    color: "white",
-                                                    border: "none",
-                                                    borderRadius: "4px",
-                                                    cursor: "pointer",
-                                                    fontSize: "13px",
-                                                }}
+                                                className="contracts-table-button contracts-table-button-archive"
                                             >
                                                 Arquivar
                                             </button>
@@ -267,15 +115,7 @@ export default function ContractsTable({
                                             onClick={() =>
                                                 onUnarchive(contract.id)
                                             }
-                                            style={{
-                                                padding: "6px 12px",
-                                                background: "#27ae60",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                                fontSize: "13px",
-                                            }}
+                                            className="contracts-table-button contracts-table-button-unarchive"
                                         >
                                             Desarquivar
                                         </button>

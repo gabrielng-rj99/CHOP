@@ -1,0 +1,213 @@
+.audit-logs-table-empty {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+.audit-logs-table-loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+.audit-logs-table-container {
+    overflow-x: auto;
+    background: white;
+}
+
+.audit-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.audit-logs-table thead tr {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.audit-logs-table th {
+    border-bottom: 2px solid #dee2e6;
+    padding: 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    background: #f8f9fa;
+}
+
+.audit-logs-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.audit-logs-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.audit-logs-expand-button {
+    background: none;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.audit-logs-expand-button:hover {
+    background: #f5f5f5;
+}
+
+.audit-logs-operation-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.audit-logs-operation-badge.create {
+    background: #27ae6020;
+    color: #27ae60;
+}
+
+.audit-logs-operation-badge.read {
+    background: #3498db20;
+    color: #3498db;
+}
+
+.audit-logs-operation-badge.update {
+    background: #f39c1220;
+    color: #f39c12;
+}
+
+.audit-logs-operation-badge.delete {
+    background: #e74c3c20;
+    color: #e74c3c;
+}
+
+.audit-logs-status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.audit-logs-status-badge.success {
+    background: #27ae6020;
+    color: #27ae60;
+}
+
+.audit-logs-status-badge.error {
+    background: #e74c3c20;
+    color: #e74c3c;
+}
+
+.audit-logs-entity-badge {
+    background: #95a5a620;
+    color: #34495e;
+    border: 1px solid #95a5a6;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.audit-logs-entity-badge:hover {
+    background: #95a5a630;
+}
+
+.audit-logs-expanded-row {
+    background: #f8f9fa;
+    padding: 20px;
+}
+
+.audit-logs-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.audit-logs-details-title {
+    margin: 0 0 16px 0;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.audit-logs-detail-item {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.audit-logs-detail-label {
+    font-size: 12px;
+    padding: 4px 0;
+    font-weight: 600;
+    color: #495057;
+    width: 100%;
+}
+
+.audit-logs-detail-value {
+    padding: 4px 0;
+    color: #2c3e50;
+    word-break: break-all;
+}
+
+.audit-logs-changes-title {
+    margin: 24px 0 16px 0;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.audit-logs-changes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.audit-logs-change-section-title {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 14px;
+}
+
+.audit-logs-change-content {
+    background: #2c3e50;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow: auto;
+    max-height: 300px;
+    color: #ecf0f1;
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+.audit-logs-metadata-section {
+    margin-top: 24px;
+    padding: 16px;
+    background: #fff3cd;
+    border-left: 4px solid #f39c12;
+    border-radius: 4px;
+}
+
+.audit-logs-metadata-title {
+    margin: 0 0 12px 0;
+    color: #856404;
+    font-size: 14px;
+}
+
+.audit-logs-metadata-text {
+    margin: 0;
+    color: #856404;
+    font-size: 13px;
+}

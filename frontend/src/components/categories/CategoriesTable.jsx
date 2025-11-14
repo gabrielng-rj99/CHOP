@@ -1,4 +1,5 @@
 import React from "react";
+import "./CategoriesTable.css";
 
 export default function CategoriesTable({
     filteredCategories,
@@ -9,41 +10,18 @@ export default function CategoriesTable({
 }) {
     if (filteredCategories.length === 0) {
         return (
-            <div style={{ padding: "40px", textAlign: "center" }}>
-                <p style={{ fontSize: "16px", color: "#7f8c8d" }}>
-                    Nenhuma categoria encontrada
-                </p>
+            <div className="categories-table-empty">
+                <p>Nenhuma categoria encontrada</p>
             </div>
         );
     }
 
     return (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="categories-table">
             <thead>
-                <tr style={{ background: "#f8f9fa", borderBottom: "2px solid #dee2e6" }}>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "left",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                        }}
-                    >
-                        Nome da Categoria
-                    </th>
-                    <th
-                        style={{
-                            padding: "16px",
-                            textAlign: "center",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                            width: "200px",
-                        }}
-                    >
-                        Ações
-                    </th>
+                <tr>
+                    <th>Nome da Categoria</th>
+                    <th className="actions">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -51,64 +29,33 @@ export default function CategoriesTable({
                     <tr
                         key={category.id}
                         onClick={() => onSelectCategory(category)}
-                        style={{
-                            borderBottom: "1px solid #ecf0f1",
-                            cursor: "pointer",
-                            background:
-                                selectedCategory?.id === category.id
-                                    ? "#e3f2fd"
-                                    : "transparent",
-                        }}
+                        className={
+                            selectedCategory?.id === category.id
+                                ? "selected"
+                                : ""
+                        }
                     >
-                        <td
-                            style={{
-                                padding: "16px",
-                                fontSize: "14px",
-                                color: "#2c3e50",
-                                fontWeight: "500",
-                            }}
-                        >
-                            {category.name}
-                        </td>
-                        <td style={{ padding: "16px", textAlign: "center" }}>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    justifyContent: "center",
-                                }}
-                            >
+                        <td>{category.name}</td>
+                        <td className="actions">
+                            <div className="categories-table-actions">
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEditCategory(category);
                                     }}
-                                    style={{
-                                        padding: "6px 12px",
-                                        background: "#3498db",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "13px",
-                                    }}
+                                    className="categories-table-button categories-table-button-edit"
                                 >
                                     Editar
                                 </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onDeleteCategory(category.id, category.name);
+                                        onDeleteCategory(
+                                            category.id,
+                                            category.name,
+                                        );
                                     }}
-                                    style={{
-                                        padding: "6px 12px",
-                                        background: "#e74c3c",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        fontSize: "13px",
-                                    }}
+                                    className="categories-table-button categories-table-button-delete"
                                 >
                                     Deletar
                                 </button>
