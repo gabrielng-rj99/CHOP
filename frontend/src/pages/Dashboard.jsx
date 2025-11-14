@@ -92,9 +92,18 @@ export default function Dashboard({ token, apiUrl }) {
         return !c.archived_at && status.status === "Expirado";
     });
 
-    const activeClients = clients.filter(
-        (c) => !c.archived_at && c.status === "ativo",
-    );
+    // Clientes que fazem aniversário no mês atual
+    const activeClients = clients.filter((c) => {
+        if (c.archived_at || c.status !== "ativo" || !c.birth_date) {
+            return false;
+        }
+
+        const birthDate = new Date(c.birth_date);
+        const currentMonth = new Date().getMonth();
+        const birthMonth = birthDate.getMonth();
+
+        return birthMonth === currentMonth;
+    });
 
     const archivedClients = clients.filter((c) => c.archived_at);
 
@@ -123,7 +132,9 @@ export default function Dashboard({ token, apiUrl }) {
 
             <div className="dashboard-stats-grid">
                 <div className="dashboard-stat-card">
-                    <div className="dashboard-stat-label">Clientes Ativos</div>
+                    <div className="dashboard-stat-label">
+                        Aniversariantes do Mês
+                    </div>
                     <div className="dashboard-stat-value clients">
                         {activeClients.length}
                     </div>
@@ -173,10 +184,12 @@ export default function Dashboard({ token, apiUrl }) {
 
             <div className="dashboard-content-grid">
                 <div className="dashboard-section-card">
-                    <h2 className="dashboard-section-title">Clientes Ativos</h2>
+                    <h2 className="dashboard-section-title">
+                        Aniversariantes do Mês
+                    </h2>
                     {activeClients.length === 0 ? (
                         <p className="dashboard-section-empty">
-                            Nenhum cliente ativo
+                            Nenhum aniversariante este mês
                         </p>
                     ) : (
                         <div className="dashboard-contracts-list">
@@ -194,7 +207,12 @@ export default function Dashboard({ token, apiUrl }) {
                                                 "Sem registro"}
                                         </div>
                                         <div className="dashboard-contract-days clients">
-                                            Ativo
+                                            {new Date(
+                                                client.birth_date,
+                                            ).toLocaleDateString("pt-BR", {
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                            })}
                                         </div>
                                     </div>
                                 );
