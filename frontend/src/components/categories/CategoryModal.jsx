@@ -8,6 +8,7 @@ export default function CategoryModal({
     setCategoryForm,
     onSubmit,
     onClose,
+    error,
 }) {
     if (!showModal) return null;
 
@@ -22,6 +23,8 @@ export default function CategoryModal({
                         ? "Nova Categoria"
                         : "Editar Categoria"}
                 </h2>
+
+                {error && <div className="category-modal-error">{error}</div>}
 
                 <form onSubmit={onSubmit}>
                     <div className="category-modal-form-group">

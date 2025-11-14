@@ -1,20 +1,67 @@
 .app-container {
     display: flex;
     min-height: 100vh;
+    overflow: hidden;
 }
 
 .app-nav {
     width: 250px;
     background: #2c3e50;
     color: white;
-    padding: 20px;
     display: flex;
     flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transition: width 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.app-nav.collapsed {
+    width: 70px;
+}
+
+.app-nav-header {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #34495e;
 }
 
 .app-nav-title {
-    margin-bottom: 30px;
+    margin: 0;
     font-size: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.hidden-title {
+    display: none;
+}
+
+.app-nav-toggle {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.app-nav-toggle:hover {
+    background: #34495e;
+}
+
+.app-nav-items {
+    flex: 1;
+    padding: 20px 10px;
+    overflow-y: auto;
 }
 
 .app-nav-button {
@@ -27,6 +74,16 @@
     text-align: left;
     border-radius: 4px;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.app-nav.collapsed .app-nav-button {
+    justify-content: center;
+    padding: 12px 8px;
 }
 
 .app-nav-button:hover {
@@ -34,13 +91,31 @@
 }
 
 .app-nav-button.active {
-    background: #34495e;
+    background: #3498db;
+}
+
+.app-nav-button.active:hover {
+    background: #2980b9;
+}
+
+.app-nav-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    display: inline-block;
+    width: 24px;
+    text-align: center;
+}
+
+.app-nav-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .app-nav-footer {
-    margin-top: auto;
-    padding-top: 20px;
+    padding: 20px;
     border-top: 1px solid #34495e;
+    margin-top: auto;
 }
 
 .app-nav-user-info {
@@ -54,6 +129,7 @@
 
 .app-nav-user-name {
     font-weight: bold;
+    word-break: break-word;
 }
 
 .app-nav-user-role {
@@ -71,6 +147,15 @@
     cursor: pointer;
     border-radius: 4px;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+.app-nav.collapsed .app-nav-logout-button {
+    padding: 10px 8px;
 }
 
 .app-nav-logout-button:hover {
@@ -79,5 +164,72 @@
 
 .app-main {
     flex: 1;
+    margin-left: 250px;
     padding: 20px;
+    transition: margin-left 0.3s ease;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.app-nav.collapsed ~ .app-main {
+    margin-left: 70px;
+}
+
+/* Scrollbar customization */
+.app-nav::-webkit-scrollbar,
+.app-main::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-nav::-webkit-scrollbar-track {
+    background: #2c3e50;
+}
+
+.app-nav::-webkit-scrollbar-thumb {
+    background: #34495e;
+    border-radius: 4px;
+}
+
+.app-nav::-webkit-scrollbar-thumb:hover {
+    background: #4a5f7f;
+}
+
+.app-main::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.app-main::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.app-main::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-nav {
+        width: 70px;
+    }
+
+    .app-nav-title {
+        display: none;
+    }
+
+    .app-nav-toggle {
+        margin: 0 auto;
+    }
+
+    .app-nav-text {
+        display: none;
+    }
+
+    .app-nav-user-info {
+        display: none;
+    }
+
+    .app-main {
+        margin-left: 70px;
+    }
 }

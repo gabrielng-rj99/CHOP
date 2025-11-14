@@ -28,14 +28,15 @@ export default function CategoriesTable({
                 {filteredCategories.map((category) => (
                     <tr
                         key={category.id}
-                        onClick={() => onSelectCategory(category)}
                         className={
                             selectedCategory?.id === category.id
                                 ? "selected"
                                 : ""
                         }
                     >
-                        <td>{category.name}</td>
+                        <td onClick={() => onSelectCategory(category)}>
+                            {category.name}
+                        </td>
                         <td className="actions">
                             <div className="categories-table-actions">
                                 <button

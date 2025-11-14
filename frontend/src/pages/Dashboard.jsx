@@ -43,8 +43,22 @@ export default function Dashboard({ token, apiUrl }) {
     };
 
     const getContractStatus = (contract) => {
+        // Se não tem data de término, é considerado ativo
+        if (!contract.end_date) {
+            return { status: "Ativo", color: "#27ae60" };
+        }
+
         const endDate = new Date(contract.end_date);
+        const startDate = contract.start_date
+            ? new Date(contract.start_date)
+            : null;
         const now = new Date();
+
+        // Se tem data de início no futuro, é "Não Iniciado"
+        if (startDate && startDate > now) {
+            return { status: "Não Iniciado", color: "#3498db" };
+        }
+
         const daysUntilExpiration = Math.ceil(
             (endDate - now) / (1000 * 60 * 60 * 24),
         );
@@ -57,6 +71,11 @@ export default function Dashboard({ token, apiUrl }) {
             return { status: "Ativo", color: "#27ae60" };
         }
     };
+
+    const notStartedContracts = contracts.filter((c) => {
+        const status = getContractStatus(c);
+        return !c.archived_at && status.status === "Não Iniciado";
+    });
 
     const activeContracts = contracts.filter((c) => {
         const status = getContractStatus(c);
@@ -76,6 +95,8 @@ export default function Dashboard({ token, apiUrl }) {
     const activeClients = clients.filter(
         (c) => !c.archived_at && c.status === "ativo",
     );
+
+    const archivedClients = clients.filter((c) => c.archived_at);
 
     if (loading) {
         return (
@@ -102,6 +123,13 @@ export default function Dashboard({ token, apiUrl }) {
 
             <div className="dashboard-stats-grid">
                 <div className="dashboard-stat-card">
+                    <div className="dashboard-stat-label">Clientes Ativos</div>
+                    <div className="dashboard-stat-value clients">
+                        {activeClients.length}
+                    </div>
+                </div>
+
+                <div className="dashboard-stat-card">
                     <div className="dashboard-stat-label">Contratos Ativos</div>
                     <div className="dashboard-stat-value active">
                         {activeContracts.length}
@@ -127,14 +155,54 @@ export default function Dashboard({ token, apiUrl }) {
                 </div>
 
                 <div className="dashboard-stat-card">
-                    <div className="dashboard-stat-label">Clientes Ativos</div>
-                    <div className="dashboard-stat-value clients">
-                        {activeClients.length}
+                    <div className="dashboard-stat-label">
+                        Clientes Arquivados
+                    </div>
+                    <div className="dashboard-stat-value archived">
+                        {archivedClients.length}
+                    </div>
+                </div>
+
+                <div className="dashboard-stat-card">
+                    <div className="dashboard-stat-label">Não Iniciados</div>
+                    <div className="dashboard-stat-value not-started">
+                        {notStartedContracts.length}
                     </div>
                 </div>
             </div>
 
             <div className="dashboard-content-grid">
+                <div className="dashboard-section-card">
+                    <h2 className="dashboard-section-title">Clientes Ativos</h2>
+                    {activeClients.length === 0 ? (
+                        <p className="dashboard-section-empty">
+                            Nenhum cliente ativo
+                        </p>
+                    ) : (
+                        <div className="dashboard-contracts-list">
+                            {activeClients.slice(0, 5).map((client) => {
+                                return (
+                                    <div
+                                        key={client.id}
+                                        className="dashboard-contract-item clients"
+                                    >
+                                        <div className="dashboard-contract-model">
+                                            {client.name}
+                                        </div>
+                                        <div className="dashboard-contract-key">
+                                            {client.registration_id ||
+                                                "Sem registro"}
+                                        </div>
+                                        <div className="dashboard-contract-days clients">
+                                            Ativo
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
                 <div className="dashboard-section-card">
                     <h2 className="dashboard-section-title">
                         Contratos Expirando em Breve
@@ -158,10 +226,11 @@ export default function Dashboard({ token, apiUrl }) {
                                         className="dashboard-contract-item expiring"
                                     >
                                         <div className="dashboard-contract-model">
-                                            {contract.model}
+                                            {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.product_key}
+                                            {contract.product_key ||
+                                                "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expiring">
                                             {daysLeft} dias restantes
@@ -196,10 +265,11 @@ export default function Dashboard({ token, apiUrl }) {
                                         className="dashboard-contract-item expired"
                                     >
                                         <div className="dashboard-contract-model">
-                                            {contract.model}
+                                            {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.product_key}
+                                            {contract.product_key ||
+                                                "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expired">
                                             Expirado há {daysExpired} dias

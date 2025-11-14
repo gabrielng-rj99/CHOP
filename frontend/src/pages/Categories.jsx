@@ -63,7 +63,15 @@ export default function Categories({ token, apiUrl }) {
             await loadCategories();
             closeCategoryModal();
         } catch (err) {
-            setError(err.message);
+            if (
+                err.message &&
+                err.message.includes("duplicate key value") &&
+                err.message.includes("categories_name_key")
+            ) {
+                setError("Já existe uma categoria com esse nome.");
+            } else {
+                setError(err.message);
+            }
         }
     };
 
@@ -90,7 +98,15 @@ export default function Categories({ token, apiUrl }) {
                 }
             }
         } catch (err) {
-            setError(err.message);
+            if (
+                err.message &&
+                err.message.includes("duplicate key value") &&
+                err.message.includes("categories_name_key")
+            ) {
+                setError("Já existe uma categoria com esse nome.");
+            } else {
+                setError(err.message);
+            }
         }
     };
 
@@ -177,6 +193,7 @@ export default function Categories({ token, apiUrl }) {
         setShowCategoryModal(false);
         setCategoryForm(getInitialCategoryForm());
         setError("");
+        setSelectedCategory(null);
     };
 
     const openCreateLineModal = () => {
@@ -297,7 +314,7 @@ export default function Categories({ token, apiUrl }) {
                 </div>
             </div>
 
-            {error && (
+            {error && !showCategoryModal && (
                 <div
                     style={{
                         background: "#fee",
@@ -331,56 +348,49 @@ export default function Categories({ token, apiUrl }) {
 
             <div
                 style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "20px",
+                    background: "white",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    border: "1px solid #ecf0f1",
+                    overflow: "hidden",
                 }}
             >
                 <div
                     style={{
-                        background: "white",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        border: "1px solid #ecf0f1",
-                        overflow: "hidden",
+                        padding: "20px",
+                        background: "#f8f9fa",
+                        borderBottom: "1px solid #dee2e6",
                     }}
                 >
-                    <div
+                    <h2
                         style={{
-                            padding: "20px",
-                            background: "#f8f9fa",
-                            borderBottom: "1px solid #dee2e6",
+                            margin: 0,
+                            fontSize: "20px",
+                            color: "#2c3e50",
                         }}
                     >
-                        <h2
-                            style={{
-                                margin: 0,
-                                fontSize: "20px",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            Categorias
-                        </h2>
-                    </div>
-                    <CategoriesTable
-                        filteredCategories={filteredCategories}
-                        onSelectCategory={selectCategory}
-                        onEditCategory={openEditCategoryModal}
-                        onDeleteCategory={handleDeleteCategory}
-                        selectedCategory={selectedCategory}
-                    />
+                        Categorias
+                    </h2>
                 </div>
-
-                <div>
-                    <LinesPanel
-                        selectedCategory={selectedCategory}
-                        lines={lines}
-                        onCreateLine={openCreateLineModal}
-                        onEditLine={openEditLineModal}
-                        onDeleteLine={handleDeleteLine}
-                    />
-                </div>
+                <CategoriesTable
+                    filteredCategories={filteredCategories}
+                    onSelectCategory={selectCategory}
+                    onEditCategory={openEditCategoryModal}
+                    onDeleteCategory={handleDeleteCategory}
+                    selectedCategory={selectedCategory}
+                />
             </div>
+
+            {selectedCategory && !showCategoryModal && (
+                <LinesPanel
+                    selectedCategory={selectedCategory}
+                    lines={lines}
+                    onCreateLine={openCreateLineModal}
+                    onEditLine={openEditLineModal}
+                    onDeleteLine={handleDeleteLine}
+                    onClose={() => setSelectedCategory(null)}
+                />
+            )}
 
             <CategoryModal
                 showModal={showCategoryModal}
@@ -389,6 +399,7 @@ export default function Categories({ token, apiUrl }) {
                 setCategoryForm={setCategoryForm}
                 onSubmit={handleCategorySubmit}
                 onClose={closeCategoryModal}
+                error={error}
             />
 
             <LineModal

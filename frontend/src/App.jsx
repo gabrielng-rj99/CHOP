@@ -7,6 +7,16 @@ import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
 import "./App.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faChartLine,
+    faFileContract,
+    faUserGroup,
+    faTags,
+    faUserGear,
+    faSearchPlus,
+    faRightFromBracket,
+} from "@fortawesome/free-solid-svg-icons";
 
 const API_URL = "http://localhost:3000";
 
@@ -15,6 +25,7 @@ function App() {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [refreshToken, setRefreshToken] = useState(null);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const refreshTimeoutRef = useRef(null);
 
     // Função para decodificar o JWT e pegar expiração
@@ -102,6 +113,10 @@ function App() {
         setCurrentPage(page);
     };
 
+    const toggleSidebar = () => {
+        setSidebarCollapsed(!sidebarCollapsed);
+    };
+
     useEffect(() => {
         if (token && refreshToken) {
             scheduleTokenRefresh(token, refreshToken);
@@ -118,63 +133,123 @@ function App() {
 
     return (
         <div className="app-container">
-            <nav className="app-nav">
-                <h2 className="app-nav-title">Contract Manager</h2>
-
-                <button
-                    onClick={() => navigate("dashboard")}
-                    className={`app-nav-button ${currentPage === "dashboard" ? "active" : ""}`}
-                >
-                    Dashboard
-                </button>
-
-                <button
-                    onClick={() => navigate("contracts")}
-                    className={`app-nav-button ${currentPage === "contracts" ? "active" : ""}`}
-                >
-                    Contratos
-                </button>
-
-                <button
-                    onClick={() => navigate("clients")}
-                    className={`app-nav-button ${currentPage === "clients" ? "active" : ""}`}
-                >
-                    Clientes
-                </button>
-
-                <button
-                    onClick={() => navigate("categories")}
-                    className={`app-nav-button ${currentPage === "categories" ? "active" : ""}`}
-                >
-                    Categorias
-                </button>
-
-                {(user.role === "admin" || user.role === "full_admin") && (
-                    <button
-                        onClick={() => navigate("users")}
-                        className={`app-nav-button ${currentPage === "users" ? "active" : ""}`}
+            <nav className={`app-nav ${sidebarCollapsed ? "collapsed" : ""}`}>
+                <div className="app-nav-header">
+                    <h2
+                        className={`app-nav-title${sidebarCollapsed ? " hidden-title" : ""}`}
                     >
-                        Usuários
+                        {sidebarCollapsed ? "CM" : "Contract Manager"}
+                    </h2>
+                    <button onClick={toggleSidebar} className="app-nav-toggle">
+                        {sidebarCollapsed ? "☰" : "←"}
                     </button>
-                )}
+                </div>
 
-                {user.role === "full_admin" && (
+                <div className="app-nav-items">
                     <button
-                        onClick={() => navigate("audit-logs")}
-                        className={`app-nav-button ${currentPage === "audit-logs" ? "active" : ""}`}
+                        onClick={() => navigate("dashboard")}
+                        className={`app-nav-button ${currentPage === "dashboard" ? "active" : ""}`}
+                        title="Dashboard"
                     >
-                        Logs de Auditoria
+                        <span className="app-nav-icon">
+                            <FontAwesomeIcon icon={faChartLine} />
+                        </span>
+                        {!sidebarCollapsed && (
+                            <span className="app-nav-text">Dashboard</span>
+                        )}
                     </button>
-                )}
+
+                    <button
+                        onClick={() => navigate("contracts")}
+                        className={`app-nav-button ${currentPage === "contracts" ? "active" : ""}`}
+                        title="Contratos"
+                    >
+                        <span className="app-nav-icon">
+                            <FontAwesomeIcon icon={faFileContract} />
+                        </span>
+                        {!sidebarCollapsed && (
+                            <span className="app-nav-text">Contratos</span>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={() => navigate("clients")}
+                        className={`app-nav-button ${currentPage === "clients" ? "active" : ""}`}
+                        title="Clientes"
+                    >
+                        <span className="app-nav-icon">
+                            <FontAwesomeIcon icon={faUserGroup} />
+                        </span>
+                        {!sidebarCollapsed && (
+                            <span className="app-nav-text">Clientes</span>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={() => navigate("categories")}
+                        className={`app-nav-button ${currentPage === "categories" ? "active" : ""}`}
+                        title="Categorias"
+                    >
+                        <span className="app-nav-icon">
+                            <FontAwesomeIcon icon={faTags} />
+                        </span>
+                        {!sidebarCollapsed && (
+                            <span className="app-nav-text">Categorias</span>
+                        )}
+                    </button>
+
+                    {(user.role === "admin" || user.role === "full_admin") && (
+                        <button
+                            onClick={() => navigate("users")}
+                            className={`app-nav-button ${currentPage === "users" ? "active" : ""}`}
+                            title="Usuários"
+                        >
+                            <span className="app-nav-icon">
+                                <FontAwesomeIcon icon={faUserGear} />
+                            </span>
+                            {!sidebarCollapsed && (
+                                <span className="app-nav-text">Usuários</span>
+                            )}
+                        </button>
+                    )}
+
+                    {user.role === "full_admin" && (
+                        <button
+                            onClick={() => navigate("audit-logs")}
+                            className={`app-nav-button ${currentPage === "audit-logs" ? "active" : ""}`}
+                            title="Logs"
+                        >
+                            <span className="app-nav-icon">
+                                <FontAwesomeIcon icon={faSearchPlus} />
+                            </span>
+                            {!sidebarCollapsed && (
+                                <span className="app-nav-text">Logs</span>
+                            )}
+                        </button>
+                    )}
+                </div>
 
                 <div className="app-nav-footer">
-                    <div className="app-nav-user-info">
-                        <div className="app-nav-user-label">Usuário:</div>
-                        <div className="app-nav-user-name">{user.username}</div>
-                        <div className="app-nav-user-role">{user.role}</div>
-                    </div>
-                    <button onClick={logout} className="app-nav-logout-button">
-                        Sair
+                    {!sidebarCollapsed && (
+                        <div className="app-nav-user-info">
+                            <div className="app-nav-user-label">Usuário:</div>
+                            <div className="app-nav-user-name">
+                                {user.username}
+                            </div>
+                            <div className="app-nav-user-role">{user.role}</div>
+                        </div>
+                    )}
+                    <button
+                        onClick={logout}
+                        className="app-nav-logout-button"
+                        title="Sair"
+                    >
+                        <span className="app-nav-icon">
+                            <FontAwesomeIcon icon={faRightFromBracket} />
+                        </span>
+                        {!sidebarCollapsed && (
+                            <span className="app-nav-text">Sair</span>
+                        )}
                     </button>
                 </div>
             </nav>
