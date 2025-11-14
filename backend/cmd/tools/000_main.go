@@ -56,6 +56,7 @@ func main() {
 		fmt.Println("║ 91 - Rodar testes (requer banco de testes UP, e o remove no final)         ║")
 		fmt.Println("║ 92 - Validar separação dos bancos de dados                                 ║")
 		fmt.Println("║ 93 - Verificar status dos serviços (HTTP e Frontend)                       ║")
+		fmt.Println("║ 99 - Popular banco principal para demonstração                             ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -101,6 +102,8 @@ func main() {
 			ValidateDBSeparation()
 		case "93":
 			checkServices()
+		case "99":
+			populateMainDB()
 		case "0", "00":
 			fmt.Println("Saindo...")
 			<-time.After(1200 * time.Millisecond)
