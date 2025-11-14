@@ -200,11 +200,49 @@ export default function UserModal({
                                 borderRadius: "4px",
                                 fontSize: "14px",
                                 boxSizing: "border-box",
+                                background:
+                                    formData.role === "full_admin"
+                                        ? "#1565c0"
+                                        : formData.role === "admin"
+                                          ? "#42a5f5"
+                                          : "#f4f4f4",
+                                color:
+                                    formData.role === "user"
+                                        ? "#2c3e50"
+                                        : "white",
+                                fontWeight:
+                                    formData.role === "full_admin"
+                                        ? "bold"
+                                        : "normal",
+                                transition: "background 0.2s",
                             }}
                         >
-                            <option value="user">Usuário</option>
-                            <option value="admin">Administrador</option>
-                            <option value="full_admin">
+                            <option
+                                value="user"
+                                style={{
+                                    color: "#2c3e50",
+                                    background: "#f4f4f4",
+                                }}
+                            >
+                                Usuário
+                            </option>
+                            <option
+                                value="admin"
+                                style={{
+                                    color: "white",
+                                    background: "#42a5f5",
+                                }}
+                            >
+                                Administrador
+                            </option>
+                            <option
+                                value="full_admin"
+                                style={{
+                                    color: "white",
+                                    background: "#1565c0",
+                                    fontWeight: "bold",
+                                }}
+                            >
                                 Administrador Total
                             </option>
                         </select>
