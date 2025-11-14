@@ -3,6 +3,7 @@ import { auditApi } from "../api/auditApi";
 import { usersApi } from "../api/usersApi";
 import AuditFilters from "../components/audit/AuditFilters";
 import AuditLogsTable from "../components/audit/AuditLogsTable";
+import Pagination from "../components/common/Pagination";
 
 export default function AuditLogs({ token, apiUrl, user }) {
     const [logs, setLogs] = useState([]);
@@ -11,12 +12,15 @@ export default function AuditLogs({ token, apiUrl, user }) {
     const [error, setError] = useState("");
     const [totalLogs, setTotalLogs] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
-    const [logsPerPage] = useState(20);
+    const [logsPerPage, setLogsPerPage] = useState(20);
 
     const [filters, setFilters] = useState({
         entity: "",
         operation: "",
         adminId: "",
+        adminSearch: "",
+        entitySearch: "",
+        changedData: "",
         status: "",
         ipAddress: "",
         entityId: "",
@@ -32,7 +36,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
     useEffect(() => {
         setCurrentPage(1);
         loadLogs();
-    }, [filters]);
+    }, [filters, logsPerPage]);
 
     const loadUsers = async () => {
         try {
@@ -52,6 +56,9 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 entity: filters.entity || undefined,
                 operation: filters.operation || undefined,
                 admin_id: filters.adminId || undefined,
+                admin_search: filters.adminSearch || undefined,
+                entity_search: filters.entitySearch || undefined,
+                changed_data: filters.changedData || undefined,
                 status: filters.status || undefined,
                 ip_address: filters.ipAddress || undefined,
                 entity_id: filters.entityId || undefined,
@@ -65,7 +72,11 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 offset: offset,
             };
 
-            const response = await auditApi.getAuditLogs(apiUrl, token, filterParams);
+            const response = await auditApi.getAuditLogs(
+                apiUrl,
+                token,
+                filterParams,
+            );
             setLogs(response.data || []);
             setTotalLogs(response.total || 0);
         } catch (err) {
@@ -95,9 +106,16 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 entity: filters.entity || undefined,
                 operation: filters.operation || undefined,
                 admin_id: filters.adminId || undefined,
+                admin_search: filters.adminSearch || undefined,
+                entity_search: filters.entitySearch || undefined,
+                changed_data: filters.changedData || undefined,
             };
 
-            const data = await auditApi.exportAuditLogs(apiUrl, token, filterParams);
+            const data = await auditApi.exportAuditLogs(
+                apiUrl,
+                token,
+                filterParams,
+            );
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: "application/json" });
             const url = window.URL.createObjectURL(blob);
@@ -110,8 +128,6 @@ export default function AuditLogs({ token, apiUrl, user }) {
             setError("Erro ao exportar logs");
         }
     };
-
-    const totalPages = Math.ceil(totalLogs / logsPerPage);
 
     const containerStyle = {
         padding: "0",
@@ -153,41 +169,12 @@ export default function AuditLogs({ token, apiUrl, user }) {
         border: "1px solid #3498db",
     };
 
-    const paginationStyle = {
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        gap: "8px",
-        marginTop: "24px",
-        padding: "16px",
-        background: "white",
-        borderRadius: "8px",
-        border: "1px solid #ecf0f1",
-    };
-
-    const paginationButtonStyle = {
-        padding: "8px 12px",
-        border: "1px solid #ddd",
-        background: "white",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "#2c3e50",
-    };
-
-    const paginationActiveStyle = {
-        ...paginationButtonStyle,
-        background: "#3498db",
-        color: "white",
-        border: "1px solid #3498db",
-    };
-
     if (!user || user.role !== "full_admin") {
         return (
             <div style={{ textAlign: "center", padding: "60px" }}>
                 <div style={{ fontSize: "18px", color: "#e74c3c" }}>
-                    Acesso negado. Apenas full_admin pode acessar logs de auditoria.
+                    Acesso negado. Apenas full_admin pode acessar logs de
+                    auditoria.
                 </div>
             </div>
         );
@@ -198,16 +185,10 @@ export default function AuditLogs({ token, apiUrl, user }) {
             <div style={headerStyle}>
                 <h1 style={titleStyle}>Logs de Auditoria</h1>
                 <div style={buttonGroupStyle}>
-                    <button
-                        onClick={loadLogs}
-                        style={secondaryButtonStyle}
-                    >
+                    <button onClick={loadLogs} style={secondaryButtonStyle}>
                         Atualizar
                     </button>
-                    <button
-                        onClick={handleExport}
-                        style={secondaryButtonStyle}
-                    >
+                    <button onClick={handleExport} style={secondaryButtonStyle}>
                         Exportar JSON
                     </button>
                 </div>
@@ -250,58 +231,13 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 />
             </div>
 
-            {totalLogs > 0 && (
-                <div style={paginationStyle}>
-                    <button
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                        style={{
-                            ...paginationButtonStyle,
-                            opacity: currentPage === 1 ? 0.5 : 1,
-                            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                        }}
-                    >
-                        ← Anterior
-                    </button>
-
-                    <span style={{ fontSize: "13px", color: "#2c3e50" }}>
-                        Página {currentPage} de {totalPages} ({totalLogs} logs)
-                    </span>
-
-                    <button
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage === totalPages}
-                        style={{
-                            ...paginationButtonStyle,
-                            opacity: currentPage === totalPages ? 0.5 : 1,
-                            cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                        }}
-                    >
-                        Próxima →
-                    </button>
-
-                    <span style={{ fontSize: "12px", color: "#95a5a6", margin: "0 8px" }}>
-                        |
-                    </span>
-
-                    <select
-                        value={currentPage}
-                        onChange={(e) => setCurrentPage(parseInt(e.target.value))}
-                        style={{
-                            ...paginationButtonStyle,
-                            padding: "6px 8px",
-                        }}
-                    >
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                            (page) => (
-                                <option key={page} value={page}>
-                                    Ir para página {page}
-                                </option>
-                            )
-                        )}
-                    </select>
-                </div>
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalItems={totalLogs}
+                itemsPerPage={logsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setLogsPerPage}
+            />
         </div>
     );
 }
