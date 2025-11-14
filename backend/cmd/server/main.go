@@ -38,6 +38,7 @@ func main() {
 		dependentStore: store.NewDependentStore(db),
 		categoryStore:  store.NewCategoryStore(db),
 		lineStore:      store.NewLineStore(db),
+		auditStore:     store.NewAuditStore(db),
 	}
 
 	server.setupRoutes()

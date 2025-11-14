@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Contracts-Manager/backend/store"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -43,11 +44,59 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get admin info for audit
+	claims, err := getClaimsFromRequest(r)
+	if err != nil {
+		log.Printf("Erro ao extrair claims do JWT: %v", err)
+		respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")
+		return
+	}
+
 	id, err := s.userStore.CreateUser(req.Username, req.DisplayName, req.Password, req.Role)
 	if err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "create",
+			Entity:        "user",
+			EntityID:      "unknown",
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      nil,
+			NewValue:      nil,
+			Status:        "error",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	// Log successful creation
+	newUserData := map[string]interface{}{
+		"id":           id,
+		"username":     req.Username,
+		"display_name": req.DisplayName,
+		"role":         req.Role,
+	}
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "create",
+		Entity:        "user",
+		EntityID:      id,
+		AdminID:       &claims.UserID,
+		AdminUsername: &claims.Username,
+		OldValue:      nil,
+		NewValue:      newUserData,
+		Status:        "success",
+		ErrorMessage:  nil,
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
 		Message: "User created successfully",
@@ -86,11 +135,59 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("DELETE request autorizado para %s (role: %s) deletando usuário: %s", claims.Username, claims.Role, username)
+
+		// Get user data before deleting for audit
+		users, _ := s.userStore.GetUsersByName(username)
+		var oldUserData map[string]interface{}
+		var userID string
+		if len(users) > 0 {
+			userID = users[0].ID
+			oldUserData = map[string]interface{}{
+				"id":       users[0].ID,
+				"username": users[0].Username,
+				"role":     users[0].Role,
+			}
+		}
+
 		if err := s.userStore.DeleteUser(claims.UserID, claims.Username, username); err != nil {
 			log.Printf("Error deleting user %s: %v", username, err)
+			errMsg := err.Error()
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "delete",
+				Entity:        "user",
+				EntityID:      userID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      oldUserData,
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		// Log successful deletion
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "delete",
+			Entity:        "user",
+			EntityID:      userID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      oldUserData,
+			NewValue:      nil,
+			Status:        "success",
+			ErrorMessage:  nil,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+
 		log.Printf("User %s deleted successfully by %s", username, claims.Username)
 		respondJSON(w, http.StatusOK, SuccessResponse{Message: "User deleted successfully"})
 	default:
@@ -118,6 +215,19 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		return
 	}
 
+	// Get user data before updating for audit
+	users, _ := s.userStore.GetUsersByName(username)
+	var oldUserData map[string]interface{}
+	var userID string
+	if len(users) > 0 {
+		userID = users[0].ID
+		oldUserData = map[string]interface{}{
+			"username":     users[0].Username,
+			"display_name": users[0].DisplayName,
+			"role":         users[0].Role,
+		}
+	}
+
 	if req.DisplayName != "" {
 		if err := s.userStore.EditUserDisplayName(username, req.DisplayName); err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
@@ -143,6 +253,37 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 	}
+
+	// Get updated user data for audit
+	newUserData := map[string]interface{}{
+		"username": username,
+	}
+	if req.DisplayName != "" {
+		newUserData["display_name"] = req.DisplayName
+	}
+	if req.Role != "" {
+		newUserData["role"] = req.Role
+	}
+	if req.Password != "" {
+		newUserData["password"] = "***REDACTED***"
+	}
+
+	// Log successful update
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "update",
+		Entity:        "user",
+		EntityID:      userID,
+		AdminID:       &claims.UserID,
+		AdminUsername: &claims.Username,
+		OldValue:      oldUserData,
+		NewValue:      newUserData,
+		Status:        "success",
+		ErrorMessage:  nil,
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User updated successfully"})
 }
@@ -217,4 +358,41 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("User %s desbloqueado por %s", username, claims.Username)
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User unlocked successfully"})
+}
+
+// Helper functions to extract request info
+func getIPAddress(r *http.Request) *string {
+	// Try X-Forwarded-For first
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		ips := strings.Split(xff, ",")
+		ip := strings.TrimSpace(ips[0])
+		return &ip
+	}
+
+	// Try X-Real-IP
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return &xri
+	}
+
+	// Fallback to RemoteAddr
+	ip := strings.Split(r.RemoteAddr, ":")[0]
+	return &ip
+}
+
+func getUserAgent(r *http.Request) *string {
+	ua := r.Header.Get("User-Agent")
+	if ua == "" {
+		return nil
+	}
+	return &ua
+}
+
+func getRequestMethod(r *http.Request) *string {
+	method := r.Method
+	return &method
+}
+
+func getRequestPath(r *http.Request) *string {
+	path := r.URL.Path
+	return &path
 }

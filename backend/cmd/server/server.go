@@ -15,6 +15,7 @@ type Server struct {
 	dependentStore *store.DependentStore
 	categoryStore  *store.CategoryStore
 	lineStore      *store.LineStore
+	auditStore     *store.AuditStore
 }
 
 type ErrorResponse struct {

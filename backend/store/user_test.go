@@ -75,17 +75,17 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 	}
 	var user1, admin0 domain.User
 	for _, u := range users {
-		if u.Username == "user1" {
+		if u.Username != nil && *u.Username == "user1" {
 			user1 = u
 		}
-		if u.Username == "admin0" {
+		if u.Username != nil && *u.Username == "admin0" {
 			admin0 = u
 		}
 	}
-	if user1.Role != "admin" {
+	if user1.Role == nil || *user1.Role != "admin" {
 		t.Error("user1 deveria ser admin após alteração feita por full_admin")
 	}
-	if admin0.Role != "user" {
+	if admin0.Role == nil || *admin0.Role != "user" {
 		t.Error("admin0 NÃO deveria ser admin após remoção feita por full_admin")
 	}
 }
@@ -196,8 +196,8 @@ func TestAuthenticateUserSuccess(t *testing.T) {
 		t.Error("AuthenticateUser() returned nil user")
 		return
 	}
-	if user.Username != username {
-		t.Errorf("AuthenticateUser() returned user with username %s, want %s", user.Username, username)
+	if user.Username == nil || *user.Username != username {
+		t.Errorf("AuthenticateUser() returned user with username %v, want %s", user.Username, username)
 	}
 }
 
@@ -337,8 +337,8 @@ func TestEditUserDisplayName(t *testing.T) {
 		t.Errorf("GetUsersByName() error = %v", err)
 		return
 	}
-	if len(users) > 0 && users[0].DisplayName != newDisplayName {
-		t.Errorf("EditUserDisplayName() failed: got %s, want %s", users[0].DisplayName, newDisplayName)
+	if len(users) > 0 && (users[0].DisplayName == nil || *users[0].DisplayName != newDisplayName) {
+		t.Errorf("EditUserDisplayName() failed: got %v, want %s", users[0].DisplayName, newDisplayName)
 	}
 }
 
@@ -422,8 +422,8 @@ func TestCreateAdminUser(t *testing.T) {
 		t.Errorf("Failed to authenticate created admin user: %v", err)
 		return
 	}
-	if user.Role != "full_admin" {
-		t.Errorf("Created admin user has role %s, want full_admin", user.Role)
+	if user.Role == nil || *user.Role != "full_admin" {
+		t.Errorf("Created admin user has role %v, want full_admin", user.Role)
 	}
 }
 

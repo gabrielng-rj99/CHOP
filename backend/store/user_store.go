@@ -86,9 +86,9 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		return "", err
 	}
 
-	// Verifica se já existe usuário com esse nome
+	// Verifica se já existe usuário com esse nome (ignorando deletados)
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", trimmedUsername).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", trimmedUsername).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +103,7 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 	}
 	createdAt := time.Now()
 
-	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, role) VALUES ($1, $2, $3, $4, $5, $6)`
+	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, role, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, NULL)`
 	_, err = s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, role)
 	if err != nil {
 		return "", err
@@ -116,9 +116,9 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 	if newUsername == "" {
 		return errors.New("novo nome de usuário não pode ser vazio")
 	}
-	// Verifica se já existe usuário com esse nome
+	// Verifica se já existe usuário com esse nome (ignorando deletados)
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", newUsername).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", newUsername).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -126,15 +126,15 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 		return errors.New("nome de usuário já existe")
 	}
 	// Verifica se o usuário atual é admin
-	var role string
-	err = s.db.QueryRow("SELECT role FROM users WHERE username = $1", currentUsername).Scan(&role)
+	var role sql.NullString
+	err = s.db.QueryRow("SELECT role FROM users WHERE username = $1 AND deleted_at IS NULL", currentUsername).Scan(&role)
 	if err != nil {
 		return errors.New("usuário atual não encontrado")
 	}
-	if role != "admin" && role != "full_admin" {
+	if !role.Valid || (role.String != "admin" && role.String != "full_admin") {
 		return errors.New("apenas usuários admin podem alterar seu próprio username")
 	}
-	sqlStatement := `UPDATE users SET username = $1 WHERE username = $2`
+	sqlStatement := `UPDATE users SET username = $1 WHERE username = $2 AND deleted_at IS NULL`
 	result, err := s.db.Exec(sqlStatement, newUsername, currentUsername)
 	if err != nil {
 		return err
@@ -170,17 +170,32 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 		return nil, errors.New("usuário e senha são obrigatórios")
 	}
 
-	// Busca todos os campos necessários para brute-force
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE username = $1`
+	// Busca todos os campos necessários para brute-force (ignorando usuários deletados)
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE username = $1 AND deleted_at IS NULL`
 	row := s.db.QueryRow(sqlStatement, username)
 
 	var user domain.User
 	var failedAttempts, lockLevel int
 	var lockedUntil sql.NullTime
-	err := row.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
+	var username_ptr sql.NullString
+	var displayName sql.NullString
+	var role sql.NullString
+
+	err := row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil)
 	if err != nil {
 		fmt.Println("Erro no Scan da autenticação:", err)
 		return nil, errors.New("usuário não encontrado")
+	}
+
+	// Converter sql.NullString para pointer
+	if username_ptr.Valid {
+		user.Username = &username_ptr.String
+	}
+	if displayName.Valid {
+		user.DisplayName = &displayName.String
+	}
+	if role.Valid {
+		user.Role = &role.String
 	}
 
 	now := time.Now()
@@ -236,7 +251,7 @@ func (s *UserStore) EditUserPassword(username, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	sqlStatement := `UPDATE users SET password_hash = $1 WHERE username = $2`
+	sqlStatement := `UPDATE users SET password_hash = $1 WHERE username = $2 AND deleted_at IS NULL`
 	result, err := s.db.Exec(sqlStatement, passwordHash, username)
 	if err != nil {
 		return err
@@ -257,7 +272,7 @@ func (s *UserStore) EditUserDisplayName(username, newDisplayName string) error {
 	if err != nil {
 		return err
 	}
-	sqlStatement := `UPDATE users SET display_name = $1 WHERE username = $2`
+	sqlStatement := `UPDATE users SET display_name = $1 WHERE username = $2 AND deleted_at IS NULL`
 	result, err := s.db.Exec(sqlStatement, trimmedDisplayName, username)
 	if err != nil {
 		return err
@@ -275,15 +290,15 @@ func (s *UserStore) EditUserDisplayName(username, newDisplayName string) error {
 // Edita o role de um usuário, só pode ser chamada por full_admin
 func (s *UserStore) EditUserRole(requesterUsername, targetUsername, newRole string) error {
 	// Verifica se o requester é full_admin
-	var requesterRole string
-	err := s.db.QueryRow("SELECT role FROM users WHERE username = $1", requesterUsername).Scan(&requesterRole)
+	var requesterRole sql.NullString
+	err := s.db.QueryRow("SELECT role FROM users WHERE username = $1 AND deleted_at IS NULL", requesterUsername).Scan(&requesterRole)
 	if err != nil {
 		return errors.New("usuário solicitante não encontrado")
 	}
-	if requesterRole != "full_admin" {
+	if !requesterRole.Valid || requesterRole.String != "full_admin" {
 		return errors.New("apenas usuários com role 'full_admin' podem alterar o role de outros usuários")
 	}
-	sqlStatement := `UPDATE users SET role = $1 WHERE username = $2`
+	sqlStatement := `UPDATE users SET role = $1 WHERE username = $2 AND deleted_at IS NULL`
 	result, err := s.db.Exec(sqlStatement, newRole, targetUsername)
 	if err != nil {
 		return err
@@ -298,9 +313,9 @@ func (s *UserStore) EditUserRole(requesterUsername, targetUsername, newRole stri
 	return nil
 }
 
-// ListUsers retorna todos os usuários cadastrados, incluindo os hashes das senhas
+// ListUsers retorna todos os usuários cadastrados (exceto deletados), incluindo os hashes das senhas
 func (s *UserStore) ListUsers() ([]domain.User, error) {
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users`
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until, deleted_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -312,10 +327,30 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 		var user domain.User
 		var failedAttempts, lockLevel int
 		var lockedUntil sql.NullTime
-		err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
+		var username_ptr sql.NullString
+		var displayName sql.NullString
+		var role sql.NullString
+		var deletedAt sql.NullTime
+
+		err := rows.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &deletedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		// Converter sql.NullString para pointer
+		if username_ptr.Valid {
+			user.Username = &username_ptr.String
+		}
+		if displayName.Valid {
+			user.DisplayName = &displayName.String
+		}
+		if role.Valid {
+			user.Role = &role.String
+		}
+		if deletedAt.Valid {
+			user.DeletedAt = &deletedAt.Time
+		}
+
 		// Popular campos extras
 		user.FailedAttempts = failedAttempts
 		user.LockLevel = lockLevel
@@ -332,27 +367,23 @@ func (s *UserStore) ListUsers() ([]domain.User, error) {
 	return users, nil
 }
 
-// DeleteUser remove um usuário pelo username e registra na auditoria
+// DeleteUser realiza soft-delete de um usuário (marca como deletado, não remove dados)
 func (s *UserStore) DeleteUser(adminID, adminUsername, username string) error {
-	// Primeiro, busca o usuário para obter seus dados antes de deletar
+	// Busca o usuário para obter seus dados antes de deletar
 	var userID string
-	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)
+	var displayName sql.NullString
+	err := s.db.QueryRow("SELECT id, display_name FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&userID, &displayName)
 	if err != nil {
 		return errors.New("usuário não encontrado")
 	}
 
-	// Registra na auditoria ANTES do DELETE
-	auditID := uuid.New().String()
-	_, err = s.db.Exec(`
-		INSERT INTO audit_logs (id, operation, entity, entity_id, admin_id, admin_username, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, auditID, "delete", "user", userID, adminID, adminUsername, "success")
-	if err != nil {
-		return err // Agora falha se não registrar auditoria
-	}
-
-	// Agora deleta o usuário
-	result, err := s.db.Exec("DELETE FROM users WHERE username = $1", username)
+	// Marca como deletado (soft delete)
+	deletedTime := time.Now()
+	result, err := s.db.Exec(`
+		UPDATE users
+		SET deleted_at = $1, username = NULL, password_hash = NULL, role = NULL, display_name = NULL
+		WHERE id = $2 AND deleted_at IS NULL
+	`, deletedTime, userID)
 	if err != nil {
 		return err
 	}
@@ -363,7 +394,7 @@ func (s *UserStore) DeleteUser(adminID, adminUsername, username string) error {
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("usuário não encontrado")
+		return errors.New("usuário não encontrado ou já foi deletado")
 	}
 
 	return nil
@@ -375,7 +406,7 @@ func (s *UserStore) GetUsersByName(name string) ([]domain.User, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until FROM users WHERE LOWER(username) LIKE LOWER($1) OR LOWER(display_name) LIKE LOWER($2)`
+	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, role, failed_attempts, lock_level, locked_until, deleted_at FROM users WHERE deleted_at IS NULL AND (LOWER(username) LIKE LOWER($1) OR LOWER(display_name) LIKE LOWER($2))`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern, likePattern)
 	if err != nil {
@@ -388,9 +419,34 @@ func (s *UserStore) GetUsersByName(name string) ([]domain.User, error) {
 		var user domain.User
 		var failedAttempts, lockLevel int
 		var lockedUntil sql.NullTime
-		err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PasswordHash, &user.CreatedAt, &user.Role, &failedAttempts, &lockLevel, &lockedUntil)
+		var username_ptr sql.NullString
+		var displayName sql.NullString
+		var role sql.NullString
+		var deletedAt sql.NullTime
+
+		err := rows.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &deletedAt)
 		if err != nil {
 			return nil, err
+		}
+
+		// Converter sql.NullString para pointer
+		if username_ptr.Valid {
+			user.Username = &username_ptr.String
+		}
+		if displayName.Valid {
+			user.DisplayName = &displayName.String
+		}
+		if role.Valid {
+			user.Role = &role.String
+		}
+		if deletedAt.Valid {
+			user.DeletedAt = &deletedAt.Time
+		}
+
+		user.FailedAttempts = failedAttempts
+		user.LockLevel = lockLevel
+		if lockedUntil.Valid {
+			user.LockedUntil = &lockedUntil.Time
 		}
 		users = append(users, user)
 	}
@@ -412,9 +468,9 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 	var username string
 	if customUsername != "" {
 		username = customUsername
-		// Verifica se já existe usuário com esse nome
+		// Verifica se já existe usuário com esse nome (ignorando deletados)
 		var count int
-		err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", username).Scan(&count)
+		err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&count)
 		if err != nil {
 			return "", "", "", "", err
 		}
@@ -427,7 +483,7 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 		for {
 			username = fmt.Sprintf("admin%d", n)
 			var count int
-			err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", username).Scan(&count)
+			err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&count)
 			if err != nil {
 				return "", "", "", "", err
 			}
@@ -446,13 +502,13 @@ func (s *UserStore) CreateAdminUser(customUsername, displayName string, role str
 
 // Função para desbloquear usuário manualmente
 func (s *UserStore) UnlockUser(username string) error {
-	_, err := s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1`, username)
+	_, err := s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1 AND deleted_at IS NULL`, username)
 	return err
 }
 
 // BlockUser blocks a user account permanently until unlocked
 func (s *UserStore) BlockUser(username string) error {
 	// Set lock_level to max (3) and locked_until to far future (100 years)
-	_, err := s.db.Exec(`UPDATE users SET lock_level = 3, locked_until = NOW() + INTERVAL '100 years' WHERE username = $1`, username)
+	_, err := s.db.Exec(`UPDATE users SET lock_level = 3, locked_until = NOW() + INTERVAL '100 years' WHERE username = $1 AND deleted_at IS NULL`, username)
 	return err
 }

@@ -73,11 +73,12 @@ type Contract struct {
 // User representa um usuário do sistema para autenticação
 type User struct {
 	ID             string     `json:"id"`
-	Username       string     `json:"username"`
-	DisplayName    string     `json:"display_name"`
+	Username       *string    `json:"username"`
+	DisplayName    *string    `json:"display_name"`
 	PasswordHash   string     `json:"-"`
 	CreatedAt      time.Time  `json:"created_at"`
-	Role           string     `json:"role"` // "user", "admin", "full_admin"
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
+	Role           *string    `json:"role"` // "user", "admin", "full_admin"
 	FailedAttempts int        `json:"failed_attempts"`
 	LockLevel      int        `json:"lock_level"`
 	LockedUntil    *time.Time `json:"locked_until"`
@@ -102,17 +103,22 @@ func (c *Contract) Status() string {
 
 // AuditLog representa a tabela 'audit_logs' para rastreamento de auditoria
 type AuditLog struct {
-	ID            string    `json:"id"`
-	Timestamp     time.Time `json:"timestamp"`
-	Operation     string    `json:"operation"` // 'create', 'update', 'delete', 'read'
-	Entity        string    `json:"entity"`    // 'client', 'contract', 'user', 'line', 'category', 'dependent'
-	EntityID      string    `json:"entity_id"`
-	AdminID       string    `json:"admin_id"`
-	AdminUsername string    `json:"admin_username,omitempty"`
-	OldValue      *string   `json:"old_value,omitempty"` // JSON string com valores antigos
-	NewValue      *string   `json:"new_value,omitempty"` // JSON string com valores novos
-	Status        string    `json:"status"`              // 'success', 'error'
-	ErrorMessage  *string   `json:"error_message,omitempty"`
-	IPAddress     *string   `json:"ip_address,omitempty"`
-	UserAgent     *string   `json:"user_agent,omitempty"`
+	ID              string    `json:"id"`
+	Timestamp       time.Time `json:"timestamp"`
+	Operation       string    `json:"operation"` // 'create', 'update', 'delete', 'read'
+	Entity          string    `json:"entity"`    // 'client', 'contract', 'user', 'line', 'category', 'dependent'
+	EntityID        string    `json:"entity_id"`
+	AdminID         *string   `json:"admin_id,omitempty"`
+	AdminUsername   *string   `json:"admin_username,omitempty"`
+	OldValue        *string   `json:"old_value,omitempty"` // JSON string com valores antigos
+	NewValue        *string   `json:"new_value,omitempty"` // JSON string com valores novos
+	Status          string    `json:"status"`              // 'success', 'error'
+	ErrorMessage    *string   `json:"error_message,omitempty"`
+	IPAddress       *string   `json:"ip_address,omitempty"`
+	UserAgent       *string   `json:"user_agent,omitempty"`
+	RequestMethod   *string   `json:"request_method,omitempty"`    // GET, POST, PUT, DELETE
+	RequestPath     *string   `json:"request_path,omitempty"`      // /api/users, /api/clients, etc
+	RequestID       *string   `json:"request_id,omitempty"`        // Correlação entre requisições
+	ResponseCode    *int      `json:"response_code,omitempty"`     // HTTP status code
+	ExecutionTimeMs *int      `json:"execution_time_ms,omitempty"` // Tempo de execução em ms
 }

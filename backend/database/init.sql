@@ -2,11 +2,12 @@
 
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(255) UNIQUE,
+    display_name VARCHAR(255),
+    password_hash VARCHAR(255),
     created_at TIMESTAMP NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'user',
+    deleted_at TIMESTAMP,
+    role VARCHAR(50),
     failed_attempts INTEGER NOT NULL DEFAULT 0,
     lock_level INTEGER NOT NULL DEFAULT 0,
     locked_until TIMESTAMP
@@ -86,17 +87,26 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     operation VARCHAR(50) NOT NULL,
     entity VARCHAR(50) NOT NULL,
     entity_id UUID NOT NULL,
-    admin_id UUID NOT NULL,
+    admin_id UUID,
     admin_username VARCHAR(255),
     old_value TEXT,
     new_value TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'success',
     error_message TEXT,
-    ip_address VARCHAR(50),
-    user_agent VARCHAR(255),
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    request_method VARCHAR(10),
+    request_path VARCHAR(512),
+    request_id VARCHAR(100),
+    response_code INTEGER,
+    execution_time_ms INTEGER,
     FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity, entity_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_operation ON audit_logs(operation);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_request_id ON audit_logs(request_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs(status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_ip ON audit_logs(ip_address);

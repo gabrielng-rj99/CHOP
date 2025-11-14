@@ -156,4 +156,42 @@ func (s *Server) setupRoutes() {
 			s.handleLineByID(w, r)
 		}
 	})))
+
+	// Audit Logs (only accessible to full_admin)
+	http.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		// Apenas full_admin pode acessar
+		claims, err := ValidateJWT(extractTokenFromHeader(r))
+		if err != nil || claims.Role != "full_admin" {
+			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
+			return
+		}
+
+		if strings.HasSuffix(r.URL.Path, "/export") {
+			s.handleAuditLogsExport(w, r)
+		} else if strings.Contains(r.URL.Path, "/entity/") {
+			s.handleAuditLogsByEntity(w, r)
+		} else {
+			s.handleAuditLogDetail(w, r)
+		}
+	})))
+	http.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		// Apenas full_admin pode acessar
+		claims, err := ValidateJWT(extractTokenFromHeader(r))
+		if err != nil || claims.Role != "full_admin" {
+			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
+			return
+		}
+
+		if r.URL.Path == "/api/audit-logs" {
+			s.handleAuditLogs(w, r)
+		} else {
+			if strings.HasSuffix(r.URL.Path, "/export") {
+				s.handleAuditLogsExport(w, r)
+			} else if strings.Contains(r.URL.Path, "/entity/") {
+				s.handleAuditLogsByEntity(w, r)
+			} else {
+				s.handleAuditLogDetail(w, r)
+			}
+		}
+	})))
 }

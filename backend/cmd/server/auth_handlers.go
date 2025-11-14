@@ -30,7 +30,22 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := GenerateJWT(user.ID, user.Username, user.Role)
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+
+	role := ""
+	if user.Role != nil {
+		role = *user.Role
+	}
+
+	displayName := ""
+	if user.DisplayName != nil {
+		displayName = *user.DisplayName
+	}
+
+	token, err := GenerateJWT(user.ID, username, role)
 	if err != nil {
 		log.Printf("Erro ao gerar JWT: %v", err)
 		respondError(w, http.StatusInternalServerError, "Erro ao gerar token")
@@ -42,9 +57,9 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Data: map[string]interface{}{
 			"token":        token,
 			"user_id":      user.ID,
-			"username":     user.Username,
-			"role":         user.Role,
-			"display_name": user.DisplayName,
+			"username":     username,
+			"role":         role,
+			"display_name": displayName,
 		},
 	})
 }

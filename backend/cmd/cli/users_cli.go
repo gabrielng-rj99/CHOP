@@ -12,6 +12,28 @@ import (
 	"Contracts-Manager/backend/store"
 )
 
+// Helper functions to safely dereference user pointer fields
+func getUsername(u *domain.User) string {
+	if u.Username == nil {
+		return ""
+	}
+	return *u.Username
+}
+
+func getDisplayName(u *domain.User) string {
+	if u.DisplayName == nil {
+		return ""
+	}
+	return *u.DisplayName
+}
+
+func getRole(u *domain.User) string {
+	if u.Role == nil {
+		return ""
+	}
+	return *u.Role
+}
+
 // UsersMenu handles the users administration menu
 func UsersMenu(userStore *store.UserStore, user *domain.User) {
 	for {
@@ -107,7 +129,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 		case "4":
 			clearTerminal()
 			// Create regular user (admin or full_admin only)
-			if user.Role != "admin" && user.Role != "full_admin" {
+			if getRole(user) != "admin" && getRole(user) != "full_admin" {
 				fmt.Println("Only admin or full_admin users can create new users.")
 				waitForEnter()
 				break
@@ -147,7 +169,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 		case "5":
 			clearTerminal()
 			// Create admin user (admin or full_admin only)
-			if user.Role != "admin" && user.Role != "full_admin" {
+			if getRole(user) != "admin" && getRole(user) != "full_admin" {
 				fmt.Println("Only admin or full_admin users can create new admins.")
 				waitForEnter()
 				break
@@ -174,7 +196,7 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 		case "6":
 			clearTerminal()
 			// Create full_admin user (full_admin only)
-			if user.Role != "full_admin" {
+			if getRole(user) != "full_admin" {
 				fmt.Println("Only full_admin users can create other full_admin users.")
 				waitForEnter()
 				break
@@ -213,29 +235,50 @@ func displayUsersList(users []domain.User) {
 		return
 	}
 
-	fmt.Printf("\n%-4s | %-25s | %-30s | %-15s | %-20s | %-10s\n", "#", "Username", "Display Name", "Role", "Created At", "Status")
-	fmt.Println(strings.Repeat("-", 112))
+	fmt.Printf("\n%-4s | %-25s | %-30s | %-15s | %-20s | %-12s | %-10s\n", "#", "Username", "Display Name", "Role", "Created At", "Deleted", "Status")
+	fmt.Println(strings.Repeat("-", 126))
 
 	for i, u := range users {
-		username := u.Username
+		username := getUsername(&u)
+		if len(username) == 0 {
+			username = "(vazio)"
+		}
 		if len(username) > 25 {
 			username = username[:22] + "..."
 		}
 
-		displayName := u.DisplayName
+		displayName := getDisplayName(&u)
+		if len(displayName) == 0 {
+			displayName = "(vazio)"
+		}
 		if len(displayName) > 30 {
 			displayName = displayName[:27] + "..."
 		}
 
+		role := getRole(&u)
+		if len(role) == 0 {
+			role = "(vazio)"
+		}
+
 		createdAt := u.CreatedAt.Format("2006-01-02 15:04:05")
 
-		// Determina status de bloqueio
+		// Status de bloqueio
 		status := "Ativo"
 		if u.LockLevel >= 3 && u.LockedUntil != nil && u.LockedUntil.After(time.Now()) {
 			status = "Bloqueado"
 		}
+		if u.DeletedAt != nil {
+			status = "Deletado"
+		}
 
-		fmt.Printf("%-4d | %-25s | %-30s | %-15s | %-20s | %-10s\n", i+1, username, displayName, u.Role, createdAt, status)
+		deleted := ""
+		if u.DeletedAt != nil {
+			deleted = u.DeletedAt.Format("2006-01-02 15:04:05")
+		} else {
+			deleted = "-"
+		}
+
+		fmt.Printf("%-4d | %-25s | %-30s | %-15s | %-20s | %-12s | %-10s\n", i+1, username, displayName, role, createdAt, deleted, status)
 	}
 	fmt.Println()
 }
@@ -246,12 +289,15 @@ func filterUsers(users []domain.User, searchTerm string) []domain.User {
 	searchTerm = normalizeString(searchTerm)
 
 	for _, u := range users {
-		if strings.Contains(normalizeString(u.Username), searchTerm) {
+		username := getUsername(&u)
+		displayName := getDisplayName(&u)
+
+		if strings.Contains(normalizeString(username), searchTerm) {
 			filtered = append(filtered, u)
 			continue
 		}
 
-		if strings.Contains(normalizeString(u.DisplayName), searchTerm) {
+		if strings.Contains(normalizeString(displayName), searchTerm) {
 			filtered = append(filtered, u)
 			continue
 		}
@@ -264,7 +310,10 @@ func filterUsers(users []domain.User, searchTerm string) []domain.User {
 func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentUser *domain.User) {
 	for {
 		clearTerminal()
-		fmt.Printf("\n--- User: %s ---\n", selectedUser.Username)
+		fmt.Printf("\n--- User: %s ---\n", getUsername(selectedUser))
+		if selectedUser.DeletedAt != nil {
+			fmt.Println("⚠️  This user is deleted (soft-delete). Most operations are disabled.")
+		}
 		fmt.Println("0 - Back")
 		fmt.Println("1 - Edit username")
 		fmt.Println("2 - Edit display name")
@@ -272,6 +321,7 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 		fmt.Println("4 - Edit role (full_admin only)")
 		fmt.Println("5 - Unlock user (full_admin only)")
 		fmt.Println("6 - Block user (full_admin only)")
+		fmt.Println("7 - Delete user (soft-delete, admin/full_admin only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -282,13 +332,18 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 			return
 		case "1":
 			clearTerminal()
-			if currentUser.Role != "admin" && currentUser.Role != "full_admin" {
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot edit deleted user.")
+				waitForEnter()
+				continue
+			}
+			if getRole(currentUser) != "admin" && getRole(currentUser) != "full_admin" {
 				fmt.Println("Only admin or full_admin users can change usernames.")
 				waitForEnter()
 				continue
 			}
 			PrintOptionalFieldHint()
-			fmt.Printf("Current username: %s | New username: ", selectedUser.Username)
+			fmt.Printf("Current username: %s | New username: ", getUsername(selectedUser))
 			newUsername, _ := reader.ReadString('\n')
 			newUsername = strings.TrimSpace(newUsername)
 			if newUsername == "" {
@@ -296,35 +351,44 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			err := userStore.UpdateUsername(selectedUser.Username, newUsername)
+			err := userStore.UpdateUsername(getUsername(selectedUser), newUsername)
 			if err != nil {
 				fmt.Println("Error changing username:", err)
 				waitForEnter()
 			} else {
 				fmt.Println("Username changed successfully!")
-				selectedUser.Username = newUsername
+				selectedUser.Username = &newUsername
 				waitForEnter()
 			}
 		case "2":
 			clearTerminal()
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot edit deleted user.")
+				waitForEnter()
+				continue
+			}
 			PrintOptionalFieldHint()
-			fmt.Printf("Current display name: %s | New display name: ", selectedUser.DisplayName)
+			fmt.Printf("Current display name: %s | New display name: ", getDisplayName(selectedUser))
 			newDisplayName, _ := reader.ReadString('\n')
 			newDisplayName = strings.TrimSpace(newDisplayName)
 			if newDisplayName == "" {
-				newDisplayName = selectedUser.DisplayName
+				newDisplayName = getDisplayName(selectedUser)
 			}
-			err := userStore.EditUserDisplayName(selectedUser.Username, newDisplayName)
-			if err != nil {
+			if err := userStore.EditUserDisplayName(getUsername(selectedUser), newDisplayName); err != nil {
 				fmt.Println("Error changing display name:", err)
 				waitForEnter()
 			} else {
 				fmt.Println("Display name changed successfully!")
-				selectedUser.DisplayName = newDisplayName
+				selectedUser.DisplayName = &newDisplayName
 				waitForEnter()
 			}
 		case "3":
 			clearTerminal()
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot edit deleted user.")
+				waitForEnter()
+				continue
+			}
 			fmt.Print("New password: ")
 			newPassword, _ := reader.ReadString('\n')
 			newPassword = strings.TrimSpace(newPassword)
@@ -361,8 +425,7 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				continue
 			}
 
-			err := userStore.EditUserPassword(selectedUser.Username, newPassword)
-			if err != nil {
+			if err := userStore.EditUserPassword(getUsername(selectedUser), newPassword); err != nil {
 				fmt.Println("Error changing password:", err)
 				waitForEnter()
 			} else {
@@ -371,35 +434,44 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 			}
 		case "4":
 			clearTerminal()
-			if currentUser.Role != "full_admin" {
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot edit deleted user.")
+				waitForEnter()
+				continue
+			}
+			if getRole(currentUser) != "full_admin" {
 				fmt.Println("Only full_admin users can change the role of other users.")
 				waitForEnter()
 				continue
 			}
 			PrintOptionalFieldHint()
-			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", selectedUser.Role)
+			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", getRole(selectedUser))
 			newRole, _ := reader.ReadString('\n')
 			newRole = strings.TrimSpace(newRole)
 			if newRole == "" {
-				newRole = selectedUser.Role
+				newRole = getRole(selectedUser)
 			}
-			err := userStore.EditUserRole(currentUser.Username, selectedUser.Username, newRole)
-			if err != nil {
+			if err := userStore.EditUserRole(getUsername(currentUser), getUsername(selectedUser), newRole); err != nil {
 				fmt.Println("Error changing role:", err)
 				waitForEnter()
 			} else {
 				fmt.Println("Role changed successfully!")
-				selectedUser.Role = newRole
+				selectedUser.Role = &newRole
 				waitForEnter()
 			}
 		case "5":
 			clearTerminal()
-			if currentUser.Role != "full_admin" {
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot unlock deleted user.")
+				waitForEnter()
+				continue
+			}
+			if getRole(currentUser) != "full_admin" {
 				fmt.Println("Only full_admin users can unlock users.")
 				waitForEnter()
 				continue
 			}
-			err := userStore.UnlockUser(selectedUser.Username)
+			err := userStore.UnlockUser(getUsername(selectedUser))
 			if err != nil {
 				fmt.Println("Error unlocking user:", err)
 				waitForEnter()
@@ -409,21 +481,26 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 			}
 		case "6":
 			clearTerminal()
-			if currentUser.Role != "full_admin" {
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("Cannot block deleted user.")
+				waitForEnter()
+				continue
+			}
+			if getRole(currentUser) != "full_admin" {
 				fmt.Println("Only full_admin users can block users.")
 				waitForEnter()
 				continue
 			}
-			if selectedUser.Username == currentUser.Username {
+			if getUsername(selectedUser) == getUsername(currentUser) {
 				fmt.Println("You cannot block yourself!")
 				waitForEnter()
 				continue
 			}
-			fmt.Printf("⚠️  WARNING: Are you sure you want to block user '%s'? (yes/no): ", selectedUser.Username)
+			fmt.Printf("⚠️  WARNING: Are you sure you want to block user '%s'? (yes/no): ", getUsername(selectedUser))
 			confirmation, _ := reader.ReadString('\n')
 			confirmation = strings.TrimSpace(strings.ToLower(confirmation))
 			if confirmation == "yes" {
-				err := userStore.BlockUser(selectedUser.Username)
+				err := userStore.BlockUser(getUsername(selectedUser))
 				if err != nil {
 					fmt.Println("Error blocking user:", err)
 					waitForEnter()
@@ -433,6 +510,41 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				}
 			} else {
 				fmt.Println("User block cancelled.")
+				waitForEnter()
+			}
+		case "7":
+			clearTerminal()
+			if selectedUser.DeletedAt != nil {
+				fmt.Println("User is already deleted.")
+				waitForEnter()
+				continue
+			}
+			if getRole(currentUser) != "admin" && getRole(currentUser) != "full_admin" {
+				fmt.Println("Only admin or full_admin users can delete users.")
+				waitForEnter()
+				continue
+			}
+			if getUsername(selectedUser) == getUsername(currentUser) {
+				fmt.Println("You cannot delete yourself!")
+				waitForEnter()
+				continue
+			}
+			fmt.Printf("⚠️  WARNING: Are you sure you want to delete user '%s'? This is a soft-delete and cannot be undone. (yes/no): ", getUsername(selectedUser))
+			confirmation, _ := reader.ReadString('\n')
+			confirmation = strings.TrimSpace(strings.ToLower(confirmation))
+			if confirmation == "yes" {
+				err := userStore.DeleteUser(currentUser.ID, getUsername(currentUser), getUsername(selectedUser))
+				if err != nil {
+					fmt.Println("Error deleting user:", err)
+					waitForEnter()
+				} else {
+					fmt.Println("User deleted successfully (soft-delete)!")
+					selectedUser.DeletedAt = new(time.Time)
+					*selectedUser.DeletedAt = time.Now()
+					waitForEnter()
+				}
+			} else {
+				fmt.Println("User deletion cancelled.")
 				waitForEnter()
 			}
 		default:

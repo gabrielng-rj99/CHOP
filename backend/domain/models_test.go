@@ -254,35 +254,41 @@ func TestClientModel(t *testing.T) {
 // TestUserModel tests the User domain model
 func TestUserModel(t *testing.T) {
 	t.Run("user model structure", func(t *testing.T) {
+		username := "testuser"
+		displayName := "Test User"
+		role := "user"
 		user := User{
 			ID:           "test-id",
-			Username:     "testuser",
-			DisplayName:  "Test User",
+			Username:     &username,
+			DisplayName:  &displayName,
 			PasswordHash: "hashed-password",
 			CreatedAt:    time.Now(),
-			Role:         "user",
+			Role:         &role,
 		}
 
 		if user.ID != "test-id" {
 			t.Errorf("expected ID 'test-id', got '%s'", user.ID)
 		}
-		if user.Username != "testuser" {
-			t.Errorf("expected Username 'testuser', got '%s'", user.Username)
+		if user.Username == nil || *user.Username != "testuser" {
+			t.Errorf("expected Username 'testuser', got '%v'", user.Username)
 		}
-		if user.Role != "user" {
-			t.Errorf("expected Role 'user', got '%s'", user.Role)
+		if user.Role == nil || *user.Role != "user" {
+			t.Errorf("expected Role 'user', got '%v'", user.Role)
 		}
 	})
 
 	t.Run("user with lock fields", func(t *testing.T) {
 		lockedTime := time.Now().Add(1 * time.Hour)
+		username := "testuser"
+		displayName := "Test User"
+		role := "admin"
 		user := User{
 			ID:             "test-id",
-			Username:       "testuser",
-			DisplayName:    "Test User",
+			Username:       &username,
+			DisplayName:    &displayName,
 			PasswordHash:   "hashed-password",
 			CreatedAt:      time.Now(),
-			Role:           "admin",
+			Role:           &role,
 			FailedAttempts: 3,
 			LockLevel:      1,
 			LockedUntil:    &lockedTime,

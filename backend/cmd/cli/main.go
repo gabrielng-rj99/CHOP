@@ -52,7 +52,7 @@ func main() {
 		waitForEnter()
 		return
 	}
-	fmt.Printf("Welcome, %s!\n\n", user.DisplayName)
+	fmt.Printf("Welcome, %s!\n\n", getDisplayName(user))
 	waitForEnter()
 
 	for {
