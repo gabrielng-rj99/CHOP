@@ -1,16 +1,79 @@
 .audit-filters-container {
     background: white;
     border-radius: 8px;
-    padding: 20px;
     margin-bottom: 24px;
     border: 1px solid #ecf0f1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.audit-filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.audit-filters-header:hover {
+    background: #f8f9fa;
+}
+
+.audit-filters-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.audit-filters-expand-icon {
+    font-size: 14px;
+    color: #3498db;
+    font-weight: bold;
+    transition: transform 0.2s;
+    display: inline-block;
+    width: 16px;
 }
 
 .audit-filters-title {
-    margin: 0 0 20px 0;
+    margin: 0;
     color: #2c3e50;
     font-size: 16px;
+    font-weight: 600;
+}
+
+.audit-filters-active-badge {
+    background: #3498db;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.audit-filters-toggle-hint {
+    font-size: 12px;
+    color: #95a5a6;
+    font-style: italic;
+}
+
+.audit-filters-content {
+    padding: 0 20px 20px 20px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .audit-filters-grid {
@@ -39,6 +102,16 @@
     border-radius: 4px;
     font-size: 14px;
     font-family: inherit;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+.audit-filters-select:focus,
+.audit-filters-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .audit-filters-select {
@@ -50,6 +123,7 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    padding-top: 8px;
 }
 
 .audit-filters-button {
@@ -58,6 +132,12 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
+    transition: all 0.2s;
+}
+
+.audit-filters-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .audit-filters-button-apply {
@@ -66,8 +146,16 @@
     border: none;
 }
 
+.audit-filters-button-apply:hover {
+    background: #2980b9;
+}
+
 .audit-filters-button-clear {
     background: white;
     color: #3498db;
     border: 1px solid #3498db;
+}
+
+.audit-filters-button-clear:hover {
+    background: #ecf0f1;
 }

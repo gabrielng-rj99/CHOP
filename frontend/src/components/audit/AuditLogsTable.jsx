@@ -88,6 +88,95 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
         }
     };
 
+    const getChangeContext = (log) => {
+        if (!log.old_value && !log.new_value) return "N/A";
+
+        try {
+            const oldData = log.old_value ? JSON.parse(log.old_value) : {};
+            const newData = log.new_value ? JSON.parse(log.new_value) : {};
+
+            // Para operação de criação
+            if (log.operation === "create" && newData) {
+                const keys = Object.keys(newData).filter(
+                    (k) =>
+                        !k.includes("password") &&
+                        k !== "id" &&
+                        k !== "created_at" &&
+                        k !== "updated_at",
+                );
+                if (keys.length > 0) {
+                    const displayKey =
+                        keys.find(
+                            (k) =>
+                                k === "name" ||
+                                k === "username" ||
+                                k === "display_name",
+                        ) || keys[0];
+                    const value = String(newData[displayKey]).substring(0, 30);
+                    return `Novo registro criado`;
+                }
+            }
+
+            // Para operação de atualização
+            if (log.operation === "update" && oldData && newData) {
+                const changedFields = [];
+                const allKeys = new Set([
+                    ...Object.keys(oldData),
+                    ...Object.keys(newData),
+                ]);
+
+                for (const key of allKeys) {
+                    if (key.includes("password") || key === "updated_at")
+                        continue;
+
+                    if (oldData[key] !== newData[key]) {
+                        changedFields.push(key);
+                    }
+                }
+
+                if (changedFields.length > 0) {
+                    const fieldLabels = {
+                        name: "Nome",
+                        username: "Usuário",
+                        display_name: "Nome de exibição",
+                        email: "Email",
+                        role: "Função",
+                        status: "Status",
+                        active: "Ativo",
+                        blocked: "Bloqueado",
+                    };
+
+                    const displayFields = changedFields
+                        .slice(0, 2)
+                        .map((f) => fieldLabels[f] || f)
+                        .join(", ");
+
+                    if (changedFields.length > 2) {
+                        return `${displayFields} e mais ${changedFields.length - 2}...`;
+                    }
+                    return displayFields;
+                }
+            }
+
+            // Para operação de deleção
+            if (log.operation === "delete" && oldData) {
+                const displayKey = Object.keys(oldData).find(
+                    (k) =>
+                        k === "name" ||
+                        k === "username" ||
+                        k === "display_name",
+                );
+                if (displayKey && oldData[displayKey]) {
+                    return `Deletado: ${String(oldData[displayKey]).substring(0, 30)}`;
+                }
+            }
+
+            return "Ver detalhes";
+        } catch {
+            return "Ver detalhes";
+        }
+    };
+
     const tableStyle = {
         width: "100%",
         borderCollapse: "collapse",
@@ -121,29 +210,24 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
             <table style={tableStyle}>
                 <thead>
                     <tr style={{ background: "#f8f9fa" }}>
-                        <th style={headerStyle} width="5%">
-                            Expandir
-                        </th>
-                        <th style={headerStyle} width="15%">
+                        <th style={headerStyle} width="4%"></th>
+                        <th style={headerStyle} width="14%">
                             Data/Hora
                         </th>
-                        <th style={headerStyle} width="12%">
-                            Operação
-                        </th>
-                        <th style={headerStyle} width="12%">
-                            Entidade
-                        </th>
-                        <th style={headerStyle} width="15%">
+                        <th style={headerStyle} width="14%">
                             Admin
                         </th>
-                        <th style={headerStyle} width="12%">
+                        <th style={headerStyle} width="10%">
+                            Operação
+                        </th>
+                        <th style={headerStyle} width="10%">
+                            Entidade
+                        </th>
+                        <th style={headerStyle} width="28%">
+                            Contexto
+                        </th>
+                        <th style={headerStyle} width="10%">
                             Status
-                        </th>
-                        <th style={headerStyle} width="12%">
-                            IP Address
-                        </th>
-                        <th style={headerStyle} width="7%">
-                            Ação
                         </th>
                     </tr>
                 </thead>
@@ -151,11 +235,15 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                     {logs.map((log) => (
                         <React.Fragment key={log.id}>
                             <tr style={{ borderBottom: "1px solid #ecf0f1" }}>
-                                <td style={rowStyle} textAlign="center">
+                                <td
+                                    style={{ ...rowStyle, textAlign: "center" }}
+                                >
                                     <button
                                         onClick={() =>
                                             setExpandedId(
-                                                expandedId === log.id ? null : log.id
+                                                expandedId === log.id
+                                                    ? null
+                                                    : log.id,
                                             )
                                         }
                                         style={{
@@ -164,7 +252,14 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                             cursor: "pointer",
                                             fontSize: "18px",
                                             color: "#3498db",
+                                            padding: "0",
+                                            lineHeight: "1",
                                         }}
+                                        title={
+                                            expandedId === log.id
+                                                ? "Recolher"
+                                                : "Expandir"
+                                        }
                                     >
                                         {expandedId === log.id ? "−" : "+"}
                                     </button>
@@ -173,10 +268,22 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                     {formatDate(log.timestamp)}
                                 </td>
                                 <td style={rowStyle}>
+                                    {log.admin_username || (
+                                        <span
+                                            style={{
+                                                color: "#95a5a6",
+                                                fontStyle: "italic",
+                                            }}
+                                        >
+                                            Deletado
+                                        </span>
+                                    )}
+                                </td>
+                                <td style={rowStyle}>
                                     <span
                                         style={{
                                             background: getOperationColor(
-                                                log.operation
+                                                log.operation,
                                             ),
                                             color: "white",
                                             padding: "4px 12px",
@@ -191,17 +298,21 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                 <td style={rowStyle}>
                                     {getEntityLabel(log.entity)}
                                 </td>
-                                <td style={rowStyle}>
-                                    {log.admin_username || (
-                                        <span style={{ color: "#95a5a6" }}>
-                                            Deletado
-                                        </span>
-                                    )}
+                                <td
+                                    style={{
+                                        ...rowStyle,
+                                        fontSize: "13px",
+                                        color: "#5a6c7d",
+                                    }}
+                                >
+                                    {getChangeContext(log)}
                                 </td>
                                 <td style={rowStyle}>
                                     <span
                                         style={{
-                                            background: getStatusColor(log.status),
+                                            background: getStatusColor(
+                                                log.status,
+                                            ),
                                             color: "white",
                                             padding: "4px 12px",
                                             borderRadius: "12px",
@@ -212,31 +323,11 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                         {getStatusLabel(log.status)}
                                     </span>
                                 </td>
-                                <td style={rowStyle}>
-                                    {log.ip_address || "N/A"}
-                                </td>
-                                <td style={rowStyle}>
-                                    <button
-                                        onClick={() => onViewDetail(log)}
-                                        style={{
-                                            background: "#3498db",
-                                            color: "white",
-                                            border: "none",
-                                            padding: "6px 12px",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                        }}
-                                    >
-                                        Ver
-                                    </button>
-                                </td>
                             </tr>
                             {expandedId === log.id && (
                                 <tr>
                                     <td
-                                        colSpan="8"
+                                        colSpan="7"
                                         style={{
                                             ...expandedRowStyle,
                                             padding: "20px",
@@ -245,8 +336,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                         <div
                                             style={{
                                                 display: "grid",
-                                                gridTemplateColumns:
-                                                    "1fr 1fr",
+                                                gridTemplateColumns: "1fr 1fr",
                                                 gap: "20px",
                                                 marginBottom: "16px",
                                             }}
@@ -432,6 +522,33 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                                     "N/A"}
                                                             </td>
                                                         </tr>
+                                                        <tr>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    fontWeight:
+                                                                        "600",
+                                                                    color: "#2c3e50",
+                                                                }}
+                                                            >
+                                                                Admin ID:
+                                                            </td>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    color: "#34495e",
+                                                                    fontSize:
+                                                                        "11px",
+                                                                    wordBreak:
+                                                                        "break-all",
+                                                                }}
+                                                            >
+                                                                {log.admin_id ||
+                                                                    "N/A"}
+                                                            </td>
+                                                        </tr>
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -459,8 +576,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                         <div>
                                                             <h5
                                                                 style={{
-                                                                    margin:
-                                                                        "0 0 8px 0",
+                                                                    margin: "0 0 8px 0",
                                                                     color: "#e74c3c",
                                                                     fontSize:
                                                                         "13px",
@@ -487,7 +603,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                                 }}
                                                             >
                                                                 {formatJSON(
-                                                                    log.old_value
+                                                                    log.old_value,
                                                                 )}
                                                             </pre>
                                                         </div>
@@ -496,8 +612,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                         <div>
                                                             <h5
                                                                 style={{
-                                                                    margin:
-                                                                        "0 0 8px 0",
+                                                                    margin: "0 0 8px 0",
                                                                     color: "#27ae60",
                                                                     fontSize:
                                                                         "13px",
@@ -524,7 +639,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                                 }}
                                                             >
                                                                 {formatJSON(
-                                                                    log.new_value
+                                                                    log.new_value,
                                                                 )}
                                                             </pre>
                                                         </div>
@@ -539,7 +654,8 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                     marginTop: "16px",
                                                     padding: "12px",
                                                     background: "#fee",
-                                                    borderLeft: "4px solid #e74c3c",
+                                                    borderLeft:
+                                                        "4px solid #e74c3c",
                                                     borderRadius: "4px",
                                                 }}
                                             >

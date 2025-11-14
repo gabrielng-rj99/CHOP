@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./UserModal.css";
 
 export default function UserModal({
@@ -8,8 +8,44 @@ export default function UserModal({
     setFormData,
     onSubmit,
     onClose,
+    error,
 }) {
+    const [passwordLength, setPasswordLength] = useState(32);
+    const [showPassword, setShowPassword] = useState(false);
+
     if (!showModal) return null;
+
+    const generateRandomPassword = () => {
+        const lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        const allChars = lowercase + uppercase + numbers + symbols;
+
+        let password = "";
+
+        // Garantir pelo menos um de cada tipo
+        password += lowercase[Math.floor(Math.random() * lowercase.length)];
+        password += uppercase[Math.floor(Math.random() * uppercase.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+        password += symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Preencher o resto
+        for (let i = password.length; i < passwordLength; i++) {
+            password += allChars[Math.floor(Math.random() * allChars.length)];
+        }
+
+        // Embaralhar a senha
+        password = password
+            .split("")
+            .sort(() => Math.random() - 0.5)
+            .join("");
+
+        setFormData({
+            ...formData,
+            password: password,
+        });
+    };
 
     return (
         <div className="user-modal-overlay" onClick={onClose}>
@@ -20,6 +56,8 @@ export default function UserModal({
                 <h2 className="user-modal-title">
                     {modalMode === "create" ? "Novo Usuário" : "Editar Usuário"}
                 </h2>
+
+                {error && <div className="user-modal-error">{error}</div>}
 
                 <form onSubmit={onSubmit}>
                     {/* Username */}
@@ -74,23 +112,70 @@ export default function UserModal({
                                 ? "*"
                                 : "(deixe em branco para manter)"}
                         </label>
-                        <input
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    password: e.target.value,
-                                })
-                            }
-                            required={modalMode === "create"}
-                            placeholder={
-                                modalMode === "edit"
-                                    ? "Digite apenas se quiser alterar"
-                                    : ""
-                            }
-                            className="user-modal-input"
-                        />
+                        <div className="user-modal-password-container">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                value={formData.password}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        password: e.target.value,
+                                    })
+                                }
+                                required={modalMode === "create"}
+                                placeholder={
+                                    modalMode === "edit"
+                                        ? "Digite apenas se quiser alterar"
+                                        : ""
+                                }
+                                className="user-modal-input"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="user-modal-password-toggle"
+                                title={
+                                    showPassword
+                                        ? "Ocultar senha"
+                                        : "Mostrar senha"
+                                }
+                            >
+                                {showPassword ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                        </div>
+
+                        {/* Password Generator */}
+                        <div className="user-modal-password-generator">
+                            <div className="user-modal-password-generator-header">
+                                <label className="user-modal-label-small">
+                                    Gerar Senha Automática
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={generateRandomPassword}
+                                    className="user-modal-generate-button"
+                                >
+                                    🎲 Gerar
+                                </button>
+                            </div>
+                            <div className="user-modal-password-slider">
+                                <input
+                                    type="range"
+                                    min="24"
+                                    max="64"
+                                    value={passwordLength}
+                                    onChange={(e) =>
+                                        setPasswordLength(
+                                            parseInt(e.target.value),
+                                        )
+                                    }
+                                    className="user-modal-slider"
+                                />
+                                <span className="user-modal-slider-value">
+                                    {passwordLength} caracteres
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Role */}

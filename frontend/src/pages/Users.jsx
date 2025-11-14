@@ -12,6 +12,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [modalError, setModalError] = useState("");
     const [success, setSuccess] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -37,6 +38,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
     };
 
     const handleCreateUser = async () => {
+        setModalError("");
         try {
             await usersApi.createUser(apiUrl, token, formData);
             await loadUsers();
@@ -44,11 +46,12 @@ export default function Users({ token, apiUrl, user, onLogout }) {
             setSuccess("Usuário criado com sucesso!");
             setTimeout(() => setSuccess(""), 3000);
         } catch (err) {
-            setError(err.message);
+            setModalError(err.message);
         }
     };
 
     const handleUpdateUser = async () => {
+        setModalError("");
         try {
             const payload = {
                 display_name: formData.display_name,
@@ -58,6 +61,12 @@ export default function Users({ token, apiUrl, user, onLogout }) {
             if (formData.password) {
                 payload.password = formData.password;
             }
+
+            const isUpdatingSelf = selectedUser.username === user.username;
+            const isOnlyChangingPassword =
+                formData.password &&
+                formData.display_name === selectedUser.display_name &&
+                formData.role === selectedUser.role;
 
             await usersApi.updateUser(
                 apiUrl,
@@ -69,8 +78,19 @@ export default function Users({ token, apiUrl, user, onLogout }) {
             closeModal();
             setSuccess("Usuário atualizado com sucesso!");
             setTimeout(() => setSuccess(""), 3000);
+
+            // Se alterou a própria senha apenas, não desloga
+            if (isUpdatingSelf && !isOnlyChangingPassword) {
+                // Qualquer alteração que não seja só senha causa logout
+                setTimeout(() => {
+                    alert(
+                        "Suas informações foram alteradas. Você será deslogado.",
+                    );
+                    onLogout();
+                }, 1500);
+            }
         } catch (err) {
-            setError(err.message);
+            setModalError(err.message);
         }
     };
 
@@ -159,7 +179,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         setShowModal(false);
         setSelectedUser(null);
         setFormData(getInitialFormData());
-        setError("");
+        setModalError("");
     };
 
     const handleSubmit = (e) => {
@@ -320,6 +340,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
                 setFormData={setFormData}
                 onSubmit={handleSubmit}
                 onClose={closeModal}
+                error={modalError}
             />
         </div>
     );
