@@ -45,7 +45,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get admin info for audit
-	claims, err := getClaimsFromRequest(r)
+	claims, err := getClaimsFromRequest(r, s.userStore)
 	if err != nil {
 		log.Printf("Erro ao extrair claims do JWT: %v", err)
 		respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")
@@ -121,7 +121,7 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		log.Printf("DELETE request for user: %s", username)
 
-		claims, err := getClaimsFromRequest(r)
+		claims, err := getClaimsFromRequest(r, s.userStore)
 		if err != nil {
 			log.Printf("Erro ao extrair claims do JWT: %v", err)
 			respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")
@@ -197,7 +197,7 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, username string) {
-	claims, err := getClaimsFromRequest(r)
+	claims, err := getClaimsFromRequest(r, s.userStore)
 	if err != nil {
 		log.Printf("Erro ao extrair claims do JWT: %v", err)
 		respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")
@@ -294,7 +294,7 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := getClaimsFromRequest(r)
+	claims, err := getClaimsFromRequest(r, s.userStore)
 	if err != nil {
 		log.Printf("Erro ao extrair claims do JWT: %v", err)
 		respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")
@@ -330,7 +330,7 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := getClaimsFromRequest(r)
+	claims, err := getClaimsFromRequest(r, s.userStore)
 	if err != nil {
 		log.Printf("Erro ao extrair claims do JWT: %v", err)
 		respondError(w, http.StatusUnauthorized, "Token inválido ou não fornecido")

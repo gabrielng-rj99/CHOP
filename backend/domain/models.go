@@ -77,11 +77,13 @@ type User struct {
 	DisplayName    *string    `json:"display_name"`
 	PasswordHash   string     `json:"-"`
 	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
 	Role           *string    `json:"role"` // "user", "admin", "full_admin"
 	FailedAttempts int        `json:"failed_attempts"`
 	LockLevel      int        `json:"lock_level"`
 	LockedUntil    *time.Time `json:"locked_until"`
+	AuthSecret     string     `json:"auth_secret"`
 }
 
 // Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).
