@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"Contracts-Manager/backend/domain"
+	"Contracts-Manager/backend/store"
 )
 
 // ============= CATEGORY HANDLERS =============
@@ -42,12 +43,54 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
 	category := domain.Category{Name: req.Name}
 
 	id, err := s.categoryStore.CreateCategory(category)
 	if err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			newValueJSON, _ := json.Marshal(category)
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "create",
+				Entity:        "category",
+				EntityID:      "unknown",
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      nil,
+				NewValue:      bytesToStringPtr(newValueJSON),
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful creation
+	if claims != nil {
+		category.ID = id
+		newValueJSON, _ := json.Marshal(category)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "create",
+			Entity:        "category",
+			EntityID:      id,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      nil,
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
@@ -100,14 +143,56 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request, ca
 		return
 	}
 
-	category := domain.Category{
-		ID:   categoryID,
-		Name: req.Name,
-	}
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldCategory, _ := s.categoryStore.GetCategoryByID(categoryID)
+	oldValueJSON, _ := json.Marshal(oldCategory)
+
+	category := domain.Category{ID: categoryID, Name: req.Name}
 
 	if err := s.categoryStore.UpdateCategory(category); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			newValueJSON, _ := json.Marshal(category)
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "update",
+				Entity:        "category",
+				EntityID:      categoryID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      bytesToStringPtr(newValueJSON),
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful update
+	if claims != nil {
+		newValueJSON, _ := json.Marshal(category)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "category",
+			EntityID:      categoryID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Category updated successfully"})

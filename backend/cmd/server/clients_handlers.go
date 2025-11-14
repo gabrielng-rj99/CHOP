@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"Contracts-Manager/backend/domain"
+	"Contracts-Manager/backend/store"
 )
 
 // ============= CLIENT HANDLERS =============
@@ -39,12 +40,54 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
 	client.Status = "ativo"
 
 	id, err := s.clientStore.CreateClient(client)
 	if err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			newValueJSON, _ := json.Marshal(client)
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "create",
+				Entity:        "client",
+				EntityID:      "unknown",
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      nil,
+				NewValue:      bytesToStringPtr(newValueJSON),
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful creation
+	if claims != nil {
+		client.ID = id
+		newValueJSON, _ := json.Marshal(client)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "create",
+			Entity:        "client",
+			EntityID:      id,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      nil,
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
@@ -92,11 +135,56 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		return
 	}
 
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldValueJSON, _ := json.Marshal(oldClient)
+
 	client.ID = clientID
 
 	if err := s.clientStore.UpdateClient(client); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			newValueJSON, _ := json.Marshal(client)
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "update",
+				Entity:        "client",
+				EntityID:      clientID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      bytesToStringPtr(newValueJSON),
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful update
+	if claims != nil {
+		newValueJSON, _ := json.Marshal(client)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "client",
+			EntityID:      clientID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client updated successfully"})
@@ -115,10 +203,54 @@ func (s *Server) handleClientArchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientID := parts[0]
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldValueJSON, _ := json.Marshal(oldClient)
 
 	if err := s.clientStore.ArchiveClient(clientID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "update",
+				Entity:        "client",
+				EntityID:      clientID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful archive
+	if claims != nil {
+		newClient, _ := s.clientStore.GetClientByID(clientID)
+		newValueJSON, _ := json.Marshal(newClient)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "client",
+			EntityID:      clientID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client archived successfully"})
@@ -137,10 +269,54 @@ func (s *Server) handleClientUnarchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientID := parts[0]
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldValueJSON, _ := json.Marshal(oldClient)
 
 	if err := s.clientStore.UnarchiveClient(clientID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "update",
+				Entity:        "client",
+				EntityID:      clientID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful unarchive
+	if claims != nil {
+		newClient, _ := s.clientStore.GetClientByID(clientID)
+		newValueJSON, _ := json.Marshal(newClient)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "client",
+			EntityID:      clientID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client unarchived successfully"})
