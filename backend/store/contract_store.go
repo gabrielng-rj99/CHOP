@@ -42,27 +42,31 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 			return "", err
 		}
 	}
-	if contract.StartDate.IsZero() || contract.EndDate.IsZero() {
-		return "", sql.ErrNoRows // Or use errors.New("start and end date must be set")
+
+	// Start and End dates are now optional - only validate if both are provided
+	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
+		if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
+			return "", errors.New("end date must be after start date")
+		}
 	}
-	if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
-		return "", errors.New("end date must be after start date")
-	}
+
 	if contract.LineID == "" {
-		return "", sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
+		return "", errors.New("line ID cannot be empty")
 	}
 	if contract.ClientID == "" {
-		return "", sql.ErrNoRows // Or use errors.New("client ID cannot be empty")
+		return "", errors.New("client ID cannot be empty")
 	}
-	// Check if type exists
+
+	// Check if line exists
 	var count int
 	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", contract.LineID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
 	if count == 0 {
-		return "", sql.ErrNoRows // Or use errors.New("type does not exist")
+		return "", errors.New("line does not exist")
 	}
+
 	// Check if client exists e não está arquivado
 	err = s.db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1 AND archived_at IS NULL", contract.ClientID).Scan(&count)
 	if err != nil {
@@ -71,6 +75,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	if count == 0 {
 		return "", errors.New("client does not exist or is archived")
 	}
+
 	// If dependentID is provided, check if dependent exists and belongs to the client
 	if contract.DependentID != nil && *contract.DependentID != "" {
 		err = s.db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1 AND client_id = $2", *contract.DependentID, contract.ClientID).Scan(&count)
@@ -81,6 +86,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 			return "", errors.New("dependent does not exist or does not belong to the specified client")
 		}
 	}
+
 	// Check for duplicate product key only if provided
 	if contract.ProductKey != "" {
 		err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE product_key = $1", contract.ProductKey).Scan(&count)
@@ -92,36 +98,42 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 		}
 	}
 
-	// NOVA REGRA: Verificar sobreposição temporal de contratos do mesmo tipo para empresa/dependente
-	var overlapCount int
-	if contract.DependentID != nil && *contract.DependentID != "" {
-		err = s.db.QueryRow(`
-			SELECT COUNT(*) FROM contracts
-			WHERE line_id = $1 AND client_id = $2 AND dependent_id = $3 AND (
-				(start_date <= $4 AND end_date >= $5) OR
-				(start_date <= $6 AND end_date >= $7)
-			)
-		`, contract.LineID, contract.ClientID, *contract.DependentID,
-			contract.EndDate, contract.EndDate,
-			contract.StartDate, contract.StartDate,
-		).Scan(&overlapCount)
-	} else {
-		err = s.db.QueryRow(`
-			SELECT COUNT(*) FROM contracts
-			WHERE line_id = $1 AND client_id = $2 AND dependent_id IS NULL AND (
-				(start_date <= $3 AND end_date >= $4) OR
-				(start_date <= $5 AND end_date >= $6)
-			)
-		`, contract.LineID, contract.ClientID,
-			contract.EndDate, contract.EndDate,
-			contract.StartDate, contract.StartDate,
-		).Scan(&overlapCount)
-	}
-	if err != nil {
-		return "", err
-	}
-	if overlapCount > 0 {
-		return "", errors.New("contract period overlaps with another contract of the same type for this client/dependent")
+	// NOVA REGRA: Verificar sobreposição temporal apenas se ambas as datas forem fornecidas
+	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
+		var overlapCount int
+		if contract.DependentID != nil && *contract.DependentID != "" {
+			err = s.db.QueryRow(`
+				SELECT COUNT(*) FROM contracts
+				WHERE line_id = $1 AND client_id = $2 AND dependent_id = $3
+				AND start_date IS NOT NULL AND end_date IS NOT NULL
+				AND (
+					(start_date <= $4 AND end_date >= $5) OR
+					(start_date <= $6 AND end_date >= $7)
+				)
+			`, contract.LineID, contract.ClientID, *contract.DependentID,
+				contract.EndDate, contract.EndDate,
+				contract.StartDate, contract.StartDate,
+			).Scan(&overlapCount)
+		} else {
+			err = s.db.QueryRow(`
+				SELECT COUNT(*) FROM contracts
+				WHERE line_id = $1 AND client_id = $2 AND dependent_id IS NULL
+				AND start_date IS NOT NULL AND end_date IS NOT NULL
+				AND (
+					(start_date <= $3 AND end_date >= $4) OR
+					(start_date <= $5 AND end_date >= $6)
+				)
+			`, contract.LineID, contract.ClientID,
+				contract.EndDate, contract.EndDate,
+				contract.StartDate, contract.StartDate,
+			).Scan(&overlapCount)
+		}
+		if err != nil {
+			return "", err
+		}
+		if overlapCount > 0 {
+			return "", errors.New("contract period overlaps with another contract of the same type for this client/dependent")
+		}
 	}
 
 	newID := uuid.New().String()
@@ -131,18 +143,26 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 
 	_, err = s.db.Exec(sqlStatement,
 		newID,
-		trimmedModel, // Model mapeia para name no banco
+		trimmedModel,
 		trimmedProductKey,
-		contract.StartDate,
-		contract.EndDate,
+		nullTimeFromTime(contract.StartDate),
+		nullTimeFromTime(contract.EndDate),
 		contract.LineID,
 		contract.ClientID,
-		contract.DependentID, // O driver Go trata o ponteiro *string nil como NULL no banco
+		contract.DependentID,
 	)
 	if err != nil {
 		return "", err
 	}
 	return newID, nil
+}
+
+// Helper function to convert time.Time to sql.NullTime
+func nullTimeFromTime(t time.Time) sql.NullTime {
+	if t.IsZero() {
+		return sql.NullTime{Valid: false}
+	}
+	return sql.NullTime{Time: t, Valid: true}
 }
 
 // GetContractsByClientID fetches all contracts for a specific client.
@@ -159,7 +179,7 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 	if count == 0 {
 		return nil, errors.New("client not found or archived")
 	}
-	// ... rest of the function ...
+
 	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE client_id = $1`
 	rows, err := s.db.Query(sqlStatement, clientID)
 	if err != nil {
@@ -175,9 +195,15 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 	contracts = []domain.Contract{}
 	for rows.Next() {
 		var c domain.Contract
-		// Note o &c.DependentID para o campo que pode ser nulo
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}
@@ -190,9 +216,11 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 // GetContractsExpiringSoon busca contratos que expiram nos próximos 'days' dias.
 func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.Contract, err error) {
 	now := time.Now()
-	limitDate := now.AddDate(0, 0, days) // Adiciona 'days' dias à data atual
+	limitDate := now.AddDate(0, 0, days)
 
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE end_date BETWEEN $1 AND $2`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
+	                 FROM contracts
+	                 WHERE end_date BETWEEN $1 AND $2 AND archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement, now, limitDate)
 	if err != nil {
@@ -208,8 +236,55 @@ func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.C
 	contracts = []domain.Contract{}
 	for rows.Next() {
 		var c domain.Contract
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
+		}
+		contracts = append(contracts, c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return contracts, nil
+}
+
+// GetContractsNotStarted busca contratos que ainda não iniciaram (start_date no futuro)
+func (s *ContractStore) GetContractsNotStarted() (contracts []domain.Contract, err error) {
+	now := time.Now()
+
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
+	                 FROM contracts
+	                 WHERE start_date > $1 AND archived_at IS NULL`
+
+	rows, err := s.db.Query(sqlStatement, now)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	contracts = []domain.Contract{}
+	for rows.Next() {
+		var c domain.Contract
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}
@@ -221,8 +296,9 @@ func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.C
 
 func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	if contract.ID == "" {
-		return sql.ErrNoRows // Or use errors.New("contract ID cannot be empty")
+		return errors.New("contract ID cannot be empty")
 	}
+
 	// Model and ProductKey are now optional
 	var trimmedModel, trimmedProductKey string
 	var err error
@@ -238,12 +314,14 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 			return err
 		}
 	}
-	if contract.StartDate.IsZero() || contract.EndDate.IsZero() {
-		return sql.ErrNoRows // Or use errors.New("start and end date must be set")
+
+	// Datas são opcionais, mas se ambas forem fornecidas, end_date deve ser maior que start_date
+	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
+		if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
+			return errors.New("end date must be after start date")
+		}
 	}
-	if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
-		return errors.New("end date must be after start date")
-	}
+
 	// If dependentID is provided, check if dependent exists and belongs to the client
 	if contract.DependentID != nil && *contract.DependentID != "" {
 		var depCount int
@@ -255,6 +333,7 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 			return errors.New("dependent does not exist or does not belong to the specified client")
 		}
 	}
+
 	// Check if contract exists
 	var count int
 	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", contract.ID).Scan(&count)
@@ -262,10 +341,14 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 		return err
 	}
 	if count == 0 {
-		return sql.ErrNoRows // Or use errors.New("contract does not exist")
+		return errors.New("contract does not exist")
 	}
+
 	sqlStatement := `UPDATE contracts SET model = $1, product_key = $2, start_date = $3, end_date = $4 WHERE id = $5`
-	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedProductKey, contract.StartDate, contract.EndDate, contract.ID)
+	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedProductKey,
+		nullTimeFromTime(contract.StartDate),
+		nullTimeFromTime(contract.EndDate),
+		contract.ID)
 	if err != nil {
 		return err
 	}
@@ -274,7 +357,7 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 		return err
 	}
 	if rows == 0 {
-		return sql.ErrNoRows // Or use errors.New("no contract updated")
+		return errors.New("no contract updated")
 	}
 	return nil
 }
@@ -282,7 +365,7 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 // GetContractByID busca um contrato específico pelo seu ID
 func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 	if id == "" {
-		return nil, sql.ErrNoRows // Or use errors.New("contract ID cannot be empty")
+		return nil, errors.New("contract ID cannot be empty")
 	}
 	sqlStatement := `
 		SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
@@ -290,12 +373,13 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 		WHERE id = $1`
 
 	var contract domain.Contract
+	var startDate, endDate sql.NullTime
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&contract.ID,
-		&contract.Model, // Model mapeia para name no banco
+		&contract.Model,
 		&contract.ProductKey,
-		&contract.StartDate,
-		&contract.EndDate,
+		&startDate,
+		&endDate,
 		&contract.LineID,
 		&contract.ClientID,
 		&contract.DependentID,
@@ -308,6 +392,13 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 		return nil, err
 	}
 
+	if startDate.Valid {
+		contract.StartDate = startDate.Time
+	}
+	if endDate.Valid {
+		contract.EndDate = endDate.Time
+	}
+
 	return &contract, nil
 }
 
@@ -316,12 +407,17 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 func GetContractStatus(contract domain.Contract) string {
 	now := time.Now()
 
+	if contract.EndDate.IsZero() {
+		return "ativo" // Contratos sem data de término são considerados ativos
+	}
+
 	if contract.EndDate.Before(now) {
 		return "expirado"
 	}
-	// Contract is expiring if it expires within 30 days (use 29.5 to be safe with rounding)
+
+	// Contract is expiring if it expires within 30 days
 	daysUntilExpiry := contract.EndDate.Sub(now).Hours() / 24
-	if daysUntilExpiry > 0 && daysUntilExpiry <= 29.5 {
+	if daysUntilExpiry > 0 && daysUntilExpiry <= 30 {
 		return "expirando"
 	}
 	return "ativo"
@@ -329,7 +425,7 @@ func GetContractStatus(contract domain.Contract) string {
 
 func (s *ContractStore) DeleteContract(id string) error {
 	if id == "" {
-		return sql.ErrNoRows // Or use errors.New("contract ID cannot be empty")
+		return errors.New("contract ID cannot be empty")
 	}
 	// Check if contract exists
 	var count int
@@ -338,7 +434,7 @@ func (s *ContractStore) DeleteContract(id string) error {
 		return err
 	}
 	if count == 0 {
-		return sql.ErrNoRows // Or use errors.New("contract does not exist")
+		return errors.New("contract does not exist")
 	}
 	sqlStatement := `DELETE FROM contracts WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
@@ -350,14 +446,15 @@ func (s *ContractStore) DeleteContract(id string) error {
 		return err
 	}
 	if rows == 0 {
-		return sql.ErrNoRows // Or use errors.New("no contract deleted")
+		return errors.New("no contract deleted")
 	}
 	return nil
 }
 
-// GetAllContracts fetches all contracts in the system
+// GetAllContracts fetches all contracts in the system (excluding archived)
 func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err error) {
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
+	                 FROM contracts WHERE archived_at IS NULL`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -372,8 +469,15 @@ func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err erro
 	contracts = []domain.Contract{}
 	for rows.Next() {
 		var c domain.Contract
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}
@@ -389,8 +493,9 @@ func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, erro
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	// Busca case-insensitive
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE LOWER(model) LIKE LOWER($1)`
+	// Busca case-insensitive já funcionará com CITEXT
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
+	                 FROM contracts WHERE model LIKE $1`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -405,8 +510,15 @@ func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, erro
 	var contracts []domain.Contract
 	for rows.Next() {
 		var c domain.Contract
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}
@@ -431,7 +543,8 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 		return nil, errors.New("line not found")
 	}
 
-	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id FROM contracts WHERE line_id = $1`
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id
+	                 FROM contracts WHERE line_id = $1`
 	rows, err := s.db.Query(sqlStatement, lineID)
 	if err != nil {
 		return nil, err
@@ -446,8 +559,15 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 	contracts = []domain.Contract{}
 	for rows.Next() {
 		var c domain.Contract
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}
@@ -491,8 +611,15 @@ func (s *ContractStore) GetContractsByCategoryID(categoryID string) (contracts [
 	contracts = []domain.Contract{}
 	for rows.Next() {
 		var c domain.Contract
-		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &c.StartDate, &c.EndDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
+		var startDate, endDate sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID); err != nil {
 			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
 		}
 		contracts = append(contracts, c)
 	}

@@ -1,42 +1,104 @@
-.lines-panel-empty {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ecf0f1;
-    padding: 40px;
-    margin-top: 20px;
-    text-align: center;
+/* Lines Panel Overlay */
+.lines-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
 }
 
-.lines-panel-empty p {
-    font-size: 16px;
-    color: #7f8c8d;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Lines Panel */
 .lines-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 450px;
+    height: 100vh;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ecf0f1;
-    padding: 24px;
-    margin-top: 20px;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s ease;
 }
 
+/* Header */
 .lines-panel-header {
+    padding: 24px;
+    border-bottom: 1px solid #ecf0f1;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    align-items: flex-start;
+    background: #f8f9fa;
 }
 
 .lines-panel-title {
     margin: 0;
     font-size: 20px;
     color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.lines-panel-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.lines-panel-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #7f8c8d;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+.lines-panel-close:hover {
+    background: #ecf0f1;
+    color: #2c3e50;
+}
+
+/* Content */
+.lines-panel-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
 }
 
 .lines-panel-button-new {
-    padding: 8px 16px;
+    width: 100%;
+    padding: 12px;
     background: #27ae60;
     color: white;
     border: none;
@@ -44,57 +106,117 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+.lines-panel-button-new:hover {
+    background: #229954;
 }
 
 .lines-panel-no-lines {
-    padding: 40px;
     text-align: center;
+    padding: 40px 20px;
     color: #7f8c8d;
 }
 
 .lines-panel-no-lines p {
-    font-size: 14px;
     margin: 0;
+    font-size: 14px;
 }
 
+/* List */
 .lines-panel-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .lines-panel-item {
-    padding: 16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
     border: 1px solid #ecf0f1;
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
+}
+
+.lines-panel-item:hover {
+    background: #ecf0f1;
+    border-color: #d5d5d5;
 }
 
 .lines-panel-item-name {
-    font-size: 14px;
+    font-weight: 500;
     color: #2c3e50;
+    font-size: 14px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 12px;
 }
 
 .lines-panel-item-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .lines-panel-button {
     padding: 6px 12px;
-    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 16px;
+    transition:
+        opacity 0.2s,
+        transform 0.1s;
+}
+
+.lines-panel-button:hover {
+    opacity: 0.8;
+    transform: scale(1.1);
+}
+
+.lines-panel-button:active {
+    transform: scale(0.95);
 }
 
 .lines-panel-button-edit {
-    background: #3498db;
+    background: transparent;
 }
 
 .lines-panel-button-delete {
-    background: #e74c3c;
+    background: transparent;
+}
+
+/* Scrollbar */
+.lines-panel-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.lines-panel-content::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.lines-panel-content::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.lines-panel-content::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .lines-panel {
+        width: 100%;
+        max-width: 100%;
+    }
 }

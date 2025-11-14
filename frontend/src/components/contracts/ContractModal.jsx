@@ -13,10 +13,63 @@ export default function ContractModal({
     onClose,
     onCategoryChange,
     onClientChange,
+    error,
 }) {
     if (!showModal) return null;
 
     const activeClients = clients.filter((c) => !c.archived_at);
+
+    // Convert date from yyyy-mm-dd to dd/mm/yyyy for display
+    const formatDateForDisplay = (dateString) => {
+        if (!dateString) return "";
+        const [year, month, day] = dateString.split("-");
+        return `${day}/${month}/${year}`;
+    };
+
+    // Convert date from dd/mm/yyyy to yyyy-mm-dd for API
+    const formatDateForAPI = (dateString) => {
+        if (!dateString) return "";
+        const parts = dateString.replace(/\//g, "-").split("-");
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            if (year && year.length === 4) {
+                return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            }
+        }
+        return dateString;
+    };
+
+    const handleDateChange = (field, value) => {
+        // Allow only numbers and /
+        const cleaned = value.replace(/[^\d/]/g, "");
+
+        // Auto-format as user types
+        let formatted = cleaned;
+        if (cleaned.length >= 2 && cleaned.charAt(2) !== "/") {
+            formatted = cleaned.slice(0, 2) + "/" + cleaned.slice(2);
+        }
+        if (cleaned.length >= 5 && cleaned.charAt(5) !== "/") {
+            const parts = formatted.split("/");
+            if (parts.length >= 2) {
+                formatted =
+                    parts[0] +
+                    "/" +
+                    parts[1].slice(0, 2) +
+                    "/" +
+                    parts[1].slice(2);
+            }
+        }
+
+        // Limit to dd/mm/yyyy format
+        if (formatted.length > 10) {
+            formatted = formatted.slice(0, 10);
+        }
+
+        setFormData({
+            ...formData,
+            [field]: formatted,
+        });
+    };
 
     return (
         <div
@@ -56,8 +109,26 @@ export default function ContractModal({
                         color: "#2c3e50",
                     }}
                 >
-                    {modalMode === "create" ? "Novo Contrato" : "Editar Contrato"}
+                    {modalMode === "create"
+                        ? "Novo Contrato"
+                        : "Editar Contrato"}
                 </h2>
+
+                {error && (
+                    <div
+                        style={{
+                            background: "#fee",
+                            color: "#c33",
+                            padding: "12px 16px",
+                            borderRadius: "4px",
+                            border: "1px solid #fcc",
+                            marginBottom: "20px",
+                            fontSize: "14px",
+                        }}
+                    >
+                        {error}
+                    </div>
+                )}
 
                 <form onSubmit={onSubmit}>
                     <div style={{ display: "grid", gap: "20px" }}>
@@ -97,7 +168,9 @@ export default function ContractModal({
                                 <option value="">Selecione um cliente</option>
                                 {activeClients.map((client) => (
                                     <option key={client.id} value={client.id}>
-                                        {client.name} {client.nickname && `(${client.nickname})`}
+                                        {client.name}{" "}
+                                        {client.nickname &&
+                                            `(${client.nickname})`}
                                     </option>
                                 ))}
                             </select>
@@ -124,7 +197,10 @@ export default function ContractModal({
                                         dependent_id: e.target.value,
                                     })
                                 }
-                                disabled={!formData.client_id || dependents.length === 0}
+                                disabled={
+                                    !formData.client_id ||
+                                    dependents.length === 0
+                                }
                                 style={{
                                     width: "100%",
                                     padding: "10px",
@@ -132,7 +208,11 @@ export default function ContractModal({
                                     borderRadius: "4px",
                                     fontSize: "14px",
                                     boxSizing: "border-box",
-                                    opacity: !formData.client_id || dependents.length === 0 ? 0.6 : 1,
+                                    opacity:
+                                        !formData.client_id ||
+                                        dependents.length === 0
+                                            ? 0.6
+                                            : 1,
                                 }}
                             >
                                 <option value="">Nenhum dependente</option>
@@ -177,7 +257,9 @@ export default function ContractModal({
                                     boxSizing: "border-box",
                                 }}
                             >
-                                <option value="">Selecione uma categoria</option>
+                                <option value="">
+                                    Selecione uma categoria
+                                </option>
                                 {categories.map((cat) => (
                                     <option key={cat.id} value={cat.id}>
                                         {cat.name}
@@ -207,7 +289,9 @@ export default function ContractModal({
                                         line_id: e.target.value,
                                     })
                                 }
-                                disabled={!formData.category_id || lines.length === 0}
+                                disabled={
+                                    !formData.category_id || lines.length === 0
+                                }
                                 required
                                 style={{
                                     width: "100%",
@@ -216,7 +300,11 @@ export default function ContractModal({
                                     borderRadius: "4px",
                                     fontSize: "14px",
                                     boxSizing: "border-box",
-                                    opacity: !formData.category_id || lines.length === 0 ? 0.6 : 1,
+                                    opacity:
+                                        !formData.category_id ||
+                                        lines.length === 0
+                                            ? 0.6
+                                            : 1,
                                 }}
                             >
                                 <option value="">Selecione uma linha</option>
@@ -297,7 +385,13 @@ export default function ContractModal({
                         </div>
 
                         {/* Datas */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: "16px",
+                            }}
+                        >
                             <div>
                                 <label
                                     style={{
@@ -308,18 +402,28 @@ export default function ContractModal({
                                         color: "#495057",
                                     }}
                                 >
-                                    Data de Início *
+                                    Data de Início
+                                    <span
+                                        style={{
+                                            fontSize: "12px",
+                                            color: "#7f8c8d",
+                                            marginLeft: "4px",
+                                        }}
+                                    >
+                                        (opcional)
+                                    </span>
                                 </label>
                                 <input
-                                    type="date"
+                                    type="text"
                                     value={formData.start_date}
                                     onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            start_date: e.target.value,
-                                        })
+                                        handleDateChange(
+                                            "start_date",
+                                            e.target.value,
+                                        )
                                     }
-                                    required
+                                    placeholder="dd/mm/aaaa"
+                                    maxLength="10"
                                     style={{
                                         width: "100%",
                                         padding: "10px",
@@ -340,18 +444,28 @@ export default function ContractModal({
                                         color: "#495057",
                                     }}
                                 >
-                                    Data de Vencimento *
+                                    Data de Vencimento
+                                    <span
+                                        style={{
+                                            fontSize: "12px",
+                                            color: "#7f8c8d",
+                                            marginLeft: "4px",
+                                        }}
+                                    >
+                                        (opcional)
+                                    </span>
                                 </label>
                                 <input
-                                    type="date"
+                                    type="text"
                                     value={formData.end_date}
                                     onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            end_date: e.target.value,
-                                        })
+                                        handleDateChange(
+                                            "end_date",
+                                            e.target.value,
+                                        )
                                     }
-                                    required
+                                    placeholder="dd/mm/aaaa"
+                                    maxLength="10"
                                     style={{
                                         width: "100%",
                                         padding: "10px",
@@ -362,6 +476,20 @@ export default function ContractModal({
                                     }}
                                 />
                             </div>
+                        </div>
+
+                        <div
+                            style={{
+                                fontSize: "12px",
+                                color: "#7f8c8d",
+                                marginTop: "-10px",
+                            }}
+                        >
+                            <p style={{ margin: 0 }}>
+                                💡 Dica: As datas são opcionais. Contratos sem
+                                data de término são considerados permanentes
+                                (ex: licenças vitalícias).
+                            </p>
                         </div>
                     </div>
 
@@ -401,7 +529,9 @@ export default function ContractModal({
                                 fontWeight: "600",
                             }}
                         >
-                            {modalMode === "create" ? "Criar Contrato" : "Salvar Alterações"}
+                            {modalMode === "create"
+                                ? "Criar Contrato"
+                                : "Salvar Alterações"}
                         </button>
                     </div>
                 </form>

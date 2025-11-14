@@ -1,8 +1,21 @@
--- init.sql adaptado para PostgreSQL
+-- init.sql adaptado para PostgreSQL com case-insensitive collation
+--
+-- ATENÇÃO: Este arquivo foi atualizado para incluir:
+-- 1. CITEXT para campos case-insensitive (exceto senhas)
+-- 2. Datas opcionais em contratos (start_date e end_date podem ser NULL)
+-- 3. Constraint unique para nome de linha por categoria
+--
+-- Para aplicar estas mudanças em um banco existente, você deve:
+-- DROP DATABASE contracts_manager;
+-- CREATE DATABASE contracts_manager;
+-- E então executar este script novamente.
+
+-- Extensão para case-insensitive (se necessário)
+CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
-    username VARCHAR(255) UNIQUE,
+    username CITEXT UNIQUE,
     display_name VARCHAR(255),
     password_hash VARCHAR(255),
     created_at TIMESTAMP NOT NULL,
@@ -17,11 +30,11 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS clients (
     id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    registration_id VARCHAR(255),
-    nickname VARCHAR(255),
+    name CITEXT NOT NULL,
+    registration_id CITEXT,
+    nickname CITEXT,
     birth_date DATE,
-    email VARCHAR(255),
+    email CITEXT,
     phone VARCHAR(50),
     address TEXT,
     notes TEXT,
@@ -40,11 +53,11 @@ CREATE UNIQUE INDEX unique_name_when_no_registration ON clients(name) WHERE regi
 
 CREATE TABLE IF NOT EXISTS dependents (
     id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name CITEXT NOT NULL,
     client_id UUID NOT NULL,
     description TEXT,
     birth_date DATE,
-    email VARCHAR(255),
+    email CITEXT,
     phone VARCHAR(50),
     address TEXT,
     notes TEXT,
@@ -58,22 +71,24 @@ CREATE TABLE IF NOT EXISTS dependents (
 
 CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
+    name CITEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS lines (
     id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name CITEXT NOT NULL,
     category_id UUID NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+    deleted_at TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    CONSTRAINT unique_line_name_per_category UNIQUE (category_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS contracts (
     id UUID PRIMARY KEY,
-    model VARCHAR(255),
-    product_key VARCHAR(255) UNIQUE,
-    start_date TIMESTAMP NOT NULL,
-    end_date TIMESTAMP NOT NULL,
+    model CITEXT,
+    product_key CITEXT UNIQUE,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
     line_id UUID NOT NULL,
     client_id UUID NOT NULL,
     dependent_id UUID,
@@ -88,9 +103,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     operation VARCHAR(50) NOT NULL,
     entity VARCHAR(50) NOT NULL,
-    entity_id UUID NOT NULL,
+    entity_id VARCHAR(255) NOT NULL,
     admin_id UUID,
-    admin_username VARCHAR(255),
+    admin_username CITEXT,
     old_value TEXT,
     new_value TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'success',

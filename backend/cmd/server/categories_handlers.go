@@ -199,9 +199,52 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request, ca
 }
 
 func (s *Server) handleDeleteCategory(w http.ResponseWriter, r *http.Request, categoryID string) {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldCategory, _ := s.categoryStore.GetCategoryByID(categoryID)
+	oldValueJSON, _ := json.Marshal(oldCategory)
+
 	if err := s.categoryStore.DeleteCategory(categoryID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "delete",
+				Entity:        "category",
+				EntityID:      categoryID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Log successful deletion
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "delete",
+			Entity:        "category",
+			EntityID:      categoryID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Category deleted successfully"})

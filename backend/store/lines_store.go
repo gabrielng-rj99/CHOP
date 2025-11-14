@@ -42,8 +42,8 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 	if count == 0 {
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
-	// NOVA REGRA: Nome único por categoria (case-insensitive)
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1 AND LOWER(name) = LOWER($2)", licenseline.CategoryID, trimmedName).Scan(&count)
+	// NOVA REGRA: Nome único por categoria (case-insensitive via CITEXT)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1 AND name = $2", licenseline.CategoryID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -166,7 +166,7 @@ func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE LOWER(name) LIKE LOWER($1)`
+	sqlStatement := `SELECT id, name, category_id FROM lines WHERE name LIKE $1`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {

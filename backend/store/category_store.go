@@ -86,7 +86,7 @@ func (s *CategoryStore) GetCategoriesByName(name string) ([]domain.Category, err
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name FROM categories WHERE LOWER(name) LIKE LOWER($1)`
+	sqlStatement := `SELECT id, name FROM categories WHERE name LIKE $1`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -182,15 +182,29 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 	if count == 0 {
 		return errors.New("category does not exist")
 	}
-	// NOVA REGRA: Não permitir deletar categoria com linhas associadas
-	var linesCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1", id).Scan(&linesCount)
+
+	// Check if any lines are used in active contracts
+	var contractsCount int
+	err = s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM contracts c
+		INNER JOIN lines l ON c.line_id = l.id
+		WHERE l.category_id = $1
+	`, id).Scan(&contractsCount)
 	if err != nil {
 		return err
 	}
-	if linesCount > 0 {
-		return errors.New("cannot delete category with associated lines")
+	if contractsCount > 0 {
+		return errors.New("cannot delete category: it has lines associated with active contracts")
 	}
+
+	// Delete all lines associated with this category first
+	_, err = s.db.Exec("DELETE FROM lines WHERE category_id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	// Now delete the category
 	sqlStatement := `DELETE FROM categories WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {

@@ -62,8 +62,8 @@ type Contract struct {
 	ID          string     `json:"id"`
 	Model       string     `json:"model" db:"name"`
 	ProductKey  string     `json:"product_key"`
-	StartDate   time.Time  `json:"start_date"`
-	EndDate     time.Time  `json:"end_date"`
+	StartDate   time.Time  `json:"start_date,omitempty"`
+	EndDate     time.Time  `json:"end_date,omitempty"`
 	LineID      string     `json:"line_id"`
 	ClientID    string     `json:"client_id"`
 	DependentID *string    `json:"dependent_id"` // Usamos um ponteiro para que possa ser nulo

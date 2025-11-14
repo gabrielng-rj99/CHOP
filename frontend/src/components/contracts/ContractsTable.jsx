@@ -38,7 +38,7 @@ export default function ContractsTable({
             </thead>
             <tbody>
                 {filteredContracts.map((contract) => {
-                    const status = getContractStatus(contract.end_date);
+                    const status = getContractStatus(contract);
                     const isArchived = !!contract.archived_at;
 
                     return (

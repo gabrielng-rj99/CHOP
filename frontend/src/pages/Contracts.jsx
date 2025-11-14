@@ -8,6 +8,7 @@ import {
     getContractStatus,
     getClientName,
     getCategoryName,
+    prepareContractDataForAPI,
 } from "../utils/contractHelpers";
 import ContractsTable from "../components/contracts/ContractsTable";
 import ContractModal from "../components/contracts/ContractModal";
@@ -101,7 +102,8 @@ export default function Contracts({ token, apiUrl }) {
 
     const handleCreateContract = async () => {
         try {
-            await contractsApi.createContract(apiUrl, token, formData);
+            const apiData = prepareContractDataForAPI(formData);
+            await contractsApi.createContract(apiUrl, token, apiData);
             await loadContracts();
             closeModal();
         } catch (err) {
@@ -111,11 +113,12 @@ export default function Contracts({ token, apiUrl }) {
 
     const handleUpdateContract = async () => {
         try {
+            const apiData = prepareContractDataForAPI(formData);
             await contractsApi.updateContract(
                 apiUrl,
                 token,
                 selectedContract.id,
-                formData,
+                apiData,
             );
             await loadContracts();
             closeModal();
@@ -345,6 +348,21 @@ export default function Contracts({ token, apiUrl }) {
                     Ativos
                 </button>
                 <button
+                    onClick={() => setFilter("not-started")}
+                    style={{
+                        padding: "8px 16px",
+                        background:
+                            filter === "not-started" ? "#3498db" : "white",
+                        color: filter === "not-started" ? "white" : "#2c3e50",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                    }}
+                >
+                    Não Iniciados
+                </button>
+                <button
                     onClick={() => setFilter("expiring")}
                     style={{
                         padding: "8px 16px",
@@ -436,6 +454,7 @@ export default function Contracts({ token, apiUrl }) {
                 onClose={closeModal}
                 onCategoryChange={handleCategoryChange}
                 onClientChange={handleClientChange}
+                error={error}
             />
 
             {showDetailsModal && selectedContract && (

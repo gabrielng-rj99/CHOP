@@ -35,9 +35,7 @@ export const auditApi = {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(
-                error.error || "Erro ao carregar logs de auditoria",
-            );
+            throw new Error(error.error || "Erro ao carregar logs");
         }
 
         return await response.json();
@@ -90,9 +88,7 @@ export const auditApi = {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(
-                error.error || "Erro ao carregar logs de auditoria",
-            );
+            throw new Error(error.error || "Erro ao carregar logs");
         }
 
         return await response.json();
@@ -124,7 +120,7 @@ export const auditApi = {
         );
 
         if (!response.ok) {
-            throw new Error("Erro ao exportar logs de auditoria");
+            throw new Error("Erro ao exportar logs");
         }
 
         return await response.json();

@@ -183,7 +183,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <h1 style={titleStyle}>Logs de Auditoria</h1>
+                <h1 style={titleStyle}>Logs</h1>
                 <div style={buttonGroupStyle}>
                     <button onClick={loadLogs} style={secondaryButtonStyle}>
                         Atualizar

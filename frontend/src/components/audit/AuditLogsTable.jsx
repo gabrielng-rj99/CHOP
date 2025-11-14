@@ -7,7 +7,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
         return (
             <div style={{ textAlign: "center", padding: "40px" }}>
                 <div style={{ fontSize: "16px", color: "#7f8c8d" }}>
-                    Carregando logs de auditoria...
+                    Carregando logs...
                 </div>
             </div>
         );
