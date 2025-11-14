@@ -98,6 +98,22 @@
     background: #3498db;
 }
 
+.clients-table-icon-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.clients-table-icon-button:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .clients-table-button-dependents {
     background: #9b59b6;
 }

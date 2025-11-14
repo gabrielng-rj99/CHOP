@@ -61,35 +61,110 @@ export default function ClientsTable({
                                 <div className="clients-table-actions">
                                     <button
                                         onClick={() => openEditModal(client)}
-                                        className="clients-table-button clients-table-button-edit"
+                                        className="clients-table-icon-button"
+                                        title="Editar"
                                     >
-                                        Editar
+                                        <svg
+                                            width="22"
+                                            height="22"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="#3498db"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <path d="M12 20h9" />
+                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                        </svg>
                                     </button>
                                     <button
                                         onClick={() =>
                                             openDependentsModal(client)
                                         }
-                                        className="clients-table-button clients-table-button-dependents"
+                                        className="clients-table-icon-button"
+                                        title="Filiais/Dependentes"
                                     >
-                                        Dependentes
+                                        <svg
+                                            width="22"
+                                            height="22"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="#9b59b6"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle
+                                                cx="9"
+                                                cy="7"
+                                                r="4"
+                                            ></circle>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
                                     </button>
                                     {isArchived ? (
                                         <button
                                             onClick={() =>
                                                 unarchiveClient(client.id)
                                             }
-                                            className="clients-table-button clients-table-button-unarchive"
+                                            className="clients-table-icon-button"
+                                            title="Desarquivar"
                                         >
-                                            Desarquivar
+                                            <svg
+                                                width="22"
+                                                height="22"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="#27ae60"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                                <rect
+                                                    x="1"
+                                                    y="3"
+                                                    width="22"
+                                                    height="5"
+                                                ></rect>
+                                                <polyline points="10 12 12 14 14 12"></polyline>
+                                            </svg>
                                         </button>
                                     ) : (
                                         <button
                                             onClick={() =>
                                                 archiveClient(client.id)
                                             }
-                                            className="clients-table-button clients-table-button-archive"
+                                            className="clients-table-icon-button"
+                                            title="Arquivar"
                                         >
-                                            Arquivar
+                                            <svg
+                                                width="22"
+                                                height="22"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="#f39c12"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                                <rect
+                                                    x="1"
+                                                    y="3"
+                                                    width="22"
+                                                    height="5"
+                                                ></rect>
+                                                <line
+                                                    x1="10"
+                                                    y1="12"
+                                                    x2="14"
+                                                    y2="12"
+                                                ></line>
+                                            </svg>
                                         </button>
                                     )}
                                 </div>

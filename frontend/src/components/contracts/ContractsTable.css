@@ -99,6 +99,22 @@
     font-size: 13px;
 }
 
+.contracts-table-icon-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.contracts-table-icon-button:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .contracts-table-button-details {
     background: #9b59b6;
 }

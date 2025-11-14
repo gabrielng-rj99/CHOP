@@ -88,25 +88,90 @@ export default function ContractsTable({
                                 <div className="contracts-table-actions">
                                     <button
                                         onClick={() => onViewDetails(contract)}
-                                        className="contracts-table-button contracts-table-button-details"
+                                        className="contracts-table-icon-button"
+                                        title="Detalhes"
                                     >
-                                        Detalhes
+                                        <svg
+                                            width="22"
+                                            height="22"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="#3498db"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <circle
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                            ></circle>
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12"
+                                                y2="12"
+                                            ></line>
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12.01"
+                                                y2="8"
+                                            ></line>
+                                        </svg>
                                     </button>
                                     {!isArchived && (
                                         <>
                                             <button
                                                 onClick={() => onEdit(contract)}
-                                                className="contracts-table-button contracts-table-button-edit"
+                                                className="contracts-table-icon-button"
+                                                title="Editar"
                                             >
-                                                Editar
+                                                <svg
+                                                    width="22"
+                                                    height="22"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="#3498db"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M12 20h9" />
+                                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                                </svg>
                                             </button>
                                             <button
                                                 onClick={() =>
                                                     onArchive(contract.id)
                                                 }
-                                                className="contracts-table-button contracts-table-button-archive"
+                                                className="contracts-table-icon-button"
+                                                title="Arquivar"
                                             >
-                                                Arquivar
+                                                <svg
+                                                    width="22"
+                                                    height="22"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="#f39c12"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                                    <rect
+                                                        x="1"
+                                                        y="3"
+                                                        width="22"
+                                                        height="5"
+                                                    ></rect>
+                                                    <line
+                                                        x1="10"
+                                                        y1="12"
+                                                        x2="14"
+                                                        y2="12"
+                                                    ></line>
+                                                </svg>
                                             </button>
                                         </>
                                     )}
@@ -115,9 +180,28 @@ export default function ContractsTable({
                                             onClick={() =>
                                                 onUnarchive(contract.id)
                                             }
-                                            className="contracts-table-button contracts-table-button-unarchive"
+                                            className="contracts-table-icon-button"
+                                            title="Desarquivar"
                                         >
-                                            Desarquivar
+                                            <svg
+                                                width="22"
+                                                height="22"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="#27ae60"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                                <rect
+                                                    x="1"
+                                                    y="3"
+                                                    width="22"
+                                                    height="5"
+                                                ></rect>
+                                                <polyline points="10 12 12 14 14 12"></polyline>
+                                            </svg>
                                         </button>
                                     )}
                                 </div>
