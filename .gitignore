@@ -1,20 +1,36 @@
-# Arquivo .gitignore
+# =========================
+# Logs
+# =========================
+*.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Arquivos de banco de dados locais
+# =========================
+# Banco de dados locais
+# =========================
 *.db
 *.sqlite
 *.sqlite3
 
-# Arquivos de log
-*.log
-
-# Binários compilados do Go
-# (O nome do seu projeto, se compilar)
+# =========================
+# Binários compilados (Go, Node, etc)
+# =========================
 Licenses-Manager
 backend/cli
 backend/tools
+*.exe
+*.o
+*.a
+*.so
+backend/cmd/server/server
 
-# Coverage e relatórios (devem ser gerados localmente)
+# =========================
+# Coverage e relatórios
+# =========================
 coverage.html
 coverage.out
 *.coverage
@@ -22,23 +38,40 @@ coverage.out
 coverage/
 dist/
 build/
+dist-ssr
 
+# =========================
 # Dependências e build
+# =========================
 node_modules/
-dist/
-build/
-*.exe
-*.o
-*.a
-*.so
+.turbo
 
-# IDE e Editor
+# =========================
+# Editor/IDE
+# =========================
 .vscode/
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# OS
+# =========================
+# OS/Arquivos temporários
+# =========================
 .DS_Store
 Thumbs.db
+
+# =========================
+# Variáveis de ambiente
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
