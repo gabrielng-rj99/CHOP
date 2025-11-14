@@ -6,6 +6,7 @@ import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
+import "./App.css";
 
 const API_URL = "http://localhost:3000";
 
@@ -116,97 +117,34 @@ function App() {
     }
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh" }}>
-            <nav
-                style={{
-                    width: "250px",
-                    background: "#2c3e50",
-                    color: "white",
-                    padding: "20px",
-                    display: "flex",
-                    flexDirection: "column",
-                }}
-            >
-                <h2 style={{ marginBottom: "30px", fontSize: "20px" }}>
-                    Contract Manager
-                </h2>
+        <div className="app-container">
+            <nav className="app-nav">
+                <h2 className="app-nav-title">Contract Manager</h2>
 
                 <button
                     onClick={() => navigate("dashboard")}
-                    style={{
-                        background:
-                            currentPage === "dashboard"
-                                ? "#34495e"
-                                : "transparent",
-                        color: "white",
-                        border: "none",
-                        padding: "12px 16px",
-                        marginBottom: "8px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className={`app-nav-button ${currentPage === "dashboard" ? "active" : ""}`}
                 >
                     Dashboard
                 </button>
 
                 <button
                     onClick={() => navigate("contracts")}
-                    style={{
-                        background:
-                            currentPage === "contracts"
-                                ? "#34495e"
-                                : "transparent",
-                        color: "white",
-                        border: "none",
-                        padding: "12px 16px",
-                        marginBottom: "8px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className={`app-nav-button ${currentPage === "contracts" ? "active" : ""}`}
                 >
                     Contratos
                 </button>
 
                 <button
                     onClick={() => navigate("clients")}
-                    style={{
-                        background:
-                            currentPage === "clients"
-                                ? "#34495e"
-                                : "transparent",
-                        color: "white",
-                        border: "none",
-                        padding: "12px 16px",
-                        marginBottom: "8px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className={`app-nav-button ${currentPage === "clients" ? "active" : ""}`}
                 >
                     Clientes
                 </button>
 
                 <button
                     onClick={() => navigate("categories")}
-                    style={{
-                        background:
-                            currentPage === "categories"
-                                ? "#34495e"
-                                : "transparent",
-                        color: "white",
-                        border: "none",
-                        padding: "12px 16px",
-                        marginBottom: "8px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className={`app-nav-button ${currentPage === "categories" ? "active" : ""}`}
                 >
                     Categorias
                 </button>
@@ -214,20 +152,7 @@ function App() {
                 {(user.role === "admin" || user.role === "full_admin") && (
                     <button
                         onClick={() => navigate("users")}
-                        style={{
-                            background:
-                                currentPage === "users"
-                                    ? "#34495e"
-                                    : "transparent",
-                            color: "white",
-                            border: "none",
-                            padding: "12px 16px",
-                            marginBottom: "8px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                        }}
+                        className={`app-nav-button ${currentPage === "users" ? "active" : ""}`}
                     >
                         Usuários
                     </button>
@@ -236,66 +161,25 @@ function App() {
                 {user.role === "full_admin" && (
                     <button
                         onClick={() => navigate("audit-logs")}
-                        style={{
-                            background:
-                                currentPage === "audit-logs"
-                                    ? "#34495e"
-                                    : "transparent",
-                            color: "white",
-                            border: "none",
-                            padding: "12px 16px",
-                            marginBottom: "8px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                        }}
+                        className={`app-nav-button ${currentPage === "audit-logs" ? "active" : ""}`}
                     >
                         Logs de Auditoria
                     </button>
                 )}
 
-                <div
-                    style={{
-                        marginTop: "auto",
-                        paddingTop: "20px",
-                        borderTop: "1px solid #34495e",
-                    }}
-                >
-                    <div style={{ marginBottom: "16px", fontSize: "13px" }}>
-                        <div style={{ opacity: 0.7 }}>Usuário:</div>
-                        <div style={{ fontWeight: "bold" }}>
-                            {user.username}
-                        </div>
-                        <div
-                            style={{
-                                opacity: 0.7,
-                                textTransform: "capitalize",
-                                fontSize: "12px",
-                            }}
-                        >
-                            {user.role}
-                        </div>
+                <div className="app-nav-footer">
+                    <div className="app-nav-user-info">
+                        <div className="app-nav-user-label">Usuário:</div>
+                        <div className="app-nav-user-name">{user.username}</div>
+                        <div className="app-nav-user-role">{user.role}</div>
                     </div>
-                    <button
-                        onClick={logout}
-                        style={{
-                            width: "100%",
-                            background: "#e74c3c",
-                            color: "white",
-                            border: "none",
-                            padding: "10px",
-                            cursor: "pointer",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                        }}
-                    >
+                    <button onClick={logout} className="app-nav-logout-button">
                         Sair
                     </button>
                 </div>
             </nav>
 
-            <main style={{ flex: 1, padding: "20px" }}>
+            <main className="app-main">
                 {currentPage === "dashboard" && (
                     <Dashboard token={token} apiUrl={API_URL} />
                 )}
