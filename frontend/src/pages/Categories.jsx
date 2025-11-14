@@ -223,7 +223,23 @@ export default function Categories({ token, apiUrl }) {
         await loadLines(category.id);
     };
 
-    const filteredCategories = filterCategories(categories, searchTerm);
+    function compareAlphaNum(a, b) {
+        const regex = /(.*?)(\d+)$/;
+        const aMatch = (a.name || "").match(regex);
+        const bMatch = (b.name || "").match(regex);
+
+        if (aMatch && bMatch && aMatch[1] === bMatch[1]) {
+            // Se prefixo igual, compara número como inteiro
+            return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+        }
+        // Caso contrário, ordena normalmente
+        return (a.name || "").localeCompare(b.name || "");
+    }
+
+    const filteredCategories = filterCategories(
+        [...categories].sort(compareAlphaNum),
+        searchTerm,
+    );
 
     if (loading) {
         return (

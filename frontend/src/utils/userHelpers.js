@@ -4,10 +4,11 @@ export const filterUsers = (users, searchTerm) => {
     }
 
     const search = searchTerm.toLowerCase();
-    return users.filter((user) =>
-        user.username?.toLowerCase().includes(search) ||
-        user.display_name?.toLowerCase().includes(search) ||
-        user.role?.toLowerCase().includes(search)
+    return users.filter(
+        (user) =>
+            user.username?.toLowerCase().includes(search) ||
+            user.display_name?.toLowerCase().includes(search) ||
+            user.role?.toLowerCase().includes(search),
     );
 };
 

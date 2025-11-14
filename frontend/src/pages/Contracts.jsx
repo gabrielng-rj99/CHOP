@@ -211,8 +211,25 @@ export default function Contracts({ token, apiUrl }) {
         }
     };
 
+    function compareContracts(a, b) {
+        const now = new Date();
+        const aEnd = new Date(a.end_date);
+        const bEnd = new Date(b.end_date);
+
+        // Contratos arquivados sempre por último
+        if (a.archived_at && !b.archived_at) return 1;
+        if (!a.archived_at && b.archived_at) return -1;
+        if (a.archived_at && b.archived_at) return 0;
+
+        const aDiff = aEnd - now;
+        const bDiff = bEnd - now;
+
+        // Quanto mais negativo, mais em cima
+        return aDiff - bDiff;
+    }
+
     const filteredContracts = filterContracts(
-        contracts,
+        [...contracts].sort(compareContracts),
         filter,
         searchTerm,
         clients,
@@ -472,7 +489,10 @@ export default function Contracts({ token, apiUrl }) {
                             />
                             <DetailRow
                                 label="Cliente"
-                                value={getClientName(selectedContract.client_id, clients)}
+                                value={getClientName(
+                                    selectedContract.client_id,
+                                    clients,
+                                )}
                             />
                             {selectedContract.dependent && (
                                 <DetailRow
@@ -482,7 +502,10 @@ export default function Contracts({ token, apiUrl }) {
                             )}
                             <DetailRow
                                 label="Categoria"
-                                value={getCategoryName(selectedContract.line_id, categories)}
+                                value={getCategoryName(
+                                    selectedContract.line_id,
+                                    categories,
+                                )}
                             />
                             <DetailRow
                                 label="Linha"

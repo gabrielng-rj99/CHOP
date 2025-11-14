@@ -5,29 +5,25 @@ export const formatDate = (dateString) => {
 };
 
 export const filterClients = (clients, filter, searchTerm) => {
-    return clients
-        .filter((client) => {
-            const matchesFilter =
-                (filter === "active" &&
-                    !client.archived_at &&
-                    client.status === "ativo") ||
-                (filter === "archived" && !!client.archived_at) ||
-                (filter === "all" && !client.archived_at);
+    return clients.filter((client) => {
+        const matchesFilter =
+            (filter === "active" &&
+                !client.archived_at &&
+                client.status === "ativo") ||
+            (filter === "archived" && !!client.archived_at) ||
+            (filter === "all" && !client.archived_at);
 
-            const matchesSearch =
-                searchTerm === "" ||
-                client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                client.nickname
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-                client.registration_id
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-                client.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch =
+            searchTerm === "" ||
+            client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.registration_id
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+            client.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-            return matchesFilter && matchesSearch;
-        })
-        .sort((a, b) => a.name.localeCompare(b.name));
+        return matchesFilter && matchesSearch;
+    });
 };
 
 export const getInitialFormData = () => ({

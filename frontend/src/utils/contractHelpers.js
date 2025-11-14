@@ -29,7 +29,7 @@ export const formatDate = (dateString) => {
 export const getContractStatus = (endDate) => {
     const now = new Date();
     const daysUntilExpiration = Math.ceil(
-        (new Date(endDate) - now) / (1000 * 60 * 60 * 24)
+        (new Date(endDate) - now) / (1000 * 60 * 60 * 24),
     );
 
     if (daysUntilExpiration < 0) {
@@ -41,34 +41,42 @@ export const getContractStatus = (endDate) => {
     }
 };
 
-export const filterContracts = (contracts, filter, searchTerm, clients, categories) => {
-    return contracts
-        .filter((contract) => {
-            const isArchived = !!contract.archived_at;
-            const status = getContractStatus(contract.end_date).status;
+export const filterContracts = (
+    contracts,
+    filter,
+    searchTerm,
+    clients,
+    categories,
+) => {
+    return contracts.filter((contract) => {
+        const isArchived = !!contract.archived_at;
+        const status = getContractStatus(contract.end_date).status;
 
-            const matchesFilter =
-                (filter === "active" && !isArchived && status === "Ativo") ||
-                (filter === "expiring" && !isArchived && status === "Próximo ao vencimento") ||
-                (filter === "expired" && !isArchived && status === "Expirado") ||
-                (filter === "archived" && isArchived) ||
-                (filter === "all" && !isArchived);
+        const matchesFilter =
+            (filter === "active" && !isArchived && status === "Ativo") ||
+            (filter === "expiring" &&
+                !isArchived &&
+                status === "Próximo ao vencimento") ||
+            (filter === "expired" && !isArchived && status === "Expirado") ||
+            (filter === "archived" && isArchived) ||
+            (filter === "all" && !isArchived);
 
-            const client = clients.find((c) => c.id === contract.client_id);
-            const category = categories.find((cat) =>
-                cat.lines?.some((line) => line.id === contract.line_id)
-            );
+        const client = clients.find((c) => c.id === contract.client_id);
+        const category = categories.find((cat) =>
+            cat.lines?.some((line) => line.id === contract.line_id),
+        );
 
-            const matchesSearch =
-                searchTerm === "" ||
-                contract.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                contract.product_key?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                category?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch =
+            searchTerm === "" ||
+            contract.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contract.product_key
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+            client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            category?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-            return matchesFilter && matchesSearch;
-        })
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        return matchesFilter && matchesSearch;
+    });
 };
 
 export const getClientName = (clientId, clients) => {
@@ -78,7 +86,7 @@ export const getClientName = (clientId, clients) => {
 
 export const getCategoryName = (lineId, categories) => {
     const category = categories.find((cat) =>
-        cat.lines?.some((line) => line.id === lineId)
+        cat.lines?.some((line) => line.id === lineId),
     );
     return category?.name || "-";
 };

@@ -207,7 +207,24 @@ export default function Clients({ token, apiUrl }) {
         setDependentForm(getInitialDependentForm());
     };
 
-    const filteredClients = filterClients(clients, filter, searchTerm);
+    function compareAlphaNum(a, b) {
+        const regex = /(.*?)(\d+)$/;
+        const aVal = (a.name || "").trim();
+        const bVal = (b.name || "").trim();
+        const aMatch = aVal.match(regex);
+        const bMatch = bVal.match(regex);
+
+        if (aMatch && bMatch && aMatch[1] === bMatch[1]) {
+            return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+        }
+        return aVal.localeCompare(bVal);
+    }
+
+    const filteredClients = filterClients(
+        [...clients].sort(compareAlphaNum),
+        filter,
+        searchTerm,
+    );
 
     if (loading) {
         return (

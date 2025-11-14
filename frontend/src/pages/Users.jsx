@@ -171,7 +171,23 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         }
     };
 
-    const filteredUsers = filterUsers(users, searchTerm);
+    function compareAlphaNum(a, b) {
+        const regex = /(.*?)(\d+)$/;
+        const aMatch = (a.username || "").match(regex);
+        const bMatch = (b.username || "").match(regex);
+
+        if (aMatch && bMatch && aMatch[1] === bMatch[1]) {
+            // Se prefixo igual, compara número como inteiro
+            return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+        }
+        // Caso contrário, ordena normalmente
+        return (a.username || "").localeCompare(b.username || "");
+    }
+
+    const filteredUsers = filterUsers(
+        [...users].sort(compareAlphaNum),
+        searchTerm,
+    );
 
     if (loading) {
         return (
