@@ -1,7 +1,17 @@
 export const formatDate = (dateString) => {
     if (!dateString) return "-";
+    // Parse date correctly to avoid timezone issues
+    // If format is yyyy-mm-dd, parse manually
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const [year, month, day] = dateString.split("T")[0].split("-");
+        return `${day}/${month}/${year}`;
+    }
     const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR");
+    return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
 };
 
 export const filterClients = (clients, filter, searchTerm) => {
@@ -10,8 +20,11 @@ export const filterClients = (clients, filter, searchTerm) => {
             (filter === "active" &&
                 !client.archived_at &&
                 client.status === "ativo") ||
+            (filter === "inactive" &&
+                !client.archived_at &&
+                client.status === "inativo") ||
             (filter === "archived" && !!client.archived_at) ||
-            (filter === "all" && !client.archived_at);
+            filter === "all";
 
         const matchesSearch =
             searchTerm === "" ||
@@ -37,6 +50,7 @@ export const getInitialFormData = () => ({
     notes: "",
     contact_preference: "",
     tags: "",
+    status: "ativo",
 });
 
 export const getInitialDependentForm = () => ({
@@ -57,6 +71,7 @@ export const formatClientForEdit = (client) => ({
     notes: client.notes || "",
     contact_preference: client.contact_preference || "",
     tags: client.tags || "",
+    status: client.status || "ativo",
 });
 
 export const formatDependentForEdit = (dependent) => ({

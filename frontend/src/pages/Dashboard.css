@@ -48,27 +48,27 @@
     width: 100%;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1400px) {
     .dashboard-stats-grid {
-        grid-template-columns: repeat(6, 1fr); /* 6x1 */
+        grid-template-columns: repeat(8, 1fr); /* 8x1 */
     }
 }
 
-@media (min-width: 900px) and (max-width: 1199px) {
+@media (min-width: 1000px) and (max-width: 1399px) {
     .dashboard-stats-grid {
-        grid-template-columns: repeat(3, 1fr); /* 3x2 */
+        grid-template-columns: repeat(4, 1fr); /* 4x2 */
     }
 }
 
-@media (min-width: 600px) and (max-width: 899px) {
+@media (min-width: 600px) and (max-width: 999px) {
     .dashboard-stats-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2x3 */
+        grid-template-columns: repeat(2, 1fr); /* 2x4 */
     }
 }
 
 @media (max-width: 599px) {
     .dashboard-stats-grid {
-        grid-template-columns: 1fr; /* 1x6 */
+        grid-template-columns: 1fr; /* 1x8 */
     }
 }
 
@@ -113,6 +113,18 @@
 
 .dashboard-stat-value.archived {
     color: #95a5a6;
+}
+
+.dashboard-stat-value.inactive {
+    color: #e67e22;
+}
+
+.dashboard-stat-value.categories {
+    color: #9b59b6;
+}
+
+.dashboard-stat-value.lines {
+    color: #1abc9c;
 }
 
 .dashboard-content-grid {
@@ -172,6 +184,11 @@
     border-color: #d5d5d5;
 }
 
+.dashboard-contract-item.clients {
+    background: #e6f7ff;
+    border-color: #b3e0ff;
+}
+
 .dashboard-contract-model {
     font-weight: 600;
     color: #2c3e50;
@@ -203,4 +220,8 @@
 
 .dashboard-contract-days.archived {
     color: #95a5a6;
+}
+
+.dashboard-contract-days.clients {
+    color: #3498db;
 }

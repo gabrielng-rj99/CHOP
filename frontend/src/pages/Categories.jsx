@@ -11,12 +11,15 @@ import CategoriesTable from "../components/categories/CategoriesTable";
 import CategoryModal from "../components/categories/CategoryModal";
 import LinesPanel from "../components/categories/LinesPanel";
 import LineModal from "../components/categories/LineModal";
+import "./Categories.css";
 
 export default function Categories({ token, apiUrl }) {
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
+    const [allLines, setAllLines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [lineModalError, setLineModalError] = useState("");
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [showLineModal, setShowLineModal] = useState(false);
@@ -37,6 +40,16 @@ export default function Categories({ token, apiUrl }) {
         try {
             const data = await categoriesApi.loadCategories(apiUrl, token);
             setCategories(data);
+
+            // Load all lines for all categories for search functionality
+            const allLinesPromises = data.map((category) =>
+                categoriesApi
+                    .loadLines(apiUrl, token, category.id)
+                    .catch(() => []),
+            );
+            const allLinesResults = await Promise.all(allLinesPromises);
+            const flattenedLines = allLinesResults.flat();
+            setAllLines(flattenedLines);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -132,6 +145,7 @@ export default function Categories({ token, apiUrl }) {
     };
 
     const handleCreateLine = async () => {
+        setLineModalError("");
         try {
             const lineData = {
                 line: lineForm.line,
@@ -141,11 +155,12 @@ export default function Categories({ token, apiUrl }) {
             await loadLines(selectedCategory.id);
             closeLineModal();
         } catch (err) {
-            setError(err.message);
+            setLineModalError(err.message);
         }
     };
 
     const handleUpdateLine = async () => {
+        setLineModalError("");
         try {
             await categoriesApi.updateLine(
                 apiUrl,
@@ -156,7 +171,7 @@ export default function Categories({ token, apiUrl }) {
             await loadLines(selectedCategory.id);
             closeLineModal();
         } catch (err) {
-            setError(err.message);
+            setLineModalError(err.message);
         }
     };
 
@@ -214,7 +229,7 @@ export default function Categories({ token, apiUrl }) {
         setShowLineModal(false);
         setSelectedLine(null);
         setLineForm(getInitialLineForm());
-        setError("");
+        setLineModalError("");
     };
 
     const handleCategorySubmit = (e) => {
@@ -256,12 +271,13 @@ export default function Categories({ token, apiUrl }) {
     const filteredCategories = filterCategories(
         [...categories].sort(compareAlphaNum),
         searchTerm,
+        allLines,
     );
 
     if (loading) {
         return (
-            <div style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: "18px", color: "#7f8c8d" }}>
+            <div className="categories-loading">
+                <div className="categories-loading-text">
                     Carregando categorias...
                 </div>
             </div>
@@ -269,45 +285,21 @@ export default function Categories({ token, apiUrl }) {
     }
 
     return (
-        <div>
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "30px",
-                }}
-            >
-                <h1 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>
-                    Categorias e Linhas
+        <div className="categories-container">
+            <div className="categories-header">
+                <h1 className="categories-title">
+                    Categorias e Linhas dos Produtos
                 </h1>
-                <div style={{ display: "flex", gap: "12px" }}>
+                <div className="categories-button-group">
                     <button
                         onClick={loadCategories}
-                        style={{
-                            padding: "10px 20px",
-                            background: "white",
-                            color: "#3498db",
-                            border: "1px solid #3498db",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
+                        className="categories-button-secondary"
                     >
                         Atualizar
                     </button>
                     <button
                         onClick={openCreateCategoryModal}
-                        style={{
-                            padding: "10px 20px",
-                            background: "#27ae60",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                        }}
+                        className="categories-button"
                     >
                         + Nova Categoria
                     </button>
@@ -315,62 +307,36 @@ export default function Categories({ token, apiUrl }) {
             </div>
 
             {error && !showCategoryModal && (
-                <div
-                    style={{
-                        background: "#fee",
-                        color: "#c33",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #fcc",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {error}
-                </div>
+                <div className="categories-error">{error}</div>
             )}
 
-            <div style={{ marginBottom: "20px" }}>
+            <div className="categories-search-container">
                 <input
                     type="text"
-                    placeholder="Buscar categorias..."
+                    placeholder="Buscar categorias (ou linhas do produto)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        width: "100%",
-                        maxWidth: "400px",
-                        padding: "10px 16px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className="categories-search-input"
                 />
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #ecf0f1",
-                    overflow: "hidden",
-                }}
-            >
-                <div
-                    style={{
-                        padding: "20px",
-                        background: "#f8f9fa",
-                        borderBottom: "1px solid #dee2e6",
-                    }}
-                >
-                    <h2
-                        style={{
-                            margin: 0,
-                            fontSize: "20px",
-                            color: "#2c3e50",
-                        }}
-                    >
+            <div className="categories-table-wrapper">
+                <div className="categories-table-header">
+                    <h2 className="categories-table-header-title">
                         Categorias
                     </h2>
+                    <div className="categories-table-hint">
+                        Clique no ícone{" "}
+                        <i
+                            className="fa-light fa-box-open"
+                            style={{
+                                fontSize: "14px",
+                                color: "#9b59b6",
+                                verticalAlign: "middle",
+                            }}
+                        ></i>{" "}
+                        para visualizar as linhas
+                    </div>
                 </div>
                 <CategoriesTable
                     filteredCategories={filteredCategories}
@@ -409,6 +375,7 @@ export default function Categories({ token, apiUrl }) {
                 setLineForm={setLineForm}
                 onSubmit={handleLineSubmit}
                 onClose={closeLineModal}
+                error={lineModalError}
             />
         </div>
     );

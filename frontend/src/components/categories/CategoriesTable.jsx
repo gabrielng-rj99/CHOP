@@ -34,9 +34,7 @@ export default function CategoriesTable({
                                 : ""
                         }
                     >
-                        <td onClick={() => onSelectCategory(category)}>
-                            {category.name}
-                        </td>
+                        <td>{category.name}</td>
                         <td className="actions">
                             <div className="categories-table-actions">
                                 <button
@@ -60,6 +58,22 @@ export default function CategoriesTable({
                                         <path d="M12 20h9" />
                                         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                                     </svg>
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectCategory(category);
+                                    }}
+                                    className="categories-table-icon-button"
+                                    title="Ver Linhas"
+                                >
+                                    <i
+                                        className="fa-light fa-box-open"
+                                        style={{
+                                            fontSize: "18px",
+                                            color: "#9b59b6",
+                                        }}
+                                    ></i>
                                 </button>
                                 <button
                                     onClick={(e) => {

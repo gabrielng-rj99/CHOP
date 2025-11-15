@@ -36,6 +36,16 @@ export const getRoleName = (role) => {
 
 export const formatDate = (dateString) => {
     if (!dateString) return "-";
+    // Parse date correctly to avoid timezone issues
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const [datePart, timePart] = dateString.split("T");
+        const [year, month, day] = datePart.split("-");
+        if (timePart) {
+            const [hour, minute] = timePart.split(":");
+            return `${day}/${month}/${year} ${hour}:${minute}`;
+        }
+        return `${day}/${month}/${year}`;
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR", {
         day: "2-digit",

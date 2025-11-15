@@ -24,13 +24,17 @@ export const clientsApi = {
             name: formData.name,
             registration_id: formData.registration_id || null,
             nickname: formData.nickname || null,
-            birth_date: formData.birth_date || null,
+            birth_date:
+                formData.birth_date && formData.birth_date.trim() !== ""
+                    ? formData.birth_date
+                    : null,
             email: formData.email || null,
             phone: formData.phone || null,
             address: formData.address || null,
             notes: formData.notes || null,
             contact_preference: formData.contact_preference || null,
             tags: formData.tags || null,
+            status: formData.status || "ativo",
         };
 
         const response = await fetch(`${apiUrl}/api/clients`, {
@@ -55,13 +59,17 @@ export const clientsApi = {
             name: formData.name,
             registration_id: formData.registration_id || null,
             nickname: formData.nickname || null,
-            birth_date: formData.birth_date || null,
+            birth_date:
+                formData.birth_date && formData.birth_date.trim() !== ""
+                    ? formData.birth_date
+                    : null,
             email: formData.email || null,
             phone: formData.phone || null,
             address: formData.address || null,
             notes: formData.notes || null,
             contact_preference: formData.contact_preference || null,
             tags: formData.tags || null,
+            status: formData.status || "ativo",
         };
 
         const response = await fetch(`${apiUrl}/api/clients/${clientId}`, {
@@ -90,7 +98,7 @@ export const clientsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
@@ -109,7 +117,7 @@ export const clientsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
@@ -127,7 +135,7 @@ export const clientsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
@@ -142,7 +150,11 @@ export const clientsApi = {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
-            birth_date: dependentForm.birth_date || null,
+            birth_date:
+                dependentForm.birth_date &&
+                dependentForm.birth_date.trim() !== ""
+                    ? dependentForm.birth_date
+                    : null,
             phone: dependentForm.phone || null,
         };
 
@@ -155,7 +167,7 @@ export const clientsApi = {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),
-            }
+            },
         );
 
         if (!response.ok) {
@@ -170,7 +182,11 @@ export const clientsApi = {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
-            birth_date: dependentForm.birth_date || null,
+            birth_date:
+                dependentForm.birth_date &&
+                dependentForm.birth_date.trim() !== ""
+                    ? dependentForm.birth_date
+                    : null,
             phone: dependentForm.phone || null,
         };
 
@@ -183,14 +199,12 @@ export const clientsApi = {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),
-            }
+            },
         );
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(
-                errorData.error || "Erro ao atualizar dependente"
-            );
+            throw new Error(errorData.error || "Erro ao atualizar dependente");
         }
 
         return response.json();
@@ -205,7 +219,7 @@ export const clientsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {

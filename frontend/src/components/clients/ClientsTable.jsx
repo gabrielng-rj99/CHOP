@@ -4,7 +4,7 @@ import "./ClientsTable.css";
 export default function ClientsTable({
     filteredClients,
     openEditModal,
-    openDependentsModal,
+    openDependentsPanel,
     archiveClient,
     unarchiveClient,
 }) {
@@ -80,30 +80,18 @@ export default function ClientsTable({
                                     </button>
                                     <button
                                         onClick={() =>
-                                            openDependentsModal(client)
+                                            openDependentsPanel(client)
                                         }
                                         className="clients-table-icon-button"
                                         title="Filiais/Dependentes"
                                     >
-                                        <svg
-                                            width="22"
-                                            height="22"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="#9b59b6"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                            <circle
-                                                cx="9"
-                                                cy="7"
-                                                r="4"
-                                            ></circle>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                        </svg>
+                                        <i
+                                            className="fa-solid fa-code-branch"
+                                            style={{
+                                                fontSize: "18px",
+                                                color: "#9b59b6",
+                                            }}
+                                        ></i>
                                     </button>
                                     {isArchived ? (
                                         <button

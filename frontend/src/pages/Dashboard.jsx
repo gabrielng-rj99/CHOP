@@ -4,8 +4,12 @@ import "./Dashboard.css";
 export default function Dashboard({ token, apiUrl }) {
     const [contracts, setContracts] = useState([]);
     const [clients, setClients] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [showBirthdays, setShowBirthdays] = useState(false);
+    const [birthdayFilter, setBirthdayFilter] = useState("month"); // 'month' or 'day'
 
     useEffect(() => {
         loadData();
@@ -21,20 +25,39 @@ export default function Dashboard({ token, apiUrl }) {
                 "Content-Type": "application/json",
             };
 
-            const [contractsRes, clientsRes] = await Promise.all([
-                fetch(`${apiUrl}/api/contracts`, { headers }),
-                fetch(`${apiUrl}/api/clients`, { headers }),
-            ]);
+            const [contractsRes, clientsRes, categoriesRes] = await Promise.all(
+                [
+                    fetch(`${apiUrl}/api/contracts`, { headers }),
+                    fetch(`${apiUrl}/api/clients`, { headers }),
+                    fetch(`${apiUrl}/api/categories`, { headers }),
+                ],
+            );
 
-            if (!contractsRes.ok || !clientsRes.ok) {
+            if (!contractsRes.ok || !clientsRes.ok || !categoriesRes.ok) {
                 throw new Error("Erro ao carregar dados");
             }
 
             const contractsData = await contractsRes.json();
             const clientsData = await clientsRes.json();
+            const categoriesData = await categoriesRes.json();
 
             setContracts(contractsData.data || []);
             setClients(clientsData.data || []);
+            setCategories(categoriesData.data || []);
+
+            // Load all lines for all categories
+            const allLinesPromises = (categoriesData.data || []).map(
+                (category) =>
+                    fetch(`${apiUrl}/api/categories/${category.id}/lines`, {
+                        headers,
+                    })
+                        .then((res) => (res.ok ? res.json() : { data: [] }))
+                        .then((data) => data.data || [])
+                        .catch(() => []),
+            );
+            const allLinesResults = await Promise.all(allLinesPromises);
+            const flattenedLines = allLinesResults.flat();
+            setLines(flattenedLines);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -96,20 +119,34 @@ export default function Dashboard({ token, apiUrl }) {
         (c) => !c.archived_at && c.status === "ativo",
     );
 
-    // Clientes que fazem aniversário no mês atual
+    const inactiveClients = clients.filter(
+        (c) => !c.archived_at && c.status === "inativo",
+    );
+
+    const archivedClients = clients.filter((c) => c.archived_at);
+
+    // Clientes que fazem aniversário no mês atual ou dia atual
     const birthdayClients = clients.filter((c) => {
         if (c.archived_at || c.status !== "ativo" || !c.birth_date) {
             return false;
         }
 
         const birthDate = new Date(c.birth_date);
-        const currentMonth = new Date().getMonth();
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentDay = now.getDate();
         const birthMonth = birthDate.getMonth();
+        const birthDay = birthDate.getDate();
 
-        return birthMonth === currentMonth;
+        if (birthdayFilter === "day") {
+            return birthMonth === currentMonth && birthDay === currentDay;
+        } else {
+            return birthMonth === currentMonth;
+        }
     });
 
-    const archivedClients = clients.filter((c) => c.archived_at);
+    const totalCategories = categories.length;
+    const totalLines = lines.length;
 
     if (loading) {
         return (
@@ -169,6 +206,15 @@ export default function Dashboard({ token, apiUrl }) {
 
                 <div className="dashboard-stat-card">
                     <div className="dashboard-stat-label">
+                        Clientes Inativos
+                    </div>
+                    <div className="dashboard-stat-value inactive">
+                        {inactiveClients.length}
+                    </div>
+                </div>
+
+                <div className="dashboard-stat-card">
+                    <div className="dashboard-stat-label">
                         Clientes Arquivados
                     </div>
                     <div className="dashboard-stat-value archived">
@@ -177,52 +223,163 @@ export default function Dashboard({ token, apiUrl }) {
                 </div>
 
                 <div className="dashboard-stat-card">
-                    <div className="dashboard-stat-label">Não Iniciados</div>
-                    <div className="dashboard-stat-value not-started">
-                        {notStartedContracts.length}
+                    <div className="dashboard-stat-label">Categorias</div>
+                    <div className="dashboard-stat-value categories">
+                        {totalCategories}
+                    </div>
+                </div>
+
+                <div className="dashboard-stat-card">
+                    <div className="dashboard-stat-label">Linhas</div>
+                    <div className="dashboard-stat-value lines">
+                        {totalLines}
                     </div>
                 </div>
             </div>
 
-            <div className="dashboard-content-grid">
-                <div className="dashboard-section-card">
-                    <h2 className="dashboard-section-title">
-                        Aniversariantes do Mês ({birthdayClients.length})
-                    </h2>
-                    {birthdayClients.length === 0 ? (
-                        <p className="dashboard-section-empty">
-                            Nenhum aniversariante este mês
-                        </p>
-                    ) : (
-                        <div className="dashboard-contracts-list">
-                            {birthdayClients.slice(0, 5).map((client) => {
-                                return (
-                                    <div
-                                        key={client.id}
-                                        className="dashboard-contract-item clients"
-                                    >
-                                        <div className="dashboard-contract-model">
-                                            {client.name}
-                                        </div>
-                                        <div className="dashboard-contract-key">
-                                            {client.registration_id ||
-                                                "Sem registro"}
-                                        </div>
-                                        <div className="dashboard-contract-days clients">
-                                            {new Date(
-                                                client.birth_date,
-                                            ).toLocaleDateString("pt-BR", {
-                                                day: "2-digit",
-                                                month: "2-digit",
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+            <div style={{ marginTop: "20px", marginBottom: "10px" }}>
+                <a
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        setShowBirthdays(!showBirthdays);
+                    }}
+                    style={{
+                        fontSize: "13px",
+                        color: "#3498db",
+                        textDecoration: "none",
+                        cursor: "pointer",
+                    }}
+                >
+                    {showBirthdays ? "Ocultar" : "Exibir"} aniversariantes
+                </a>
+            </div>
 
+            {showBirthdays && (
+                <div className="dashboard-content-grid">
+                    <div className="dashboard-section-card">
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: "15px",
+                            }}
+                        >
+                            <h2
+                                className="dashboard-section-title"
+                                style={{ margin: 0 }}
+                            >
+                                Aniversariantes{" "}
+                                {birthdayFilter === "day" ? "do Dia" : "do Mês"}{" "}
+                                ({birthdayClients.length})
+                            </h2>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <button
+                                    onClick={() => setBirthdayFilter("day")}
+                                    style={{
+                                        padding: "6px 12px",
+                                        fontSize: "12px",
+                                        border: "1px solid #3498db",
+                                        background:
+                                            birthdayFilter === "day"
+                                                ? "#3498db"
+                                                : "white",
+                                        color:
+                                            birthdayFilter === "day"
+                                                ? "white"
+                                                : "#3498db",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    Do Dia
+                                </button>
+                                <button
+                                    onClick={() => setBirthdayFilter("month")}
+                                    style={{
+                                        padding: "6px 12px",
+                                        fontSize: "12px",
+                                        border: "1px solid #3498db",
+                                        background:
+                                            birthdayFilter === "month"
+                                                ? "#3498db"
+                                                : "white",
+                                        color:
+                                            birthdayFilter === "month"
+                                                ? "white"
+                                                : "#3498db",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    Do Mês
+                                </button>
+                            </div>
+                        </div>
+                        {birthdayClients.length === 0 ? (
+                            <p className="dashboard-section-empty">
+                                Nenhum aniversariante{" "}
+                                {birthdayFilter === "day" ? "hoje" : "este mês"}
+                            </p>
+                        ) : (
+                            <div className="dashboard-contracts-list">
+                                {birthdayClients.slice(0, 10).map((client) => {
+                                    return (
+                                        <div
+                                            key={client.id}
+                                            className="dashboard-contract-item clients"
+                                        >
+                                            <div className="dashboard-contract-model">
+                                                {client.name}
+                                            </div>
+                                            <div className="dashboard-contract-key">
+                                                {client.registration_id ||
+                                                    "Sem registro"}
+                                            </div>
+                                            <div className="dashboard-contract-days clients">
+                                                {(() => {
+                                                    const dateStr =
+                                                        client.birth_date;
+                                                    if (
+                                                        dateStr &&
+                                                        dateStr.match(
+                                                            /^\d{4}-\d{2}-\d{2}/,
+                                                        )
+                                                    ) {
+                                                        const [
+                                                            year,
+                                                            month,
+                                                            day,
+                                                        ] = dateStr
+                                                            .split("T")[0]
+                                                            .split("-");
+                                                        return `${day}/${month}`;
+                                                    }
+                                                    return new Date(
+                                                        dateStr,
+                                                    ).toLocaleDateString(
+                                                        "pt-BR",
+                                                        {
+                                                            day: "2-digit",
+                                                            month: "2-digit",
+                                                        },
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <div
+                className="dashboard-content-grid"
+                style={{ marginTop: "20px" }}
+            >
                 <div className="dashboard-section-card">
                     <h2 className="dashboard-section-title">
                         Contratos Expirando em Breve

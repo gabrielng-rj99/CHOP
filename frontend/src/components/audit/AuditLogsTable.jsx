@@ -41,13 +41,13 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
     const getOperationLabel = (operation) => {
         switch (operation) {
             case "create":
-                return "Criar";
+                return "Criou";
             case "update":
-                return "Atualizar";
+                return "Atualizou";
             case "delete":
-                return "Deletar";
+                return "Deletou";
             case "read":
-                return "Ler";
+                return "Leu";
             default:
                 return operation;
         }
@@ -74,15 +74,36 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) return "-";
+        // Parse date correctly to avoid timezone issues
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+            const [datePart, timePart] = dateString.split("T");
+            const [year, month, day] = datePart.split("-");
+            if (timePart) {
+                const [hour, minute, second] = timePart.split(":");
+                return `${day}/${month}/${year} ${hour}:${minute}`;
+            }
+            return `${day}/${month}/${year}`;
+        }
         const date = new Date(dateString);
-        return date.toLocaleString("pt-BR");
+        return date.toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     };
 
     const formatJSON = (jsonString) => {
         try {
             if (!jsonString) return "N/A";
-            const obj = JSON.parse(jsonString);
-            return JSON.stringify(obj, null, 2);
+            let obj = JSON.parse(jsonString);
+            // Se o resultado ainda for uma string, fazer parse novamente
+            if (typeof obj === "string") {
+                obj = JSON.parse(obj);
+            }
+            return JSON.stringify(obj, null, 4);
         } catch {
             return jsonString;
         }
@@ -92,88 +113,77 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
         if (!log.old_value && !log.new_value) return "N/A";
 
         try {
-            const oldData = log.old_value ? JSON.parse(log.old_value) : {};
-            const newData = log.new_value ? JSON.parse(log.new_value) : {};
+            // Parse inicial
+            let oldData = log.old_value ? JSON.parse(log.old_value) : null;
+            let newData = log.new_value ? JSON.parse(log.new_value) : null;
 
-            // Para operação de criação
+            // Se o resultado ainda for uma string, fazer parse novamente (double-encoded JSON)
+            if (typeof oldData === "string") {
+                oldData = JSON.parse(oldData);
+            }
+            if (typeof newData === "string") {
+                newData = JSON.parse(newData);
+            }
+
+            // Para operação de criação - mostrar apenas o nome/identificador criado
             if (log.operation === "create" && newData) {
-                const keys = Object.keys(newData).filter(
-                    (k) =>
-                        !k.includes("password") &&
-                        k !== "id" &&
-                        k !== "created_at" &&
-                        k !== "updated_at",
-                );
-                if (keys.length > 0) {
-                    const displayKey =
-                        keys.find(
-                            (k) =>
-                                k === "name" ||
-                                k === "username" ||
-                                k === "display_name",
-                        ) || keys[0];
-                    const value = String(newData[displayKey]).substring(0, 30);
-                    return `Novo registro criado`;
+                // Sempre buscar por 'name' primeiro, depois outros campos
+                if (newData.name) {
+                    return String(newData.name).substring(0, 40);
                 }
+                if (newData.username) {
+                    return String(newData.username).substring(0, 40);
+                }
+                if (newData.display_name) {
+                    return String(newData.display_name).substring(0, 40);
+                }
+                if (newData.line) {
+                    return String(newData.line).substring(0, 40);
+                }
+                return "N/A";
             }
 
-            // Para operação de atualização
-            if (log.operation === "update" && oldData && newData) {
-                const changedFields = [];
-                const allKeys = new Set([
-                    ...Object.keys(oldData),
-                    ...Object.keys(newData),
-                ]);
+            // Para operação de atualização - mostrar o nome/identificador do registro atualizado
+            if (log.operation === "update") {
+                const data = newData || oldData;
+                if (!data) return "N/A";
 
-                for (const key of allKeys) {
-                    if (key.includes("password") || key === "updated_at")
-                        continue;
-
-                    if (oldData[key] !== newData[key]) {
-                        changedFields.push(key);
-                    }
+                if (data.name) {
+                    return String(data.name).substring(0, 40);
                 }
-
-                if (changedFields.length > 0) {
-                    const fieldLabels = {
-                        name: "Nome",
-                        username: "Usuário",
-                        display_name: "Nome de exibição",
-                        email: "Email",
-                        role: "Função",
-                        status: "Status",
-                        active: "Ativo",
-                        blocked: "Bloqueado",
-                    };
-
-                    const displayFields = changedFields
-                        .slice(0, 2)
-                        .map((f) => fieldLabels[f] || f)
-                        .join(", ");
-
-                    if (changedFields.length > 2) {
-                        return `${displayFields} e mais ${changedFields.length - 2}...`;
-                    }
-                    return displayFields;
+                if (data.username) {
+                    return String(data.username).substring(0, 40);
                 }
+                if (data.display_name) {
+                    return String(data.display_name).substring(0, 40);
+                }
+                if (data.line) {
+                    return String(data.line).substring(0, 40);
+                }
+                return "N/A";
             }
 
-            // Para operação de deleção
+            // Para operação de deleção - mostrar apenas o nome/identificador deletado
             if (log.operation === "delete" && oldData) {
-                const displayKey = Object.keys(oldData).find(
-                    (k) =>
-                        k === "name" ||
-                        k === "username" ||
-                        k === "display_name",
-                );
-                if (displayKey && oldData[displayKey]) {
-                    return `Deletado: ${String(oldData[displayKey]).substring(0, 30)}`;
+                if (oldData.name) {
+                    return String(oldData.name).substring(0, 40);
                 }
+                if (oldData.username) {
+                    return String(oldData.username).substring(0, 40);
+                }
+                if (oldData.display_name) {
+                    return String(oldData.display_name).substring(0, 40);
+                }
+                if (oldData.line) {
+                    return String(oldData.line).substring(0, 40);
+                }
+                return "N/A";
             }
 
-            return "Ver detalhes";
-        } catch {
-            return "Ver detalhes";
+            return "N/A";
+        } catch (error) {
+            console.error("Erro ao processar contexto:", error, log);
+            return "N/A";
         }
     };
 
@@ -211,8 +221,11 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                 <thead>
                     <tr style={{ background: "#f8f9fa" }}>
                         <th style={headerStyle} width="4%"></th>
-                        <th style={headerStyle} width="14%">
+                        <th style={headerStyle} width="16%">
                             Data/Hora
+                        </th>
+                        <th style={headerStyle} width="10%">
+                            Status
                         </th>
                         <th style={headerStyle} width="14%">
                             Admin
@@ -223,11 +236,8 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                         <th style={headerStyle} width="10%">
                             Entidade
                         </th>
-                        <th style={headerStyle} width="28%">
-                            Contexto
-                        </th>
-                        <th style={headerStyle} width="10%">
-                            Status
+                        <th style={headerStyle} width="26%">
+                            Objeto
                         </th>
                     </tr>
                 </thead>
@@ -266,6 +276,22 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                 </td>
                                 <td style={rowStyle}>
                                     {formatDate(log.timestamp)}
+                                </td>
+                                <td style={rowStyle}>
+                                    <span
+                                        style={{
+                                            background: getStatusColor(
+                                                log.status,
+                                            ),
+                                            color: "white",
+                                            padding: "4px 12px",
+                                            borderRadius: "12px",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                        }}
+                                    >
+                                        {getStatusLabel(log.status)}
+                                    </span>
                                 </td>
                                 <td style={rowStyle}>
                                     {log.admin_username || (
@@ -307,27 +333,11 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                 >
                                     {getChangeContext(log)}
                                 </td>
-                                <td style={rowStyle}>
-                                    <span
-                                        style={{
-                                            background: getStatusColor(
-                                                log.status,
-                                            ),
-                                            color: "white",
-                                            padding: "4px 12px",
-                                            borderRadius: "12px",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                        }}
-                                    >
-                                        {getStatusLabel(log.status)}
-                                    </span>
-                                </td>
                             </tr>
                             {expandedId === log.id && (
                                 <tr>
                                     <td
-                                        colSpan="7"
+                                        colSpan="6"
                                         style={{
                                             ...expandedRowStyle,
                                             padding: "20px",
@@ -593,13 +603,21 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                                     borderRadius:
                                                                         "4px",
                                                                     fontSize:
-                                                                        "12px",
+                                                                        "13px",
                                                                     overflow:
                                                                         "auto",
                                                                     maxHeight:
-                                                                        "300px",
+                                                                        "400px",
                                                                     color: "#c0392b",
                                                                     margin: 0,
+                                                                    fontFamily:
+                                                                        "'Courier New', monospace",
+                                                                    lineHeight:
+                                                                        "1.6",
+                                                                    whiteSpace:
+                                                                        "pre-wrap",
+                                                                    wordBreak:
+                                                                        "break-word",
                                                                 }}
                                                             >
                                                                 {formatJSON(
@@ -629,13 +647,21 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                                                     borderRadius:
                                                                         "4px",
                                                                     fontSize:
-                                                                        "12px",
+                                                                        "13px",
                                                                     overflow:
                                                                         "auto",
                                                                     maxHeight:
-                                                                        "300px",
+                                                                        "400px",
                                                                     color: "#1e7e34",
                                                                     margin: 0,
+                                                                    fontFamily:
+                                                                        "'Courier New', monospace",
+                                                                    lineHeight:
+                                                                        "1.6",
+                                                                    whiteSpace:
+                                                                        "pre-wrap",
+                                                                    wordBreak:
+                                                                        "break-word",
                                                                 }}
                                                             >
                                                                 {formatJSON(

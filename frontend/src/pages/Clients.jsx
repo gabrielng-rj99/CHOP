@@ -9,18 +9,24 @@ import {
 } from "../utils/clientHelpers";
 import ClientModal from "../components/clients/ClientModal";
 import ClientsTable from "../components/clients/ClientsTable";
-import DependentsModal from "../components/clients/DependentsModal";
+import DependentsPanel from "../components/clients/DependentsPanel";
+import DependentModal from "../components/clients/DependentModal";
+import "./Clients.css";
 
 export default function Clients({ token, apiUrl }) {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [filter, setFilter] = useState("all");
+    const [modalError, setModalError] = useState("");
+    const [dependentModalError, setDependentModalError] = useState("");
+    const [filter, setFilter] = useState("active");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedClient, setSelectedClient] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
-    const [showDependents, setShowDependents] = useState(false);
+    const [showDependentsPanel, setShowDependentsPanel] = useState(false);
+    const [showDependentModal, setShowDependentModal] = useState(false);
+    const [dependentModalMode, setDependentModalMode] = useState("create");
     const [dependents, setDependents] = useState([]);
     const [selectedDependent, setSelectedDependent] = useState(null);
     const [formData, setFormData] = useState(getInitialFormData());
@@ -56,16 +62,18 @@ export default function Clients({ token, apiUrl }) {
     };
 
     const createClient = async () => {
+        setModalError("");
         try {
             await clientsApi.createClient(apiUrl, token, formData);
             await loadClients();
             closeModal();
         } catch (err) {
-            setError(err.message);
+            setModalError(err.message);
         }
     };
 
     const updateClient = async () => {
+        setModalError("");
         try {
             await clientsApi.updateClient(
                 apiUrl,
@@ -76,7 +84,7 @@ export default function Clients({ token, apiUrl }) {
             await loadClients();
             closeModal();
         } catch (err) {
-            setError(err.message);
+            setModalError(err.message);
         }
     };
 
@@ -102,6 +110,7 @@ export default function Clients({ token, apiUrl }) {
     };
 
     const createDependent = async () => {
+        setDependentModalError("");
         try {
             await clientsApi.createDependent(
                 apiUrl,
@@ -110,14 +119,14 @@ export default function Clients({ token, apiUrl }) {
                 dependentForm,
             );
             await loadDependents(selectedClient.id);
-            setDependentForm(getInitialDependentForm());
-            setSelectedDependent(null);
+            closeDependentModal();
         } catch (err) {
-            setError(err.message);
+            setDependentModalError(err.message);
         }
     };
 
     const updateDependent = async () => {
+        setDependentModalError("");
         try {
             await clientsApi.updateDependent(
                 apiUrl,
@@ -126,10 +135,9 @@ export default function Clients({ token, apiUrl }) {
                 dependentForm,
             );
             await loadDependents(selectedClient.id);
-            setDependentForm(getInitialDependentForm());
-            setSelectedDependent(null);
+            closeDependentModal();
         } catch (err) {
-            setError(err.message);
+            setDependentModalError(err.message);
         }
     };
 
@@ -158,25 +166,43 @@ export default function Clients({ token, apiUrl }) {
         setShowModal(true);
     };
 
-    const openDependentsModal = async (client) => {
+    const openDependentsPanel = async (client) => {
         setSelectedClient(client);
         await loadDependents(client.id);
-        setShowDependents(true);
+        setShowDependentsPanel(true);
+    };
+
+    const closeDependentsPanel = () => {
+        setShowDependentsPanel(false);
+        setSelectedClient(null);
+        setDependents([]);
+    };
+
+    const openCreateDependentModal = () => {
+        setDependentModalMode("create");
+        setSelectedDependent(null);
+        setDependentForm(getInitialDependentForm());
+        setShowDependentModal(true);
+    };
+
+    const openEditDependentModal = (dependent) => {
+        setDependentModalMode("edit");
+        setSelectedDependent(dependent);
+        setDependentForm(formatDependentForEdit(dependent));
+        setShowDependentModal(true);
+    };
+
+    const closeDependentModal = () => {
+        setShowDependentModal(false);
+        setSelectedDependent(null);
+        setDependentForm(getInitialDependentForm());
+        setDependentModalError("");
     };
 
     const closeModal = () => {
         setShowModal(false);
         setSelectedClient(null);
-        setError("");
-    };
-
-    const closeDependentsModal = () => {
-        setShowDependents(false);
-        setSelectedClient(null);
-        setDependents([]);
-        setSelectedDependent(null);
-        setDependentForm(getInitialDependentForm());
-        setError("");
+        setModalError("");
     };
 
     const handleSubmit = (e) => {
@@ -190,21 +216,11 @@ export default function Clients({ token, apiUrl }) {
 
     const handleDependentSubmit = (e) => {
         e.preventDefault();
-        if (selectedDependent) {
-            updateDependent();
-        } else {
+        if (dependentModalMode === "create") {
             createDependent();
+        } else {
+            updateDependent();
         }
-    };
-
-    const editDependent = (dependent) => {
-        setSelectedDependent(dependent);
-        setDependentForm(formatDependentForEdit(dependent));
-    };
-
-    const cancelDependentEdit = () => {
-        setSelectedDependent(null);
-        setDependentForm(getInitialDependentForm());
     };
 
     function compareAlphaNum(a, b) {
@@ -228,8 +244,8 @@ export default function Clients({ token, apiUrl }) {
 
     if (loading) {
         return (
-            <div style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: "18px", color: "#7f8c8d" }}>
+            <div className="clients-loading">
+                <div className="clients-loading-text">
                     Carregando clientes...
                 </div>
             </div>
@@ -237,116 +253,53 @@ export default function Clients({ token, apiUrl }) {
     }
 
     return (
-        <div>
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "30px",
-                }}
-            >
-                <h1 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>
-                    Clientes
-                </h1>
-                <div style={{ display: "flex", gap: "12px" }}>
+        <div className="clients-container">
+            <div className="clients-header">
+                <h1 className="clients-title">Clientes</h1>
+                <div className="clients-button-group">
                     <button
                         onClick={loadClients}
-                        style={{
-                            padding: "10px 20px",
-                            background: "white",
-                            color: "#3498db",
-                            border: "1px solid #3498db",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
+                        className="clients-button-secondary"
                     >
                         Atualizar
                     </button>
                     <button
                         onClick={openCreateModal}
-                        style={{
-                            padding: "10px 20px",
-                            background: "#27ae60",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                        }}
+                        className="clients-button"
                     >
                         + Novo Cliente
                     </button>
                 </div>
             </div>
 
-            {error && (
-                <div
-                    style={{
-                        background: "#fee",
-                        color: "#c33",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #fcc",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {error}
-                </div>
+            {error && !showModal && (
+                <div className="clients-error">{error}</div>
             )}
 
-            <div
-                style={{
-                    display: "flex",
-                    gap: "12px",
-                    marginBottom: "24px",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                }}
-            >
-                <button
-                    onClick={() => setFilter("all")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "all" ? "#3498db" : "white",
-                        color: filter === "all" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
-                >
-                    Todos ({clients.filter((c) => !c.archived_at).length})
-                </button>
+            <div className="clients-filters">
                 <button
                     onClick={() => setFilter("active")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "active" ? "#27ae60" : "white",
-                        color: filter === "active" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`clients-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
                     Ativos
                 </button>
                 <button
+                    onClick={() => setFilter("inactive")}
+                    className={`clients-filter-button ${filter === "inactive" ? "active-inactive" : ""}`}
+                >
+                    Inativos
+                </button>
+                <button
                     onClick={() => setFilter("archived")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "archived" ? "#95a5a6" : "white",
-                        color: filter === "archived" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`clients-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
                     Arquivados
+                </button>
+                <button
+                    onClick={() => setFilter("all")}
+                    className={`clients-filter-button ${filter === "all" ? "active-all" : ""}`}
+                >
+                    Todos ({clients.length})
                 </button>
 
                 <input
@@ -354,30 +307,15 @@ export default function Clients({ token, apiUrl }) {
                     placeholder="Buscar por nome, apelido, CPF/CNPJ, email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        flex: 1,
-                        minWidth: "300px",
-                        padding: "8px 16px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className="clients-search-input"
                 />
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #ecf0f1",
-                    overflow: "hidden",
-                }}
-            >
+            <div className="clients-table-wrapper">
                 <ClientsTable
                     filteredClients={filteredClients}
                     openEditModal={openEditModal}
-                    openDependentsModal={openDependentsModal}
+                    openDependentsPanel={openDependentsPanel}
                     archiveClient={archiveClient}
                     unarchiveClient={unarchiveClient}
                 />
@@ -390,20 +328,28 @@ export default function Clients({ token, apiUrl }) {
                 setFormData={setFormData}
                 handleSubmit={handleSubmit}
                 closeModal={closeModal}
+                error={modalError}
             />
 
-            <DependentsModal
-                showDependents={showDependents}
-                selectedClient={selectedClient}
-                dependents={dependents}
+            {showDependentsPanel && (
+                <DependentsPanel
+                    selectedClient={selectedClient}
+                    dependents={dependents}
+                    onCreateDependent={openCreateDependentModal}
+                    onEditDependent={openEditDependentModal}
+                    onDeleteDependent={deleteDependent}
+                    onClose={closeDependentsPanel}
+                />
+            )}
+
+            <DependentModal
+                showModal={showDependentModal}
+                modalMode={dependentModalMode}
                 dependentForm={dependentForm}
                 setDependentForm={setDependentForm}
-                selectedDependent={selectedDependent}
-                handleDependentSubmit={handleDependentSubmit}
-                editDependent={editDependent}
-                deleteDependent={deleteDependent}
-                cancelDependentEdit={cancelDependentEdit}
-                closeDependentsModal={closeDependentsModal}
+                onSubmit={handleDependentSubmit}
+                onClose={closeDependentModal}
+                error={dependentModalError}
             />
         </div>
     );
