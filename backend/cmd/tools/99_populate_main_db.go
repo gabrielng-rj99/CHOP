@@ -122,10 +122,11 @@ func populateMainDB() {
 		operation := "insert"
 		entity := "contract"
 		status := "success"
+		fixedDate := "2024-10-10"
 		runPSQL(fmt.Sprintf(`
-			INSERT INTO audit_logs (id, operation, entity, entity_id, admin_id, admin_username, status)
-			VALUES ('%s', '%s', '%s', (SELECT id FROM contracts ORDER BY start_date LIMIT 1 OFFSET %d), '%s', '%s', '%s');
-		`, logID, operation, entity, i-1, adminID, adminUsername, status), dbHost, dbPort, dbUser, dbName)
+			INSERT INTO audit_logs (id, operation, entity, entity_id, admin_id, admin_username, status, created_at)
+			VALUES ('%s', '%s', '%s', (SELECT id FROM contracts ORDER BY start_date LIMIT 1 OFFSET %d), '%s', '%s', '%s', '%s');
+		`, logID, operation, entity, i-1, adminID, adminUsername, status, fixedDate), dbHost, dbPort, dbUser, dbName)
 	}
 
 	fmt.Println("População concluída!")
