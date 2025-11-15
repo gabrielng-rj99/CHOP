@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import "./ClientModal.css";
 
 export default function ClientModal({
     showModal,
@@ -7,59 +8,88 @@ export default function ClientModal({
     setFormData,
     handleSubmit,
     closeModal,
+    error,
 }) {
+    const [localError, setLocalError] = useState("");
+
     if (!showModal) return null;
 
+    const formatCPFCNPJ = (value) => {
+        // Remove tudo que não é dígito
+        const numbers = value.replace(/\D/g, "");
+
+        if (numbers.length <= 11) {
+            // Formata CPF: 000.000.000-00
+            return numbers
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        } else {
+            // Formata CNPJ: 00.000.000/0000-00
+            return numbers
+                .replace(/(\d{2})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d)/, "$1/$2")
+                .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+        }
+    };
+
+    const handleCPFCNPJChange = (e) => {
+        const formatted = formatCPFCNPJ(e.target.value);
+        setFormData({
+            ...formData,
+            registration_id: formatted,
+        });
+    };
+
+    const formatDateToInput = (dateString) => {
+        if (!dateString) return "";
+        // Se já está no formato yyyy-mm-dd, retorna
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return dateString;
+        }
+        // Se está no formato dd/mm/yyyy, converte para yyyy-mm-dd
+        if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            const [day, month, year] = dateString.split("/");
+            return `${year}-${month}-${day}`;
+        }
+        return dateString;
+    };
+
+    const formatDateToDisplay = (dateString) => {
+        if (!dateString) return "";
+        // Se está no formato yyyy-mm-dd, converte para dd/mm/yyyy
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateString.split("-");
+            return `${day}/${month}/${year}`;
+        }
+        return dateString;
+    };
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setLocalError("");
+        try {
+            await handleSubmit(e);
+            setLocalError("");
+        } catch (err) {
+            setLocalError(err.message || "Erro ao salvar cliente");
+        }
+    };
+
     return (
-        <div
-            style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0,0,0,0.5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 1000,
-            }}
-        >
+        <div className="client-modal-overlay" onClick={closeModal}>
             <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    padding: "30px",
-                    width: "90%",
-                    maxWidth: "600px",
-                    maxHeight: "90vh",
-                    overflow: "auto",
-                }}
+                onClick={(e) => e.stopPropagation()}
+                className="client-modal-content"
             >
-                <h2
-                    style={{
-                        marginTop: 0,
-                        marginBottom: "24px",
-                        fontSize: "24px",
-                        color: "#2c3e50",
-                    }}
-                >
+                <h2 className="client-modal-title">
                     {modalMode === "create" ? "Novo Cliente" : "Editar Cliente"}
                 </h2>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            Nome *
-                        </label>
+                <form onSubmit={handleFormSubmit}>
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">Nome *</label>
                         <input
                             type="text"
                             value={formData.name}
@@ -70,67 +100,27 @@ export default function ClientModal({
                                 })
                             }
                             required
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="client-modal-input"
                         />
                     </div>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "16px",
-                            marginBottom: "16px",
-                        }}
-                    >
-                        <div>
-                            <label
-                                style={{
-                                    display: "block",
-                                    marginBottom: "6px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#2c3e50",
-                                }}
-                            >
+                    <div className="client-modal-form-row">
+                        <div className="client-modal-form-group">
+                            <label className="client-modal-label">
                                 CPF/CNPJ
                             </label>
                             <input
                                 type="text"
                                 value={formData.registration_id}
-                                onChange={(e) =>
-                                    setFormData({
-                                        ...formData,
-                                        registration_id: e.target.value,
-                                    })
-                                }
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
+                                onChange={handleCPFCNPJChange}
+                                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                                maxLength="18"
+                                className="client-modal-input"
                             />
                         </div>
 
-                        <div>
-                            <label
-                                style={{
-                                    display: "block",
-                                    marginBottom: "6px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#2c3e50",
-                                }}
-                            >
+                        <div className="client-modal-form-group">
+                            <label className="client-modal-label">
                                 Apelido/Nome Fantasia
                             </label>
                             <input
@@ -142,70 +132,31 @@ export default function ClientModal({
                                         nickname: e.target.value,
                                     })
                                 }
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
+                                className="client-modal-input"
                             />
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            Data de Nascimento/Fundação
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">
+                            Data de Nascimento
                         </label>
                         <input
                             type="date"
-                            value={formData.birth_date}
+                            value={formatDateToInput(formData.birth_date)}
                             onChange={(e) =>
                                 setFormData({
                                     ...formData,
                                     birth_date: e.target.value,
                                 })
                             }
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="client-modal-input"
                         />
                     </div>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "16px",
-                            marginBottom: "16px",
-                        }}
-                    >
-                        <div>
-                            <label
-                                style={{
-                                    display: "block",
-                                    marginBottom: "6px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#2c3e50",
-                                }}
-                            >
-                                Email
-                            </label>
+                    <div className="client-modal-form-row">
+                        <div className="client-modal-form-group">
+                            <label className="client-modal-label">Email</label>
                             <input
                                 type="email"
                                 value={formData.email}
@@ -215,31 +166,16 @@ export default function ClientModal({
                                         email: e.target.value,
                                     })
                                 }
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
+                                className="client-modal-input"
                             />
                         </div>
 
-                        <div>
-                            <label
-                                style={{
-                                    display: "block",
-                                    marginBottom: "6px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#2c3e50",
-                                }}
-                            >
+                        <div className="client-modal-form-group">
+                            <label className="client-modal-label">
                                 Telefone
                             </label>
                             <input
-                                type="tel"
+                                type="text"
                                 value={formData.phone}
                                 onChange={(e) =>
                                     setFormData({
@@ -247,31 +183,14 @@ export default function ClientModal({
                                         phone: e.target.value,
                                     })
                                 }
-                                placeholder="+5511999999999"
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
+                                placeholder="(00) 00000-0000"
+                                className="client-modal-input"
                             />
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            Endereço
-                        </label>
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">Endereço</label>
                         <input
                             type="text"
                             value={formData.address}
@@ -281,27 +200,12 @@ export default function ClientModal({
                                     address: e.target.value,
                                 })
                             }
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="client-modal-input"
                         />
                     </div>
 
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">
                             Preferência de Contato
                         </label>
                         <select
@@ -312,36 +216,17 @@ export default function ClientModal({
                                     contact_preference: e.target.value,
                                 })
                             }
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            className="client-modal-input"
                         >
                             <option value="">Selecione...</option>
-                            <option value="whatsapp">WhatsApp</option>
                             <option value="email">Email</option>
                             <option value="phone">Telefone</option>
-                            <option value="sms">SMS</option>
-                            <option value="outros">Outros</option>
+                            <option value="whatsapp">WhatsApp</option>
                         </select>
                     </div>
 
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
-                            Tags (separadas por vírgula)
-                        </label>
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">Tags</label>
                         <input
                             type="text"
                             value={formData.tags}
@@ -351,28 +236,13 @@ export default function ClientModal({
                                     tags: e.target.value,
                                 })
                             }
-                            placeholder="vip, corporativo, etc"
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                            }}
+                            placeholder="Separadas por vírgula"
+                            className="client-modal-input"
                         />
                     </div>
 
-                    <div style={{ marginBottom: "24px" }}>
-                        <label
-                            style={{
-                                display: "block",
-                                marginBottom: "6px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#2c3e50",
-                            }}
-                        >
+                    <div className="client-modal-form-group">
+                        <label className="client-modal-label">
                             Observações
                         </label>
                         <textarea
@@ -383,57 +253,52 @@ export default function ClientModal({
                                     notes: e.target.value,
                                 })
                             }
-                            rows={4}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                                resize: "vertical",
-                            }}
+                            rows="4"
+                            className="client-modal-textarea"
                         />
                     </div>
 
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: "12px",
-                            justifyContent: "flex-end",
-                        }}
-                    >
+                    <div className="client-modal-form-row">
+                        <div className="client-modal-form-group">
+                            <label className="client-modal-label">
+                                Status *
+                            </label>
+                            <select
+                                value={formData.status}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        status: e.target.value,
+                                    })
+                                }
+                                required
+                                className="client-modal-input"
+                            >
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {(error || localError) && (
+                        <div className="client-modal-error">
+                            {error || localError}
+                        </div>
+                    )}
+
+                    <div className="client-modal-button-group">
                         <button
                             type="button"
                             onClick={closeModal}
-                            style={{
-                                padding: "10px 24px",
-                                background: "white",
-                                color: "#7f8c8d",
-                                border: "1px solid #ddd",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                            }}
+                            className="client-modal-button client-modal-button-cancel"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            style={{
-                                padding: "10px 24px",
-                                background: "#27ae60",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "600",
-                            }}
+                            className="client-modal-button client-modal-button-submit"
                         >
-                            {modalMode === "create"
-                                ? "Criar Cliente"
-                                : "Salvar Alterações"}
+                            {modalMode === "create" ? "Criar" : "Salvar"}
                         </button>
                     </div>
                 </form>

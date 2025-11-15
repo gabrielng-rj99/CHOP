@@ -8,6 +8,7 @@ export default function LineModal({
     setLineForm,
     onSubmit,
     onClose,
+    error,
 }) {
     if (!showModal) return null;
 
@@ -39,6 +40,8 @@ export default function LineModal({
                             className="line-modal-input"
                         />
                     </div>
+
+                    {error && <div className="line-modal-error">{error}</div>}
 
                     <div className="line-modal-button-group">
                         <button

@@ -24,8 +24,6 @@ export default function CategoryModal({
                         : "Editar Categoria"}
                 </h2>
 
-                {error && <div className="category-modal-error">{error}</div>}
-
                 <form onSubmit={onSubmit}>
                     <div className="category-modal-form-group">
                         <label className="category-modal-label">
@@ -44,6 +42,10 @@ export default function CategoryModal({
                             className="category-modal-input"
                         />
                     </div>
+
+                    {error && (
+                        <div className="category-modal-error">{error}</div>
+                    )}
 
                     <div className="category-modal-button-group">
                         <button

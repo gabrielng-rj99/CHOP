@@ -4,6 +4,7 @@ import { usersApi } from "../api/usersApi";
 import AuditFilters from "../components/audit/AuditFilters";
 import AuditLogsTable from "../components/audit/AuditLogsTable";
 import Pagination from "../components/common/Pagination";
+import "./AuditLogs.css";
 
 export default function AuditLogs({ token, apiUrl, user }) {
     const [logs, setLogs] = useState([]);
@@ -129,50 +130,10 @@ export default function AuditLogs({ token, apiUrl, user }) {
         }
     };
 
-    const containerStyle = {
-        padding: "0",
-    };
-
-    const headerStyle = {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "30px",
-    };
-
-    const titleStyle = {
-        fontSize: "32px",
-        color: "#2c3e50",
-        margin: 0,
-    };
-
-    const buttonGroupStyle = {
-        display: "flex",
-        gap: "12px",
-    };
-
-    const buttonStyle = {
-        padding: "10px 20px",
-        background: "#3498db",
-        color: "white",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "14px",
-        fontWeight: "600",
-    };
-
-    const secondaryButtonStyle = {
-        ...buttonStyle,
-        background: "white",
-        color: "#3498db",
-        border: "1px solid #3498db",
-    };
-
     if (!user || user.role !== "full_admin") {
         return (
-            <div style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: "18px", color: "#e74c3c" }}>
+            <div className="audit-logs-access-denied">
+                <div className="audit-logs-access-denied-text">
                     Acesso negado. Apenas full_admin pode acessar logs de
                     auditoria.
                 </div>
@@ -181,33 +142,26 @@ export default function AuditLogs({ token, apiUrl, user }) {
     }
 
     return (
-        <div style={containerStyle}>
-            <div style={headerStyle}>
-                <h1 style={titleStyle}>Logs</h1>
-                <div style={buttonGroupStyle}>
-                    <button onClick={loadLogs} style={secondaryButtonStyle}>
+        <div className="audit-logs-container">
+            <div className="audit-logs-header">
+                <h1 className="audit-logs-title">Logs</h1>
+                <div className="audit-logs-button-group">
+                    <button
+                        onClick={loadLogs}
+                        className="audit-logs-button-secondary"
+                    >
                         Atualizar
                     </button>
-                    <button onClick={handleExport} style={secondaryButtonStyle}>
+                    <button
+                        onClick={handleExport}
+                        className="audit-logs-button-secondary"
+                    >
                         Exportar JSON
                     </button>
                 </div>
             </div>
 
-            {error && (
-                <div
-                    style={{
-                        background: "#fee",
-                        color: "#c33",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #fcc",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {error}
-                </div>
-            )}
+            {error && <div className="audit-logs-error">{error}</div>}
 
             <AuditFilters
                 filters={filters}
@@ -215,15 +169,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 onApply={handleApplyFilters}
             />
 
-            <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #ecf0f1",
-                    overflow: "hidden",
-                }}
-            >
+            <div className="audit-logs-table-wrapper">
                 <AuditLogsTable
                     logs={logs}
                     onViewDetail={handleViewDetail}

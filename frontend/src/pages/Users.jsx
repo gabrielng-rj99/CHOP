@@ -7,6 +7,7 @@ import {
 } from "../utils/userHelpers";
 import UsersTable from "../components/users/UsersTable";
 import UserModal from "../components/users/UserModal";
+import "./Users.css";
 
 export default function Users({ token, apiUrl, user, onLogout }) {
     const [users, setUsers] = useState([]);
@@ -211,55 +212,27 @@ export default function Users({ token, apiUrl, user, onLogout }) {
 
     if (loading) {
         return (
-            <div style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: "18px", color: "#7f8c8d" }}>
-                    Carregando usuários...
-                </div>
+            <div className="users-loading">
+                <div className="users-loading-text">Carregando usuários...</div>
             </div>
         );
     }
 
     return (
-        <div>
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "30px",
-                }}
-            >
-                <h1 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>
-                    Gerenciamento de Usuários
-                </h1>
-                <div style={{ display: "flex", gap: "12px" }}>
+        <div className="users-container">
+            <div className="users-header">
+                <h1 className="users-title">Gerenciamento de Usuários</h1>
+                <div className="users-button-group">
                     <button
                         onClick={loadUsers}
-                        style={{
-                            padding: "10px 20px",
-                            background: "white",
-                            color: "#3498db",
-                            border: "1px solid #3498db",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
+                        className="users-button-secondary"
                     >
                         Atualizar
                     </button>
                     {["admin", "full_admin"].includes(user.role) && (
                         <button
                             onClick={openCreateModal}
-                            style={{
-                                padding: "10px 20px",
-                                background: "#27ae60",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "600",
-                            }}
+                            className="users-button"
                         >
                             + Novo Usuário
                         </button>
@@ -267,62 +240,21 @@ export default function Users({ token, apiUrl, user, onLogout }) {
                 </div>
             </div>
 
-            {error && (
-                <div
-                    style={{
-                        background: "#fee",
-                        color: "#c33",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #fcc",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {error}
-                </div>
-            )}
+            {error && <div className="users-error">{error}</div>}
 
-            {success && (
-                <div
-                    style={{
-                        background: "#d4edda",
-                        color: "#155724",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #c3e6cb",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {success}
-                </div>
-            )}
+            {success && <div className="users-success">{success}</div>}
 
-            <div style={{ marginBottom: "24px" }}>
+            <div className="users-search-container">
                 <input
                     type="text"
                     placeholder="Buscar por nome de usuário, nome de exibição ou função..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        width: "100%",
-                        maxWidth: "500px",
-                        padding: "10px 16px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className="users-search-input"
                 />
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #ecf0f1",
-                    overflow: "hidden",
-                }}
-            >
+            <div className="users-table-wrapper">
                 <UsersTable
                     filteredUsers={filteredUsers}
                     currentUser={user}

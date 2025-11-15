@@ -57,8 +57,6 @@ export default function UserModal({
                     {modalMode === "create" ? "Novo Usuário" : "Editar Usuário"}
                 </h2>
 
-                {error && <div className="user-modal-error">{error}</div>}
-
                 <form onSubmit={onSubmit}>
                     {/* Username */}
                     <div className="user-modal-form-group">
@@ -207,6 +205,8 @@ export default function UserModal({
                             </option>
                         </select>
                     </div>
+
+                    {error && <div className="user-modal-error">{error}</div>}
 
                     <div className="user-modal-button-group">
                         <button
