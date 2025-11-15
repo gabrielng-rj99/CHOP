@@ -24,7 +24,7 @@ func (s *Server) handleClients(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListClients(w http.ResponseWriter, r *http.Request) {
-	clients, err := s.clientStore.GetAllClients()
+	clients, err := s.clientStore.GetAllClientsIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

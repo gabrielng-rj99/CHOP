@@ -24,7 +24,7 @@ func (s *Server) handleContracts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListContracts(w http.ResponseWriter, r *http.Request) {
-	contracts, err := s.contractStore.GetAllContracts()
+	contracts, err := s.contractStore.GetAllContractsIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

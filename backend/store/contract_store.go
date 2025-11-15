@@ -487,6 +487,45 @@ func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err erro
 	return contracts, nil
 }
 
+// GetAllContractsIncludingArchived fetches all contracts in the system (including archived)
+func (s *ContractStore) GetAllContractsIncludingArchived() (contracts []domain.Contract, err error) {
+	sqlStatement := `SELECT id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at
+	                 FROM contracts`
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	contracts = []domain.Contract{}
+	for rows.Next() {
+		var c domain.Contract
+		var startDate, endDate, archivedAt sql.NullTime
+		if err = rows.Scan(&c.ID, &c.Model, &c.ProductKey, &startDate, &endDate, &c.LineID, &c.ClientID, &c.DependentID, &archivedAt); err != nil {
+			return nil, err
+		}
+		if startDate.Valid {
+			c.StartDate = startDate.Time
+		}
+		if endDate.Valid {
+			c.EndDate = endDate.Time
+		}
+		if archivedAt.Valid {
+			c.ArchivedAt = &archivedAt.Time
+		}
+		contracts = append(contracts, c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return contracts, nil
+}
+
 // GetContractsByName fetches contracts by partial name/model (case-insensitive)
 func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, error) {
 	name = strings.TrimSpace(name)

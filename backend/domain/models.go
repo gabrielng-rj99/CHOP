@@ -24,7 +24,7 @@ type Client struct {
 	NextActionDate    *time.Time `json:"next_action_date,omitempty"`   // Próxima ação planejada (opcional)
 	CreatedAt         time.Time  `json:"created_at"`                   // Data de cadastro
 	Documents         *string    `json:"documents,omitempty"`          // Lista de documentos/links (opcional)
-	ArchivedAt        *time.Time `json:"archived_at,omitempty"`        // Soft delete via archived_at
+	ArchivedAt        *time.Time `json:"archived_at"`                  // Soft delete via archived_at
 }
 
 // Dependent representa a tabela 'dependents' (Client Dependent, como unidades, filhos, parentes)
@@ -67,7 +67,7 @@ type Contract struct {
 	LineID      string     `json:"line_id"`
 	ClientID    string     `json:"client_id"`
 	DependentID *string    `json:"dependent_id"` // Usamos um ponteiro para que possa ser nulo
-	ArchivedAt  *time.Time `json:"archived_at,omitempty"`
+	ArchivedAt  *time.Time `json:"archived_at"`
 }
 
 // User representa um usuário do sistema para autenticação

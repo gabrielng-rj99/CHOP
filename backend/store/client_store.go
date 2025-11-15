@@ -602,3 +602,39 @@ func (s *ClientStore) GetArchivedClients() (clients []domain.Client, err error) 
 
 	return clients, nil
 }
+
+// GetAllClientsIncludingArchived retorna todos os clientes, incluindo os arquivados
+func (s *ClientStore) GetAllClientsIncludingArchived() (clients []domain.Client, err error) {
+	sqlStatement := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients`
+
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	for rows.Next() {
+		var client domain.Client
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+			&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+			&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+			&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt); err != nil {
+			return nil, err
+		}
+		clients = append(clients, client)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return clients, nil
+}
