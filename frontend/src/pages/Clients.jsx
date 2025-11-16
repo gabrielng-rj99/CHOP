@@ -312,6 +312,9 @@ export default function Clients({ token, apiUrl }) {
             </div>
 
             <div className="clients-table-wrapper">
+                {/* <div className="clients-table-header">
+                    <h2 className="clients-table-header-title">Clientes</h2>
+                </div>*/}
                 <ClientsTable
                     filteredClients={filteredClients}
                     openEditModal={openEditModal}
