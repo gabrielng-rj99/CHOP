@@ -70,7 +70,7 @@ func ConnectDB() (*sql.DB, error) {
 func initDB(db *sql.DB) error {
 	_, b, _, _ := runtime.Caller(0)
 	basePath := filepath.Dir(b)
-	sqlFilePath := filepath.Join(basePath, "init.sql")
+	sqlFilePath := filepath.Join(basePath, "schema.sql")
 
 	script, err := os.ReadFile(sqlFilePath)
 	if err != nil {

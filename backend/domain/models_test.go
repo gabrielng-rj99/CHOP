@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+// timePtr is a helper function to convert time.Time to *time.Time for tests
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
+
 // TestContractStatus tests the Status() method of Contract domain model
 // This is a critical business rule function that determines contract state
 func TestContractStatus(t *testing.T) {
@@ -22,8 +27,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-1",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-1",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 45), // 45 days from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 45)), // 45 days from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -36,8 +41,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-2",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-2",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 30), // exactly 30 days from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 30)), // exactly 30 days from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -50,8 +55,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-3",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-3",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 15), // 15 days from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 15)), // 15 days from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -64,8 +69,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-4",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-4",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 1), // 1 day from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 1)), // 1 day from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -78,8 +83,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-5",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-5",
-				StartDate:  now.AddDate(0, 0, -30),
-				EndDate:    now.AddDate(0, 0, -5), // 5 days ago
+				StartDate:  timePtr(now.AddDate(0, 0, -30)),
+				EndDate:    timePtr(now.AddDate(0, 0, -5)), // 5 days ago
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -92,8 +97,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-6",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-6",
-				StartDate:  now.AddDate(0, 0, -30),
-				EndDate:    now.AddDate(0, 0, -1), // yesterday
+				StartDate:  timePtr(now.AddDate(0, 0, -30)),
+				EndDate:    timePtr(now.AddDate(0, 0, -1)), // yesterday
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -106,8 +111,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-7",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-7",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 365), // 1 year from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 365)), // 1 year from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -120,8 +125,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-8",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-8",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    now.AddDate(0, 0, 31), // 31 days from now
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(now.AddDate(0, 0, 31)), // 31 days from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -134,8 +139,8 @@ func TestContractStatus(t *testing.T) {
 				ID:         "test-9",
 				Model:      "Test Contract",
 				ProductKey: "TEST-KEY-9",
-				StartDate:  now,
-				EndDate:    now.AddDate(0, 0, 60), // 60 days from now
+				StartDate:  timePtr(now),
+				EndDate:    timePtr(now.AddDate(0, 0, 60)), // 60 days from now
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			},
@@ -194,8 +199,8 @@ func TestContractStatusBoundaryConditions(t *testing.T) {
 				ID:         "test",
 				Model:      "Test",
 				ProductKey: "TEST-KEY",
-				StartDate:  now.AddDate(0, 0, -10),
-				EndDate:    tt.endDate,
+				StartDate:  timePtr(now.AddDate(0, 0, -10)),
+				EndDate:    timePtr(tt.endDate),
 				LineID:     "line-1",
 				ClientID:   "client-1",
 			}

@@ -170,7 +170,8 @@ func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) 
 }
 
 // InsertTestContract inserts a test license and returns its UUID
-func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate time.Time, lineID, clientID string, entityID interface{}) (string, error) {
+// startDate and endDate can be nil to represent nullable dates
+func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate *time.Time, lineID, clientID string, entityID interface{}) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
 		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
