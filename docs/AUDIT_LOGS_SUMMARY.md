@@ -34,7 +34,7 @@ Um sistema **robusto e centralizado de auditoria** que registra todas as operaç
 - Filtros avançados (entidade, operação, data, IP, admin, status)
 - Tabela com expandir/colapsar para detalhes
 - Exportação JSON para análise externa
-- Acesso restrito a full_admin apenas
+- Acesso restrito a root apenas
 
 ---
 
@@ -74,7 +74,7 @@ Um sistema **robusto e centralizado de auditoria** que registra todas as operaç
 ### Frontend
 ```
 ┌──────────────────────────────────────────┐
-│  AuditLogs Page (full_admin only)       │
+│  AuditLogs Page (root only)       │
 ├──────────────────────────────────────────┤
 │  AuditFilters                            │
 │  - Entidade, Operação, Status            │
@@ -140,7 +140,7 @@ Um sistema **robusto e centralizado de auditoria** que registra todas as operaç
 ✅ Recuperável se necessário  
 
 ### Interface
-✅ Página acessível apenas para full_admin  
+✅ Página acessível apenas para root  
 ✅ Filtros avançados (8 tipos)  
 ✅ Paginação (25-200 itens)  
 ✅ Expansão de linhas para detalhes  
@@ -150,7 +150,7 @@ Um sistema **robusto e centralizado de auditoria** que registra todas as operaç
 ✅ Timestamps legíveis  
 
 ### Segurança
-✅ Apenas full_admin acessa logs  
+✅ Apenas root acessa logs  
 ✅ Logs nunca são deletados  
 ✅ IP rastreado para cada operação  
 ✅ User-Agent capturado  
@@ -236,13 +236,13 @@ GET /api/audit-logs/export
 ```
 
 **Autenticação:** Token JWT requerido  
-**Autorização:** Apenas full_admin
+**Autorização:** Apenas root
 
 ---
 
 ## Uso Prático
 
-### Para Full Admin
+### Para Root
 1. Acessa "Logs de Auditoria" no menu
 2. Aplica filtros desejados
 3. Vê tabela com histórico
@@ -290,7 +290,7 @@ s.logAuditOperation(r, "create", "user", userID,
 - ✅ Valores antes/depois
 
 ### Controle de Acesso
-- ✅ Apenas full_admin acessa
+- ✅ Apenas root acessa
 - ✅ Middleware de autenticação
 - ✅ Verificação de role
 
@@ -368,7 +368,7 @@ s.logAuditOperation(r, "create", "user", userID,
 | **Banco** | PostgreSQL - 15 campos em audit_logs |
 | **Backend** | Go - AuditStore com 8+ métodos |
 | **Frontend** | React - Página + 2 componentes + API module |
-| **Autenticação** | JWT + role check (full_admin only) |
+| **Autenticação** | JWT + role check (root only) |
 | **Filtros** | 8 tipos combinináveis |
 | **Exportação** | JSON |
 | **Paginação** | Limit/Offset com opcões de 25-200 |

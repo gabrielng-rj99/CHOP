@@ -5,7 +5,7 @@
 - Backend compilado e rodando em http://localhost:3000
 - PostgreSQL com banco de dados inicializado
 - Frontend rodando em modo desenvolvimento
-- Um usuário com role `full_admin` para testar acesso
+- Um usuário com role `root` para testar acesso
 
 ---
 
@@ -19,7 +19,7 @@
 SELECT id, username, deleted_at FROM users WHERE username = 'test_user';
 
 -- Deletar via API
--- DELETE /api/users/test_user (como full_admin)
+-- DELETE /api/users/test_user (como root)
 
 -- Depois de deletar
 SELECT id, username, deleted_at, password_hash, role 
@@ -54,7 +54,7 @@ ORDER BY timestamp DESC LIMIT 1;
 ```bash
 # Criar um novo usuário
 curl -X POST http://localhost:3000/api/users \
-  -H "Authorization: Bearer <token_full_admin>" \
+  -H "Authorization: Bearer <token_root>" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "test_create_user",
@@ -86,7 +86,7 @@ ORDER BY timestamp DESC LIMIT 1;
 ```bash
 # Atualizar um usuário (ex: display_name)
 curl -X PUT http://localhost:3000/api/users/test_user \
-  -H "Authorization: Bearer <token_full_admin>" \
+  -H "Authorization: Bearer <token_root>" \
   -H "Content-Type: application/json" \
   -d '{
     "display_name": "Updated Display Name",
@@ -112,7 +112,7 @@ ORDER BY timestamp DESC LIMIT 1;
 **Teste 1: Filtrar por entity**
 ```bash
 curl "http://localhost:3000/api/audit-logs?entity=user&limit=10" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ data é um array
@@ -123,7 +123,7 @@ curl "http://localhost:3000/api/audit-logs?entity=user&limit=10" \
 **Teste 2: Filtrar por operation**
 ```bash
 curl "http://localhost:3000/api/audit-logs?operation=delete&limit=10" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ data é um array
@@ -133,7 +133,7 @@ curl "http://localhost:3000/api/audit-logs?operation=delete&limit=10" \
 **Teste 3: Filtrar por date range**
 ```bash
 curl "http://localhost:3000/api/audit-logs?start_date=2024-01-01T00:00:00Z&end_date=2024-12-31T23:59:59Z" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ Todos os timestamps estão no range
@@ -142,7 +142,7 @@ curl "http://localhost:3000/api/audit-logs?start_date=2024-01-01T00:00:00Z&end_d
 **Teste 4: Filtrar por status**
 ```bash
 curl "http://localhost:3000/api/audit-logs?status=error&limit=10" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ Todos os items têm status = 'error'
@@ -152,7 +152,7 @@ curl "http://localhost:3000/api/audit-logs?status=error&limit=10" \
 **Teste 5: Filtrar por IP**
 ```bash
 curl "http://localhost:3000/api/audit-logs?ip_address=192.168.1.100&limit=10" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ Todos os items têm ip_address = '192.168.1.100'
@@ -163,7 +163,7 @@ curl "http://localhost:3000/api/audit-logs?ip_address=192.168.1.100&limit=10" \
 ```bash
 # Buscar um log específico
 curl "http://localhost:3000/api/audit-logs/550e8400-e29b-41d4-a716-446655440000" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Verificar resposta:
 # ✅ Retorna um objeto (não array)
@@ -188,7 +188,7 @@ curl "http://localhost:3000/api/audit-logs" \
 # Esperado: 401 Unauthorized
 ```
 
-**Teste 3: Token válido mas não full_admin**
+**Teste 3: Token válido mas não root**
 ```bash
 curl "http://localhost:3000/api/audit-logs" \
   -H "Authorization: Bearer <token_user_normal>"
@@ -196,10 +196,10 @@ curl "http://localhost:3000/api/audit-logs" \
 # Esperado: 403 Forbidden
 ```
 
-**Teste 4: Token válido e full_admin**
+**Teste 4: Token válido e root**
 ```bash
 curl "http://localhost:3000/api/audit-logs" \
-  -H "Authorization: Bearer <token_full_admin>"
+  -H "Authorization: Bearer <token_root>"
 
 # Esperado: 200 OK com dados
 ```
@@ -237,9 +237,9 @@ ORDER BY timestamp DESC LIMIT 3;
 2. Verificar que menu NÃO tem "Logs de Auditoria"
 ```
 
-**Teste 3: Full Admin vê menu**
+**Teste 3: Root vê menu**
 ```
-1. Login com full_admin
+1. Login com root
 2. Verificar que menu TEM "Logs de Auditoria"
 3. Clicar no menu
 4. Verificar que página carrega sem erros
@@ -249,7 +249,7 @@ ORDER BY timestamp DESC LIMIT 3;
 
 **Teste 1: Componentes aparecem**
 ```
-1. Acessar /audit-logs como full_admin
+1. Acessar /audit-logs como root
 2. Verificar que aparecem:
    - ✅ Título "Logs de Auditoria"
    - ✅ Botão "Atualizar"
@@ -429,7 +429,7 @@ Status:
 ### 3.1 Criar Usuário e Verificar Log
 
 ```
-1. Fazer login como full_admin
+1. Fazer login como root
 2. Ir para Usuários
 3. Criar novo usuário "test_integration"
 4. Ir para Logs de Auditoria
@@ -559,14 +559,14 @@ VALUES (gen_random_uuid(), NOW(), 'read', 'user', gen_random_uuid(),
 - [ ] Múltiplos filtros combinam corretamente
 - [ ] GET /api/audit-logs/{id} funciona
 - [ ] Autenticação (401 sem token)
-- [ ] Autorização (403 se não full_admin)
+- [ ] Autorização (403 se não root)
 - [ ] IP é extraído corretamente
 - [ ] User-Agent é capturado
 - [ ] Timestamps são precisos
 - [ ] JSON em old_value/new_value é válido
 
 ### Frontend
-- [ ] Menu aparece apenas para full_admin
+- [ ] Menu aparece apenas para root
 - [ ] Página de auditoria carrega
 - [ ] Tabela renderiza com dados
 - [ ] Cores estão corretas
@@ -609,7 +609,7 @@ VALUES (gen_random_uuid(), NOW(), 'read', 'user', gen_random_uuid(),
 ```
 1. Backend rodando
 2. Frontend rodando
-3. Login como full_admin
+3. Login como root
 4. Ir para Usuários
 5. Criar novo usuário "test_audit"
 6. Ir para Logs de Auditoria
@@ -641,7 +641,7 @@ VALUES (gen_random_uuid(), NOW(), 'read', 'user', gen_random_uuid(),
 **Solução:**
 1. Verificar se há dados no banco: `SELECT COUNT(*) FROM audit_logs;`
 2. Verificar se LogOperation está sendo chamado nos handlers
-3. Verificar token (full_admin?)
+3. Verificar token (root?)
 4. Verificar console do navegador (erros?)
 
 ### Problema: Query é lenta

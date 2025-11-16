@@ -283,7 +283,7 @@ Menu → `6` → `1 - Create User`
 Username: admin
 Senha: (será solicitada)
 Confirmar senha: (será solicitada)
-Role (user/admin/full_admin): full_admin
+Role (user/admin/root): root
 
 ✓ Usuário criado
 ID: 11aa2200-e29b-41d4-a716-446655440006
@@ -303,7 +303,7 @@ Senha: ••••••••
 
 - **user:** Visualização e operações básicas
 - **admin:** Gerenciamento completo
-- **full_admin:** Acesso total + gerenciamento de usuários
+- **root:** Acesso total + gerenciamento de usuários
 
 ## 📊 Monitoramento e Relatórios
 

@@ -99,7 +99,7 @@ O frontend estará disponível em `http://localhost:3000`
 - Senhas fortes (16+ caracteres)
 - Controle de tentativas falhadas
 - Sistema de bloqueio automático progressivo
-- Roles: user, admin, full_admin
+- Roles: user, admin, root
 
 ## 🏗️ Estrutura do Projeto
 

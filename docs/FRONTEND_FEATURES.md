@@ -47,16 +47,16 @@ All primary functionalities from the CLI have been successfully implemented in t
 
 ### 3. 👤 Usuários (Admin Only)
 - ✅ **CRUD Completo:**
-  - Criar usuários (user, admin, full_admin)
+  - Criar usuários (user, admin, root)
   - Editar display name, password e role
-  - Bloquear usuários (full_admin only)
-  - Desbloquear usuários (full_admin only)
+  - Bloquear usuários (root only)
+  - Desbloquear usuários (root only)
   
 - ✅ **Controle de Acesso:**
-  - Menu de usuários só aparece para admins/full_admins
+  - Menu de usuários só aparece para admins/roots
   - Permissões baseadas em role do usuário atual
   - Admin pode criar/editar users e admins
-  - Full_admin pode criar/editar todos, incluindo outros full_admins
+  - Root pode criar/editar todos, incluindo outros roots
   - Não pode bloquear a si mesmo
   
 - ✅ **Validação de Senha:**
@@ -173,7 +173,7 @@ App.jsx (Layout + Routing)
 | Deletar Linha | ✅ | ✅ |
 | Criar Usuário | ✅ | ✅ + Controle de permissões |
 | Editar Usuário | ✅ | ✅ + Controle de permissões |
-| Bloquear Usuário | ✅ | ✅ (full_admin only) |
+| Bloquear Usuário | ✅ | ✅ (root only) |
 | Criar Contrato | ✅ | ✅ + Seleção em cascata |
 | Editar Contrato | ✅ | ✅ |
 | Visualizar Detalhes | ✅ | ✅ + Modal dedicado |

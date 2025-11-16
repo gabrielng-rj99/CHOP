@@ -8,7 +8,7 @@ Foi implementado um sistema completo de auditoria centralizado para o Contract M
 2. **Captura contexto completo**: timestamp, IP do cliente, User-Agent, método HTTP, endpoint
 3. **Rastreia mudanças**: guarda valores antes e depois em JSON para análise de diferenças
 4. **Permite soft-delete de usuários**: usuários deletados mantêm histórico na auditoria
-5. **Fornece interface visual** acessível apenas a full_admin para consulta e filtros avançados
+5. **Fornece interface visual** acessível apenas a root para consulta e filtros avançados
 6. **Centraliza logs**: transição de server.log para banco de dados
 
 ---
@@ -202,13 +202,13 @@ Histórico completo de uma entidade específica.
 #### GET /api/audit-logs/export
 Exporta logs em JSON para análise externa.
 
-**Segurança:** Todos os endpoints de auditoria só acessíveis a `full_admin`.
+**Segurança:** Todos os endpoints de auditoria só acessíveis a `root`.
 
 ### 6. Routes Atualizadas (`backend/cmd/server/routes.go`)
 
-Adicionadas rotas com middleware de autenticação e verificação de `full_admin`:
+Adicionadas rotas com middleware de autenticação e verificação de `root`:
 ```go
-// Audit Logs (only accessible to full_admin)
+// Audit Logs (only accessible to root)
 http.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(...)))
 http.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(...)))
 ```
@@ -287,13 +287,13 @@ Página completa com:
   - Atualizar
   - Exportar JSON
 - Informação de total de registros
-- Verificação de role: apenas `full_admin` pode acessar
+- Verificação de role: apenas `root` pode acessar
 
 ### 3. App.jsx Atualizado
 
 Adicionados:
 - Import de `AuditLogs`
-- Botão de navegação "Logs de Auditoria" (visível apenas para full_admin)
+- Botão de navegação "Logs de Auditoria" (visível apenas para root)
 - Rota para page de auditoria
 
 ---
@@ -306,7 +306,7 @@ Adicionados:
 1. Frontend → POST /api/users
 2. Backend auth middleware:
    - Extrai token
-   - Valida role (admin/full_admin)
+   - Valida role (admin/root)
    - Extrai IP, User-Agent
 3. Handler cria usuário
 4. AuditStore.LogOperation() chamado:
@@ -347,7 +347,7 @@ Adicionados:
 
 ```
 1. Frontend → GET /api/audit-logs?entity=user&operation=delete&limit=50&offset=0
-2. Backend valida role (full_admin only)
+2. Backend valida role (root only)
 3. AuditStore.ListAuditLogs(filter):
    - Constrói query SQL dinamicamente
    - Filtra por entity, operation, date range, etc
@@ -362,7 +362,7 @@ Adicionados:
 ## Segurança Implementada
 
 ### 1. Controle de Acesso
-- Apenas `full_admin` pode acessar logs de auditoria
+- Apenas `root` pode acessar logs de auditoria
 - Middleware verifica role em toda requisição
 
 ### 2. Rastreamento de Acesso
@@ -504,7 +504,7 @@ O histórico completo estaria disponível na auditoria.
 ┌─────────────────────────────────────────────────────────┐
 │                    Frontend (React)                      │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │ AuditLogs Page (full_admin only)                 │   │
+│  │ AuditLogs Page (root only)                 │   │
 │  │ - AuditFilters (entity, operation, date range)   │   │
 │  │ - AuditLogsTable (data + expansible rows)        │   │
 │  │ - Pagination (25/50/100/200 per page)            │   │
@@ -519,7 +519,7 @@ O histórico completo estaria disponível na auditoria.
 │  GET /api/audit-logs/entity/{entity}/{entityId}         │
 │  GET /api/audit-logs/export                             │
 └──────────────┬──────────────────────────────────────────┘
-               │ Auth Middleware (full_admin check)
+               │ Auth Middleware (root check)
                ▼
 ┌──────────────────────────────────────────────────────────┐
 │                  AuditStore                              │
@@ -593,7 +593,7 @@ GET /api/audit-logs/export
    - Taxa de sucesso/erro
 
 3. **Alertas:**
-   - Notificar full_admin de operações suspeitas
+   - Notificar root de operações suspeitas
    - Múltiplas deletions em curto período
    - Acessos de IPs novos
 
@@ -616,7 +616,7 @@ O sistema de auditoria agora fornece:
 ✅ Soft-delete de usuários sem quebra de integridade
 ✅ Interface visual para consulta e filtros avançados
 ✅ Performance otimizada com índices estratégicos
-✅ Acesso restrito a full_admin
+✅ Acesso restrito a root
 ✅ Capacidade de exportação para análise externa
 
 Isso atende aos requisitos de **cybersecurity, compliance e rastreabilidade** solicitados.

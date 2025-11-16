@@ -7,7 +7,7 @@ Implemented a **comprehensive, production-ready audit logging system** that:
 - ✅ Captures **before/after values** in JSON for forensic analysis
 - ✅ Records **security context**: IP, User-Agent, admin ID, HTTP method/path, response code
 - ✅ Implements **soft-delete for users** - no data loss, no FK breaks
-- ✅ Provides **visual interface** (full_admin only) with advanced filters
+- ✅ Provides **visual interface** (root only) with advanced filters
 - ✅ Enables **compliance** and **incident investigation**
 
 ---
@@ -22,7 +22,7 @@ Implemented a **comprehensive, production-ready audit logging system** that:
 - **Filters** - Entity, operation, date range, status, IP, admin, etc.
 
 ### Frontend (React)
-- **AuditLogs.jsx** - Main page (full_admin only)
+- **AuditLogs.jsx** - Main page (root only)
 - **AuditFilters.jsx** - Advanced filter component
 - **AuditLogsTable.jsx** - Expandable table with JSON display
 - **auditApi.js** - API module for backend calls
@@ -118,8 +118,8 @@ s.logAuditOperation(r, "update", "client", clientID,
     &adminID, &adminUsername, oldData, newData, "success", nil)
 ```
 
-### For Full Admin - Access Logs
-1. Login as `full_admin`
+### For Root - Access Logs
+1. Login as `root`
 2. Click "Logs de Auditoria" menu
 3. Apply filters
 4. Expand rows for details
@@ -135,7 +135,7 @@ s.logAuditOperation(r, "update", "client", clientID,
 
 ## 🔐 Security Features
 
-✅ **Access Control** - Restricted to full_admin only  
+✅ **Access Control** - Restricted to root only  
 ✅ **Immutability** - Logs cannot be deleted  
 ✅ **Forensic Trail** - Complete before/after data  
 ✅ **Client Tracking** - IP and User-Agent captured  
@@ -185,7 +185,7 @@ s.logAuditOperation(r, "update", "client", clientID,
 - ✅ Filters work individually and combined
 - ✅ Pagination functions
 - ✅ JSON export works
-- ✅ Only full_admin accesses logs
+- ✅ Only root accesses logs
 - ✅ All 16 fields captured
 - ✅ IP extraction works
 

@@ -2,13 +2,13 @@
 
 ## Visão Rápida
 
-O sistema de auditoria rastreia **todas as operações** no Contract Manager. Apenas `full_admin` pode acessar os logs.
+O sistema de auditoria rastreia **todas as operações** no Contract Manager. Apenas `root` pode acessar os logs.
 
 ---
 
 ## Para Acessar os Logs
 
-1. **Faça login como full_admin**
+1. **Faça login como root**
 2. **Clique em "Logs de Auditoria"** no menu lateral
 3. **Veja a tabela com todos os logs**
 
@@ -185,7 +185,7 @@ Ver tudo que foi feito daquele IP.
 ## Troubleshooting
 
 **Não vejo botão "Logs de Auditoria"?**
-→ Você não é full_admin. Peça ao administrador.
+→ Você não é root. Peça ao administrador.
 
 **Nenhum log aparece?**
 → Talvez não haja operações naquele período/com esses filtros. Limpe filtros e tente novamente.
