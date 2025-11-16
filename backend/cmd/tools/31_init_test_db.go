@@ -29,7 +29,7 @@ func InitTestDatabaseDocker() {
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
-	initSQLPath := filepath.Join(projectRoot, "database", "init.sql")
+	initSQLPath := filepath.Join(projectRoot, "database", "schema.sql")
 
 	// Para o container de teste se estiver rodando
 	if isContainerRunning(testContainer) {
@@ -119,10 +119,10 @@ func initializeTestDatabase(initPath string) error {
 	}
 	defer db.Close()
 
-	// Lê o arquivo init.sql
+	// Lê o arquivo schema.sql
 	initSQL, err := os.ReadFile(initPath)
 	if err != nil {
-		return fmt.Errorf("falha ao ler init.sql: %w", err)
+		return fmt.Errorf("falha ao ler schema.sql: %w", err)
 	}
 
 	// Executa o schema
