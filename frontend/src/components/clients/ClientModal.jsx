@@ -258,28 +258,6 @@ export default function ClientModal({
                         />
                     </div>
 
-                    <div className="client-modal-form-row">
-                        <div className="client-modal-form-group">
-                            <label className="client-modal-label">
-                                Status *
-                            </label>
-                            <select
-                                value={formData.status}
-                                onChange={(e) =>
-                                    setFormData({
-                                        ...formData,
-                                        status: e.target.value,
-                                    })
-                                }
-                                required
-                                className="client-modal-input"
-                            >
-                                <option value="ativo">Ativo</option>
-                                <option value="inativo">Inativo</option>
-                            </select>
-                        </div>
-                    </div>
-
                     {(error || localError) && (
                         <div className="client-modal-error">
                             {error || localError}
