@@ -50,7 +50,6 @@ export const getInitialFormData = () => ({
     notes: "",
     contact_preference: "",
     tags: "",
-    status: "ativo",
 });
 
 export const getInitialDependentForm = () => ({
@@ -71,7 +70,6 @@ export const formatClientForEdit = (client) => ({
     notes: client.notes || "",
     contact_preference: client.contact_preference || "",
     tags: client.tags || "",
-    status: client.status || "ativo",
 });
 
 export const formatDependentForEdit = (dependent) => ({

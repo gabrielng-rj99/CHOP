@@ -1,12 +1,15 @@
 export const clientsApi = {
     loadClients: async (apiUrl, token, setClients, setError) => {
         try {
-            const response = await fetch(`${apiUrl}/api/clients`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
+            const response = await fetch(
+                `${apiUrl}/api/clients?include_stats=true`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
                 },
-            });
+            );
 
             if (!response.ok) {
                 throw new Error("Erro ao carregar clientes");
@@ -20,21 +23,28 @@ export const clientsApi = {
     },
 
     createClient: async (apiUrl, token, formData) => {
+        const formatDateForAPI = (dateString) => {
+            if (!dateString || dateString.trim() === "") return null;
+            // If already has timestamp, return as is
+            if (dateString.includes("T")) return dateString;
+            // If in YYYY-MM-DD format, add timestamp
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return `${dateString}T00:00:00Z`;
+            }
+            return dateString;
+        };
+
         const payload = {
             name: formData.name,
             registration_id: formData.registration_id || null,
             nickname: formData.nickname || null,
-            birth_date:
-                formData.birth_date && formData.birth_date.trim() !== ""
-                    ? formData.birth_date
-                    : null,
+            birth_date: formatDateForAPI(formData.birth_date),
             email: formData.email || null,
             phone: formData.phone || null,
             address: formData.address || null,
             notes: formData.notes || null,
             contact_preference: formData.contact_preference || null,
             tags: formData.tags || null,
-            status: formData.status || "ativo",
         };
 
         const response = await fetch(`${apiUrl}/api/clients`, {
@@ -55,21 +65,28 @@ export const clientsApi = {
     },
 
     updateClient: async (apiUrl, token, clientId, formData) => {
+        const formatDateForAPI = (dateString) => {
+            if (!dateString || dateString.trim() === "") return null;
+            // If already has timestamp, return as is
+            if (dateString.includes("T")) return dateString;
+            // If in YYYY-MM-DD format, add timestamp
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return `${dateString}T00:00:00Z`;
+            }
+            return dateString;
+        };
+
         const payload = {
             name: formData.name,
             registration_id: formData.registration_id || null,
             nickname: formData.nickname || null,
-            birth_date:
-                formData.birth_date && formData.birth_date.trim() !== ""
-                    ? formData.birth_date
-                    : null,
+            birth_date: formatDateForAPI(formData.birth_date),
             email: formData.email || null,
             phone: formData.phone || null,
             address: formData.address || null,
             notes: formData.notes || null,
             contact_preference: formData.contact_preference || null,
             tags: formData.tags || null,
-            status: formData.status || "ativo",
         };
 
         const response = await fetch(`${apiUrl}/api/clients/${clientId}`, {
