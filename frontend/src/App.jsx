@@ -28,6 +28,26 @@ function App() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const refreshTimeoutRef = useRef(null);
 
+    // Load saved session on mount
+    useEffect(() => {
+        try {
+            const savedToken = localStorage.getItem("token");
+            const savedRefreshToken = localStorage.getItem("refreshToken");
+            const savedUser = localStorage.getItem("user");
+            const savedPage = localStorage.getItem("currentPage");
+
+            if (savedToken && savedRefreshToken && savedUser) {
+                setToken(savedToken);
+                setRefreshToken(savedRefreshToken);
+                setUser(JSON.parse(savedUser));
+                setCurrentPage(savedPage || "dashboard");
+            }
+        } catch (error) {
+            console.error("Error loading session:", error);
+            localStorage.clear();
+        }
+    }, []);
+
     // Função para decodificar o JWT e pegar expiração
     function getTokenExpiration(token) {
         try {
@@ -65,8 +85,14 @@ function App() {
             }
             const data = await response.json();
             setToken(data.data.token);
+            try {
+                localStorage.setItem("token", data.data.token);
+            } catch (e) {
+                console.error("Error saving token:", e);
+            }
             scheduleTokenRefresh(data.data.token, refreshToken);
         } catch (err) {
+            console.error("Error refreshing token:", err);
             logout();
         }
     }
@@ -95,8 +121,28 @@ function App() {
             setRefreshToken(data.data.refresh_token);
             setUser(userData);
             setCurrentPage("dashboard");
+
+            // Save to localStorage
+            try {
+                localStorage.setItem("token", data.data.token);
+                localStorage.setItem("refreshToken", data.data.refresh_token);
+                localStorage.setItem("user", JSON.stringify(userData));
+                localStorage.setItem("currentPage", "dashboard");
+            } catch (e) {
+                console.error("Error saving to localStorage:", e);
+            }
+
             scheduleTokenRefresh(data.data.token, data.data.refresh_token);
         } catch (error) {
+            // Melhor tratamento de erros de rede
+            if (
+                error.message === "Failed to fetch" ||
+                error.name === "TypeError"
+            ) {
+                throw new Error(
+                    "Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3000",
+                );
+            }
             throw error;
         }
     };
@@ -106,11 +152,27 @@ function App() {
         setUser(null);
         setRefreshToken(null);
         setCurrentPage("login");
+
+        // Clear localStorage
+        try {
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            localStorage.removeItem("currentPage");
+        } catch (e) {
+            console.error("Error clearing localStorage:", e);
+        }
+
         if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     };
 
     const navigate = (page) => {
         setCurrentPage(page);
+        try {
+            localStorage.setItem("currentPage", page);
+        } catch (e) {
+            console.error("Error saving page:", e);
+        }
     };
 
     const toggleSidebar = () => {
