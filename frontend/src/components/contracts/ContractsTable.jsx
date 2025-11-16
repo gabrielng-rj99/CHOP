@@ -6,6 +6,10 @@ import {
     getCategoryName,
 } from "../../utils/contractHelpers";
 import "./ContractsTable.css";
+import InfoIcon from "../../assets/icons/info.svg";
+import EditIcon from "../../assets/icons/edit.svg";
+import ArchiveIcon from "../../assets/icons/archive.svg";
+import UnarchiveIcon from "../../assets/icons/unarchive.svg";
 
 export default function ContractsTable({
     filteredContracts,
@@ -91,34 +95,15 @@ export default function ContractsTable({
                                         className="contracts-table-icon-button"
                                         title="Detalhes"
                                     >
-                                        <svg
-                                            width="22"
-                                            height="22"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="#3498db"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <circle
-                                                cx="12"
-                                                cy="12"
-                                                r="10"
-                                            ></circle>
-                                            <line
-                                                x1="12"
-                                                y1="16"
-                                                x2="12"
-                                                y2="12"
-                                            ></line>
-                                            <line
-                                                x1="12"
-                                                y1="8"
-                                                x2="12.01"
-                                                y2="8"
-                                            ></line>
-                                        </svg>
+                                        <img
+                                            src={InfoIcon}
+                                            alt="Detalhes"
+                                            style={{
+                                                width: "22px",
+                                                height: "22px",
+                                                filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
+                                            }}
+                                        />
                                     </button>
                                     {!isArchived && (
                                         <>
@@ -127,19 +112,15 @@ export default function ContractsTable({
                                                 className="contracts-table-icon-button"
                                                 title="Editar"
                                             >
-                                                <svg
-                                                    width="22"
-                                                    height="22"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="#3498db"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M12 20h9" />
-                                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                                                </svg>
+                                                <img
+                                                    src={EditIcon}
+                                                    alt="Editar"
+                                                    style={{
+                                                        width: "22px",
+                                                        height: "22px",
+                                                        filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
+                                                    }}
+                                                />
                                             </button>
                                             <button
                                                 onClick={() =>
@@ -148,30 +129,15 @@ export default function ContractsTable({
                                                 className="contracts-table-icon-button"
                                                 title="Arquivar"
                                             >
-                                                <svg
-                                                    width="22"
-                                                    height="22"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="#f39c12"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                                                    <rect
-                                                        x="1"
-                                                        y="3"
-                                                        width="22"
-                                                        height="5"
-                                                    ></rect>
-                                                    <line
-                                                        x1="10"
-                                                        y1="12"
-                                                        x2="14"
-                                                        y2="12"
-                                                    ></line>
-                                                </svg>
+                                                <img
+                                                    src={ArchiveIcon}
+                                                    alt="Arquivar"
+                                                    style={{
+                                                        width: "22px",
+                                                        height: "22px",
+                                                        filter: "invert(64%) sepia(81%) saturate(455%) hue-rotate(359deg) brightness(98%) contrast(91%)",
+                                                    }}
+                                                />
                                             </button>
                                         </>
                                     )}
@@ -183,25 +149,15 @@ export default function ContractsTable({
                                             className="contracts-table-icon-button"
                                             title="Desarquivar"
                                         >
-                                            <svg
-                                                width="22"
-                                                height="22"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="#27ae60"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                                                <rect
-                                                    x="1"
-                                                    y="3"
-                                                    width="22"
-                                                    height="5"
-                                                ></rect>
-                                                <polyline points="10 12 12 14 14 12"></polyline>
-                                            </svg>
+                                            <img
+                                                src={UnarchiveIcon}
+                                                alt="Desarquivar"
+                                                style={{
+                                                    width: "22px",
+                                                    height: "22px",
+                                                    filter: "invert(62%) sepia(34%) saturate(760%) hue-rotate(88deg) brightness(93%) contrast(81%)",
+                                                }}
+                                            />
                                         </button>
                                     )}
                                 </div>

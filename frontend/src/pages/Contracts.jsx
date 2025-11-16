@@ -12,6 +12,7 @@ import {
 } from "../utils/contractHelpers";
 import ContractsTable from "../components/contracts/ContractsTable";
 import ContractModal from "../components/contracts/ContractModal";
+import "./Contracts.css";
 
 export default function Contracts({ token, apiUrl }) {
     const [contracts, setContracts] = useState([]);
@@ -112,13 +113,13 @@ export default function Contracts({ token, apiUrl }) {
     };
 
     const handleUpdateContract = async () => {
+        setError("");
         try {
-            const apiData = prepareContractDataForAPI(formData);
-            await contractsApi.updateContract(
+            const apiData = await contractsApi.updateContract(
                 apiUrl,
                 token,
                 selectedContract.id,
-                apiData,
+                prepareContractDataForAPI(formData),
             );
             await loadContracts();
             closeModal();
@@ -241,8 +242,8 @@ export default function Contracts({ token, apiUrl }) {
 
     if (loading) {
         return (
-            <div style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: "18px", color: "#7f8c8d" }}>
+            <div className="contracts-loading">
+                <div className="contracts-loading-text">
                     Carregando contratos...
                 </div>
             </div>
@@ -250,157 +251,61 @@ export default function Contracts({ token, apiUrl }) {
     }
 
     return (
-        <div>
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "30px",
-                }}
-            >
-                <h1 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>
-                    Contratos
-                </h1>
-                <div style={{ display: "flex", gap: "12px" }}>
+        <div className="contracts-container">
+            <div className="contracts-header">
+                <h1 className="contracts-title">Contratos</h1>
+                <div className="contracts-button-group">
                     <button
                         onClick={loadContracts}
-                        style={{
-                            padding: "10px 20px",
-                            background: "white",
-                            color: "#3498db",
-                            border: "1px solid #3498db",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
+                        className="contracts-button-secondary"
                     >
                         Atualizar
                     </button>
                     <button
                         onClick={openCreateModal}
-                        style={{
-                            padding: "10px 20px",
-                            background: "#27ae60",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                        }}
+                        className="contracts-button"
                     >
                         + Novo Contrato
                     </button>
                 </div>
             </div>
 
-            {error && (
-                <div
-                    style={{
-                        background: "#fee",
-                        color: "#c33",
-                        padding: "16px",
-                        borderRadius: "4px",
-                        border: "1px solid #fcc",
-                        marginBottom: "20px",
-                    }}
-                >
-                    {error}
-                </div>
-            )}
+            {error && <div className="contracts-error">{error}</div>}
 
-            <div
-                style={{
-                    display: "flex",
-                    gap: "12px",
-                    marginBottom: "24px",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                }}
-            >
+            <div className="contracts-filters">
                 <button
                     onClick={() => setFilter("all")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "all" ? "#3498db" : "white",
-                        color: filter === "all" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "all" ? "active-all" : ""}`}
                 >
                     Todos ({contracts.filter((c) => !c.archived_at).length})
                 </button>
                 <button
                     onClick={() => setFilter("active")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "active" ? "#27ae60" : "white",
-                        color: filter === "active" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
                     Ativos
                 </button>
                 <button
                     onClick={() => setFilter("not-started")}
-                    style={{
-                        padding: "8px 16px",
-                        background:
-                            filter === "not-started" ? "#3498db" : "white",
-                        color: filter === "not-started" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "not-started" ? "active-not-started" : ""}`}
                 >
                     Não Iniciados
                 </button>
                 <button
                     onClick={() => setFilter("expiring")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "expiring" ? "#f39c12" : "white",
-                        color: filter === "expiring" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "expiring" ? "active-expiring" : ""}`}
                 >
                     Expirando
                 </button>
                 <button
                     onClick={() => setFilter("expired")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "expired" ? "#e74c3c" : "white",
-                        color: filter === "expired" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "expired" ? "active-expired" : ""}`}
                 >
                     Expirados
                 </button>
                 <button
                     onClick={() => setFilter("archived")}
-                    style={{
-                        padding: "8px 16px",
-                        background: filter === "archived" ? "#95a5a6" : "white",
-                        color: filter === "archived" ? "white" : "#2c3e50",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                    }}
+                    className={`contracts-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
                     Arquivados
                 </button>
@@ -410,26 +315,14 @@ export default function Contracts({ token, apiUrl }) {
                     placeholder="Buscar por modelo, chave, cliente..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        flex: 1,
-                        minWidth: "300px",
-                        padding: "8px 16px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                    }}
+                    className="contracts-search-input"
                 />
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #ecf0f1",
-                    overflow: "hidden",
-                }}
-            >
+            <div className="contracts-table-wrapper">
+                {/* <div className="contracts-table-header">
+                    <h2 className="contracts-table-header-title">Contratos</h2>
+                </div>*/}
                 <ContractsTable
                     filteredContracts={filteredContracts}
                     clients={clients}
