@@ -1,11 +1,14 @@
 const categoriesApi = {
     loadCategories: async (apiUrl, token) => {
-        const response = await fetch(`${apiUrl}/api/categories`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
+        const response = await fetch(
+            `${apiUrl}/api/categories?include_archived=true`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
             },
-        });
+        );
 
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
@@ -17,13 +20,13 @@ const categoriesApi = {
 
     loadLines: async (apiUrl, token, categoryId) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}/lines`,
+            `${apiUrl}/api/categories/${categoryId}/lines?include_archived=true`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
@@ -53,17 +56,14 @@ const categoriesApi = {
     },
 
     updateCategory: async (apiUrl, token, categoryId, categoryData) => {
-        const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(categoryData),
-            }
-        );
+        const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(categoryData),
+        });
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -74,19 +74,54 @@ const categoriesApi = {
     },
 
     deleteCategory: async (apiUrl, token, categoryId) => {
+        const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao deletar categoria");
+        }
+
+        return await response.json();
+    },
+
+    archiveCategory: async (apiUrl, token, categoryId) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}`,
+            `${apiUrl}/api/categories/${categoryId}/archive`,
             {
-                method: "DELETE",
+                method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
-            throw new Error("Erro ao deletar categoria");
+            throw new Error("Erro ao arquivar categoria");
+        }
+
+        return await response.json();
+    },
+
+    unarchiveCategory: async (apiUrl, token, categoryId) => {
+        const response = await fetch(
+            `${apiUrl}/api/categories/${categoryId}/unarchive`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error("Erro ao desarquivar categoria");
         }
 
         return await response.json();
@@ -139,6 +174,41 @@ const categoriesApi = {
 
         if (!response.ok) {
             throw new Error("Erro ao deletar linha");
+        }
+
+        return await response.json();
+    },
+
+    archiveLine: async (apiUrl, token, lineId) => {
+        const response = await fetch(`${apiUrl}/api/lines/${lineId}/archive`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao arquivar linha");
+        }
+
+        return await response.json();
+    },
+
+    unarchiveLine: async (apiUrl, token, lineId) => {
+        const response = await fetch(
+            `${apiUrl}/api/lines/${lineId}/unarchive`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error("Erro ao desarquivar linha");
         }
 
         return await response.json();

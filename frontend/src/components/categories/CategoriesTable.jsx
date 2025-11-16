@@ -1,11 +1,18 @@
 import React from "react";
 import "./CategoriesTable.css";
+import BoxOpenIcon from "../../assets/icons/box-open.svg";
+import EditIcon from "../../assets/icons/edit.svg";
+import TrashIcon from "../../assets/icons/trash.svg";
+import ArchiveIcon from "../../assets/icons/archive.svg";
+import UnarchiveIcon from "../../assets/icons/unarchive.svg";
 
 export default function CategoriesTable({
     filteredCategories,
     onSelectCategory,
     onEditCategory,
     onDeleteCategory,
+    onArchiveCategory,
+    onUnarchiveCategory,
     selectedCategory,
 }) {
     if (filteredCategories.length === 0) {
@@ -21,101 +28,151 @@ export default function CategoriesTable({
             <thead>
                 <tr>
                     <th>Nome da Categoria</th>
+                    <th>Status</th>
                     <th className="actions">Ações</th>
                 </tr>
             </thead>
             <tbody>
-                {filteredCategories.map((category) => (
-                    <tr
-                        key={category.id}
-                        className={
-                            selectedCategory?.id === category.id
-                                ? "selected"
-                                : ""
-                        }
-                    >
-                        <td>{category.name}</td>
-                        <td className="actions">
-                            <div className="categories-table-actions">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEditCategory(category);
+                {filteredCategories.map((category) => {
+                    const isArchived = !!category.archived_at;
+                    return (
+                        <tr
+                            key={category.id}
+                            className={
+                                selectedCategory?.id === category.id
+                                    ? "selected"
+                                    : ""
+                            }
+                        >
+                            <td>{category.name}</td>
+                            <td>
+                                <span
+                                    className={`categories-table-status ${isArchived ? "archived" : "active"}`}
+                                    style={{
+                                        background: isArchived
+                                            ? "#95a5a620"
+                                            : "#27ae6020",
+                                        color: isArchived
+                                            ? "#95a5a6"
+                                            : "#27ae60",
+                                        padding: "4px 12px",
+                                        borderRadius: "12px",
+                                        fontSize: "12px",
+                                        fontWeight: "600",
                                     }}
-                                    className="categories-table-icon-button"
-                                    title="Editar"
                                 >
-                                    <svg
-                                        width="22"
-                                        height="22"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="#3498db"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M12 20h9" />
-                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSelectCategory(category);
-                                    }}
-                                    className="categories-table-icon-button"
-                                    title="Ver Linhas"
-                                >
-                                    <i
-                                        className="fa-light fa-box-open"
-                                        style={{
-                                            fontSize: "18px",
-                                            color: "#9b59b6",
+                                    {isArchived ? "Arquivado" : "Ativo"}
+                                </span>
+                            </td>
+                            <td className="actions">
+                                <div className="categories-table-actions">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditCategory(category);
                                         }}
-                                    ></i>
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteCategory(
-                                            category.id,
-                                            category.name,
-                                        );
-                                    }}
-                                    className="categories-table-icon-button"
-                                    title="Deletar"
-                                >
-                                    <svg
-                                        width="22"
-                                        height="22"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="#e74c3c"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
+                                        className="categories-table-icon-button"
+                                        title="Editar"
                                     >
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"></path>
-                                        <line
-                                            x1="10"
-                                            y1="11"
-                                            x2="10"
-                                            y2="17"
-                                        ></line>
-                                        <line
-                                            x1="14"
-                                            y1="11"
-                                            x2="14"
-                                            y2="17"
-                                        ></line>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                ))}
+                                        <img
+                                            src={EditIcon}
+                                            alt="Editar"
+                                            style={{
+                                                width: "26px",
+                                                height: "26px",
+                                                filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
+                                            }}
+                                        />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onSelectCategory(category);
+                                        }}
+                                        className="categories-table-icon-button"
+                                        title="Ver Linhas"
+                                    >
+                                        <img
+                                            src={BoxOpenIcon}
+                                            alt="Ver Linhas"
+                                            style={{
+                                                width: "26px",
+                                                height: "26px",
+                                                color: "#9b59b6",
+                                            }}
+                                        />
+                                    </button>
+                                    {isArchived ? (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onUnarchiveCategory(
+                                                    category.id,
+                                                    category.name,
+                                                );
+                                            }}
+                                            className="categories-table-icon-button"
+                                            title="Desarquivar"
+                                        >
+                                            <img
+                                                src={UnarchiveIcon}
+                                                alt="Desarquivar"
+                                                style={{
+                                                    width: "26px",
+                                                    height: "26px",
+                                                    filter: "invert(62%) sepia(34%) saturate(760%) hue-rotate(88deg) brightness(93%) contrast(81%)",
+                                                }}
+                                            />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onArchiveCategory(
+                                                    category.id,
+                                                    category.name,
+                                                );
+                                            }}
+                                            className="categories-table-icon-button"
+                                            title="Arquivar"
+                                        >
+                                            <img
+                                                src={ArchiveIcon}
+                                                alt="Arquivar"
+                                                style={{
+                                                    width: "26px",
+                                                    height: "26px",
+                                                    filter: "invert(64%) sepia(81%) saturate(455%) hue-rotate(359deg) brightness(98%) contrast(91%)",
+                                                }}
+                                            />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteCategory(
+                                                category.id,
+                                                category.name,
+                                            );
+                                        }}
+                                        className="categories-table-icon-button"
+                                        title="Deletar"
+                                    >
+                                        <img
+                                            src={TrashIcon}
+                                            alt="Deletar"
+                                            style={{
+                                                width: "26px",
+                                                height: "26px",
+                                                filter: "invert(37%) sepia(93%) saturate(1447%) hue-rotate(342deg) brightness(94%) contrast(88%)",
+                                            }}
+                                        />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    );
+                })}
             </tbody>
         </table>
     );
