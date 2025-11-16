@@ -5,15 +5,19 @@ const convertDateToDisplay = (dateString) => {
     return `${day}/${month}/${year}`;
 };
 
-// Helper para converter data do formato dd/mm/yyyy para yyyy-mm-dd
+// Helper para converter data do formato dd/mm/yyyy para yyyy-mm-ddT00:00:00Z
 const convertDateToAPI = (dateString) => {
     if (!dateString) return "";
     const parts = dateString.split("/");
     if (parts.length === 3) {
         const [day, month, year] = parts;
         if (year && year.length === 4) {
-            return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00Z`;
         }
+    }
+    // If already in YYYY-MM-DD format, add time
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return `${dateString}T00:00:00Z`;
     }
     return dateString;
 };
