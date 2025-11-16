@@ -8,7 +8,7 @@ import (
 )
 
 // DropMainDatabase para o banco principal (container), sem remover dados ou volumes.
-func DropMainDatabase() {
+func StopMainDatabase() {
 	clearTerminal()
 	fmt.Println("⚠ Esta ação irá parar o banco principal (container), mas não irá remover dados ou volumes.")
 	fmt.Print("Tem certeza que deseja continuar? (digite 'sim' para confirmar): ")

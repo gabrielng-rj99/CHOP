@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// Flag global para controlar clearTerminal
+var skipClearTerminal bool
+
 // isContainerRunning verifica se um container específico está rodando
 func isContainerRunning(containerName string) bool {
 	cmd := exec.Command("docker", "ps", "--format", "{{.Names}}")
@@ -168,7 +171,12 @@ func runShell(cmd string) error {
 	return command.Run()
 }
 
+// clearTerminal limpa o terminal, respeitando a flag skipClearTerminal
 func clearTerminal() {
+	if skipClearTerminal {
+		return
+	}
+
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
@@ -180,4 +188,17 @@ func clearTerminal() {
 
 	cmd.Stdout = os.Stdout
 	cmd.Run()
+}
+
+// simulateEnterForNextFunction simula um ENTER para funções que esperam input do usuário
+func simulateEnterForNextFunction(f func()) {
+	originalStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	w.Write([]byte("\n"))
+	w.Close()
+	os.Stdin = r
+	skipClearTerminal = true
+	f()
+	skipClearTerminal = false
+	os.Stdin = originalStdin
 }

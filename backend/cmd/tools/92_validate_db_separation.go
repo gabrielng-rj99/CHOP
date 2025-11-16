@@ -120,6 +120,8 @@ func ValidateDBSeparation() {
 
 	fmt.Println("╚═══════════════════════════════════════════════════════════════════════════╝")
 
-	fmt.Print("\nPressione ENTER para continuar...")
+	if !skipClearTerminal {
+		fmt.Print("\nPressione ENTER para continuar...")
+	}
 	fmt.Scanln()
 }

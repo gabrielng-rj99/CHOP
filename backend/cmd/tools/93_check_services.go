@@ -90,8 +90,11 @@ func checkServices() {
 		}
 	}
 
-	fmt.Print("\nPressione ENTER para continuar...")
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	if !skipClearTerminal {
+		fmt.Print("\nPressione ENTER para continuar...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+	}
+
 }
 
 // checkPort verifica se há algum processo rodando na porta especificada

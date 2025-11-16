@@ -19,8 +19,9 @@ func main() {
 		fmt.Println("║                      🚀 CONTROLE RÁPIDO 🚀                                 ║")
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
 		fmt.Println("║ 01 - Iniciar tudo (banco + servidor + frontend)                            ║")
-		fmt.Println("║ 02 - Derrubar tudo (parar serviços e banco, SEM apagar dados)              ║")
-		fmt.Println("║ 03 - Derrubar tudo e apagar (parar + remover volumes - DESTRUTIVO)         ║")
+		fmt.Println("║ 02 - Parar tudo (parar serviços e banco, SEM apagar dados)                 ║")
+		fmt.Println("║ 03 - Destruir tudo (parar + remover volumes - DESTRUTIVO)                  ║")
+		fmt.Println("║ 04 - Reiniciar tudo (parar e iniciar serviços, SEM resetar banco)          ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -34,7 +35,7 @@ func main() {
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
-		fmt.Println("║                      🗄️  PARAR APLICAÇÃO  🗄️                               ║")
+		fmt.Println("║                      🗄️  PARAR APLICAÇÃO  🗄️                                 ║")
 		fmt.Println("╠════════════════════════════════════════════════════════════════════════════╣")
 		fmt.Println("║ 21 - Derrubar banco principal (parar container)                            ║")
 		fmt.Println("║ 22 - Parar servidor HTTP API                                               ║")
@@ -56,6 +57,7 @@ func main() {
 		fmt.Println("║ 91 - Rodar testes (requer banco de testes UP, e o remove no final)         ║")
 		fmt.Println("║ 92 - Validar separação dos bancos de dados                                 ║")
 		fmt.Println("║ 93 - Verificar status dos serviços (HTTP e Frontend)                       ║")
+		fmt.Println("║ 94 - Validação COMPLETA do sistema (bancos + serviços)                     ║")
 		fmt.Println("║ 99 - Popular banco principal para demonstração                             ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
@@ -74,6 +76,8 @@ func main() {
 			shutdownAll()
 		case "03", "3":
 			shutdownAllwithVolumes()
+		case "04", "4":
+			restartServer()
 		case "10":
 			LaunchCLI()
 		case "11":
@@ -85,7 +89,7 @@ func main() {
 		case "19":
 			CreateAdminCLI()
 		case "21":
-			DropMainDatabase()
+			StopMainDatabase()
 		case "22":
 			stopServer()
 		case "23":
@@ -102,6 +106,8 @@ func main() {
 			ValidateDBSeparation()
 		case "93":
 			checkServices()
+		case "94":
+			fullSystemValidation()
 		case "99":
 			populateMainDB()
 		case "0", "00":
