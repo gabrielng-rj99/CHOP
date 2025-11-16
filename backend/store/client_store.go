@@ -76,11 +76,8 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 		// If trimmedRegID is empty, formattedID stays nil
 	}
 
-	// Default status to 'ativo' if not provided
-	status := client.Status
-	if status == "" {
-		status = "ativo"
-	}
+	// Default status to 'inativo' - will be updated by UpdateClientStatus based on contracts
+	status := "inativo"
 
 	newID := uuid.New().String()
 	createdAt := time.Now()
@@ -119,6 +116,11 @@ func (s *ClientStore) CreateClient(client domain.Client) (string, error) {
 		}
 		return "", err
 	}
+	// Update client status based on active contracts
+	if err := s.UpdateClientStatus(newID); err != nil {
+		// Non-critical, just log but don't fail
+	}
+
 	return newID, nil
 }
 
@@ -208,6 +210,8 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if !validationErrors.IsValid() {
 		return errors.New(validationErrors.Error())
 	}
+
+	// Status will be auto-calculated, ignore any status from client input
 
 	// Trim and validate name
 	trimmedName, err := ValidateName(client.Name, 255)
@@ -313,6 +317,59 @@ func (s *ClientStore) UpdateClient(client domain.Client) error {
 	if rows == 0 {
 		return errors.New("no client updated")
 	}
+
+	// Update client status based on active contracts
+	if err := s.UpdateClientStatus(client.ID); err != nil {
+		// Non-critical, just log but don't fail
+	}
+
+	return nil
+}
+
+// UpdateClientStatus atualiza o status do cliente baseado nos contratos ativos
+// Ignora clientes arquivados
+func (s *ClientStore) UpdateClientStatus(clientID string) error {
+	if clientID == "" {
+		return errors.New("client ID cannot be empty")
+	}
+
+	// Check if client is archived - don't update status for archived clients
+	var archivedAt *time.Time
+	err := s.db.QueryRow(`SELECT archived_at FROM clients WHERE id = $1`, clientID).Scan(&archivedAt)
+	if err != nil {
+		return err
+	}
+	if archivedAt != nil {
+		return nil // Don't update status for archived clients
+	}
+
+	// Count active contracts (not archived and either no end_date or end_date in future)
+	var activeContracts int
+	now := time.Now()
+	err = s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM contracts
+		WHERE client_id = $1
+		AND archived_at IS NULL
+		AND (end_date IS NULL OR end_date > $2)
+	`, clientID, now).Scan(&activeContracts)
+	if err != nil {
+		return err
+	}
+
+	// Set status based on active contracts
+	var newStatus string
+	if activeContracts > 0 {
+		newStatus = "ativo"
+	} else {
+		newStatus = "inativo"
+	}
+
+	_, err = s.db.Exec(`UPDATE clients SET status = $1 WHERE id = $2`, newStatus, clientID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
