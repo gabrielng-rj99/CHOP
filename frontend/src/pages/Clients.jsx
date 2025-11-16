@@ -13,7 +13,7 @@ import DependentsPanel from "../components/clients/DependentsPanel";
 import DependentModal from "../components/clients/DependentModal";
 import "./Clients.css";
 
-export default function Clients({ token, apiUrl }) {
+export default function Clients({ token, apiUrl, onTokenExpired }) {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -42,7 +42,7 @@ export default function Clients({ token, apiUrl }) {
         setLoading(true);
         setError("");
         try {
-            await clientsApi.loadClients(apiUrl, token, setClients, setError);
+            await clientsApi.loadClients(apiUrl, token, setClients, setError, onTokenExpired);
         } finally {
             setLoading(false);
         }
@@ -54,6 +54,7 @@ export default function Clients({ token, apiUrl }) {
                 apiUrl,
                 token,
                 clientId,
+                onTokenExpired,
             );
             setDependents(data);
         } catch (err) {
@@ -64,7 +65,7 @@ export default function Clients({ token, apiUrl }) {
     const createClient = async () => {
         setModalError("");
         try {
-            await clientsApi.createClient(apiUrl, token, formData);
+            await clientsApi.createClient(apiUrl, token, formData, onTokenExpired);
             await loadClients();
             closeModal();
         } catch (err) {
@@ -80,6 +81,7 @@ export default function Clients({ token, apiUrl }) {
                 token,
                 selectedClient.id,
                 formData,
+                onTokenExpired,
             );
             await loadClients();
             closeModal();
@@ -93,7 +95,7 @@ export default function Clients({ token, apiUrl }) {
             return;
 
         try {
-            await clientsApi.archiveClient(apiUrl, token, clientId);
+            await clientsApi.archiveClient(apiUrl, token, clientId, onTokenExpired);
             await loadClients();
         } catch (err) {
             setError(err.message);
@@ -102,7 +104,7 @@ export default function Clients({ token, apiUrl }) {
 
     const unarchiveClient = async (clientId) => {
         try {
-            await clientsApi.unarchiveClient(apiUrl, token, clientId);
+            await clientsApi.unarchiveClient(apiUrl, token, clientId, onTokenExpired);
             await loadClients();
         } catch (err) {
             setError(err.message);
@@ -117,6 +119,7 @@ export default function Clients({ token, apiUrl }) {
                 token,
                 selectedClient.id,
                 dependentForm,
+                onTokenExpired,
             );
             await loadDependents(selectedClient.id);
             closeDependentModal();
@@ -133,6 +136,7 @@ export default function Clients({ token, apiUrl }) {
                 token,
                 selectedDependent.id,
                 dependentForm,
+                onTokenExpired,
             );
             await loadDependents(selectedClient.id);
             closeDependentModal();
@@ -146,7 +150,7 @@ export default function Clients({ token, apiUrl }) {
             return;
 
         try {
-            await clientsApi.deleteDependent(apiUrl, token, dependentId);
+            await clientsApi.deleteDependent(apiUrl, token, dependentId, onTokenExpired);
             await loadDependents(selectedClient.id);
         } catch (err) {
             setError(err.message);

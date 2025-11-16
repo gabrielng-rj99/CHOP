@@ -77,6 +77,7 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 className="audit-filters-select"
                             >
                                 <option value="">Todas as entidades</option>
+                                <option value="auth">Autenticação</option>
                                 <option value="user">Usuários</option>
                                 <option value="client">Clientes</option>
                                 <option value="contract">Contratos</option>
@@ -98,6 +99,7 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 className="audit-filters-select"
                             >
                                 <option value="">Todas as operações</option>
+                                <option value="login">Login</option>
                                 <option value="create">Criar</option>
                                 <option value="read">Ler</option>
                                 <option value="update">Atualizar</option>

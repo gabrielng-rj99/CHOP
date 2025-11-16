@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 
-export default function AuditLogsTable({ logs, onViewDetail, loading }) {
+// Adiciona prop users para resolver nomes de usuários
+export default function AuditLogsTable({
+    logs,
+    users = [],
+    onViewDetail,
+    loading,
+}) {
     const [expandedId, setExpandedId] = useState(null);
 
     if (loading) {
@@ -48,6 +54,8 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                 return "Deletou";
             case "read":
                 return "Leu";
+            case "login":
+                return "Login";
             default:
                 return operation;
         }
@@ -63,6 +71,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
 
     const getEntityLabel = (entity) => {
         const labels = {
+            auth: "Autenticação",
             user: "Usuário",
             client: "Cliente",
             contract: "Contrato",
@@ -81,7 +90,8 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
             const [year, month, day] = datePart.split("-");
             if (timePart) {
                 const [hour, minute, second] = timePart.split(":");
-                return `${day}/${month}/${year} ${hour}:${minute}`;
+                const secondClean = second ? second.split(".")[0] : "00";
+                return `${day}/${month}/${year} ${hour}:${minute}:${secondClean}`;
             }
             return `${day}/${month}/${year}`;
         }
@@ -174,17 +184,62 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                 if (oldData.display_name) {
                     return String(oldData.display_name).substring(0, 40);
                 }
-                if (oldData.line) {
-                    return String(oldData.line).substring(0, 40);
-                }
-                return "N/A";
             }
 
+            // fallback
             return "N/A";
-        } catch (error) {
-            console.error("Erro ao processar contexto:", error, log);
+        } catch {
             return "N/A";
         }
+    };
+
+    // NOVA FUNÇÃO: resolve objeto pelo usuário
+    const getObjectLabel = (log) => {
+        // Verifica entity_id com diferentes possibilidades de nome de campo
+        const entityId = log.entity_id || log.entityId || log.EntityID;
+
+        // Se for entidade usuário, tenta várias formas de resolver
+        if (log.entity === "user") {
+            // Primeiro tenta extrair do old_value ou new_value (mais confiável)
+            try {
+                const oldValue =
+                    typeof log.old_value === "string"
+                        ? JSON.parse(log.old_value)
+                        : log.old_value;
+                const newValue =
+                    typeof log.new_value === "string"
+                        ? JSON.parse(log.new_value)
+                        : log.new_value;
+
+                // Prioriza new_value (criação/atualização)
+                if (newValue?.username) return newValue.username;
+                if (oldValue?.username) return oldValue.username;
+
+                // Fallback para display_name
+                if (newValue?.display_name) return newValue.display_name;
+                if (oldValue?.display_name) return oldValue.display_name;
+            } catch (e) {
+                // Ignora erro de parse
+            }
+
+            // Se tiver entity_id, tenta buscar na lista de users
+            if (entityId) {
+                const user = users.find((u) => u.id === entityId);
+                if (user) {
+                    return user.username || user.display_name || entityId;
+                }
+                // Se não encontrou, retorna o UUID
+                return entityId.substring(0, 8) + "...";
+            }
+        }
+
+        // Para entidade auth (login)
+        if (log.entity === "auth") {
+            return log.admin_username || "N/A";
+        }
+
+        // fallback para contexto de mudança
+        return getChangeContext(log);
     };
 
     const tableStyle = {
@@ -293,6 +348,7 @@ export default function AuditLogsTable({ logs, onViewDetail, loading }) {
                                         {getStatusLabel(log.status)}
                                     </span>
                                 </td>
+                                <td style={rowStyle}>{getObjectLabel(log)}</td>
                                 <td style={rowStyle}>
                                     {log.admin_username || (
                                         <span

@@ -9,13 +9,17 @@ export default function UserModal({
     onSubmit,
     onClose,
     error,
+    currentUserRole,
 }) {
-    const [passwordLength, setPasswordLength] = useState(32);
+    const [passwordLength, setPasswordLength] = useState(42); // valor inicial alterado para 42
     const [showPassword, setShowPassword] = useState(false);
+    const [passwordCopied, setPasswordCopied] = useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
     if (!showModal) return null;
 
-    const generateRandomPassword = () => {
+    const generateRandomPassword = (customLength) => {
+        const length = customLength ?? passwordLength;
         const lowercase = "abcdefghijklmnopqrstuvwxyz";
         const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const numbers = "0123456789";
@@ -31,7 +35,7 @@ export default function UserModal({
         password += symbols[Math.floor(Math.random() * symbols.length)];
 
         // Preencher o resto
-        for (let i = password.length; i < passwordLength; i++) {
+        for (let i = password.length; i < length; i++) {
             password += allChars[Math.floor(Math.random() * allChars.length)];
         }
 
@@ -45,6 +49,16 @@ export default function UserModal({
             ...formData,
             password: password,
         });
+
+        return password;
+    };
+
+    const copyPasswordToClipboard = () => {
+        if (formData.password) {
+            navigator.clipboard.writeText(formData.password);
+            setPasswordCopied(true);
+            setTimeout(() => setPasswordCopied(false), 1500);
+        }
     };
 
     return (
@@ -58,48 +72,58 @@ export default function UserModal({
                 </h2>
 
                 <form onSubmit={onSubmit}>
-                    {/* Username */}
-                    <div className="user-modal-form-group">
-                        <label className="user-modal-label">
-                            Nome de Usuário *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.username}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    username: e.target.value,
-                                })
-                            }
-                            required
-                            disabled={modalMode === "edit"}
-                            className="user-modal-input"
-                        />
-                        {modalMode === "edit" && (
-                            <small className="user-modal-hint">
-                                Nome de usuário não pode ser alterado
-                            </small>
-                        )}
-                    </div>
-
-                    {/* Display Name */}
-                    <div className="user-modal-form-group">
-                        <label className="user-modal-label">
-                            Nome de Exibição *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.display_name}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    display_name: e.target.value,
-                                })
-                            }
-                            required
-                            className="user-modal-input"
-                        />
+                    {/* Username & Display Name Side by Side */}
+                    <div
+                        className="user-modal-form-row"
+                        style={{ display: "flex", gap: "16px" }}
+                    >
+                        <div style={{ flex: 1 }}>
+                            <label className="user-modal-label">
+                                Nome de Usuário *
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.username}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        username: e.target.value,
+                                    })
+                                }
+                                required
+                                disabled={
+                                    modalMode === "edit" &&
+                                    currentUserRole !== "root"
+                                }
+                                className="user-modal-input"
+                                style={{ width: "100%" }}
+                            />
+                            {modalMode === "edit" &&
+                                currentUserRole !== "root" && (
+                                    <small className="user-modal-hint">
+                                        Apenas usuários root podem alterar
+                                        username
+                                    </small>
+                                )}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label className="user-modal-label">
+                                Nome de Exibição *
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.display_name}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        display_name: e.target.value,
+                                    })
+                                }
+                                required
+                                className="user-modal-input"
+                                style={{ width: "100%" }}
+                            />
+                        </div>
                     </div>
 
                     {/* Password */}
@@ -110,23 +134,29 @@ export default function UserModal({
                                 ? "*"
                                 : "(deixe em branco para manter)"}
                         </label>
-                        <div className="user-modal-password-container">
+                        <div
+                            className="user-modal-password-group"
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                width: "100%",
+                                gap: "8px",
+                            }}
+                        >
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={formData.password}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/\n/g, "");
+                                    if (val.length > 64) val = val.slice(0, 64);
                                     setFormData({
                                         ...formData,
-                                        password: e.target.value,
-                                    })
-                                }
-                                required={modalMode === "create"}
-                                placeholder={
-                                    modalMode === "edit"
-                                        ? "Digite apenas se quiser alterar"
-                                        : ""
-                                }
-                                className="user-modal-input"
+                                        password: val,
+                                    });
+                                }}
+                                maxLength={64}
+                                className="user-modal-input user-modal-password-input"
+                                style={{ flex: 1, minWidth: 0 }}
                             />
                             <button
                                 type="button"
@@ -138,8 +168,21 @@ export default function UserModal({
                                         : "Mostrar senha"
                                 }
                             >
-                                {showPassword ? "👁️" : "👁️‍🗨️"}
+                                {showPassword ? "👁️" : "𓁹"}
                             </button>
+                            <button
+                                type="button"
+                                onClick={copyPasswordToClipboard}
+                                className="user-modal-password-toggle user-modal-password-copy"
+                                title="Copiar senha"
+                            >
+                                📋
+                            </button>
+                            {passwordCopied && (
+                                <span className="user-modal-password-copied">
+                                    Senha copiada!
+                                </span>
+                            )}
                         </div>
 
                         {/* Password Generator */}
@@ -150,10 +193,39 @@ export default function UserModal({
                                 </label>
                                 <button
                                     type="button"
-                                    onClick={generateRandomPassword}
+                                    onClick={() => {
+                                        const newPassword =
+                                            generateRandomPassword(
+                                                passwordLength,
+                                            );
+                                        setFormData({
+                                            ...formData,
+                                            password: newPassword,
+                                        });
+                                        setTimeout(() => {
+                                            // Seleciona o input de senha pelo seletor de classe
+                                            const passwordInput =
+                                                document.querySelector(
+                                                    ".user-modal-password-input",
+                                                );
+                                            if (passwordInput) {
+                                                navigator.clipboard.writeText(
+                                                    passwordInput.value,
+                                                );
+                                                setPasswordCopied(true);
+                                                setTimeout(
+                                                    () =>
+                                                        setPasswordCopied(
+                                                            false,
+                                                        ),
+                                                    1500,
+                                                );
+                                            }
+                                        }, 100);
+                                    }}
                                     className="user-modal-generate-button"
                                 >
-                                    🎲 Gerar
+                                    🎲 Gerar e Copiar
                                 </button>
                             </div>
                             <div className="user-modal-password-slider">
@@ -162,11 +234,13 @@ export default function UserModal({
                                     min="24"
                                     max="64"
                                     value={passwordLength}
-                                    onChange={(e) =>
-                                        setPasswordLength(
-                                            parseInt(e.target.value),
-                                        )
-                                    }
+                                    onChange={(e) => {
+                                        const newLength = parseInt(
+                                            e.target.value,
+                                        );
+                                        setPasswordLength(newLength);
+                                        generateRandomPassword(newLength);
+                                    }}
                                     className="user-modal-slider"
                                 />
                                 <span className="user-modal-slider-value">
@@ -198,8 +272,8 @@ export default function UserModal({
                                 Administrador
                             </option>
                             <option
-                                value="full_admin"
-                                className="user-modal-option user-modal-option-full-admin"
+                                value="root"
+                                className="user-modal-option user-modal-option-root"
                             >
                                 Administrador Total
                             </option>

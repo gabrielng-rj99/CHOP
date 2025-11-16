@@ -1,11 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Login.css";
 
 export default function Login({ onLogin }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [sessionExpiredError, setSessionExpiredError] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        // Verificar se veio de uma sessão expirada
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("session_expired") === "true") {
+            setSessionExpiredError(true);
+            // Limpar o parâmetro da URL
+            window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname,
+            );
+            // Limpar a mensagem após 15 segundos
+            setTimeout(() => setSessionExpiredError(false), 15000);
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,11 +41,17 @@ export default function Login({ onLogin }) {
     return (
         <div className="login-container">
             <div className="login-card">
-                <h1 className="login-title">Contract Manager</h1>
+                <h1 className="login-title">Gerenciados de Contratos</h1>
                 <p className="login-subtitle">
                     Gerenciador de Contratos e Licenças
                 </p>
 
+                {sessionExpiredError && (
+                    <div className="login-session-expired">
+                        Sua sessão expirou devido ao token inválido. <br></br>
+                        Por favor, faça login novamente.
+                    </div>
+                )}
                 {error && <div className="login-error">{error}</div>}
 
                 <form onSubmit={handleSubmit}>
@@ -68,7 +91,8 @@ export default function Login({ onLogin }) {
                 </form>
 
                 <p className="login-footer">
-                    © 2024 Aeontech. Todos os direitos reservados.
+                    © Gabriel Gomes 2025.
+                    <br></br> Todos os direitos reservados
                 </p>
             </div>
         </div>

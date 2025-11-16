@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&display=swap");
+
 .user-modal-overlay {
     position: fixed;
     top: 0;
@@ -129,29 +131,79 @@
 
 .user-modal-password-container {
     position: relative;
-    display: flex;
-    align-items: center;
 }
 
-.user-modal-password-container .user-modal-input {
-    padding-right: 45px;
+.user-modal-password-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    width: 100%;
+}
+
+.user-modal-password-input {
+    flex: 1;
+    min-width: 0;
+    font-family: "Ubuntu Condensed", Arial, sans-serif !important;
+    font-size: 1em !important;
+    letter-spacing: 0.1px !important ;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+    color: #2c3e50;
+    margin-bottom: 0;
+    line-height: 1.4;
 }
 
 .user-modal-password-toggle {
-    position: absolute;
-    right: 10px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
+    background: #fff;
+    border: 1px solid #ced4da;
     padding: 5px;
-    line-height: 1;
-    opacity: 0.6;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.85;
     transition: opacity 0.2s;
+    line-height: 1;
 }
 
 .user-modal-password-toggle:hover {
     opacity: 1;
+}
+
+.user-modal-password-copy {
+    background: #fff;
+    border: 1px solid #ced4da;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+
+.user-modal-password-copy:hover {
+    opacity: 1;
+}
+
+.user-modal-password-copied {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translate(-75%, -50%);
+    background: #fff;
+    color: #27ae60;
+    font-size: 13px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
+    z-index: 10;
 }
 
 .user-modal-password-generator {

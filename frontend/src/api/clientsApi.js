@@ -1,5 +1,5 @@
 export const clientsApi = {
-    loadClients: async (apiUrl, token, setClients, setError) => {
+    loadClients: async (apiUrl, token, setClients, setError, onTokenExpired) => {
         try {
             const response = await fetch(
                 `${apiUrl}/api/clients?include_stats=true`,
@@ -10,6 +10,11 @@ export const clientsApi = {
                     },
                 },
             );
+
+            if (response.status === 401) {
+                onTokenExpired?.();
+                throw new Error("Token inválido ou expirado. Faça login novamente.");
+            }
 
             if (!response.ok) {
                 throw new Error("Erro ao carregar clientes");
@@ -22,7 +27,7 @@ export const clientsApi = {
         }
     },
 
-    createClient: async (apiUrl, token, formData) => {
+    createClient: async (apiUrl, token, formData, onTokenExpired) => {
         const formatDateForAPI = (dateString) => {
             if (!dateString || dateString.trim() === "") return null;
             // If already has timestamp, return as is
@@ -56,6 +61,11 @@ export const clientsApi = {
             body: JSON.stringify(payload),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar cliente");
@@ -64,7 +74,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    updateClient: async (apiUrl, token, clientId, formData) => {
+    updateClient: async (apiUrl, token, clientId, formData, onTokenExpired) => {
         const formatDateForAPI = (dateString) => {
             if (!dateString || dateString.trim() === "") return null;
             // If already has timestamp, return as is
@@ -98,6 +108,11 @@ export const clientsApi = {
             body: JSON.stringify(payload),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar cliente");
@@ -106,7 +121,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    archiveClient: async (apiUrl, token, clientId) => {
+    archiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/clients/${clientId}/archive`,
             {
@@ -118,6 +133,11 @@ export const clientsApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao arquivar cliente");
         }
@@ -125,7 +145,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    unarchiveClient: async (apiUrl, token, clientId) => {
+    unarchiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/clients/${clientId}/unarchive`,
             {
@@ -137,6 +157,11 @@ export const clientsApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao desarquivar cliente");
         }
@@ -144,7 +169,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    loadDependents: async (apiUrl, token, clientId) => {
+    loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/clients/${clientId}/dependents`,
             {
@@ -155,6 +180,11 @@ export const clientsApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao carregar dependentes");
         }
@@ -163,7 +193,7 @@ export const clientsApi = {
         return data.data || [];
     },
 
-    createDependent: async (apiUrl, token, clientId, dependentForm) => {
+    createDependent: async (apiUrl, token, clientId, dependentForm, onTokenExpired) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -187,6 +217,11 @@ export const clientsApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar dependente");
@@ -195,7 +230,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    updateDependent: async (apiUrl, token, dependentId, dependentForm) => {
+    updateDependent: async (apiUrl, token, dependentId, dependentForm, onTokenExpired) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -219,6 +254,11 @@ export const clientsApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar dependente");
@@ -227,7 +267,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    deleteDependent: async (apiUrl, token, dependentId) => {
+    deleteDependent: async (apiUrl, token, dependentId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/dependents/${dependentId}`,
             {
@@ -238,6 +278,11 @@ export const clientsApi = {
                 },
             },
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao deletar dependente");

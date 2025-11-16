@@ -7,9 +7,16 @@ import {
 } from "../utils/userHelpers";
 import UsersTable from "../components/users/UsersTable";
 import UserModal from "../components/users/UserModal";
+import AuditLogsTable from "../components/audit/AuditLogsTable";
 import "./Users.css";
 
-export default function Users({ token, apiUrl, user, onLogout }) {
+export default function Users({
+    token,
+    apiUrl,
+    user,
+    onLogout,
+    onTokenExpired,
+}) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -29,7 +36,11 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         setLoading(true);
         setError("");
         try {
-            const data = await usersApi.loadUsers(apiUrl, token);
+            const data = await usersApi.loadUsers(
+                apiUrl,
+                token,
+                onTokenExpired,
+            );
             setUsers(data);
         } catch (err) {
             setError(err.message);
@@ -41,7 +52,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
     const handleCreateUser = async () => {
         setModalError("");
         try {
-            await usersApi.createUser(apiUrl, token, formData);
+            await usersApi.createUser(apiUrl, token, formData, onTokenExpired);
             await loadUsers();
             closeModal();
             setSuccess("Usuário criado com sucesso!");
@@ -63,17 +74,26 @@ export default function Users({ token, apiUrl, user, onLogout }) {
                 payload.password = formData.password;
             }
 
+            if (
+                formData.username &&
+                formData.username !== selectedUser.username
+            ) {
+                payload.username = formData.username;
+            }
+
             const isUpdatingSelf = selectedUser.username === user.username;
             const isOnlyChangingPassword =
                 formData.password &&
                 formData.display_name === selectedUser.display_name &&
-                formData.role === selectedUser.role;
+                formData.role === selectedUser.role &&
+                formData.username === selectedUser.username;
 
             await usersApi.updateUser(
                 apiUrl,
                 token,
                 selectedUser.username,
                 payload,
+                onTokenExpired,
             );
             await loadUsers();
             closeModal();
@@ -113,7 +133,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         }
 
         try {
-            await usersApi.blockUser(apiUrl, token, username);
+            await usersApi.blockUser(apiUrl, token, username, onTokenExpired);
             await loadUsers();
             setSuccess(`Usuário ${username} bloqueado com sucesso!`);
             setTimeout(() => setSuccess(""), 3000);
@@ -127,7 +147,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         setSuccess("");
 
         try {
-            await usersApi.unlockUser(apiUrl, token, username);
+            await usersApi.unlockUser(apiUrl, token, username, onTokenExpired);
             await loadUsers();
             setSuccess(`Usuário ${username} desbloqueado com sucesso!`);
             setTimeout(() => setSuccess(""), 3000);
@@ -154,7 +174,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
         }
 
         try {
-            await usersApi.deleteUser(apiUrl, token, username);
+            await usersApi.deleteUser(apiUrl, token, username, onTokenExpired);
             await loadUsers();
             setSuccess(`Usuário ${username} deletado com sucesso!`);
             setTimeout(() => setSuccess(""), 3000);
@@ -229,7 +249,7 @@ export default function Users({ token, apiUrl, user, onLogout }) {
                     >
                         Atualizar
                     </button>
-                    {["admin", "full_admin"].includes(user.role) && (
+                    {["admin", "root"].includes(user.role) && (
                         <button
                             onClick={openCreateModal}
                             className="users-button"
@@ -276,7 +296,11 @@ export default function Users({ token, apiUrl, user, onLogout }) {
                 onSubmit={handleSubmit}
                 onClose={closeModal}
                 error={modalError}
+                currentUserRole={user.role}
             />
+
+            {/* Exemplo de uso: AuditLogsTable recebe lista de usuários */}
+            {/* <AuditLogsTable logs={logs} users={users} ... /> */}
         </div>
     );
 }

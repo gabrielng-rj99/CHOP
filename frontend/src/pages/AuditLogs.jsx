@@ -6,7 +6,7 @@ import AuditLogsTable from "../components/audit/AuditLogsTable";
 import Pagination from "../components/common/Pagination";
 import "./AuditLogs.css";
 
-export default function AuditLogs({ token, apiUrl, user }) {
+export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
 
     const loadUsers = async () => {
         try {
-            const userData = await usersApi.loadUsers(apiUrl, token);
+            const userData = await usersApi.loadUsers(apiUrl, token, onTokenExpired);
             setUsers(userData);
         } catch (err) {
             console.error("Erro ao carregar usuários:", err);
@@ -77,6 +77,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 apiUrl,
                 token,
                 filterParams,
+                onTokenExpired,
             );
             setLogs(response.data || []);
             setTotalLogs(response.total || 0);
@@ -116,6 +117,7 @@ export default function AuditLogs({ token, apiUrl, user }) {
                 apiUrl,
                 token,
                 filterParams,
+                onTokenExpired,
             );
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: "application/json" });
@@ -130,11 +132,11 @@ export default function AuditLogs({ token, apiUrl, user }) {
         }
     };
 
-    if (!user || user.role !== "full_admin") {
+    if (!user || user.role !== "root") {
         return (
             <div className="audit-logs-access-denied">
                 <div className="audit-logs-access-denied-text">
-                    Acesso negado. Apenas full_admin pode acessar logs de
+                    Acesso negado. Apenas root pode acessar logs de
                     auditoria.
                 </div>
             </div>
@@ -170,11 +172,6 @@ export default function AuditLogs({ token, apiUrl, user }) {
             />
 
             <div className="audit-logs-table-wrapper">
-                {/* <div className="audit-logs-table-header">
-                    <h2 className="audit-logs-table-header-title">
-                        Logs de Auditoria
-                    </h2>
-                </div>*/}
                 <AuditLogsTable
                     logs={logs}
                     onViewDetail={handleViewDetail}

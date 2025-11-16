@@ -13,7 +13,7 @@ import LinesPanel from "../components/categories/LinesPanel";
 import LineModal from "../components/categories/LineModal";
 import "./Categories.css";
 
-export default function Categories({ token, apiUrl }) {
+export default function Categories({ token, apiUrl, onTokenExpired }) {
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [allLines, setAllLines] = useState([]);
@@ -38,13 +38,13 @@ export default function Categories({ token, apiUrl }) {
         setLoading(true);
         setError("");
         try {
-            const data = await categoriesApi.loadCategories(apiUrl, token);
+            const data = await categoriesApi.loadCategories(apiUrl, token, onTokenExpired);
             setCategories(data);
 
             // Load all lines for all categories for search functionality
             const allLinesPromises = data.map((category) =>
                 categoriesApi
-                    .loadLines(apiUrl, token, category.id)
+                    .loadLines(apiUrl, token, category.id, onTokenExpired)
                     .catch(() => []),
             );
             const allLinesResults = await Promise.all(allLinesPromises);
@@ -63,6 +63,7 @@ export default function Categories({ token, apiUrl }) {
                 apiUrl,
                 token,
                 categoryId,
+                onTokenExpired,
             );
             setLines(data);
         } catch (err) {
@@ -72,7 +73,7 @@ export default function Categories({ token, apiUrl }) {
 
     const handleCreateCategory = async () => {
         try {
-            await categoriesApi.createCategory(apiUrl, token, categoryForm);
+            await categoriesApi.createCategory(apiUrl, token, categoryForm, onTokenExpired);
             await loadCategories();
             closeCategoryModal();
         } catch (err) {
@@ -95,6 +96,7 @@ export default function Categories({ token, apiUrl }) {
                 token,
                 selectedCategory.id,
                 categoryForm,
+                onTokenExpired,
             );
             await loadCategories();
             closeCategoryModal();
@@ -132,7 +134,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.deleteCategory(apiUrl, token, categoryId);
+            await categoriesApi.deleteCategory(apiUrl, token, categoryId, onTokenExpired);
             await loadCategories();
 
             if (selectedCategory?.id === categoryId) {
@@ -153,7 +155,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.archiveCategory(apiUrl, token, categoryId);
+            await categoriesApi.archiveCategory(apiUrl, token, categoryId, onTokenExpired);
             await loadCategories();
 
             if (selectedCategory?.id === categoryId) {
@@ -174,7 +176,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.unarchiveCategory(apiUrl, token, categoryId);
+            await categoriesApi.unarchiveCategory(apiUrl, token, categoryId, onTokenExpired);
             await loadCategories();
         } catch (err) {
             setError(err.message);
@@ -188,7 +190,7 @@ export default function Categories({ token, apiUrl }) {
                 line: lineForm.line,
                 category_id: selectedCategory.id,
             };
-            await categoriesApi.createLine(apiUrl, token, lineData);
+            await categoriesApi.createLine(apiUrl, token, lineData, onTokenExpired);
             await loadLines(selectedCategory.id);
             closeLineModal();
         } catch (err) {
@@ -204,6 +206,7 @@ export default function Categories({ token, apiUrl }) {
                 token,
                 selectedLine.id,
                 lineForm,
+                onTokenExpired,
             );
             await loadLines(selectedCategory.id);
             closeLineModal();
@@ -221,7 +224,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.deleteLine(apiUrl, token, lineId);
+            await categoriesApi.deleteLine(apiUrl, token, lineId, onTokenExpired);
             await loadLines(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -237,7 +240,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.archiveLine(apiUrl, token, lineId);
+            await categoriesApi.archiveLine(apiUrl, token, lineId, onTokenExpired);
             await loadLines(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -253,7 +256,7 @@ export default function Categories({ token, apiUrl }) {
             return;
 
         try {
-            await categoriesApi.unarchiveLine(apiUrl, token, lineId);
+            await categoriesApi.unarchiveLine(apiUrl, token, lineId, onTokenExpired);
             await loadLines(selectedCategory.id);
         } catch (err) {
             setError(err.message);

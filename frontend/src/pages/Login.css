@@ -29,6 +29,17 @@
     font-size: 14px;
 }
 
+.login-session-expired {
+    background: #e74c3c20;
+    color: #e74c3c;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid #ffeeba;
+    animation: slideDown 0.3s ease-out;
+}
+
 .login-error {
     background: #fee;
     color: #c33;
@@ -37,6 +48,17 @@
     margin-bottom: 20px;
     font-size: 14px;
     border: 1px solid #fcc;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .login-form-group {

@@ -1,11 +1,16 @@
 const usersApi = {
-    loadUsers: async (apiUrl, token) => {
+    loadUsers: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
         });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao carregar usuários");
@@ -15,7 +20,7 @@ const usersApi = {
         return data.data || [];
     },
 
-    createUser: async (apiUrl, token, userData) => {
+    createUser: async (apiUrl, token, userData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users`, {
             method: "POST",
             headers: {
@@ -25,6 +30,11 @@ const usersApi = {
             body: JSON.stringify(userData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar usuário");
@@ -33,7 +43,7 @@ const usersApi = {
         return await response.json();
     },
 
-    updateUser: async (apiUrl, token, username, userData) => {
+    updateUser: async (apiUrl, token, username, userData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users/${username}`, {
             method: "PUT",
             headers: {
@@ -43,6 +53,11 @@ const usersApi = {
             body: JSON.stringify(userData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar usuário");
@@ -51,7 +66,7 @@ const usersApi = {
         return await response.json();
     },
 
-    blockUser: async (apiUrl, token, username) => {
+    blockUser: async (apiUrl, token, username, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users/${username}/block`, {
             method: "PUT",
             headers: {
@@ -60,6 +75,11 @@ const usersApi = {
             },
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao bloquear usuário");
         }
@@ -67,7 +87,7 @@ const usersApi = {
         return await response.json();
     },
 
-    unlockUser: async (apiUrl, token, username) => {
+    unlockUser: async (apiUrl, token, username, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users/${username}/unlock`, {
             method: "PUT",
             headers: {
@@ -76,6 +96,11 @@ const usersApi = {
             },
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao desbloquear usuário");
         }
@@ -83,7 +108,7 @@ const usersApi = {
         return await response.json();
     },
 
-    deleteUser: async (apiUrl, token, username) => {
+    deleteUser: async (apiUrl, token, username, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/users/${username}`, {
             method: "DELETE",
             headers: {
@@ -91,6 +116,11 @@ const usersApi = {
                 "Content-Type": "application/json",
             },
         });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao deletar usuário");

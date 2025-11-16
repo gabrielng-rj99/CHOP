@@ -1,11 +1,16 @@
 export const contractsApi = {
-    loadContracts: async (apiUrl, token) => {
+    loadContracts: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/contracts`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
         });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao carregar contratos");
@@ -15,13 +20,18 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadClients: async (apiUrl, token) => {
+    loadClients: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/clients`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
         });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao carregar clientes");
@@ -31,13 +41,18 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadCategories: async (apiUrl, token) => {
+    loadCategories: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/categories`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
         });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
@@ -47,16 +62,21 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadLines: async (apiUrl, token, categoryId) => {
+    loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/categories/${categoryId}/lines`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
-                },
+                }
             }
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao carregar linhas");
@@ -66,7 +86,7 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadDependents: async (apiUrl, token, clientId) => {
+    loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/clients/${clientId}/dependents`,
             {
@@ -77,6 +97,11 @@ export const contractsApi = {
             }
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao carregar dependentes");
         }
@@ -85,7 +110,7 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    createContract: async (apiUrl, token, formData) => {
+    createContract: async (apiUrl, token, formData, onTokenExpired) => {
         const payload = {
             model: formData.model || "",
             product_key: formData.product_key || "",
@@ -105,6 +130,11 @@ export const contractsApi = {
             body: JSON.stringify(payload),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar contrato");
@@ -113,7 +143,7 @@ export const contractsApi = {
         return response.json();
     },
 
-    updateContract: async (apiUrl, token, contractId, formData) => {
+    updateContract: async (apiUrl, token, contractId, formData, onTokenExpired) => {
         const payload = {
             model: formData.model || "",
             product_key: formData.product_key || "",
@@ -136,6 +166,11 @@ export const contractsApi = {
             }
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar contrato");
@@ -144,7 +179,7 @@ export const contractsApi = {
         return response.json();
     },
 
-    archiveContract: async (apiUrl, token, contractId) => {
+    archiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/contracts/${contractId}/archive`,
             {
@@ -156,6 +191,11 @@ export const contractsApi = {
             }
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao arquivar contrato");
         }
@@ -163,7 +203,7 @@ export const contractsApi = {
         return response.json();
     },
 
-    unarchiveContract: async (apiUrl, token, contractId) => {
+    unarchiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/contracts/${contractId}/unarchive`,
             {
@@ -174,6 +214,11 @@ export const contractsApi = {
                 },
             }
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar contrato");

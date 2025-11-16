@@ -2,7 +2,7 @@ const API_BASE = "/api";
 
 export const auditApi = {
     // Get audit logs with filters and pagination
-    getAuditLogs: async (apiUrl, token, filters = {}) => {
+    getAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
         if (filters.entity) params.append("entity", filters.entity);
@@ -33,6 +33,11 @@ export const auditApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || "Erro ao carregar logs");
@@ -42,7 +47,7 @@ export const auditApi = {
     },
 
     // Get a specific audit log by ID
-    getAuditLogDetail: async (apiUrl, token, logId) => {
+    getAuditLogDetail: async (apiUrl, token, logId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}${API_BASE}/audit-logs/${logId}`,
             {
@@ -53,6 +58,11 @@ export const auditApi = {
                 },
             },
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             const error = await response.json();
@@ -70,6 +80,7 @@ export const auditApi = {
         entityId,
         limit = 100,
         offset = 0,
+        onTokenExpired,
     ) => {
         const params = new URLSearchParams();
         params.append("limit", limit);
@@ -86,6 +97,11 @@ export const auditApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || "Erro ao carregar logs");
@@ -95,7 +111,7 @@ export const auditApi = {
     },
 
     // Export audit logs as JSON
-    exportAuditLogs: async (apiUrl, token, filters = {}) => {
+    exportAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
         if (filters.entity) params.append("entity", filters.entity);
@@ -118,6 +134,11 @@ export const auditApi = {
                 },
             },
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao exportar logs");

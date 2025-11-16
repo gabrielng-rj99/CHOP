@@ -28,6 +28,7 @@ function App() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const refreshTimeoutRef = useRef(null);
 
+
     // Load saved session on mount
     useEffect(() => {
         try {
@@ -122,6 +123,7 @@ function App() {
             setUser(userData);
             setCurrentPage("dashboard");
 
+
             // Save to localStorage
             try {
                 localStorage.setItem("token", data.data.token);
@@ -133,6 +135,8 @@ function App() {
             }
 
             scheduleTokenRefresh(data.data.token, data.data.refresh_token);
+
+
         } catch (error) {
             // Melhor tratamento de erros de rede
             if (
@@ -147,11 +151,16 @@ function App() {
         }
     };
 
-    const logout = () => {
+    const logout = (errorMessage = null) => {
         setToken(null);
         setUser(null);
         setRefreshToken(null);
         setCurrentPage("login");
+
+        // Se for erro de token expirado, redirecionar com parâmetro
+        if (errorMessage && errorMessage.includes("Token inválido")) {
+            window.history.replaceState({}, document.title, "/?session_expired=true");
+        }
 
         // Clear localStorage
         try {
@@ -260,7 +269,7 @@ function App() {
                         )}
                     </button>
 
-                    {(user.role === "admin" || user.role === "full_admin") && (
+                    {(user.role === "admin" || user.role === "root") && (
                         <button
                             onClick={() => navigate("users")}
                             className={`app-nav-button ${currentPage === "users" ? "active" : ""}`}
@@ -275,7 +284,7 @@ function App() {
                         </button>
                     )}
 
-                    {user.role === "full_admin" && (
+                    {user.role === "root" && (
                         <button
                             onClick={() => navigate("audit-logs")}
                             className={`app-nav-button ${currentPage === "audit-logs" ? "active" : ""}`}
@@ -318,22 +327,22 @@ function App() {
 
             <main className="app-main">
                 {currentPage === "dashboard" && (
-                    <Dashboard token={token} apiUrl={API_URL} />
+                    <Dashboard token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
                 {currentPage === "contracts" && (
-                    <Contracts token={token} apiUrl={API_URL} />
+                    <Contracts token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
                 {currentPage === "clients" && (
-                    <Clients token={token} apiUrl={API_URL} />
+                    <Clients token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
                 {currentPage === "categories" && (
-                    <Categories token={token} apiUrl={API_URL} />
+                    <Categories token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
                 {currentPage === "users" && (
-                    <Users token={token} apiUrl={API_URL} user={user} />
+                    <Users token={token} apiUrl={API_URL} user={user} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
                 {currentPage === "audit-logs" && (
-                    <AuditLogs token={token} apiUrl={API_URL} user={user} />
+                    <AuditLogs token={token} apiUrl={API_URL} user={user} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
                 )}
             </main>
         </div>

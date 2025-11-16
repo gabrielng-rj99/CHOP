@@ -14,7 +14,7 @@ import ContractsTable from "../components/contracts/ContractsTable";
 import ContractModal from "../components/contracts/ContractModal";
 import "./Contracts.css";
 
-export default function Contracts({ token, apiUrl }) {
+export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [contracts, setContracts] = useState([]);
     const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -50,7 +50,7 @@ export default function Contracts({ token, apiUrl }) {
     const loadContracts = async () => {
         setError("");
         try {
-            const data = await contractsApi.loadContracts(apiUrl, token);
+            const data = await contractsApi.loadContracts(apiUrl, token, onTokenExpired);
             setContracts(data);
         } catch (err) {
             setError(err.message);
@@ -59,7 +59,7 @@ export default function Contracts({ token, apiUrl }) {
 
     const loadClients = async () => {
         try {
-            const data = await contractsApi.loadClients(apiUrl, token);
+            const data = await contractsApi.loadClients(apiUrl, token, onTokenExpired);
             setClients(data);
         } catch (err) {
             console.error("Erro ao carregar clientes:", err);
@@ -68,7 +68,7 @@ export default function Contracts({ token, apiUrl }) {
 
     const loadCategories = async () => {
         try {
-            const data = await contractsApi.loadCategories(apiUrl, token);
+            const data = await contractsApi.loadCategories(apiUrl, token, onTokenExpired);
             setCategories(data);
         } catch (err) {
             console.error("Erro ao carregar categorias:", err);
@@ -81,6 +81,7 @@ export default function Contracts({ token, apiUrl }) {
                 apiUrl,
                 token,
                 categoryId,
+                onTokenExpired,
             );
             setLines(data);
         } catch (err) {
@@ -94,6 +95,7 @@ export default function Contracts({ token, apiUrl }) {
                 apiUrl,
                 token,
                 clientId,
+                onTokenExpired,
             );
             setDependents(data);
         } catch (err) {
@@ -104,7 +106,7 @@ export default function Contracts({ token, apiUrl }) {
     const handleCreateContract = async () => {
         try {
             const apiData = prepareContractDataForAPI(formData);
-            await contractsApi.createContract(apiUrl, token, apiData);
+            await contractsApi.createContract(apiUrl, token, apiData, onTokenExpired);
             await loadContracts();
             closeModal();
         } catch (err) {
@@ -120,6 +122,7 @@ export default function Contracts({ token, apiUrl }) {
                 token,
                 selectedContract.id,
                 prepareContractDataForAPI(formData),
+                onTokenExpired,
             );
             await loadContracts();
             closeModal();
@@ -133,7 +136,7 @@ export default function Contracts({ token, apiUrl }) {
             return;
 
         try {
-            await contractsApi.archiveContract(apiUrl, token, contractId);
+            await contractsApi.archiveContract(apiUrl, token, contractId, onTokenExpired);
             await loadContracts();
         } catch (err) {
             setError(err.message);
@@ -142,7 +145,7 @@ export default function Contracts({ token, apiUrl }) {
 
     const handleUnarchiveContract = async (contractId) => {
         try {
-            await contractsApi.unarchiveContract(apiUrl, token, contractId);
+            await contractsApi.unarchiveContract(apiUrl, token, contractId, onTokenExpired);
             await loadContracts();
         } catch (err) {
             setError(err.message);

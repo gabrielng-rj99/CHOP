@@ -7,4 +7,4 @@
 - Implementar integração com método de comunicação
 - Implementar Permitir mudar nome das entidades objetos gerais, como contratos, clientes, categorias, tipos. Colocando em níveis hierárquicos corretos.
 - Implementar Permitir mudar nome Principal do Contract Manager permitindo ícone e nome personalizados.
--
+- Corrigir cmd/tools

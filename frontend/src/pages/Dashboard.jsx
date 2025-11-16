@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Dashboard.css";
 
-export default function Dashboard({ token, apiUrl }) {
+export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const [contracts, setContracts] = useState([]);
     const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -33,6 +33,12 @@ export default function Dashboard({ token, apiUrl }) {
                 ],
             );
 
+            // Check for 401 (token expired) in any response
+            if (contractsRes.status === 401 || clientsRes.status === 401 || categoriesRes.status === 401) {
+                onTokenExpired?.();
+                throw new Error("Token inválido ou expirado. Faça login novamente.");
+            }
+
             if (!contractsRes.ok || !clientsRes.ok || !categoriesRes.ok) {
                 throw new Error("Erro ao carregar dados");
             }
@@ -51,7 +57,13 @@ export default function Dashboard({ token, apiUrl }) {
                     fetch(`${apiUrl}/api/categories/${category.id}/lines`, {
                         headers,
                     })
-                        .then((res) => (res.ok ? res.json() : { data: [] }))
+                        .then((res) => {
+                            if (res.status === 401) {
+                                onTokenExpired?.();
+                                throw new Error("Token inválido ou expirado. Faça login novamente.");
+                            }
+                            return res.ok ? res.json() : { data: [] };
+                        })
                         .then((data) => data.data || [])
                         .catch(() => []),
             );

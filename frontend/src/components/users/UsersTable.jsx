@@ -57,8 +57,8 @@ export default function UsersTable({
                             <td>
                                 <span
                                     className={`users-table-role ${
-                                        user.role === "full_admin"
-                                            ? "full-admin"
+                                        user.role === "root"
+                                            ? "root"
                                             : user.role === "admin"
                                               ? "admin"
                                               : "user"

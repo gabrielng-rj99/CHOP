@@ -1,5 +1,5 @@
 const categoriesApi = {
-    loadCategories: async (apiUrl, token) => {
+    loadCategories: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/categories?include_archived=true`,
             {
@@ -10,6 +10,11 @@ const categoriesApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
         }
@@ -18,7 +23,7 @@ const categoriesApi = {
         return data.data || [];
     },
 
-    loadLines: async (apiUrl, token, categoryId) => {
+    loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/categories/${categoryId}/lines?include_archived=true`,
             {
@@ -29,6 +34,11 @@ const categoriesApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao carregar linhas");
         }
@@ -37,7 +47,7 @@ const categoriesApi = {
         return data.data || [];
     },
 
-    createCategory: async (apiUrl, token, categoryData) => {
+    createCategory: async (apiUrl, token, categoryData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/categories`, {
             method: "POST",
             headers: {
@@ -47,6 +57,11 @@ const categoriesApi = {
             body: JSON.stringify(categoryData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar categoria");
@@ -55,7 +70,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    updateCategory: async (apiUrl, token, categoryId, categoryData) => {
+    updateCategory: async (apiUrl, token, categoryId, categoryData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
             method: "PUT",
             headers: {
@@ -65,6 +80,11 @@ const categoriesApi = {
             body: JSON.stringify(categoryData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar categoria");
@@ -73,7 +93,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    deleteCategory: async (apiUrl, token, categoryId) => {
+    deleteCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
             method: "DELETE",
             headers: {
@@ -82,6 +102,11 @@ const categoriesApi = {
             },
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao deletar categoria");
         }
@@ -89,7 +114,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    archiveCategory: async (apiUrl, token, categoryId) => {
+    archiveCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/categories/${categoryId}/archive`,
             {
@@ -101,6 +126,11 @@ const categoriesApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao arquivar categoria");
         }
@@ -108,7 +138,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    unarchiveCategory: async (apiUrl, token, categoryId) => {
+    unarchiveCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/categories/${categoryId}/unarchive`,
             {
@@ -120,6 +150,11 @@ const categoriesApi = {
             },
         );
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao desarquivar categoria");
         }
@@ -127,7 +162,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    createLine: async (apiUrl, token, lineData) => {
+    createLine: async (apiUrl, token, lineData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/lines`, {
             method: "POST",
             headers: {
@@ -137,6 +172,11 @@ const categoriesApi = {
             body: JSON.stringify(lineData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao criar linha");
@@ -145,7 +185,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    updateLine: async (apiUrl, token, lineId, lineData) => {
+    updateLine: async (apiUrl, token, lineId, lineData, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/lines/${lineId}`, {
             method: "PUT",
             headers: {
@@ -155,6 +195,11 @@ const categoriesApi = {
             body: JSON.stringify(lineData),
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Erro ao atualizar linha");
@@ -163,7 +208,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    deleteLine: async (apiUrl, token, lineId) => {
+    deleteLine: async (apiUrl, token, lineId, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/lines/${lineId}`, {
             method: "DELETE",
             headers: {
@@ -172,6 +217,11 @@ const categoriesApi = {
             },
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao deletar linha");
         }
@@ -179,7 +229,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    archiveLine: async (apiUrl, token, lineId) => {
+    archiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/api/lines/${lineId}/archive`, {
             method: "POST",
             headers: {
@@ -188,6 +238,11 @@ const categoriesApi = {
             },
         });
 
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
+
         if (!response.ok) {
             throw new Error("Erro ao arquivar linha");
         }
@@ -195,7 +250,7 @@ const categoriesApi = {
         return await response.json();
     },
 
-    unarchiveLine: async (apiUrl, token, lineId) => {
+    unarchiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/api/lines/${lineId}/unarchive`,
             {
@@ -206,6 +261,11 @@ const categoriesApi = {
                 },
             },
         );
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error("Token inválido ou expirado. Faça login novamente.");
+        }
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar linha");
