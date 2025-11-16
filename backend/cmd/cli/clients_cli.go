@@ -906,7 +906,7 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 					waitForEnter()
 					continue
 				}
-				startDate = parsedStart
+				startDate = &parsedStart
 			}
 			if strings.TrimSpace(endStr) != "" {
 				parsedEnd, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
@@ -915,7 +915,7 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 					waitForEnter()
 					continue
 				}
-				endDate = parsedEnd
+				endDate = &parsedEnd
 			}
 
 			contract.Model = name

@@ -272,7 +272,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 					waitForEnter()
 					continue
 				}
-				startDate = parsedStart
+				startDate = &parsedStart
 			}
 			if strings.TrimSpace(endStr) != "" {
 				parsedEnd, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
@@ -281,7 +281,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 					waitForEnter()
 					continue
 				}
-				endDate = parsedEnd
+				endDate = &parsedEnd
 			}
 			contract.Model = name
 			contract.ProductKey = productKey
@@ -429,22 +429,33 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 		return
 	}
 
-	// 5. Dates
-	fmt.Print("Start date (YYYY-MM-DD): ")
+	// 5. Dates (optional - press Enter to skip)
+	fmt.Print("Start date (YYYY-MM-DD, or press Enter for no start date): ")
 	startStr, _ := reader.ReadString('\n')
-	fmt.Print("End date (YYYY-MM-DD): ")
+	fmt.Print("End date (YYYY-MM-DD, or press Enter for no end date/never expires): ")
 	endStr, _ := reader.ReadString('\n')
-	startDate, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
-	if errStart != nil {
-		fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
-		waitForEnter()
-		return
+
+	var startDate, endDate *time.Time
+	startStr = strings.TrimSpace(startStr)
+	if startStr != "" {
+		parsed, errStart := time.Parse("2006-01-02", startStr)
+		if errStart != nil {
+			fmt.Println("Error: Invalid start date format. Use YYYY-MM-DD.")
+			waitForEnter()
+			return
+		}
+		startDate = &parsed
 	}
-	endDate, errEnd := time.Parse("2006-01-02", strings.TrimSpace(endStr))
-	if errEnd != nil {
-		fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
-		waitForEnter()
-		return
+
+	endStr = strings.TrimSpace(endStr)
+	if endStr != "" {
+		parsed, errEnd := time.Parse("2006-01-02", endStr)
+		if errEnd != nil {
+			fmt.Println("Error: Invalid end date format. Use YYYY-MM-DD.")
+			waitForEnter()
+			return
+		}
+		endDate = &parsed
 	}
 
 	// 6. Select dependents (optional, comma-separated for multiple, or Enter for global)
@@ -518,8 +529,14 @@ func displayContractsList(contracts []domain.Contract) {
 		}
 
 		status := c.Status()
-		startDate := c.StartDate.Format("2006-01-02")
-		endDate := c.EndDate.Format("2006-01-02")
+		startDate := "N/A"
+		if c.StartDate != nil {
+			startDate = c.StartDate.Format("2006-01-02")
+		}
+		endDate := "Never"
+		if c.EndDate != nil {
+			endDate = c.EndDate.Format("2006-01-02")
+		}
 
 		fmt.Printf("%-4d | %-25s | %-25s | %-12s | %-12s | %-12s\n", i+1, model, productKey, status, startDate, endDate)
 	}
