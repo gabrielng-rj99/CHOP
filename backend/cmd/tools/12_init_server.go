@@ -21,7 +21,9 @@ func startServer() {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		fmt.Println("❌ Erro: Não foi possível determinar o diretório do projeto")
-		fmt.Print("\nPressione ENTER para continuar...")
+		if !skipClearTerminal {
+			fmt.Print("\nPressione ENTER para continuar...")
+		}
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
@@ -35,17 +37,21 @@ func startServer() {
 	// Verifica se o diretório existe
 	if _, err := os.Stat(serverPath); os.IsNotExist(err) {
 		fmt.Println("❌ Erro: Diretório do servidor não encontrado")
-		fmt.Print("\nPressione ENTER para continuar...")
+		if !skipClearTerminal {
+			fmt.Print("\nPressione ENTER para continuar...")
+		}
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
 
 	// Verifica se já está rodando
 	if runtime.GOOS != "windows" {
-		checkCmd := exec.Command("sh", "-c", "lsof -ti:3000")
+		checkCmd := exec.Command("bash", "-c", "lsof -ti:3000")
 		if output, _ := checkCmd.Output(); len(output) > 0 {
 			fmt.Println("⚠️  Servidor já está rodando na porta 3000")
-			fmt.Print("\nPressione ENTER para continuar...")
+			if !skipClearTerminal {
+				fmt.Print("\nPressione ENTER para continuar...")
+			}
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
@@ -62,14 +68,16 @@ func startServer() {
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", "start", "/B", "go", "run", ".")
 	} else {
-		cmd = exec.Command("sh", "-c", "nohup go run . > server.log 2>&1 &")
+		cmd = exec.Command("bash", "-c", "nohup go run . > server.log 2>&1 &")
 	}
 	cmd.Dir = serverPath
 
 	err := cmd.Start()
 	if err != nil {
 		fmt.Printf("\n❌ Erro ao executar servidor: %v\n", err)
-		fmt.Print("\nPressione ENTER para continuar...")
+		if !skipClearTerminal {
+			fmt.Print("\nPressione ENTER para continuar...")
+		}
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
@@ -109,6 +117,8 @@ func startServer() {
 		fmt.Println("\n⚠️  Servidor pode não ter iniciado corretamente")
 	}
 
-	fmt.Print("\nPressione ENTER para continuar...")
+	if !skipClearTerminal {
+		fmt.Print("\nPressione ENTER para continuar...")
+	}
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }

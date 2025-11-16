@@ -24,11 +24,13 @@ func stopFrontend() {
 		cmd = exec.Command("taskkill", "/F", "/IM", "node.exe")
 	case "linux", "darwin":
 		// No Linux/Mac, procura processos rodando na porta 8080
-		pidCmd := exec.Command("sh", "-c", "lsof -ti:8080")
+		pidCmd := exec.Command("bash", "-c", "lsof -ti:8080")
 		output, err := pidCmd.Output()
 		if err != nil || len(output) == 0 {
 			fmt.Println("ℹ️  Nenhum frontend encontrado rodando na porta 8080")
-			fmt.Print("\nPressione ENTER para continuar...")
+			if !skipClearTerminal {
+				fmt.Print("\nPressione ENTER para continuar...")
+			}
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
@@ -36,16 +38,20 @@ func stopFrontend() {
 		pids := strings.TrimSpace(string(output))
 		if pids == "" {
 			fmt.Println("ℹ️  Nenhum frontend encontrado rodando na porta 8080")
-			fmt.Print("\nPressione ENTER para continuar...")
+			if !skipClearTerminal {
+				fmt.Print("\nPressione ENTER para continuar...")
+			}
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
 
 		fmt.Printf("🔍 Processos encontrados (PIDs): %s\n", pids)
-		cmd = exec.Command("sh", "-c", fmt.Sprintf("kill -9 %s", pids))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("kill -9 %s", pids))
 	default:
 		fmt.Printf("❌ Sistema operacional não suportado: %s\n", runtime.GOOS)
-		fmt.Print("\nPressione ENTER para continuar...")
+		if !skipClearTerminal {
+			fmt.Print("\nPressione ENTER para continuar...")
+		}
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
@@ -60,6 +66,8 @@ func stopFrontend() {
 		fmt.Println("✅ Frontend parado com sucesso!")
 	}
 
-	fmt.Print("\nPressione ENTER para continuar...")
+	if !skipClearTerminal {
+		fmt.Print("\nPressione ENTER para continuar...")
+	}
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }

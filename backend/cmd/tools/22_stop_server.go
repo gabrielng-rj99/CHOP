@@ -24,11 +24,13 @@ func stopServer() {
 		cmd = exec.Command("taskkill", "/F", "/IM", "go.exe")
 	case "linux", "darwin":
 		// No Linux/Mac, procura processos rodando na porta 3000
-		pidCmd := exec.Command("sh", "-c", "lsof -ti:3000")
+		pidCmd := exec.Command("bash", "-c", "lsof -ti:3000")
 		output, err := pidCmd.Output()
 		if err != nil || len(output) == 0 {
 			fmt.Println("ℹ️  Nenhum servidor encontrado rodando na porta 3000")
-			fmt.Print("\nPressione ENTER para continuar...")
+			if !skipClearTerminal {
+				fmt.Print("\nPressione ENTER para continuar...")
+			}
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
@@ -36,16 +38,20 @@ func stopServer() {
 		pids := strings.TrimSpace(string(output))
 		if pids == "" {
 			fmt.Println("ℹ️  Nenhum servidor encontrado rodando na porta 3000")
-			fmt.Print("\nPressione ENTER para continuar...")
+			if !skipClearTerminal {
+				fmt.Print("\nPressione ENTER para continuar...")
+			}
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			return
 		}
 
 		fmt.Printf("🔍 Processos encontrados (PIDs): %s\n", pids)
-		cmd = exec.Command("sh", "-c", fmt.Sprintf("kill -9 %s", pids))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("kill -9 %s", pids))
 	default:
 		fmt.Printf("❌ Sistema operacional não suportado: %s\n", runtime.GOOS)
-		fmt.Print("\nPressione ENTER para continuar...")
+		if !skipClearTerminal {
+			fmt.Print("\nPressione ENTER para continuar...")
+		}
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return
 	}
@@ -60,6 +66,8 @@ func stopServer() {
 		fmt.Println("✅ Servidor HTTP parado com sucesso!")
 	}
 
-	fmt.Print("\nPressione ENTER para continuar...")
+	if !skipClearTerminal {
+		fmt.Print("\nPressione ENTER para continuar...")
+	}
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }

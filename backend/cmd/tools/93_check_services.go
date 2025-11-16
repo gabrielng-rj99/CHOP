@@ -92,9 +92,8 @@ func checkServices() {
 
 	if !skipClearTerminal {
 		fmt.Print("\nPressione ENTER para continuar...")
-		bufio.NewReader(os.Stdin).ReadString('\n')
 	}
-
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
 // checkPort verifica se há algum processo rodando na porta especificada
@@ -109,7 +108,7 @@ func checkPort(port int) bool {
 		portStr := fmt.Sprintf(":%d", port)
 		return strings.Contains(string(output), portStr)
 	case "linux", "darwin":
-		cmd := exec.Command("sh", "-c", fmt.Sprintf("lsof -ti:%d", port))
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("lsof -ti:%d", port))
 		output, err := cmd.Output()
 		if err != nil || len(output) == 0 {
 			return false
