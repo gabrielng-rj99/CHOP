@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"Contracts-Manager/backend/domain"
 	"Contracts-Manager/backend/store"
@@ -107,6 +108,25 @@ func (s *Server) handleLineByID(w http.ResponseWriter, r *http.Request) {
 
 	if lineID == "" {
 		respondError(w, http.StatusBadRequest, "Line ID required")
+		return
+	}
+
+	// Check for archive/unarchive endpoints
+	if strings.HasSuffix(r.URL.Path, "/archive") {
+		if r.Method == http.MethodPost {
+			s.handleArchiveLine(w, r, lineID)
+			return
+		}
+		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	if strings.HasSuffix(r.URL.Path, "/unarchive") {
+		if r.Method == http.MethodPost {
+			s.handleUnarchiveLine(w, r, lineID)
+			return
+		}
+		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
@@ -260,4 +280,108 @@ func (s *Server) handleDeleteLine(w http.ResponseWriter, r *http.Request, lineID
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line deleted successfully"})
+}
+
+func (s *Server) handleArchiveLine(w http.ResponseWriter, r *http.Request, lineID string) {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldLine, _ := s.lineStore.GetLineByID(lineID)
+	oldValueJSON, _ := json.Marshal(oldLine)
+
+	if err := s.lineStore.ArchiveLine(lineID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "archive",
+				Entity:        "line",
+				EntityID:      lineID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Log successful archive
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "archive",
+			Entity:        "line",
+			EntityID:      lineID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line archived successfully"})
+}
+
+func (s *Server) handleUnarchiveLine(w http.ResponseWriter, r *http.Request, lineID string) {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldLine, _ := s.lineStore.GetLineByID(lineID)
+	oldValueJSON, _ := json.Marshal(oldLine)
+
+	if err := s.lineStore.UnarchiveLine(lineID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "unarchive",
+				Entity:        "line",
+				EntityID:      lineID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Log successful unarchive
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "unarchive",
+			Entity:        "line",
+			EntityID:      lineID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line unarchived successfully"})
 }

@@ -24,7 +24,17 @@ func (s *Server) handleCategories(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := s.categoryStore.GetAllCategories()
+	includeArchived := r.URL.Query().Get("include_archived") == "true"
+
+	var categories []domain.Category
+	var err error
+
+	if includeArchived {
+		categories, err = s.categoryStore.GetAllCategoriesIncludingArchived()
+	} else {
+		categories, err = s.categoryStore.GetAllCategories()
+	}
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -104,6 +114,25 @@ func (s *Server) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 
 	if categoryID == "" {
 		respondError(w, http.StatusBadRequest, "Category ID required")
+		return
+	}
+
+	// Check for archive/unarchive endpoints
+	if strings.HasSuffix(r.URL.Path, "/archive") {
+		if r.Method == http.MethodPost {
+			s.handleArchiveCategory(w, r, categoryID)
+			return
+		}
+		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	if strings.HasSuffix(r.URL.Path, "/unarchive") {
+		if r.Method == http.MethodPost {
+			s.handleUnarchiveCategory(w, r, categoryID)
+			return
+		}
+		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
@@ -264,11 +293,137 @@ func (s *Server) handleCategoryLines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lines, err := s.lineStore.GetLinesByCategoryID(categoryID)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
-		return
+	includeArchived := r.URL.Query().Get("include_archived") == "true"
+
+	var lines []domain.Line
+	var err error
+
+	if includeArchived {
+		// Get all lines for this category including archived
+		allLines, err := s.lineStore.GetAllLinesIncludingArchived()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Filter by category ID
+		lines = make([]domain.Line, 0)
+		for _, line := range allLines {
+			if line.CategoryID == categoryID {
+				lines = append(lines, line)
+			}
+		}
+	} else {
+		lines, err = s.lineStore.GetLinesByCategoryID(categoryID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Data: lines})
+}
+
+func (s *Server) handleArchiveCategory(w http.ResponseWriter, r *http.Request, categoryID string) {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldCategory, _ := s.categoryStore.GetCategoryByID(categoryID)
+	oldValueJSON, _ := json.Marshal(oldCategory)
+
+	if err := s.categoryStore.ArchiveCategory(categoryID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "archive",
+				Entity:        "category",
+				EntityID:      categoryID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Log successful archive
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "archive",
+			Entity:        "category",
+			EntityID:      categoryID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Category archived successfully"})
+}
+
+func (s *Server) handleUnarchiveCategory(w http.ResponseWriter, r *http.Request, categoryID string) {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldCategory, _ := s.categoryStore.GetCategoryByID(categoryID)
+	oldValueJSON, _ := json.Marshal(oldCategory)
+
+	if err := s.categoryStore.UnarchiveCategory(categoryID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "unarchive",
+				Entity:        "category",
+				EntityID:      categoryID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Log successful unarchive
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "unarchive",
+			Entity:        "category",
+			EntityID:      categoryID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Category unarchived successfully"})
 }
