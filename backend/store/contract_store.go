@@ -13,6 +13,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// ContractStats representa estatísticas de contratos por cliente
+type ContractStats struct {
+	ClientID          string `json:"client_id"`
+	ActiveContracts   int    `json:"active_contracts"`
+	ExpiredContracts  int    `json:"expired_contracts"`
+	ArchivedContracts int    `json:"archived_contracts"`
+}
+
 // ContractStore é a nossa "caixa de ferramentas" para operações com a tabela contracts.
 type ContractStore struct {
 	db DBInterface
@@ -44,8 +52,8 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	}
 
 	// Start and End dates are now optional - only validate if both are provided
-	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
-		if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
+	if contract.StartDate != nil && contract.EndDate != nil {
+		if contract.EndDate.Before(*contract.StartDate) || contract.EndDate.Equal(*contract.StartDate) {
 			return "", errors.New("end date must be after start date")
 		}
 	}
@@ -99,7 +107,7 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	}
 
 	// NOVA REGRA: Verificar sobreposição temporal apenas se ambas as datas forem fornecidas
-	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
+	if contract.StartDate != nil && contract.EndDate != nil {
 		var overlapCount int
 		if contract.DependentID != nil && *contract.DependentID != "" {
 			err = s.db.QueryRow(`
@@ -111,8 +119,8 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 					(start_date <= $6 AND end_date >= $7)
 				)
 			`, contract.LineID, contract.ClientID, *contract.DependentID,
-				contract.EndDate, contract.EndDate,
-				contract.StartDate, contract.StartDate,
+				*contract.EndDate, *contract.EndDate,
+				*contract.StartDate, *contract.StartDate,
 			).Scan(&overlapCount)
 		} else {
 			err = s.db.QueryRow(`
@@ -124,8 +132,8 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 					(start_date <= $5 AND end_date >= $6)
 				)
 			`, contract.LineID, contract.ClientID,
-				contract.EndDate, contract.EndDate,
-				contract.StartDate, contract.StartDate,
+				*contract.EndDate, *contract.EndDate,
+				*contract.StartDate, *contract.StartDate,
 			).Scan(&overlapCount)
 		}
 		if err != nil {
@@ -157,12 +165,12 @@ func (s *ContractStore) CreateContract(contract domain.Contract) (string, error)
 	return newID, nil
 }
 
-// Helper function to convert time.Time to sql.NullTime
-func nullTimeFromTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
+// Helper function to convert *time.Time to sql.NullTime
+func nullTimeFromTime(t *time.Time) sql.NullTime {
+	if t == nil {
 		return sql.NullTime{Valid: false}
 	}
-	return sql.NullTime{Time: t, Valid: true}
+	return sql.NullTime{Time: *t, Valid: true}
 }
 
 // GetContractsByClientID fetches all contracts for a specific client.
@@ -200,10 +208,12 @@ func (s *ContractStore) GetContractsByClientID(clientID string) (contracts []dom
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -241,10 +251,12 @@ func (s *ContractStore) GetContractsExpiringSoon(days int) (contracts []domain.C
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -281,10 +293,12 @@ func (s *ContractStore) GetContractsNotStarted() (contracts []domain.Contract, e
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -316,8 +330,8 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	}
 
 	// Datas são opcionais, mas se ambas forem fornecidas, end_date deve ser maior que start_date
-	if !contract.StartDate.IsZero() && !contract.EndDate.IsZero() {
-		if contract.EndDate.Before(contract.StartDate) || contract.EndDate.Equal(contract.StartDate) {
+	if contract.StartDate != nil && contract.EndDate != nil {
+		if contract.EndDate.Before(*contract.StartDate) || contract.EndDate.Equal(*contract.StartDate) {
 			return errors.New("end date must be after start date")
 		}
 	}
@@ -362,6 +376,90 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 	return nil
 }
 
+// GetContractStatsByClientID retorna estatísticas de contratos de um cliente específico
+func (s *ContractStore) GetContractStatsByClientID(clientID string) (*ContractStats, error) {
+	if clientID == "" {
+		return nil, errors.New("client ID cannot be empty")
+	}
+
+	stats := &ContractStats{
+		ClientID: clientID,
+	}
+
+	now := time.Now()
+
+	// Count active contracts (not archived and not expired)
+	err := s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM contracts
+		WHERE client_id = $1
+		AND archived_at IS NULL
+		AND end_date > $2
+	`, clientID, now).Scan(&stats.ActiveContracts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count expired contracts (not archived but expired)
+	err = s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM contracts
+		WHERE client_id = $1
+		AND archived_at IS NULL
+		AND end_date <= $2
+	`, clientID, now).Scan(&stats.ExpiredContracts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count archived contracts
+	err = s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM contracts
+		WHERE client_id = $1
+		AND archived_at IS NOT NULL
+	`, clientID).Scan(&stats.ArchivedContracts)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// GetContractStatsForAllClients retorna estatísticas de contratos para todos os clientes
+func (s *ContractStore) GetContractStatsForAllClients() (map[string]*ContractStats, error) {
+	now := time.Now()
+
+	rows, err := s.db.Query(`
+		SELECT
+			client_id,
+			COUNT(CASE WHEN archived_at IS NULL AND (end_date IS NULL OR end_date > $1) THEN 1 END) as active,
+			COUNT(CASE WHEN archived_at IS NULL AND end_date IS NOT NULL AND end_date <= $1 THEN 1 END) as expired,
+			COUNT(CASE WHEN archived_at IS NOT NULL THEN 1 END) as archived
+		FROM contracts
+		GROUP BY client_id
+	`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	statsMap := make(map[string]*ContractStats)
+	for rows.Next() {
+		var stats ContractStats
+		if err := rows.Scan(&stats.ClientID, &stats.ActiveContracts, &stats.ExpiredContracts, &stats.ArchivedContracts); err != nil {
+			return nil, err
+		}
+		statsMap[stats.ClientID] = &stats
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return statsMap, nil
+}
+
 // GetContractByID busca um contrato específico pelo seu ID
 func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 	if id == "" {
@@ -393,10 +491,12 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 	}
 
 	if startDate.Valid {
-		contract.StartDate = startDate.Time
+		t := startDate.Time
+		contract.StartDate = &t
 	}
 	if endDate.Valid {
-		contract.EndDate = endDate.Time
+		t := endDate.Time
+		contract.EndDate = &t
 	}
 
 	return &contract, nil
@@ -404,11 +504,14 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 
 // Utility: Get explicit status for a contract (ativo, expirando, expirado)
 // Uses time.Now() internally, so timing can matter in tests
+// EndDate nil = infinito superior (nunca expira)
+// StartDate nil = infinito inferior (começou sempre)
 func GetContractStatus(contract domain.Contract) string {
 	now := time.Now()
 
-	if contract.EndDate.IsZero() {
-		return "ativo" // Contratos sem data de término são considerados ativos
+	// EndDate nil = nunca expira, sempre ativo
+	if contract.EndDate == nil {
+		return "ativo"
 	}
 
 	if contract.EndDate.Before(now) {
@@ -420,6 +523,7 @@ func GetContractStatus(contract domain.Contract) string {
 	if daysUntilExpiry > 0 && daysUntilExpiry <= 30 {
 		return "expirando"
 	}
+
 	return "ativo"
 }
 
@@ -474,10 +578,12 @@ func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err erro
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -510,10 +616,12 @@ func (s *ContractStore) GetAllContractsIncludingArchived() (contracts []domain.C
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		if archivedAt.Valid {
 			c.ArchivedAt = &archivedAt.Time
@@ -554,10 +662,12 @@ func (s *ContractStore) GetContractsByName(name string) ([]domain.Contract, erro
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -603,10 +713,12 @@ func (s *ContractStore) GetContractsByLineID(lineID string) (contracts []domain.
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
@@ -655,10 +767,12 @@ func (s *ContractStore) GetContractsByCategoryID(categoryID string) (contracts [
 			return nil, err
 		}
 		if startDate.Valid {
-			c.StartDate = startDate.Time
+			t := startDate.Time
+			c.StartDate = &t
 		}
 		if endDate.Valid {
-			c.EndDate = endDate.Time
+			t := endDate.Time
+			c.EndDate = &t
 		}
 		contracts = append(contracts, c)
 	}
