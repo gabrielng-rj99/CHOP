@@ -130,7 +130,7 @@ func TestCreateContract_ValidatesDates(t *testing.T) {
 }
 ```
 
-**4. Database** (`database/init.sql`):
+**4. Database** (`database/schema.sql`):
 ```sql
 ALTER TABLE contracts
 ADD CONSTRAINT check_model_length

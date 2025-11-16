@@ -82,7 +82,7 @@ createdb contracts_manager
 #### 2. Aplicar Schema
 
 ```bash
-psql -d contracts_manager -f backend/database/init.sql
+psql -d contracts_manager -f backend/database/schema.sql
 ```
 
 #### 3. Verificar Tabelas
@@ -170,7 +170,7 @@ docker run -d \
 
 # Aguarde 5 segundos e aplique o schema
 sleep 5
-psql -h localhost -U contracts_user -d contracts_manager -f backend/database/init.sql
+psql -h localhost -U contracts_user -d contracts_manager -f backend/database/schema.sql
 ```
 
 Configure `.env`:
@@ -199,7 +199,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
 volumes:
   pg_data:
@@ -253,7 +253,7 @@ net start PostgreSQL-x64-15
 **Solução:**
 ```bash
 createdb contracts_manager
-psql -d contracts_manager -f backend/database/init.sql
+psql -d contracts_manager -f backend/database/schema.sql
 ```
 
 ### Erro: "permission denied for schema public"

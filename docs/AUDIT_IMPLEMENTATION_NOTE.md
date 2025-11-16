@@ -155,7 +155,7 @@ s.logAuditOperation(r, "update", "client", clientID,
 - Documentation files (4 markdown files)
 
 ### Modified
-- `backend/database/init.sql` - Schema updates
+- `backend/database/schema.sql` - Schema updates
 - `backend/domain/models.go` - Nullable fields
 - `backend/store/user_store.go` - Soft-delete
 - `backend/cmd/server/server.go` - AuditStore init

@@ -397,6 +397,6 @@ Pronto para **produção** e para atender requisitos de **cybersecurity, auditor
 
 - `AUDIT_LOGS_IMPLEMENTATION.md` - Documentação técnica completa
 - `AUDIT_LOGS_QUICK_START.md` - Guia de uso para admins
-- `init.sql` - Schema do banco com audit_logs expandida
+- `schema.sql` - Schema do banco com audit_logs expandida
 - `audit_store.go` - Implementação da AuditStore
 - `AuditLogs.jsx` - Página principal do frontend

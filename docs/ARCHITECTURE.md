@@ -49,7 +49,7 @@ backend/
 │   └── *_test.go             # Testes unitários (114+)
 ├── database/
 │   ├── database.go           # Conexão e inicialização
-│   └── init.sql              # Schema e migrations
+│   └── schema.sql              # Schema e migrations
 ├── config/
 │   └── config.go             # Configurações e ambiente
 └── tests/
@@ -361,7 +361,7 @@ golang.org/x/crypto           # Hashing de senhas
 1. Definir struct em `domain/models.go`
 2. Criar store em `store/new_entity_store.go`
 3. Criar testes em `store/new_entity_store_test.go`
-4. Atualizar `database/init.sql` com tabela
+4. Atualizar `database/schema.sql` com tabela
 5. Integrar no menu CLI (`cmd/cli/main.go`)
 
 ### Exemplo: Adicionar Campo a Contrato
@@ -401,7 +401,7 @@ func TestCreateContract_WithNotes(t *testing.T) {
 }
 ```
 
-**4. Database** (`database/init.sql`):
+**4. Database** (`database/schema.sql`):
 ```sql
 ALTER TABLE contracts ADD COLUMN notes TEXT;
 ```

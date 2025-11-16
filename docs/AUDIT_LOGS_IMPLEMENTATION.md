@@ -15,7 +15,7 @@ Foi implementado um sistema completo de auditoria centralizado para o Contract M
 
 ## Mudanças no Backend
 
-### 1. Schema do Banco de Dados (`backend/database/init.sql`)
+### 1. Schema do Banco de Dados (`backend/database/schema.sql`)
 
 #### Tabela `users` - Soft Delete
 ```sql
