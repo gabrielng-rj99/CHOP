@@ -221,7 +221,7 @@ func TestDeleteLineWithActiveContracts(t *testing.T) {
 
 	// Insert a license for this line
 	now := time.Now()
-	_, err = InsertTestContract(db, "Test License", "TEST-KEY", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Test License", "TEST-KEY", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)
 	}

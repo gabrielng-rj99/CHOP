@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
 
@@ -61,7 +62,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 	return newID, nil
 }
 
-// GetLinesByCategoryID busca TODOS os tipos de uma categoria específica.
+// GetLinesByCategoryID busca TODOS os tipos de uma categoria específica (não arquivados).
 func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line, err error) {
 	if categoryID == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
@@ -76,7 +77,7 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 		return nil, nil // No lines for non-existent category
 	}
 
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE category_id = $1`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE category_id = $1 AND archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement, categoryID)
 	if err != nil {
@@ -92,7 +93,7 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 	lines = []domain.Line{}
 	for rows.Next() {
 		var t domain.Line // 'line' é uma palavra reservada, então usamos 't'
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
 		lines = append(lines, t)
@@ -110,13 +111,14 @@ func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE id = $1`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE id = $1`
 
 	var t domain.Line
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&t.ID,
 		&t.Line,
 		&t.CategoryID,
+		&t.ArchivedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -129,9 +131,9 @@ func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
 	return &t, nil
 }
 
-// GetAllLines busca todos os tipos de licença
+// GetAllLines busca todos os tipos de licença (não arquivados)
 func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
-	sqlStatement := `SELECT id, name, category_id FROM lines`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -147,7 +149,7 @@ func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
 	lines = []domain.Line{}
 	for rows.Next() {
 		var t domain.Line
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
 		lines = append(lines, t)
@@ -160,13 +162,44 @@ func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
 	return lines, nil
 }
 
-// GetLinesByName busca linhas por nome (case-insensitive, parcial)
+// GetAllLinesIncludingArchived busca todos os tipos de licença, incluindo arquivados
+func (s *LineStore) GetAllLinesIncludingArchived() (lines []domain.Line, err error) {
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines`
+
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	lines = []domain.Line{}
+	for rows.Next() {
+		var t domain.Line
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
+			return nil, err
+		}
+		lines = append(lines, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return lines, nil
+}
+
+// GetLinesByName busca linhas por nome (case-insensitive, parcial, não arquivados)
 func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id FROM lines WHERE name LIKE $1`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE name LIKE $1 AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -181,7 +214,7 @@ func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
 	var lines []domain.Line
 	for rows.Next() {
 		var t domain.Line
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID); err != nil {
+		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
 		lines = append(lines, t)
@@ -233,6 +266,70 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	if rows == 0 {
 		return sql.ErrNoRows // Or use errors.New("no type updated")
 	}
+	return nil
+}
+
+// ArchiveLine arquiva uma linha
+func (s *LineStore) ArchiveLine(id string) error {
+	if id == "" {
+		return sql.ErrNoRows
+	}
+
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("line does not exist")
+	}
+
+	sqlStatement := `UPDATE lines SET archived_at = $1 WHERE id = $2`
+	result, err := s.db.Exec(sqlStatement, time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no line archived")
+	}
+
+	return nil
+}
+
+// UnarchiveLine desarquiva uma linha
+func (s *LineStore) UnarchiveLine(id string) error {
+	if id == "" {
+		return sql.ErrNoRows
+	}
+
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("line does not exist")
+	}
+
+	sqlStatement := `UPDATE lines SET archived_at = NULL WHERE id = $1`
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no line unarchived")
+	}
+
 	return nil
 }
 
