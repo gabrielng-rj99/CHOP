@@ -46,15 +46,18 @@ type Dependent struct {
 
 // Category representa a tabela 'categories'
 type Category struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	Status     string     `json:"status"`
+	ArchivedAt *time.Time `json:"archived_at"`
 }
 
 // Line representa a tabela 'lines' (Product Line)
 type Line struct {
-	ID         string `json:"id"`
-	Line       string `json:"line" db:"name"`
-	CategoryID string `json:"category_id"`
+	ID         string     `json:"id"`
+	Line       string     `json:"line" db:"name"`
+	CategoryID string     `json:"category_id"`
+	ArchivedAt *time.Time `json:"archived_at"`
 }
 
 // Contract representa a tabela 'contracts'
@@ -62,8 +65,8 @@ type Contract struct {
 	ID          string     `json:"id"`
 	Model       string     `json:"model" db:"name"`
 	ProductKey  string     `json:"product_key"`
-	StartDate   time.Time  `json:"start_date,omitempty"`
-	EndDate     time.Time  `json:"end_date,omitempty"`
+	StartDate   *time.Time `json:"start_date,omitempty"`
+	EndDate     *time.Time `json:"end_date,omitempty"`
 	LineID      string     `json:"line_id"`
 	ClientID    string     `json:"client_id"`
 	DependentID *string    `json:"dependent_id"` // Usamos um ponteiro para que possa ser nulo
@@ -86,16 +89,57 @@ type User struct {
 	AuthSecret     string     `json:"auth_secret"`
 }
 
+// GetEffectiveStartDate retorna a data de início efetiva para cálculos.
+// Se StartDate for nil, retorna time.Time{} (infinito inferior) para indicar que começou "sempre".
+func (c *Contract) GetEffectiveStartDate() time.Time {
+	if c.StartDate == nil {
+		return time.Time{}
+	}
+	return *c.StartDate
+}
+
+// GetEffectiveEndDate retorna a data de fim efetiva para cálculos.
+// Se EndDate for nil, retorna uma data muito distante no futuro (infinito superior) para indicar que nunca expira.
+func (c *Contract) GetEffectiveEndDate() time.Time {
+	if c.EndDate == nil {
+		return time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+	}
+	return *c.EndDate
+}
+
+// IsActive verifica se o contrato está ativo no momento especificado.
+// StartDate nil = começou sempre (infinito inferior)
+// EndDate nil = nunca expira (infinito superior)
+func (c *Contract) IsActive(at time.Time) bool {
+	effectiveStart := c.GetEffectiveStartDate()
+	effectiveEnd := c.GetEffectiveEndDate()
+
+	// Se StartDate é nil (infinito inferior), sempre começou
+	startedAlready := effectiveStart.IsZero() || !at.Before(effectiveStart)
+
+	// Se EndDate é nil (infinito superior), nunca expira
+	notExpired := at.Before(effectiveEnd)
+
+	return startedAlready && notExpired
+}
+
 // Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).
 func (c *Contract) Status() string {
 	now := time.Now()
 
-	if c.EndDate.Before(now) {
+	// EndDate nil = nunca expira, sempre "Ativo"
+	if c.EndDate == nil {
+		return "Ativo"
+	}
+
+	effectiveEnd := c.GetEffectiveEndDate()
+
+	if effectiveEnd.Before(now) {
 		return "Expirado"
 	}
 
 	// Consideramos "Expirando em Breve" se faltar 30 dias ou menos.
-	daysUntilExpiration := c.EndDate.Sub(now).Hours() / 24
+	daysUntilExpiration := effectiveEnd.Sub(now).Hours() / 24
 	if daysUntilExpiration <= 30 {
 		return "Expirando em Breve"
 	}

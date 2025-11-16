@@ -180,13 +180,8 @@ func ValidateClient(client *Client) ValidationErrors {
 		})
 	}
 
-	// Status é obrigatório
-	if strings.TrimSpace(client.Status) == "" {
-		errors = append(errors, ValidationError{
-			Field:   "status",
-			Message: "status do cliente é obrigatório",
-		})
-	}
+	// Status is auto-managed by the backend based on active contracts
+	// No validation needed
 
 	// Validações de campos opcionais
 	if client.RegistrationID != nil && len(*client.RegistrationID) > 20 {
