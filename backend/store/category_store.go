@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -46,7 +47,7 @@ func (s *CategoryStore) CreateCategory(category domain.Category) (string, error)
 // GetAllCategories busca TODAS as categorias do banco de dados.
 // Isto será útil para preencher listas de seleção no frontend.
 func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err error) {
-	sqlStatement := `SELECT id, name FROM categories`
+	sqlStatement := `SELECT id, name, status, archived_at FROM categories WHERE archived_at IS NULL`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -67,7 +68,43 @@ func (s *CategoryStore) GetAllCategories() (categories []domain.Category, err er
 	categories = []domain.Category{}
 	for rows.Next() {
 		var category domain.Category
-		if err = rows.Scan(&category.ID, &category.Name); err != nil {
+		if err = rows.Scan(&category.ID, &category.Name, &category.Status, &category.ArchivedAt); err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
+// GetAllCategoriesIncludingArchived busca todas as categorias, incluindo arquivadas
+func (s *CategoryStore) GetAllCategoriesIncludingArchived() (categories []domain.Category, err error) {
+	sqlStatement := `SELECT id, name, status, archived_at FROM categories`
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	if rows == nil {
+		return []domain.Category{}, nil
+	}
+
+	defer func() {
+		if rows != nil {
+			closeErr := rows.Close()
+			if err == nil {
+				err = closeErr
+			}
+		}
+	}()
+
+	categories = []domain.Category{}
+	for rows.Next() {
+		var category domain.Category
+		if err = rows.Scan(&category.ID, &category.Name, &category.Status, &category.ArchivedAt); err != nil {
 			return nil, err
 		}
 		categories = append(categories, category)
@@ -86,7 +123,7 @@ func (s *CategoryStore) GetCategoriesByName(name string) ([]domain.Category, err
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name FROM categories WHERE name LIKE $1`
+	sqlStatement := `SELECT id, name, status, archived_at FROM categories WHERE name LIKE $1 AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -103,7 +140,7 @@ func (s *CategoryStore) GetCategoriesByName(name string) ([]domain.Category, err
 	var categories []domain.Category
 	for rows.Next() {
 		var category domain.Category
-		if err = rows.Scan(&category.ID, &category.Name); err != nil {
+		if err = rows.Scan(&category.ID, &category.Name, &category.Status, &category.ArchivedAt); err != nil {
 			return nil, err
 		}
 		categories = append(categories, category)
@@ -119,12 +156,14 @@ func (s *CategoryStore) GetCategoryByID(id string) (*domain.Category, error) {
 	if id == "" {
 		return nil, errors.New("category ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name FROM categories WHERE id = $1`
+	sqlStatement := `SELECT id, name, status, archived_at FROM categories WHERE id = $1`
 
 	var category domain.Category
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&category.ID,
 		&category.Name,
+		&category.Status,
+		&category.ArchivedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -217,5 +256,118 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 	if rows == 0 {
 		return errors.New("no category deleted")
 	}
+	return nil
+}
+
+// ArchiveCategory arquiva uma categoria
+func (s *CategoryStore) ArchiveCategory(id string) error {
+	if id == "" {
+		return errors.New("category ID cannot be empty")
+	}
+
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("category does not exist")
+	}
+
+	sqlStatement := `UPDATE categories SET archived_at = $1 WHERE id = $2`
+	result, err := s.db.Exec(sqlStatement, time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no category archived")
+	}
+
+	return nil
+}
+
+// UnarchiveCategory desarquiva uma categoria
+func (s *CategoryStore) UnarchiveCategory(id string) error {
+	if id == "" {
+		return errors.New("category ID cannot be empty")
+	}
+
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("category does not exist")
+	}
+
+	sqlStatement := `UPDATE categories SET archived_at = NULL WHERE id = $1`
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no category unarchived")
+	}
+
+	return nil
+}
+
+// UpdateCategoryStatus atualiza o status da categoria baseado no uso em contratos
+// Ignora categorias arquivadas
+func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
+	if categoryID == "" {
+		return errors.New("category ID cannot be empty")
+	}
+
+	// Check if category is archived - don't update status for archived categories
+	var archivedAt *time.Time
+	err := s.db.QueryRow(`SELECT archived_at FROM categories WHERE id = $1`, categoryID).Scan(&archivedAt)
+	if err != nil {
+		return err
+	}
+	if archivedAt != nil {
+		return nil // Don't update status for archived categories
+	}
+
+	// Check if category has any lines associated with active contracts
+	// Active = not archived and (no end_date or end_date in future)
+	var activeContracts int
+	now := time.Now()
+	err = s.db.QueryRow(`
+		SELECT COUNT(DISTINCT c.id)
+		FROM contracts c
+		INNER JOIN lines l ON c.line_id = l.id
+		WHERE l.category_id = $1
+		AND c.archived_at IS NULL
+		AND (c.end_date IS NULL OR c.end_date > $2)
+	`, categoryID, now).Scan(&activeContracts)
+	if err != nil {
+		return err
+	}
+
+	// Set status based on usage in active contracts
+	var newStatus string
+	if activeContracts > 0 {
+		newStatus = "ativo"
+	} else {
+		newStatus = "inativo"
+	}
+
+	_, err = s.db.Exec(`UPDATE categories SET status = $1 WHERE id = $2`, newStatus, categoryID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
