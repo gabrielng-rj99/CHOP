@@ -68,6 +68,23 @@ func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update client status based on active contracts
+	if err := s.clientStore.UpdateClientStatus(contract.ClientID); err != nil {
+		// Log warning but don't fail the request
+		// This is a non-critical operation
+	}
+
+	// Update category status based on usage
+	contractData, _ := s.contractStore.GetContractByID(id)
+	if contractData != nil {
+		lineData, _ := s.lineStore.GetLineByID(contractData.LineID)
+		if lineData != nil {
+			if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
+				// Log warning but don't fail the request
+			}
+		}
+	}
+
 	// Log successful creation
 	if claims != nil {
 		contract.ID = id
@@ -166,6 +183,20 @@ func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, co
 		return
 	}
 
+	// Update client status based on active contracts
+	if err := s.clientStore.UpdateClientStatus(contract.ClientID); err != nil {
+		// Log warning but don't fail the request
+		// This is a non-critical operation
+	}
+
+	// Update category status based on usage
+	lineData, _ := s.lineStore.GetLineByID(contract.LineID)
+	if lineData != nil {
+		if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
+			// Log warning but don't fail the request
+		}
+	}
+
 	// Log successful update
 	if claims != nil {
 		newValueJSON, _ := json.Marshal(contract)
@@ -202,10 +233,29 @@ func (s *Server) handleContractArchive(w http.ResponseWriter, r *http.Request) {
 
 	contractID := parts[0]
 
+	// Get contract before archiving to update client status
+	oldContract, _ := s.contractStore.GetContractByID(contractID)
+
 	// Archive contract by deleting it (or you can add an archived_at field)
 	if err := s.contractStore.DeleteContract(contractID); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Update client status based on active contracts
+	if oldContract != nil {
+		if err := s.clientStore.UpdateClientStatus(oldContract.ClientID); err != nil {
+			// Log warning but don't fail the request
+			// This is a non-critical operation
+		}
+
+		// Update category status based on usage
+		lineData, _ := s.lineStore.GetLineByID(oldContract.LineID)
+		if lineData != nil {
+			if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
+				// Log warning but don't fail the request
+			}
+		}
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract archived successfully"})
