@@ -144,6 +144,43 @@ export default function Categories({ token, apiUrl }) {
         }
     };
 
+    const handleArchiveCategory = async (categoryId, categoryName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja arquivar a categoria "${categoryName}"?`,
+            )
+        )
+            return;
+
+        try {
+            await categoriesApi.archiveCategory(apiUrl, token, categoryId);
+            await loadCategories();
+
+            if (selectedCategory?.id === categoryId) {
+                setSelectedCategory(null);
+                setLines([]);
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleUnarchiveCategory = async (categoryId, categoryName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja desarquivar a categoria "${categoryName}"?`,
+            )
+        )
+            return;
+
+        try {
+            await categoriesApi.unarchiveCategory(apiUrl, token, categoryId);
+            await loadCategories();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleCreateLine = async () => {
         setLineModalError("");
         try {
@@ -185,6 +222,38 @@ export default function Categories({ token, apiUrl }) {
 
         try {
             await categoriesApi.deleteLine(apiUrl, token, lineId);
+            await loadLines(selectedCategory.id);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleArchiveLine = async (lineId, lineName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja arquivar a linha "${lineName}"?`,
+            )
+        )
+            return;
+
+        try {
+            await categoriesApi.archiveLine(apiUrl, token, lineId);
+            await loadLines(selectedCategory.id);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleUnarchiveLine = async (lineId, lineName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja desarquivar a linha "${lineName}"?`,
+            )
+        )
+            return;
+
+        try {
+            await categoriesApi.unarchiveLine(apiUrl, token, lineId);
             await loadLines(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -321,7 +390,7 @@ export default function Categories({ token, apiUrl }) {
             </div>
 
             <div className="categories-table-wrapper">
-                <div className="categories-table-header">
+                {/* <div className="categories-table-header">
                     <h2 className="categories-table-header-title">
                         Categorias
                     </h2>
@@ -337,12 +406,14 @@ export default function Categories({ token, apiUrl }) {
                         ></i>{" "}
                         para visualizar as linhas
                     </div>
-                </div>
+                </div>*/}
                 <CategoriesTable
                     filteredCategories={filteredCategories}
                     onSelectCategory={selectCategory}
                     onEditCategory={openEditCategoryModal}
                     onDeleteCategory={handleDeleteCategory}
+                    onArchiveCategory={handleArchiveCategory}
+                    onUnarchiveCategory={handleUnarchiveCategory}
                     selectedCategory={selectedCategory}
                 />
             </div>
@@ -354,6 +425,8 @@ export default function Categories({ token, apiUrl }) {
                     onCreateLine={openCreateLineModal}
                     onEditLine={openEditLineModal}
                     onDeleteLine={handleDeleteLine}
+                    onArchiveLine={handleArchiveLine}
+                    onUnarchiveLine={handleUnarchiveLine}
                     onClose={() => setSelectedCategory(null)}
                 />
             )}
