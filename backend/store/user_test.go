@@ -27,9 +27,9 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 	userStore := NewUserStore(db)
 
 	// Cria usuário admin (sem número)
-	_, err = userStore.CreateUser("admin", "Administrador", "SenhaForte123!@#abc", "full_admin")
+	_, err = userStore.CreateUser("admin", "Administrador", "SenhaForte123!@#abc", "root")
 	if err != nil {
-		t.Fatalf("Erro ao criar usuário full_admin: %v", err)
+		t.Fatalf("Erro ao criar usuário root: %v", err)
 	}
 
 	// Cria usuário admin0
@@ -59,13 +59,13 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 	// Tenta alterar role de user1 usando admin (deve permitir)
 	err = userStore.EditUserRole("admin", "user1", "admin")
 	if err != nil {
-		t.Errorf("full_admin deveria poder alterar o role de outro usuário: %v", err)
+		t.Errorf("root deveria poder alterar o role de outro usuário: %v", err)
 	}
 
 	// Tenta remover role admin de admin0 usando admin (deve permitir)
 	err = userStore.EditUserRole("admin", "admin0", "user")
 	if err != nil {
-		t.Errorf("full_admin deveria poder remover o role admin de outro admin: %v", err)
+		t.Errorf("root deveria poder remover o role admin de outro admin: %v", err)
 	}
 
 	// Confere se user1 virou admin
@@ -83,10 +83,10 @@ func TestEditUserAdminFlagPermissions(t *testing.T) {
 		}
 	}
 	if user1.Role == nil || *user1.Role != "admin" {
-		t.Error("user1 deveria ser admin após alteração feita por full_admin")
+		t.Error("user1 deveria ser admin após alteração feita por root")
 	}
 	if admin0.Role == nil || *admin0.Role != "user" {
-		t.Error("admin0 NÃO deveria ser admin após remoção feita por full_admin")
+		t.Error("admin0 NÃO deveria ser admin após remoção feita por root")
 	}
 }
 
@@ -127,11 +127,11 @@ func TestCreateUserBasic(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:        "valid full_admin user",
+			name:        "valid root user",
 			username:    "fulladminuser",
-			displayName: "Full Admin User",
+			displayName: "Root User",
 			password:    "ValidPass123!@#a",
-			role:        "full_admin",
+			role:        "root",
 			expectError: false,
 		},
 		{
@@ -397,7 +397,7 @@ func TestCreateAdminUser(t *testing.T) {
 
 	userStore := NewUserStore(db)
 
-	id, username, displayName, password, err := userStore.CreateAdminUser("", "Test Admin", "full_admin")
+	id, username, displayName, password, err := userStore.CreateAdminUser("", "Test Admin", "root")
 	if err != nil {
 		t.Errorf("CreateAdminUser() error = %v", err)
 		return
@@ -422,8 +422,8 @@ func TestCreateAdminUser(t *testing.T) {
 		t.Errorf("Failed to authenticate created admin user: %v", err)
 		return
 	}
-	if user.Role == nil || *user.Role != "full_admin" {
-		t.Errorf("Created admin user has role %v, want full_admin", user.Role)
+	if user.Role == nil || *user.Role != "root" {
+		t.Errorf("Created admin user has role %v, want root", user.Role)
 	}
 }
 

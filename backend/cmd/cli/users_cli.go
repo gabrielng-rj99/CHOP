@@ -43,9 +43,9 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 		fmt.Println("1 - List all users")
 		fmt.Println("2 - Search/Filter users")
 		fmt.Println("3 - Select user")
-		fmt.Println("4 - Create regular user (admin or full_admin only)")
-		fmt.Println("5 - Create admin user (admin or full_admin only)")
-		fmt.Println("6 - Create full_admin user (full_admin only)")
+		fmt.Println("4 - Create regular user (admin or root only)")
+		fmt.Println("5 - Create admin user (admin or root only)")
+		fmt.Println("6 - Create root user (root only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -128,9 +128,9 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			UserSubmenu(&selectedUser, userStore, user)
 		case "4":
 			clearTerminal()
-			// Create regular user (admin or full_admin only)
-			if getRole(user) != "admin" && getRole(user) != "full_admin" {
-				fmt.Println("Only admin or full_admin users can create new users.")
+			// Create regular user (admin or root only)
+			if getRole(user) != "admin" && getRole(user) != "root" {
+				fmt.Println("Only admin or root users can create new users.")
 				waitForEnter()
 				break
 			}
@@ -168,9 +168,9 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			}
 		case "5":
 			clearTerminal()
-			// Create admin user (admin or full_admin only)
-			if getRole(user) != "admin" && getRole(user) != "full_admin" {
-				fmt.Println("Only admin or full_admin users can create new admins.")
+			// Create admin user (admin or root only)
+			if getRole(user) != "admin" && getRole(user) != "root" {
+				fmt.Println("Only admin or root users can create new admins.")
 				waitForEnter()
 				break
 			}
@@ -195,16 +195,16 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 			}
 		case "6":
 			clearTerminal()
-			// Create full_admin user (full_admin only)
-			if getRole(user) != "full_admin" {
-				fmt.Println("Only full_admin users can create other full_admin users.")
+			// Create root user (root only)
+			if getRole(user) != "root" {
+				fmt.Println("Only root users can create other root users.")
 				waitForEnter()
 				break
 			}
-			fmt.Print("Full_admin username (leave empty to auto-generate admin-n): ")
+			fmt.Print("Root username (leave empty to auto-generate admin-n): ")
 			username, _ := reader.ReadString('\n')
 			username = strings.TrimSpace(username)
-			fmt.Print("Full_admin display name: ")
+			fmt.Print("Root display name: ")
 			displayName, _ := reader.ReadString('\n')
 			displayName = strings.TrimSpace(displayName)
 			if displayName == "" {
@@ -212,12 +212,12 @@ func UsersMenu(userStore *store.UserStore, user *domain.User) {
 				waitForEnter()
 				continue
 			}
-			genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "full_admin")
+			genID, genUsername, genDisplayName, genPassword, err := userStore.CreateAdminUser(username, displayName, "root")
 			if err != nil {
-				fmt.Println("Error creating full_admin:", err)
+				fmt.Println("Error creating root:", err)
 				waitForEnter()
 			} else {
-				fmt.Printf("Full_admin user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
+				fmt.Printf("Root user created: %s\nDisplay Name: %s\nPassword: %s\nUser ID: %s\n", genUsername, genDisplayName, genPassword, genID)
 				waitForEnter()
 			}
 
@@ -318,10 +318,10 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 		fmt.Println("1 - Edit username")
 		fmt.Println("2 - Edit display name")
 		fmt.Println("3 - Edit password")
-		fmt.Println("4 - Edit role (full_admin only)")
-		fmt.Println("5 - Unlock user (full_admin only)")
-		fmt.Println("6 - Block user (full_admin only)")
-		fmt.Println("7 - Delete user (soft-delete, admin/full_admin only)")
+		fmt.Println("4 - Edit role (root only)")
+		fmt.Println("5 - Unlock user (root only)")
+		fmt.Println("6 - Block user (root only)")
+		fmt.Println("7 - Delete user (soft-delete, admin/root only)")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -337,8 +337,8 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			if getRole(currentUser) != "admin" && getRole(currentUser) != "full_admin" {
-				fmt.Println("Only admin or full_admin users can change usernames.")
+			if getRole(currentUser) != "admin" && getRole(currentUser) != "root" {
+				fmt.Println("Only admin or root users can change usernames.")
 				waitForEnter()
 				continue
 			}
@@ -439,13 +439,13 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			if getRole(currentUser) != "full_admin" {
-				fmt.Println("Only full_admin users can change the role of other users.")
+			if getRole(currentUser) != "root" {
+				fmt.Println("Only root users can change the role of other users.")
 				waitForEnter()
 				continue
 			}
 			PrintOptionalFieldHint()
-			fmt.Printf("Current role: %s | New role (user/admin/full_admin): ", getRole(selectedUser))
+			fmt.Printf("Current role: %s | New role (user/admin/root): ", getRole(selectedUser))
 			newRole, _ := reader.ReadString('\n')
 			newRole = strings.TrimSpace(newRole)
 			if newRole == "" {
@@ -466,8 +466,8 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			if getRole(currentUser) != "full_admin" {
-				fmt.Println("Only full_admin users can unlock users.")
+			if getRole(currentUser) != "root" {
+				fmt.Println("Only root users can unlock users.")
 				waitForEnter()
 				continue
 			}
@@ -486,8 +486,8 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			if getRole(currentUser) != "full_admin" {
-				fmt.Println("Only full_admin users can block users.")
+			if getRole(currentUser) != "root" {
+				fmt.Println("Only root users can block users.")
 				waitForEnter()
 				continue
 			}
@@ -519,8 +519,8 @@ func UserSubmenu(selectedUser *domain.User, userStore *store.UserStore, currentU
 				waitForEnter()
 				continue
 			}
-			if getRole(currentUser) != "admin" && getRole(currentUser) != "full_admin" {
-				fmt.Println("Only admin or full_admin users can delete users.")
+			if getRole(currentUser) != "admin" && getRole(currentUser) != "root" {
+				fmt.Println("Only admin or root users can delete users.")
 				waitForEnter()
 				continue
 			}

@@ -82,7 +82,7 @@ func CreateAdminCLI() {
 	displayName, _ := reader.ReadString('\n')
 	displayName = strings.TrimSpace(displayName)
 
-	fmt.Print("Role do admin (admin/full_admin): ")
+	fmt.Print("Role do admin (admin/root): ")
 	role, _ := reader.ReadString('\n')
 	role = strings.TrimSpace(role)
 	if role == "" {
@@ -126,7 +126,7 @@ func CreateAdminUser(userStore *store.UserStore) {
 	// Ask for the role
 	reader := bufio.NewReader(os.Stdin)
 	PrintOptionalFieldHint()
-	fmt.Print("Admin role (admin/full_admin, leave empty for 'admin'): ")
+	fmt.Print("Admin role (admin/root, leave empty for 'admin'): ")
 	role, _ := reader.ReadString('\n')
 	role = strings.TrimSpace(role)
 	if role == "" {
@@ -134,8 +134,8 @@ func CreateAdminUser(userStore *store.UserStore) {
 	}
 
 	// Validate role
-	if role != "admin" && role != "full_admin" {
-		fmt.Println("Error: Invalid role. Use 'admin' or 'full_admin'.")
+	if role != "admin" && role != "root" {
+		fmt.Println("Error: Invalid role. Use 'admin' or 'root'.")
 		fmt.Print("Pressione ENTER para continuar...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return

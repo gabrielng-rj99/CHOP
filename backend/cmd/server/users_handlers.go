@@ -128,9 +128,9 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if claims.Role != "full_admin" {
+		if claims.Role != "root" {
 			log.Printf("Tentativa de deletar usuário %s por %s com role %s - acesso negado", username, claims.Username, claims.Role)
-			respondError(w, http.StatusForbidden, "Apenas full_admin pode deletar usuários")
+			respondError(w, http.StatusForbidden, "Apenas root pode deletar usuários")
 			return
 		}
 
@@ -205,6 +205,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	}
 
 	var req struct {
+		Username    string `json:"username,omitempty"`
 		DisplayName string `json:"display_name"`
 		Password    string `json:"password,omitempty"`
 		Role        string `json:"role,omitempty"`
@@ -215,7 +216,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		return
 	}
 
-	// Get user data before updating for audit
+	// Get user data before updating for audit (MUST be before any changes)
 	users, _ := s.userStore.GetUsersByName(username)
 	var oldUserData map[string]interface{}
 	var userID string
@@ -226,6 +227,25 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 			"display_name": users[0].DisplayName,
 			"role":         users[0].Role,
 		}
+	} else {
+		// If user not found, cannot proceed
+		respondError(w, http.StatusNotFound, "Usuário não encontrado")
+		return
+	}
+
+	// Update username if provided and different from current
+	if req.Username != "" && req.Username != username {
+		if claims.Role != "root" {
+			log.Printf("Tentativa de alterar username por %s com role %s - acesso negado", claims.Username, claims.Role)
+			respondError(w, http.StatusForbidden, "Apenas root pode alterar username de usuários")
+			return
+		}
+		if err := s.userStore.UpdateUsername(username, req.Username); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		// Update username variable for subsequent operations
+		username = req.Username
 	}
 
 	if req.DisplayName != "" {
@@ -243,9 +263,9 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	}
 
 	if req.Role != "" {
-		if claims.Role != "full_admin" {
+		if claims.Role != "root" {
 			log.Printf("Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, claims.Role)
-			respondError(w, http.StatusForbidden, "Apenas full_admin pode alterar role de usuários")
+			respondError(w, http.StatusForbidden, "Apenas root pode alterar role de usuários")
 			return
 		}
 		if err := s.userStore.EditUserRole(claims.Username, username, req.Role); err != nil {
@@ -254,18 +274,33 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		}
 	}
 
-	// Get updated user data for audit
-	newUserData := map[string]interface{}{
-		"username": username,
+	// Get updated user data for audit - reflect actual changes
+	newUserData := map[string]interface{}{}
+
+	// Username: use new username if changed, otherwise keep old
+	if req.Username != "" && req.Username != oldUserData["username"] {
+		newUserData["username"] = req.Username
+	} else {
+		newUserData["username"] = oldUserData["username"]
 	}
+
+	// Display name: use new if changed, otherwise keep old
 	if req.DisplayName != "" {
 		newUserData["display_name"] = req.DisplayName
+	} else {
+		newUserData["display_name"] = oldUserData["display_name"]
 	}
+
+	// Role: use new if changed, otherwise keep old
 	if req.Role != "" {
 		newUserData["role"] = req.Role
+	} else {
+		newUserData["role"] = oldUserData["role"]
 	}
+
+	// Password: mark as changed if provided
 	if req.Password != "" {
-		newUserData["password"] = "***REDACTED***"
+		newUserData["password_changed"] = true
 	}
 
 	// Log successful update
@@ -301,9 +336,9 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims.Role != "full_admin" && claims.Role != "admin" {
+	if claims.Role != "root" && claims.Role != "admin" {
 		log.Printf("Tentativa de bloquear usuário por %s com role %s - acesso negado", claims.Username, claims.Role)
-		respondError(w, http.StatusForbidden, "Apenas admin ou full_admin podem bloquear usuários")
+		respondError(w, http.StatusForbidden, "Apenas admin ou root podem bloquear usuários")
 		return
 	}
 
@@ -315,19 +350,32 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 
 	username := parts[0]
 
+	// Get user data before blocking for audit
+	users, _ := s.userStore.GetUsersByName(username)
+	var userID string
+	var displayName string
+	if len(users) > 0 {
+		userID = users[0].ID
+		if users[0].DisplayName != nil {
+			displayName = *users[0].DisplayName
+		}
+	} else {
+		respondError(w, http.StatusNotFound, "Usuário não encontrado")
+		return
+	}
+
 	if err := s.userStore.BlockUser(username); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
-		blockAction := "blocked"
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
 			Entity:        "user",
-			EntityID:      username,
+			EntityID:      userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
-			OldValue:      nil,
-			NewValue:      &blockAction,
-			Status:        "error",
+			OldValue:      map[string]interface{}{"status": "active", "username": username},
+			NewValue:      map[string]interface{}{"status": "blocked", "action": "block_user", "username": username, "display_name": displayName},
+			Status:        "failed",
 			ErrorMessage:  &errMsg,
 			IPAddress:     getIPAddress(r),
 			UserAgent:     getUserAgent(r),
@@ -339,15 +387,14 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log successful block
-	blockAction := "User blocked"
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
 		Entity:        "user",
-		EntityID:      username,
+		EntityID:      userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
-		OldValue:      nil,
-		NewValue:      &blockAction,
+		OldValue:      map[string]interface{}{"status": "active", "username": username},
+		NewValue:      map[string]interface{}{"status": "blocked", "action": "block_user", "username": username, "display_name": displayName},
 		Status:        "success",
 		IPAddress:     getIPAddress(r),
 		UserAgent:     getUserAgent(r),
@@ -372,9 +419,9 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims.Role != "full_admin" && claims.Role != "admin" {
+	if claims.Role != "root" && claims.Role != "admin" {
 		log.Printf("Tentativa de desbloquear usuário por %s com role %s - acesso negado", claims.Username, claims.Role)
-		respondError(w, http.StatusForbidden, "Apenas admin ou full_admin podem desbloquear usuários")
+		respondError(w, http.StatusForbidden, "Apenas admin ou root podem desbloquear usuários")
 		return
 	}
 
@@ -386,19 +433,32 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 
 	username := parts[0]
 
+	// Get user data before unlocking for audit
+	users, _ := s.userStore.GetUsersByName(username)
+	var userID string
+	var displayName string
+	if len(users) > 0 {
+		userID = users[0].ID
+		if users[0].DisplayName != nil {
+			displayName = *users[0].DisplayName
+		}
+	} else {
+		respondError(w, http.StatusNotFound, "Usuário não encontrado")
+		return
+	}
+
 	if err := s.userStore.UnlockUser(username); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
-		unlockAction := "unlocked"
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
 			Entity:        "user",
-			EntityID:      username,
+			EntityID:      userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
-			OldValue:      nil,
-			NewValue:      &unlockAction,
-			Status:        "error",
+			OldValue:      map[string]interface{}{"status": "locked", "username": username},
+			NewValue:      map[string]interface{}{"status": "unlocked", "action": "unlock_user", "username": username, "display_name": displayName},
+			Status:        "failed",
 			ErrorMessage:  &errMsg,
 			IPAddress:     getIPAddress(r),
 			UserAgent:     getUserAgent(r),
@@ -410,15 +470,14 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log successful unlock
-	unlockAction := "User unlocked"
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
 		Entity:        "user",
-		EntityID:      username,
+		EntityID:      userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
-		OldValue:      nil,
-		NewValue:      &unlockAction,
+		OldValue:      map[string]interface{}{"status": "locked", "username": username},
+		NewValue:      map[string]interface{}{"status": "unlocked", "action": "unlock_user", "username": username, "display_name": displayName},
 		Status:        "success",
 		IPAddress:     getIPAddress(r),
 		UserAgent:     getUserAgent(r),

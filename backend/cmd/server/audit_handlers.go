@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Contracts-Manager/backend/domain"
 	"Contracts-Manager/backend/store"
 	"encoding/json"
 	"net/http"
@@ -117,6 +118,9 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enriquecer logs com usernames atuais
+	enrichedLogs := s.enrichLogsWithUsernames(logs)
+
 	// Contar total para paginação
 	total, err := s.auditStore.CountAuditLogs(filter)
 	if err != nil {
@@ -125,7 +129,7 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"data":   logs,
+		"data":   enrichedLogs,
 		"total":  total,
 		"limit":  limit,
 		"offset": offset,
@@ -151,7 +155,63 @@ func (s *Server) handleAuditLogDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, log)
+	// Enriquecer log com username atual
+	enrichedLog := s.enrichLogWithUsername(log)
+
+	respondJSON(w, http.StatusOK, enrichedLog)
+}
+
+// enrichLogsWithUsernames busca usernames atuais baseados nos admin_ids
+func (s *Server) enrichLogsWithUsernames(logs []domain.AuditLog) []domain.AuditLog {
+	if len(logs) == 0 {
+		return logs
+	}
+
+	// Coletar todos os admin_ids únicos
+	adminIDs := make(map[string]bool)
+	for _, log := range logs {
+		if log.AdminID != nil && *log.AdminID != "" {
+			adminIDs[*log.AdminID] = true
+		}
+	}
+
+	// Buscar usernames para cada ID
+	usernameCache := make(map[string]string)
+	for adminID := range adminIDs {
+		user, err := s.userStore.GetUserByID(adminID)
+		if err == nil && user != nil && user.Username != nil {
+			usernameCache[adminID] = *user.Username
+		}
+	}
+
+	// Enriquecer logs com usernames atuais
+	enrichedLogs := make([]domain.AuditLog, len(logs))
+	for i, log := range logs {
+		enrichedLogs[i] = log
+		if log.AdminID != nil {
+			if currentUsername, exists := usernameCache[*log.AdminID]; exists {
+				enrichedLogs[i].AdminUsername = &currentUsername
+			}
+		}
+	}
+
+	return enrichedLogs
+}
+
+// enrichLogWithUsername busca username atual baseado no admin_id
+func (s *Server) enrichLogWithUsername(log *domain.AuditLog) *domain.AuditLog {
+	if log == nil {
+		return log
+	}
+
+	if log.AdminID != nil && *log.AdminID != "" {
+		user, err := s.userStore.GetUserByID(*log.AdminID)
+		if err == nil && user != nil && user.Username != nil {
+			log.AdminUsername = user.Username
+		}
+	}
+
+	return log
 }
 
 // handleAuditLogsByEntity GET /api/audit-logs/entity/{entity}/{entityID} - todos os logs para uma entidade

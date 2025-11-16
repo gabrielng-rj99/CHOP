@@ -49,6 +49,7 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		"read":   true,
 		"update": true,
 		"delete": true,
+		"login":  true,
 	}
 	if !validOps[req.Operation] {
 		return "", fmt.Errorf("operação inválida: %s", req.Operation)
@@ -63,13 +64,19 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		"category":  true,
 		"dependent": true,
 		"audit_log": true,
+		"auth":      true,
 	}
 	if !validEntities[req.Entity] {
 		return "", fmt.Errorf("entidade inválida: %s", req.Entity)
 	}
 
 	// Validar status
-	if req.Status != "success" && req.Status != "error" {
+	validStatuses := map[string]bool{
+		"success": true,
+		"error":   true,
+		"failed":  true,
+	}
+	if !validStatuses[req.Status] {
 		req.Status = "success"
 	}
 

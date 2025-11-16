@@ -158,12 +158,12 @@ func (s *Server) setupRoutes() {
 		}
 	})))
 
-	// Audit Logs (only accessible to full_admin)
+	// Audit Logs (only accessible to root)
 	http.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		// Apenas full_admin pode acessar
+		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
-		if err != nil || claims.Role != "full_admin" {
-			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
+		if err != nil || claims.Role != "root" {
+			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
 			return
 		}
 
@@ -176,10 +176,10 @@ func (s *Server) setupRoutes() {
 		}
 	})))
 	http.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		// Apenas full_admin pode acessar
+		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
-		if err != nil || claims.Role != "full_admin" {
-			respondError(w, http.StatusForbidden, "Apenas full_admin pode acessar logs de auditoria")
+		if err != nil || claims.Role != "root" {
+			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
 			return
 		}
 

@@ -31,7 +31,7 @@ func populateMainDB() {
 	adminID := uuid.New().String()
 	adminUsername := "admin"
 	adminDisplayName := "Administrador"
-	adminRole := "full_admin"
+	adminRole := "root"
 
 	fmt.Println("Populando usuários...")
 	runPSQL(fmt.Sprintf(`

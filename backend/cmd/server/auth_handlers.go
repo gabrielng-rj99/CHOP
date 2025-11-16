@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Contracts-Manager/backend/store"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -26,6 +27,27 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.userStore.AuthenticateUser(req.Username, req.Password)
 	if err != nil {
+		// Log failed login attempt
+		errMsg := err.Error()
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "login",
+			Entity:        "auth",
+			EntityID:      req.Username,
+			AdminID:       nil,
+			AdminUsername: &req.Username,
+			OldValue:      nil,
+			NewValue: map[string]interface{}{
+				"method": "password",
+				"result": "failed",
+				"reason": errMsg,
+			},
+			Status:        "failed",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -59,6 +81,26 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log successful login
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "login",
+		Entity:        "auth",
+		EntityID:      user.ID,
+		AdminID:       &user.ID,
+		AdminUsername: &username,
+		OldValue:      nil,
+		NewValue: map[string]interface{}{
+			"method": "password",
+			"result": "success",
+		},
+		Status:        "success",
+		ErrorMessage:  nil,
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
+
 	respondJSON(w, http.StatusOK, SuccessResponse{
 		Message: "Login successful",
 		Data: map[string]interface{}{
@@ -91,12 +133,61 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := ValidateRefreshToken(req.RefreshToken, s.userStore)
 	if err != nil {
+		// Log failed token refresh
+		errMsg := err.Error()
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "login",
+			Entity:        "auth",
+			EntityID:      "",
+			AdminID:       nil,
+			AdminUsername: nil,
+			OldValue:      nil,
+			NewValue: map[string]interface{}{
+				"method": "token",
+				"result": "failed",
+				"reason": errMsg,
+			},
+			Status:        "failed",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusUnauthorized, "Refresh token inválido ou expirado")
 		return
 	}
 
 	user, err := s.userStore.GetUserByID(claims.UserID)
 	if err != nil || user == nil {
+		errMsg := "Usuário não encontrado"
+		if err != nil {
+			errMsg = err.Error()
+		}
+		// Try to get username from user if available
+		var usernamePtr *string
+		if user != nil && user.Username != nil {
+			usernamePtr = user.Username
+		}
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "login",
+			Entity:        "auth",
+			EntityID:      claims.UserID,
+			AdminID:       nil,
+			AdminUsername: usernamePtr,
+			OldValue:      nil,
+			NewValue: map[string]interface{}{
+				"method": "token",
+				"result": "failed",
+				"reason": errMsg,
+			},
+			Status:        "failed",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusUnauthorized, "Usuário não encontrado")
 		return
 	}
@@ -107,6 +198,31 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Erro ao gerar novo token")
 		return
 	}
+
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+
+	// Log successful token refresh
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "login",
+		Entity:        "auth",
+		EntityID:      user.ID,
+		AdminID:       &user.ID,
+		AdminUsername: &username,
+		OldValue:      nil,
+		NewValue: map[string]interface{}{
+			"method": "token",
+			"result": "success",
+		},
+		Status:        "success",
+		ErrorMessage:  nil,
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
 
 	respondJSON(w, http.StatusOK, SuccessResponse{
 		Message: "Token renovado com sucesso",

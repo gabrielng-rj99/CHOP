@@ -82,7 +82,7 @@ type User struct {
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
-	Role           *string    `json:"role"` // "user", "admin", "full_admin"
+	Role           *string    `json:"role"` // "user", "admin", "root"
 	FailedAttempts int        `json:"failed_attempts"`
 	LockLevel      int        `json:"lock_level"`
 	LockedUntil    *time.Time `json:"locked_until"`

@@ -75,9 +75,9 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		return "", errDisplay
 	}
 
-	// Validate role - only "user", "admin" or "full_admin" allowed
-	if role != "" && role != "user" && role != "admin" && role != "full_admin" {
-		return "", errors.New("invalid role: must be 'user', 'admin' or 'full_admin'")
+	// Validate role - only "user", "admin" or "root" allowed
+	if role != "" && role != "user" && role != "admin" && role != "root" {
+		return "", errors.New("invalid role: must be 'user', 'admin' or 'root'")
 	}
 	if role == "" {
 		role = "user"
@@ -179,17 +179,19 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 	if count > 0 {
 		return errors.New("nome de usuário já existe")
 	}
-	// Verifica se o usuário atual é admin
-	var role sql.NullString
-	err = s.db.QueryRow("SELECT role FROM users WHERE username = $1 AND deleted_at IS NULL", currentUsername).Scan(&role)
+	// Verifica se o usuário existe
+	err = s.db.QueryRow("SELECT 1 FROM users WHERE username = $1 AND deleted_at IS NULL", currentUsername).Scan(&count)
 	if err != nil {
-		return errors.New("usuário atual não encontrado")
+		return errors.New("usuário não encontrado")
 	}
-	if !role.Valid || (role.String != "admin" && role.String != "full_admin") {
-		return errors.New("apenas usuários admin podem alterar seu próprio username")
-	}
-	sqlStatement := `UPDATE users SET username = $1 WHERE username = $2 AND deleted_at IS NULL`
-	result, err := s.db.Exec(sqlStatement, newUsername, currentUsername)
+
+	// Gera novo auth_secret
+	updatedAt := time.Now()
+	authSecretRaw := uuid.New().String()
+	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
+
+	sqlStatement := `UPDATE users SET username = $1, updated_at = $2, auth_secret = $3 WHERE username = $4 AND deleted_at IS NULL`
+	result, err := s.db.Exec(sqlStatement, newUsername, updatedAt, authSecret, currentUsername)
 	if err != nil {
 		return err
 	}
@@ -361,16 +363,16 @@ func (s *UserStore) EditUserDisplayName(username, newDisplayName string) error {
 	return nil
 }
 
-// Edita o role de um usuário, só pode ser chamada por full_admin
+// Edita o role de um usuário, só pode ser chamada por root
 func (s *UserStore) EditUserRole(requesterUsername, targetUsername, newRole string) error {
-	// Verifica se o requester é full_admin
+	// Verifica se o requester é root
 	var requesterRole sql.NullString
 	err := s.db.QueryRow("SELECT role FROM users WHERE username = $1 AND deleted_at IS NULL", requesterUsername).Scan(&requesterRole)
 	if err != nil {
 		return errors.New("usuário solicitante não encontrado")
 	}
-	if !requesterRole.Valid || requesterRole.String != "full_admin" {
-		return errors.New("apenas usuários com role 'full_admin' podem alterar o role de outros usuários")
+	if !requesterRole.Valid || requesterRole.String != "root" {
+		return errors.New("apenas usuários com role 'root' podem alterar o role de outros usuários")
 	}
 	// Atualiza role, updated_at e gera novo auth_secret
 	updatedAt := time.Now()
