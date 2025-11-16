@@ -24,9 +24,43 @@ func (s *Server) handleClients(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListClients(w http.ResponseWriter, r *http.Request) {
+	// Check if requesting with contract stats
+	includeStats := r.URL.Query().Get("include_stats") == "true"
+
 	clients, err := s.clientStore.GetAllClientsIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if includeStats {
+		// Get contract stats for all clients
+		statsMap, err := s.contractStore.GetContractStatsForAllClients()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Create response with clients and their stats
+		type ClientWithStats struct {
+			domain.Client
+			ActiveContracts   int `json:"active_contracts"`
+			ExpiredContracts  int `json:"expired_contracts"`
+			ArchivedContracts int `json:"archived_contracts"`
+		}
+
+		clientsWithStats := make([]ClientWithStats, 0, len(clients))
+		for _, client := range clients {
+			cws := ClientWithStats{Client: client}
+			if stats, ok := statsMap[client.ID]; ok {
+				cws.ActiveContracts = stats.ActiveContracts
+				cws.ExpiredContracts = stats.ExpiredContracts
+				cws.ArchivedContracts = stats.ArchivedContracts
+			}
+			clientsWithStats = append(clientsWithStats, cws)
+		}
+
+		respondJSON(w, http.StatusOK, SuccessResponse{Data: clientsWithStats})
 		return
 	}
 
@@ -42,7 +76,9 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	client.Status = "ativo"
+	// Status will be auto-calculated by CreateClient based on active contracts
+	// Ignore any status sent from frontend
+	client.Status = ""
 
 	id, err := s.clientStore.CreateClient(client)
 	if err != nil {
@@ -142,6 +178,9 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 	oldValueJSON, _ := json.Marshal(oldClient)
 
 	client.ID = clientID
+	// Status will be auto-calculated by UpdateClient based on active contracts
+	// Ignore any status sent from frontend
+	client.Status = ""
 
 	if err := s.clientStore.UpdateClient(client); err != nil {
 		// Log failed attempt
@@ -166,6 +205,12 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Update client status based on active contracts
+	if err := s.clientStore.UpdateClientStatus(clientID); err != nil {
+		// Log warning but don't fail the request
+		// This is a non-critical operation
 	}
 
 	// Log successful update
