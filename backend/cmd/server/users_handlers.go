@@ -316,9 +316,44 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 	username := parts[0]
 
 	if err := s.userStore.BlockUser(username); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		blockAction := "blocked"
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "user",
+			EntityID:      username,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      nil,
+			NewValue:      &blockAction,
+			Status:        "error",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	// Log successful block
+	blockAction := "User blocked"
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "update",
+		Entity:        "user",
+		EntityID:      username,
+		AdminID:       &claims.UserID,
+		AdminUsername: &claims.Username,
+		OldValue:      nil,
+		NewValue:      &blockAction,
+		Status:        "success",
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
 
 	log.Printf("User %s bloqueado por %s", username, claims.Username)
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User blocked successfully"})
@@ -352,9 +387,44 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 	username := parts[0]
 
 	if err := s.userStore.UnlockUser(username); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		unlockAction := "unlocked"
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "update",
+			Entity:        "user",
+			EntityID:      username,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      nil,
+			NewValue:      &unlockAction,
+			Status:        "error",
+			ErrorMessage:  &errMsg,
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	// Log successful unlock
+	unlockAction := "User unlocked"
+	s.auditStore.LogOperation(store.AuditLogRequest{
+		Operation:     "update",
+		Entity:        "user",
+		EntityID:      username,
+		AdminID:       &claims.UserID,
+		AdminUsername: &claims.Username,
+		OldValue:      nil,
+		NewValue:      &unlockAction,
+		Status:        "success",
+		IPAddress:     getIPAddress(r),
+		UserAgent:     getUserAgent(r),
+		RequestMethod: getRequestMethod(r),
+		RequestPath:   getRequestPath(r),
+	})
 
 	log.Printf("User %s desbloqueado por %s", username, claims.Username)
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User unlocked successfully"})
