@@ -170,6 +170,11 @@ export default function AuditLogs({ token, apiUrl, user }) {
             />
 
             <div className="audit-logs-table-wrapper">
+                {/* <div className="audit-logs-table-header">
+                    <h2 className="audit-logs-table-header-title">
+                        Logs de Auditoria
+                    </h2>
+                </div>*/}
                 <AuditLogsTable
                     logs={logs}
                     onViewDetail={handleViewDetail}

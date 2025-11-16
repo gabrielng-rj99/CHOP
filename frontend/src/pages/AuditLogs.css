@@ -67,6 +67,53 @@
     overflow: hidden;
 }
 
+.audit-logs-table-header {
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.audit-logs-table-header-title {
+    margin: 0;
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.audit-logs-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.audit-logs-search-input {
+    flex: 1;
+    min-width: 300px;
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.audit-logs-search-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.audit-logs-loading {
+    text-align: center;
+    padding: 60px;
+}
+
+.audit-logs-loading-text {
+    font-size: 18px;
+    color: #7f8c8d;
+}
+
 .audit-logs-access-denied {
     text-align: center;
     padding: 60px;

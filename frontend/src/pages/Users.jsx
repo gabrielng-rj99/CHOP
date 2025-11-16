@@ -255,6 +255,9 @@ export default function Users({ token, apiUrl, user, onLogout }) {
             </div>
 
             <div className="users-table-wrapper">
+                {/* <div className="users-table-header">
+                    <h2 className="users-table-header-title">Usuários</h2>
+                </div>*/}
                 <UsersTable
                     filteredUsers={filteredUsers}
                     currentUser={user}

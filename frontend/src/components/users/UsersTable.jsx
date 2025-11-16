@@ -1,6 +1,10 @@
 import React from "react";
 import { getRoleName, formatDate } from "../../utils/userHelpers";
 import "./UsersTable.css";
+import EditIcon from "../../assets/icons/edit.svg";
+import LockIcon from "../../assets/icons/lock.svg";
+import UnlockIcon from "../../assets/icons/unlock.svg";
+import TrashIcon from "../../assets/icons/trash.svg";
 
 export default function UsersTable({
     filteredUsers,
@@ -79,19 +83,15 @@ export default function UsersTable({
                                         className="users-table-icon-button"
                                         title="Editar"
                                     >
-                                        <svg
-                                            width="22"
-                                            height="22"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="#3498db"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M12 20h9" />
-                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                                        </svg>
+                                        <img
+                                            src={EditIcon}
+                                            alt="Editar"
+                                            style={{
+                                                width: "22px",
+                                                height: "22px",
+                                                filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
+                                            }}
+                                        />
                                     </button>
                                     {!isCurrentUser && (
                                         <>
@@ -103,26 +103,15 @@ export default function UsersTable({
                                                     className="users-table-icon-button"
                                                     title="Desbloquear"
                                                 >
-                                                    <svg
-                                                        width="22"
-                                                        height="22"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="#27ae60"
-                                                        strokeWidth="2"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    >
-                                                        <rect
-                                                            x="3"
-                                                            y="11"
-                                                            width="18"
-                                                            height="11"
-                                                            rx="2"
-                                                            ry="2"
-                                                        ></rect>
-                                                        <path d="M7 11V7a5 5 0 0 1 10 0" />
-                                                    </svg>
+                                                    <img
+                                                        src={UnlockIcon}
+                                                        alt="Desbloquear"
+                                                        style={{
+                                                            width: "22px",
+                                                            height: "22px",
+                                                            filter: "invert(62%) sepia(34%) saturate(760%) hue-rotate(88deg) brightness(93%) contrast(81%)",
+                                                        }}
+                                                    />
                                                 </button>
                                             ) : (
                                                 <button
@@ -132,32 +121,15 @@ export default function UsersTable({
                                                     className="users-table-icon-button"
                                                     title="Bloquear"
                                                 >
-                                                    <svg
-                                                        width="22"
-                                                        height="22"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="#e67e22"
-                                                        strokeWidth="2"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    >
-                                                        <rect
-                                                            x="3"
-                                                            y="11"
-                                                            width="18"
-                                                            height="11"
-                                                            rx="2"
-                                                            ry="2"
-                                                        ></rect>
-                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                                        <line
-                                                            x1="12"
-                                                            y1="17"
-                                                            x2="12"
-                                                            y2="17"
-                                                        />
-                                                    </svg>
+                                                    <img
+                                                        src={LockIcon}
+                                                        alt="Bloquear"
+                                                        style={{
+                                                            width: "22px",
+                                                            height: "22px",
+                                                            filter: "invert(57%) sepia(74%) saturate(449%) hue-rotate(359deg) brightness(96%) contrast(89%)",
+                                                        }}
+                                                    />
                                                 </button>
                                             )}
                                             <button
@@ -167,31 +139,15 @@ export default function UsersTable({
                                                 className="users-table-icon-button"
                                                 title="Deletar"
                                             >
-                                                <svg
-                                                    width="22"
-                                                    height="22"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="#e74c3c"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"></path>
-                                                    <line
-                                                        x1="10"
-                                                        y1="11"
-                                                        x2="10"
-                                                        y2="17"
-                                                    ></line>
-                                                    <line
-                                                        x1="14"
-                                                        y1="11"
-                                                        x2="14"
-                                                        y2="17"
-                                                    ></line>
-                                                </svg>
+                                                <img
+                                                    src={TrashIcon}
+                                                    alt="Deletar"
+                                                    style={{
+                                                        width: "22px",
+                                                        height: "22px",
+                                                        filter: "invert(37%) sepia(93%) saturate(1447%) hue-rotate(342deg) brightness(94%) contrast(88%)",
+                                                    }}
+                                                />
                                             </button>
                                         </>
                                     )}
