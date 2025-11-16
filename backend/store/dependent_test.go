@@ -150,8 +150,8 @@ func TestDeleteDependentDisassociatesContracts(t *testing.T) {
 	contract := domain.Contract{
 		Model:       "Licença Teste",
 		ProductKey:  "ENTITY-DEL-KEY-001",
-		StartDate:   startDate,
-		EndDate:     endDate,
+		StartDate:   timePtr(startDate),
+		EndDate:     timePtr(endDate),
 		LineID:      lineID,
 		ClientID:    clientID,
 		DependentID: &dependentID,

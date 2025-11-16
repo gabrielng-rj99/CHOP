@@ -70,8 +70,8 @@ func TestClientContractIntegration(t *testing.T) {
 	contract := domain.Contract{
 		Model:      "Test License",
 		ProductKey: "TEST-KEY-123",
-		StartDate:  now,
-		EndDate:    now.AddDate(1, 0, 0),
+		StartDate:  timePtr(now),
+		EndDate:    timePtr(now.AddDate(1, 0, 0)),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -204,8 +204,8 @@ func TestClientDependentContractIntegration(t *testing.T) {
 	contract := domain.Contract{
 		Model:       "Dependent License",
 		ProductKey:  "ENTITY-KEY-123",
-		StartDate:   now,
-		EndDate:     now.AddDate(1, 0, 0),
+		StartDate:   timePtr(now),
+		EndDate:     timePtr(now.AddDate(1, 0, 0)),
 		LineID:      lineID, // Use o ID realmente inserido
 		ClientID:    clientID,
 		DependentID: entityIDPtr,

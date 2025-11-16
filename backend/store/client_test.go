@@ -560,8 +560,8 @@ func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	startDate := time.Now()
-	endDate := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+	startDate := timePtr(time.Now())
+	endDate := timePtr(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
 	contractID, err := InsertTestContract(db, "Licença Permanente", "KEY-PERM", startDate, endDate, lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert permanent contract: %v", err)
@@ -613,11 +613,11 @@ func TestDeleteClientWithActiveContracts(t *testing.T) {
 	}
 
 	contractStore := NewContractStore(db)
-	startDate := time.Now()
-	endDate := startDate.AddDate(1, 0, 0)
+	startDate := timePtr(time.Now())
+	endDate := timePtr(time.Now().AddDate(1, 0, 0))
 	contract := domain.Contract{
-		Model:      "Licença Ativa",
-		ProductKey: "ACTIVE-KEY-001",
+		Model:      "Test Contract",
+		ProductKey: "TEST-KEY-001",
 		StartDate:  startDate,
 		EndDate:    endDate,
 		LineID:     lineID,
@@ -911,7 +911,7 @@ func TestDeleteClientPermanentlyWithActiveContracts(t *testing.T) {
 	}
 
 	now := time.Now()
-	_, err = InsertTestContract(db, "Test Contract", "TEST-KEY-123", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Expiring Contract", "KEY-EXP-001", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test contract: %v", err)
 	}
@@ -953,7 +953,7 @@ func TestDeleteClientPermanentlyWithExpiredContracts(t *testing.T) {
 	}
 
 	now := time.Now()
-	_, err = InsertTestContract(db, "Test Contract", "TEST-KEY-456", now.AddDate(0, 0, -30), now.AddDate(0, 0, -5), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Expired Contract", "KEY-EXPIRED-001", timePtr(now.AddDate(0, 0, -30)), timePtr(now.AddDate(0, 0, -5)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test contract: %v", err)
 	}

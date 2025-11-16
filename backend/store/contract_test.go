@@ -10,11 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func generateUniqueCNPJ() string {
-	uniqueID := uuid.New().String()[:8]
-	return uniqueID[0:2] + "." + uniqueID[2:5] + ".111/0001-11"
-}
-
 func insertTestDependencies(db *sql.DB) (string, string, string, string, error) {
 	uniqueID := uuid.New().String()[:8]
 	clientID, err := InsertTestClient(db, "Test Client "+uniqueID, generateUniqueCNPJ())
@@ -130,8 +125,8 @@ func TestDeleteLineWithContractsAssociated(t *testing.T) {
 	contract := domain.Contract{
 		Model:      "Licença Teste",
 		ProductKey: "LINE-DEL-KEY-001",
-		StartDate:  startDate,
-		EndDate:    endDate,
+		StartDate:  timePtr(startDate),
+		EndDate:    timePtr(endDate),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -162,8 +157,8 @@ func TestCreateContract(t *testing.T) {
 		t.Fatalf("Failed to insert test dependencies: %v", err)
 	}
 
-	startDate := time.Now()
-	endDate := startDate.AddDate(1, 0, 0)
+	startDate := timePtr(time.Now())
+	endDate := timePtr(time.Now().AddDate(1, 0, 0))
 
 	tests := []struct {
 		name        string
@@ -247,7 +242,7 @@ func TestCreateContract(t *testing.T) {
 			contract: domain.Contract{
 				Model:      "Test Contract Update",
 				ProductKey: "TEST-KEY-UPDATE",
-				StartDate:  endDate.AddDate(2, 0, 0),
+				StartDate:  timePtr(endDate.AddDate(2, 0, 0)),
 				EndDate:    endDate,
 				LineID:     lineID,
 				ClientID:   clientID,
@@ -326,13 +321,13 @@ func TestCreateContract(t *testing.T) {
 func TestContractStatusUtil(t *testing.T) {
 	now := time.Now()
 	contractActive := domain.Contract{
-		EndDate: now.AddDate(0, 1, 0), // expira em 1 mês
+		EndDate: timePtr(now.AddDate(0, 1, 0)), // expira em 1 mês
 	}
 	contractExpiring := domain.Contract{
-		EndDate: now.AddDate(0, 0, 10), // expira em 10 dias
+		EndDate: timePtr(now.AddDate(0, 0, 10)), // expira em 10 dias
 	}
 	contractExpired := domain.Contract{
-		EndDate: now.AddDate(0, 0, -1), // já expirou
+		EndDate: timePtr(now.AddDate(0, 0, -1)), // já expirou
 	}
 
 	statusActive := GetContractStatus(contractActive)
@@ -372,8 +367,8 @@ func TestUpdateContractEdgeCases(t *testing.T) {
 	contract := domain.Contract{
 		Model:       "Edge Contract",
 		ProductKey:  "EDGE-KEY-1",
-		StartDate:   startDate,
-		EndDate:     endDate,
+		StartDate:   timePtr(startDate),
+		EndDate:     timePtr(endDate),
 		LineID:      lineID,
 		ClientID:    clientID,
 		DependentID: &dependentID,
@@ -385,8 +380,8 @@ func TestUpdateContractEdgeCases(t *testing.T) {
 
 	// Atualizar com datas invertidas
 	contract.ID = contractID
-	contract.StartDate = endDate.AddDate(2, 0, 0)
-	contract.EndDate = endDate
+	contract.StartDate = timePtr(endDate.AddDate(2, 0, 0))
+	contract.EndDate = timePtr(endDate)
 	err = contractStore.UpdateContract(contract)
 	if err == nil {
 		t.Error("Expected error when updating contract with StartDate after EndDate, got none")
@@ -394,8 +389,8 @@ func TestUpdateContractEdgeCases(t *testing.T) {
 
 	// Atualizar licença inexistente
 	contract.ID = uuid.New().String()
-	contract.StartDate = startDate
-	contract.EndDate = endDate
+	contract.StartDate = timePtr(startDate)
+	contract.EndDate = timePtr(endDate)
 	contractStore = NewContractStore(db)
 	err = contractStore.UpdateContract(contract)
 	if err == nil {
@@ -656,8 +651,8 @@ func TestUpdateContract(t *testing.T) {
 				ID:          contractID,
 				Model:       "Updated Contract",
 				ProductKey:  "TEST-KEY-123",
-				StartDate:   startDate,
-				EndDate:     endDate.AddDate(1, 0, 0),
+				StartDate:   timePtr(startDate),
+				EndDate:     timePtr(endDate.AddDate(1, 0, 0)),
 				LineID:      lineID,
 				ClientID:    clientID,
 				DependentID: &dependentID,
@@ -669,8 +664,8 @@ func TestUpdateContract(t *testing.T) {
 			contract: domain.Contract{
 				Model:      "Updated Contract",
 				ProductKey: "TEST-KEY-123",
-				StartDate:  startDate,
-				EndDate:    endDate,
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(endDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -681,8 +676,8 @@ func TestUpdateContract(t *testing.T) {
 			contract: domain.Contract{
 				ID:         contractID,
 				ProductKey: "TEST-KEY-123",
-				StartDate:  startDate,
-				EndDate:    endDate,
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(endDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -694,8 +689,8 @@ func TestUpdateContract(t *testing.T) {
 				ID:         contractID,
 				Model:      "Updated Contract",
 				ProductKey: "TEST-KEY-123",
-				StartDate:  endDate,
-				EndDate:    startDate,
+				StartDate:  timePtr(endDate),
+				EndDate:    timePtr(startDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -859,25 +854,25 @@ func TestGetContractsExpiringSoon(t *testing.T) {
 
 	// Insert contracts with different expiration dates
 	// Contract 1: expires in 10 days (should be included in 30-day search)
-	_, err = InsertTestContract(db, "Contract 1", "KEY-1", now.AddDate(0, 0, -10), now.AddDate(0, 0, 10), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 1", "KEY-1", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 10)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 1: %v", err)
 	}
 
 	// Contract 2: expires in 60 days (should NOT be included in 30-day search)
-	_, err = InsertTestContract(db, "Contract 2", "KEY-2", now.AddDate(0, 0, -10), now.AddDate(0, 0, 60), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 2", "KEY-2", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 60)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 2: %v", err)
 	}
 
 	// Contract 3: already expired (should NOT be included)
-	_, err = InsertTestContract(db, "Contract 3", "KEY-3", now.AddDate(0, 0, -30), now.AddDate(0, 0, -5), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 3", "KEY-3", timePtr(now.AddDate(0, 0, -30)), timePtr(now.AddDate(0, 0, -5)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 3: %v", err)
 	}
 
 	// Contract 4: expires in 25 days (should be included in 30-day search)
-	_, err = InsertTestContract(db, "Contract 4", "KEY-4", now.AddDate(0, 0, -10), now.AddDate(0, 0, 25), lineID, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 4", "KEY-4", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 25)), lineID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 4: %v", err)
 	}
@@ -934,17 +929,17 @@ func TestGetContractsByLineIDCritical(t *testing.T) {
 	now := time.Now()
 
 	// Insert contracts for different lines
-	_, err = InsertTestContract(db, "Contract 1", "KEY-1", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID1, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 1", "KEY-1", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID1, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 1: %v", err)
 	}
 
-	_, err = InsertTestContract(db, "Contract 2", "KEY-2", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID1, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 2", "KEY-2", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID1, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 2: %v", err)
 	}
 
-	_, err = InsertTestContract(db, "Contract 3", "KEY-3", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID2, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 3", "KEY-3", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID2, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 3: %v", err)
 	}
@@ -1003,17 +998,17 @@ func TestGetContractsByCategoryIDCritical(t *testing.T) {
 	now := time.Now()
 
 	// Insert contracts for different categories
-	_, err = InsertTestContract(db, "Contract 1", "KEY-1", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID1, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 1", "KEY-1", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID1, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 1: %v", err)
 	}
 
-	_, err = InsertTestContract(db, "Contract 2", "KEY-2", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID1, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 2", "KEY-2", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID1, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 2: %v", err)
 	}
 
-	_, err = InsertTestContract(db, "Contract 3", "KEY-3", now.AddDate(0, 0, -10), now.AddDate(0, 0, 30), lineID2, clientID, nil)
+	_, err = InsertTestContract(db, "Contract 3", "KEY-3", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID2, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert contract 3: %v", err)
 	}
@@ -1065,8 +1060,8 @@ func TestCreateContractWithOverlap(t *testing.T) {
 	firstContract := domain.Contract{
 		Model:      "First Contract",
 		ProductKey: "KEY-1",
-		StartDate:  now.AddDate(0, 0, -10),
-		EndDate:    now.AddDate(0, 0, 30),
+		StartDate:  timePtr(now.AddDate(0, 0, -10)),
+		EndDate:    timePtr(now.AddDate(0, 0, 30)),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -1083,8 +1078,8 @@ func TestCreateContractWithOverlap(t *testing.T) {
 	overlappingContract := domain.Contract{
 		Model:      "Overlapping Contract",
 		ProductKey: "KEY-2",
-		StartDate:  now.AddDate(0, 0, 5),  // Within first contract period
-		EndDate:    now.AddDate(0, 0, 20), // Within first contract period
+		StartDate:  timePtr(now.AddDate(0, 0, 5)),  // Within first contract period
+		EndDate:    timePtr(now.AddDate(0, 0, 20)), // Within first contract period
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -1124,8 +1119,8 @@ func TestCreateContractNonOverlappingValid(t *testing.T) {
 	firstContract := domain.Contract{
 		Model:      "First Contract",
 		ProductKey: "KEY-1",
-		StartDate:  now.AddDate(0, 0, -30),
-		EndDate:    now.AddDate(0, 0, -5),
+		StartDate:  timePtr(now.AddDate(0, 0, -30)),
+		EndDate:    timePtr(now.AddDate(0, 0, -5)),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -1142,8 +1137,8 @@ func TestCreateContractNonOverlappingValid(t *testing.T) {
 	secondContract := domain.Contract{
 		Model:      "Second Contract",
 		ProductKey: "KEY-2",
-		StartDate:  now.AddDate(0, 0, -4),
-		EndDate:    now.AddDate(0, 0, 30),
+		StartDate:  timePtr(now.AddDate(0, 0, -4)),
+		EndDate:    timePtr(now.AddDate(0, 0, 30)),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -1252,8 +1247,8 @@ func TestCreateContractWithInvalidNames(t *testing.T) {
 			contract := domain.Contract{
 				Model:      tt.model,
 				ProductKey: "TEST-KEY-" + string(rune('A'+idx)),
-				StartDate:  contractStart,
-				EndDate:    contractEnd,
+				StartDate:  timePtr(contractStart),
+				EndDate:    timePtr(contractEnd),
 				LineID:     lineID,
 				ClientID:   clientID,
 			}
@@ -1360,8 +1355,8 @@ func TestCreateContractWithInvalidProductKeys(t *testing.T) {
 			contract := domain.Contract{
 				Model:      "Test Model " + string(rune('A'+idx)),
 				ProductKey: tt.productKey,
-				StartDate:  contractStart,
-				EndDate:    contractEnd,
+				StartDate:  timePtr(contractStart),
+				EndDate:    timePtr(contractEnd),
 				LineID:     lineID,
 				ClientID:   clientID,
 			}
@@ -1400,8 +1395,8 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			contract: domain.Contract{
 				Model:      "Duplicate Contract",
 				ProductKey: "DUPLICATE-KEY-TEST",
-				StartDate:  startDate,
-				EndDate:    startDate.AddDate(1, 0, 0),
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(startDate.AddDate(1, 0, 0)),
 			},
 			expectError: true,
 			description: "Same product key for same client/dependent should be rejected",
@@ -1411,8 +1406,8 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			contract: domain.Contract{
 				Model:      "Different Client Contract",
 				ProductKey: "DUPLICATE-KEY-TEST",
-				StartDate:  startDate.AddDate(0, 0, 60),
-				EndDate:    startDate.AddDate(1, 0, 60),
+				StartDate:  timePtr(startDate.AddDate(0, 0, 60)),
+				EndDate:    timePtr(startDate.AddDate(1, 0, 60)),
 			},
 			expectError: false,
 			description: "Same product key for different client should be allowed",
@@ -1422,8 +1417,8 @@ func TestCreateContractWithDuplicateProductKey(t *testing.T) {
 			contract: domain.Contract{
 				Model:      "Different Dependent Contract",
 				ProductKey: "DUPLICATE-KEY-TEST",
-				StartDate:  startDate.AddDate(0, 0, 120),
-				EndDate:    startDate.AddDate(1, 0, 120),
+				StartDate:  timePtr(startDate.AddDate(0, 0, 120)),
+				EndDate:    timePtr(startDate.AddDate(1, 0, 120)),
 			},
 			expectError: true,
 			description: "Same product key with mismatched client/dependent should be rejected",
@@ -1628,8 +1623,8 @@ func TestCreateContractWithInvalidDates(t *testing.T) {
 			contract := domain.Contract{
 				Model:      "Test Contract " + string(rune('A'+idx)),
 				ProductKey: "KEY-" + string(rune('A'+idx)) + "-TEST",
-				StartDate:  contractStart,
-				EndDate:    contractEnd,
+				StartDate:  timePtr(contractStart),
+				EndDate:    timePtr(contractEnd),
 				LineID:     lineID,
 				ClientID:   clientID,
 			}
@@ -1683,8 +1678,8 @@ func TestCreateContractWithArchivedClient(t *testing.T) {
 	contract := domain.Contract{
 		Model:      "Test Contract",
 		ProductKey: "ARCHIVED-CLIENT-KEY",
-		StartDate:  startDate,
-		EndDate:    endDate,
+		StartDate:  timePtr(startDate),
+		EndDate:    timePtr(endDate),
 		LineID:     lineID,
 		ClientID:   clientID,
 	}
@@ -1727,8 +1722,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 	contractID, err := contractStore.CreateContract(domain.Contract{
 		Model:      "Original Contract",
 		ProductKey: "ORIGINAL-KEY",
-		StartDate:  startDate,
-		EndDate:    endDate,
+		StartDate:  timePtr(startDate),
+		EndDate:    timePtr(endDate),
 		LineID:     lineID,
 		ClientID:   clientID,
 	})
@@ -1748,8 +1743,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 				ID:         contractID,
 				Model:      strings.Repeat("a", 256),
 				ProductKey: "ORIGINAL-KEY",
-				StartDate:  startDate,
-				EndDate:    endDate,
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(endDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -1762,8 +1757,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 				ID:         contractID,
 				Model:      "Updated Contract",
 				ProductKey: "",
-				StartDate:  startDate,
-				EndDate:    endDate,
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(endDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -1776,8 +1771,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 				ID:         contractID,
 				Model:      "Updated Contract",
 				ProductKey: "ORIGINAL-KEY",
-				StartDate:  endDate,
-				EndDate:    startDate,
+				StartDate:  timePtr(endDate),
+				EndDate:    timePtr(startDate),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -1790,8 +1785,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 				ID:         contractID,
 				Model:      "Updated Contract Name",
 				ProductKey: "ORIGINAL-KEY",
-				StartDate:  startDate,
-				EndDate:    endDate.AddDate(0, 1, 0),
+				StartDate:  timePtr(startDate),
+				EndDate:    timePtr(endDate.AddDate(0, 1, 0)),
 				LineID:     lineID,
 				ClientID:   clientID,
 			},
@@ -1876,8 +1871,8 @@ func TestGetAllContracts(t *testing.T) {
 				contract := domain.Contract{
 					Model:       "Test Contract",
 					ProductKey:  "KEY-" + string(rune(48+i)),
-					StartDate:   time.Now().AddDate(0, 0, i*30),
-					EndDate:     time.Now().AddDate(0, 0, (i+1)*30),
+					StartDate:   timePtr(time.Now().AddDate(0, 0, i*30)),
+					EndDate:     timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
 					LineID:      lineID,
 					ClientID:    clientID,
 					DependentID: &dependentID,
@@ -1948,8 +1943,8 @@ func TestGetContractsByLineID(t *testing.T) {
 	contract1 := domain.Contract{
 		Model:       "Contract Line 1",
 		ProductKey:  "KEY-LINE1-001",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID,
 		ClientID:    clientID,
 		DependentID: &dependentID,
@@ -1962,8 +1957,8 @@ func TestGetContractsByLineID(t *testing.T) {
 	contract2 := domain.Contract{
 		Model:       "Contract Line 2",
 		ProductKey:  "KEY-LINE2-001",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID2,
 		ClientID:    clientID,
 		DependentID: &dependentID,
@@ -2066,8 +2061,8 @@ func TestGetContractsByCategoryID(t *testing.T) {
 	contract1 := domain.Contract{
 		Model:       "Contract Category 1",
 		ProductKey:  "KEY-CAT1-001",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID,
 		ClientID:    clientID,
 		DependentID: &dependentID,
@@ -2080,8 +2075,8 @@ func TestGetContractsByCategoryID(t *testing.T) {
 	contract2 := domain.Contract{
 		Model:       "Contract Category 2",
 		ProductKey:  "KEY-CAT2-001",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID2,
 		ClientID:    clientID,
 		DependentID: &dependentID,
@@ -2196,8 +2191,8 @@ func TestGetAllContractsWithMultipleClients(t *testing.T) {
 		contract := domain.Contract{
 			Model:       "Contract Client 1",
 			ProductKey:  "KEY-C1-" + string(rune(48+i)),
-			StartDate:   time.Now().AddDate(0, 0, i*30),
-			EndDate:     time.Now().AddDate(0, 0, (i+1)*30),
+			StartDate:   timePtr(time.Now().AddDate(0, 0, i*30)),
+			EndDate:     timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
 			LineID:      line1ID,
 			ClientID:    client1ID,
 			DependentID: &entity1ID,
@@ -2212,8 +2207,8 @@ func TestGetAllContractsWithMultipleClients(t *testing.T) {
 		contract := domain.Contract{
 			Model:       "Contract Client 2",
 			ProductKey:  "KEY-C2-" + string(rune(48+i)),
-			StartDate:   time.Now().AddDate(0, 1, i*30),
-			EndDate:     time.Now().AddDate(0, 1, (i+1)*30),
+			StartDate:   timePtr(time.Now().AddDate(0, 1, i*30)),
+			EndDate:     timePtr(time.Now().AddDate(0, 1, (i+1)*30)),
 			LineID:      line2ID,
 			ClientID:    client2ID,
 			DependentID: &entity2ID,
@@ -2291,8 +2286,8 @@ func TestGetContractsByLineIDWithMultipleClients(t *testing.T) {
 	contract1 := domain.Contract{
 		Model:       "Contract Client 1",
 		ProductKey:  "KEY-SAME-001",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID,
 		ClientID:    client1ID,
 		DependentID: &entity1ID,
@@ -2305,8 +2300,8 @@ func TestGetContractsByLineIDWithMultipleClients(t *testing.T) {
 	contract2 := domain.Contract{
 		Model:       "Contract Client 2",
 		ProductKey:  "KEY-SAME-002",
-		StartDate:   time.Now(),
-		EndDate:     time.Now().AddDate(1, 0, 0),
+		StartDate:   timePtr(time.Now()),
+		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
 		LineID:      lineID,
 		ClientID:    client2ID,
 		DependentID: &entity2ID,

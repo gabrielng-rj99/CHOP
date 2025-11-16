@@ -102,8 +102,8 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 		contract := domain.Contract{
 			Model:      "Test Model",
 			ProductKey: "KEY-123",
-			StartDate:  time.Now(),
-			EndDate:    time.Now().AddDate(1, 0, 0),
+			StartDate:  timePtr(time.Now()),
+			EndDate:    timePtr(time.Now().AddDate(1, 0, 0)),
 			LineID:     fakeLineID,
 			ClientID:   clientID,
 		}
@@ -146,8 +146,8 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 		contract := domain.Contract{
 			Model:      "Test Model",
 			ProductKey: "KEY-123",
-			StartDate:  time.Now(),
-			EndDate:    time.Now().AddDate(1, 0, 0),
+			StartDate:  timePtr(time.Now()),
+			EndDate:    timePtr(time.Now().AddDate(1, 0, 0)),
 			LineID:     lineID,
 			ClientID:   clientID,
 		}
@@ -645,8 +645,8 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		contract := domain.Contract{
 			Model:      "Invalid Date Contract",
 			ProductKey: "KEY-123",
-			StartDate:  time.Now().AddDate(1, 0, 0),
-			EndDate:    time.Now(),
+			StartDate:  timePtr(time.Now().AddDate(1, 0, 0)),
+			EndDate:    timePtr(time.Now()),
 			LineID:     lineID,
 			ClientID:   clientID,
 		}
