@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"Contracts-Manager/backend/config"
 	"Contracts-Manager/backend/domain"
 	"Contracts-Manager/backend/store"
 
@@ -22,15 +23,18 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// Chave global do sistema (deve ser configurada via env/arquivo seguro)
-var globalSecret = []byte("CONTRACT_MANAGER_SUPER_SECRET") // Troque em produção!
+// getGlobalSecret gets the global secret from configuration
+func getGlobalSecret() []byte {
+	cfg := config.GetConfig()
+	return []byte(cfg.JWT.SecretKey)
+}
 
 // Gera a chave de assinatura dinâmica para o usuário
 func getUserSigningKey(user *domain.User) ([]byte, error) {
 	if user == nil || user.AuthSecret == "" {
 		return nil, errors.New("auth_secret do usuário não disponível")
 	}
-	return append(globalSecret, []byte(user.AuthSecret)...), nil
+	return append(getGlobalSecret(), []byte(user.AuthSecret)...), nil
 }
 
 // Gera um JWT para o usuário autenticado
@@ -40,12 +44,13 @@ func GenerateJWT(user *domain.User) (string, error) {
 		return "", err
 	}
 
+	cfg := config.GetConfig()
 	claims := JWTClaims{
 		UserID:   user.ID,
 		Username: derefString(user.Username),
 		Role:     derefString(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute)), // Expira em 1 hora
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWT.ExpirationTime) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},
@@ -69,10 +74,11 @@ func GenerateRefreshToken(user *domain.User) (string, error) {
 		return "", err
 	}
 
+	cfg := config.GetConfig()
 	claims := RefreshTokenClaims{
 		UserID: user.ID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // Expira em 7 dias
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWT.RefreshExpirationTime) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},

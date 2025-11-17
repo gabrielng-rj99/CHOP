@@ -1,11 +1,11 @@
 package store
 
 import (
+	domain "Contracts-Manager/backend/domain"
 	"strings"
 	"testing"
 	"time"
 
-	"Contracts-Manager/backend/domain"
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"

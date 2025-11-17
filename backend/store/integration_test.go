@@ -1,10 +1,10 @@
 package store
 
 import (
+	"Contracts-Manager/backend/domain"
 	"testing"
 	"time"
 
-	"Contracts-Manager/backend/domain"
 	"database/sql"
 )
 

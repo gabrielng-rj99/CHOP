@@ -5,45 +5,16 @@ package database
 import (
 	"database/sql"
 	"os"
-	"path/filepath"
-	"runtime"
+	"time"
+
+	"Contracts-Manager/backend/config"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func getPostgresDSN() string {
-	// Exemplo de DSN: "postgres://user:password@localhost:5432/contracts_manager?sslmode=disable"
-	// Recomenda-se usar variáveis de ambiente para dados sensíveis em produção
-	user := os.Getenv("POSTGRES_USER")
-	password := os.Getenv("POSTGRES_PASSWORD")
-	host := os.Getenv("POSTGRES_HOST")
-	port := os.Getenv("POSTGRES_PORT")
-	dbname := os.Getenv("POSTGRES_DB")
-	sslmode := os.Getenv("POSTGRES_SSLMODE")
-	if sslmode == "" {
-		sslmode = "disable"
-	}
-	if user == "" {
-		user = "postgres"
-	}
-	if password == "" {
-		password = "postgres"
-	}
-	if host == "" {
-		host = "localhost"
-	}
-	if port == "" {
-		port = "5432"
-	}
-	if dbname == "" {
-		// Detecta contexto de teste pelo POSTGRES_PORT ou variável de ambiente
-		if port == "65432" || os.Getenv("TEST_DB") == "1" {
-			dbname = "contracts_manager_test"
-		} else {
-			dbname = "contracts_manager"
-		}
-	}
-	return "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
+	cfg := config.GetConfig()
+	return cfg.GetDatabaseURL()
 }
 
 func ConnectDB() (*sql.DB, error) {
@@ -53,24 +24,25 @@ func ConnectDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Testa conexão
+	// Get config for connection pool settings
+	cfg := config.GetConfig()
+
+	// Set connection pool parameters
+	db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Second)
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+
+	// Test connection
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-
-	// Opcional: rodar initDB se necessário (ex: para criar schema/tabelas)
-	// err = initDB(db)
-	// if err != nil {
-	//     return nil, err
-	// }
 
 	return db, nil
 }
 
 func initDB(db *sql.DB) error {
-	_, b, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(b)
-	sqlFilePath := filepath.Join(basePath, "schema.sql")
+	cfg := config.GetConfig()
+	sqlFilePath := cfg.Paths.SchemaFile
 
 	script, err := os.ReadFile(sqlFilePath)
 	if err != nil {

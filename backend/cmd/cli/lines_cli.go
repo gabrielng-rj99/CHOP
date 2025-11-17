@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"Contracts-Manager/backend/domain"
+	domain "Contracts-Manager/backend/domain"
 	"Contracts-Manager/backend/store"
 )
 

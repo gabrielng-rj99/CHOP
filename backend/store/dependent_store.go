@@ -3,7 +3,7 @@
 package store
 
 import (
-	"Contracts-Manager/backend/domain"
+	domain "Contracts-Manager/backend/domain"
 	"errors"
 	"strings"
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
+	domain "Contracts-Manager/backend/domain" // Use o nome do seu módulo
 
 	"github.com/google/uuid"
 )

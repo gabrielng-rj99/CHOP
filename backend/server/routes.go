@@ -208,4 +208,14 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			}
 		}
 	})))
+
+	// Deploy Configuration (accessible without auth in development, with token in production)
+	mux.HandleFunc("/api/deploy/config", corsMiddleware(s.HandleDeployConfig))
+	mux.HandleFunc("/api/deploy/config/defaults", corsMiddleware(s.HandleDeployConfigDefaults))
+	mux.HandleFunc("/api/deploy/status", corsMiddleware(s.HandleDeployStatus))
+	mux.HandleFunc("/api/deploy/validate", corsMiddleware(s.HandleDeployValidate))
+
+	// Initialize Database & Admin (accessible during first-time setup)
+	mux.HandleFunc("/api/initialize/database", corsMiddleware(s.HandleInitializeDatabase))
+	mux.HandleFunc("/api/initialize/admin", corsMiddleware(s.HandleInitializeAdmin))
 }
