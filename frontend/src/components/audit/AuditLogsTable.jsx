@@ -235,7 +235,7 @@ export default function AuditLogsTable({
 
         // Para entidade auth (login)
         if (log.entity === "auth") {
-            return log.admin_username || "N/A";
+            return "N/A";
         }
 
         // fallback para contexto de mudança
@@ -348,7 +348,6 @@ export default function AuditLogsTable({
                                         {getStatusLabel(log.status)}
                                     </span>
                                 </td>
-                                <td style={rowStyle}>{getObjectLabel(log)}</td>
                                 <td style={rowStyle}>
                                     {log.admin_username || (
                                         <span
@@ -380,15 +379,7 @@ export default function AuditLogsTable({
                                 <td style={rowStyle}>
                                     {getEntityLabel(log.entity)}
                                 </td>
-                                <td
-                                    style={{
-                                        ...rowStyle,
-                                        fontSize: "13px",
-                                        color: "#5a6c7d",
-                                    }}
-                                >
-                                    {getChangeContext(log)}
-                                </td>
+                                <td style={rowStyle}>{getObjectLabel(log)}</td>
                             </tr>
                             {expandedId === log.id && (
                                 <tr>

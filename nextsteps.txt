@@ -1,10 +1,13 @@
-- Implementar gerar novo token ao usuário quando ele trocar o próprio nome, e dar refresh na página.
-- Aumentar hyperlink do exibir aniversariantes.
-- Criar novas roles no painel de usuário e gerenciamento de permissões por usuário mantendo o root, admin e user como padrão
-- implementar página de deploy no frontend
-- Encerrar CLI project
-- Implementar deploy via docker e via direta
-- Implementar integração com método de comunicação
 - Implementar Permitir mudar nome das entidades objetos gerais, como contratos, clientes, categorias, tipos. Colocando em níveis hierárquicos corretos.
 - Implementar Permitir mudar nome Principal do Contract Manager permitindo ícone e nome personalizados.
+
+- Implementar config.ini
+- Implementar deploy via docker e via direta
+- implementar página de deploy no frontend
+
 - Corrigir cmd/tools
+- Encerrar CLI project
+
+- Aumentar hyperlink do exibir aniversariantes.
+- Criar novas roles no painel de usuário e gerenciamento de permissões por usuário mantendo o root, admin e user como padrão
+- Implementar integração com método de comunicação

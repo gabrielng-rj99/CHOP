@@ -82,34 +82,36 @@ export default function Users({
             }
 
             const isUpdatingSelf = selectedUser.username === user.username;
-            const isOnlyChangingPassword =
-                formData.password &&
-                formData.display_name === selectedUser.display_name &&
-                formData.role === selectedUser.role &&
-                formData.username === selectedUser.username;
 
-            await usersApi.updateUser(
+            const response = await usersApi.updateUser(
                 apiUrl,
                 token,
                 selectedUser.username,
                 payload,
                 onTokenExpired,
             );
+
+            // Se o usuário alterou a própria senha, deslogar
+            if (
+                isUpdatingSelf &&
+                response.data &&
+                response.data.logout_required
+            ) {
+                closeModal();
+                setSuccess(response.message || "Senha atualizada com sucesso!");
+                setTimeout(() => {
+                    alert(
+                        "Sua senha foi alterada. Você será deslogado e precisará fazer login novamente.",
+                    );
+                    onLogout();
+                }, 1500);
+                return;
+            }
+
             await loadUsers();
             closeModal();
             setSuccess("Usuário atualizado com sucesso!");
             setTimeout(() => setSuccess(""), 3000);
-
-            // Se alterou a própria senha apenas, não desloga
-            if (isUpdatingSelf && !isOnlyChangingPassword) {
-                // Qualquer alteração que não seja só senha causa logout
-                setTimeout(() => {
-                    alert(
-                        "Suas informações foram alteradas. Você será deslogado.",
-                    );
-                    onLogout();
-                }, 1500);
-            }
         } catch (err) {
             setModalError(err.message);
         }

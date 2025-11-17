@@ -28,7 +28,6 @@ function App() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const refreshTimeoutRef = useRef(null);
 
-
     // Load saved session on mount
     useEffect(() => {
         try {
@@ -123,7 +122,6 @@ function App() {
             setUser(userData);
             setCurrentPage("dashboard");
 
-
             // Save to localStorage
             try {
                 localStorage.setItem("token", data.data.token);
@@ -135,8 +133,6 @@ function App() {
             }
 
             scheduleTokenRefresh(data.data.token, data.data.refresh_token);
-
-
         } catch (error) {
             // Melhor tratamento de erros de rede
             if (
@@ -159,7 +155,11 @@ function App() {
 
         // Se for erro de token expirado, redirecionar com parâmetro
         if (errorMessage && errorMessage.includes("Token inválido")) {
-            window.history.replaceState({}, document.title, "/?session_expired=true");
+            window.history.replaceState(
+                {},
+                document.title,
+                "/?session_expired=true",
+            );
         }
 
         // Clear localStorage
@@ -327,22 +327,73 @@ function App() {
 
             <main className="app-main">
                 {currentPage === "dashboard" && (
-                    <Dashboard token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <Dashboard
+                        token={token}
+                        apiUrl={API_URL}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
                 {currentPage === "contracts" && (
-                    <Contracts token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <Contracts
+                        token={token}
+                        apiUrl={API_URL}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
                 {currentPage === "clients" && (
-                    <Clients token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <Clients
+                        token={token}
+                        apiUrl={API_URL}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
                 {currentPage === "categories" && (
-                    <Categories token={token} apiUrl={API_URL} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <Categories
+                        token={token}
+                        apiUrl={API_URL}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
                 {currentPage === "users" && (
-                    <Users token={token} apiUrl={API_URL} user={user} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <Users
+                        token={token}
+                        apiUrl={API_URL}
+                        user={user}
+                        onLogout={logout}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
                 {currentPage === "audit-logs" && (
-                    <AuditLogs token={token} apiUrl={API_URL} user={user} onTokenExpired={() => logout("Token inválido ou expirado. Faça login novamente.")} />
+                    <AuditLogs
+                        token={token}
+                        apiUrl={API_URL}
+                        user={user}
+                        onTokenExpired={() =>
+                            logout(
+                                "Token inválido ou expirado. Faça login novamente.",
+                            )
+                        }
+                    />
                 )}
             </main>
         </div>
