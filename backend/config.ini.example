@@ -1,0 +1,59 @@
+[server]
+host = localhost
+port = 3000
+request_timeout = 30
+read_timeout = 15
+write_timeout = 15
+idle_timeout = 60
+cors_allowed_origins = http://localhost:8080,http://localhost:3000
+cors_allowed_methods = GET,POST,PUT,DELETE,OPTIONS,PATCH
+cors_allowed_headers = Content-Type,Authorization,X-Requested-With
+cors_expose_headers = Content-Length,X-Total-Count
+cors_allow_credentials = true
+cors_max_age = 3600
+
+[database]
+host = localhost
+port = 5432
+name = contracts_manager
+user = postgres
+password = postgres
+ssl_mode = disable
+max_open_conns = 10
+max_idle_conns = 5
+conn_max_lifetime = 180
+
+[jwt]
+secret_key = CONTRACT_MANAGER_SUPER_SECRET
+expiration_time = 60
+refresh_expiration_time = 10080
+algorithm = HS256
+
+[logging]
+enabled = true
+level = info
+format = text
+file = server.log
+max_size = 5
+max_backups = 3
+max_age = 30
+
+[security]
+password_min_length = 8
+password_require_uppercase = true
+password_require_lowercase = true
+password_require_numbers = true
+password_require_special = true
+max_failed_attempts = 5
+lockout_duration_minutes = 30
+
+[application]
+env = development
+version = 1.0.0
+name = Contract Manager
+
+[paths]
+schema_file = ../database/schema.sql
+migrations_dir = ../migrations
+logs_dir = ./logs
+reports_dir = ./reports
