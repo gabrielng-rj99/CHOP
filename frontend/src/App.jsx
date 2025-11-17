@@ -6,6 +6,8 @@ import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
+import DeployPanel from "./pages/DeployPanel";
+import Initialize from "./pages/Initialize";
 import "./App.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,12 +23,32 @@ import {
 const API_URL = "http://localhost:3000";
 
 function App() {
+    const [appReady, setAppReady] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
     const [currentPage, setCurrentPage] = useState("login");
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [refreshToken, setRefreshToken] = useState(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const refreshTimeoutRef = useRef(null);
+
+    // Check if app is initialized
+    useEffect(() => {
+        const checkInitialization = async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/deploy/status`);
+                if (response.ok) {
+                    setAppReady(true);
+                    setIsInitializing(false);
+                }
+            } catch (error) {
+                // App not ready, show initialize screen
+                setIsInitializing(true);
+            }
+        };
+
+        checkInitialization();
+    }, []);
 
     // Load saved session on mount
     useEffect(() => {
@@ -198,6 +220,18 @@ function App() {
         };
     }, [token, refreshToken]);
 
+    // Show initialization screen if app is not ready
+    if (isInitializing) {
+        return (
+            <Initialize
+                onInitializationComplete={() => {
+                    setIsInitializing(false);
+                    setAppReady(true);
+                }}
+            />
+        );
+    }
+
     if (!token || !user) {
         return <Login onLogin={login} />;
     }
@@ -298,6 +332,19 @@ function App() {
                             )}
                         </button>
                     )}
+
+                    {user.role === "root" && (
+                        <button
+                            onClick={() => navigate("deploy")}
+                            className={`app-nav-button ${currentPage === "deploy" ? "active" : ""}`}
+                            title="Deploy"
+                        >
+                            <span className="app-nav-icon">🚀</span>
+                            {!sidebarCollapsed && (
+                                <span className="app-nav-text">Deploy</span>
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 <div className="app-nav-footer">
@@ -395,6 +442,7 @@ function App() {
                         }
                     />
                 )}
+                {currentPage === "deploy" && <DeployPanel apiUrl={API_URL} />}
             </main>
         </div>
     );
