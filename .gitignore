@@ -10,26 +10,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # =========================
-# Banco de dados locais
-# =========================
-*.db
-*.sqlite
-*.sqlite3
-
-# =========================
-# Binários compilados (Go, Node, etc)
-# =========================
-Licenses-Manager
-backend/cli
-backend/tools
-*.exe
-*.o
-*.a
-*.so
-backend/cmd/server/server
-
-# =========================
-# Coverage e relatórios
+# Coverage/Reports
 # =========================
 coverage.html
 coverage.out
@@ -39,12 +20,6 @@ coverage/
 dist/
 build/
 dist-ssr
-
-# =========================
-# Dependências e build
-# =========================
-node_modules/
-.turbo
 
 # =========================
 # Editor/IDE
@@ -62,14 +37,70 @@ node_modules/
 *.sw?
 
 # =========================
-# OS/Arquivos temporários
+# Temp Files/SO
 # =========================
 .DS_Store
 Thumbs.db
 
 # =========================
-# Variáveis de ambiente
+# Binaries
 # =========================
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+deploy-manager
+deploy-manager-*
+Licenses-Manager
+backend/cli
+backend/tools
+*.exe
+*.o
+*.a
+*.so
+backend/cmd/server/server
+
+# =========================
+# Build artifacts
+# =========================
+*.o
+*.a
+*.out
+node_modules/
+.turbo
+
+# =========================
+# Go specific
+# =========================
+*.test
+*.prof
+coverage.out
+coverage.html
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.bak
+*.log
+
+# =========================
+# Environment
+# =========================
+.env
+.env.local
 .env
 .env.local
 .env.development.local
