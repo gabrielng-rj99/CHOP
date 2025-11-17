@@ -1,6 +1,7 @@
-package main
+package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -16,6 +17,19 @@ type Server struct {
 	categoryStore  *store.CategoryStore
 	lineStore      *store.LineStore
 	auditStore     *store.AuditStore
+}
+
+// NewServer creates a new Server instance with all stores
+func NewServer(db *sql.DB) *Server {
+	return &Server{
+		userStore:      store.NewUserStore(db),
+		contractStore:  store.NewContractStore(db),
+		clientStore:    store.NewClientStore(db),
+		dependentStore: store.NewDependentStore(db),
+		categoryStore:  store.NewCategoryStore(db),
+		lineStore:      store.NewLineStore(db),
+		auditStore:     store.NewAuditStore(db),
+	}
 }
 
 type ErrorResponse struct {

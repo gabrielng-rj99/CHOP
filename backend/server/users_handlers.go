@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"Contracts-Manager/backend/store"
@@ -233,6 +233,36 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		return
 	}
 
+	// === VERIFICAÇÕES DE SEGURANÇA ANTES DE QUALQUER OPERAÇÃO ===
+	isUpdatingSelf := claims.Username == username
+
+	// Buscar role do usuário alvo
+	targetUserRole := ""
+	if users[0].Role != nil {
+		targetUserRole = *users[0].Role
+	}
+
+	// REGRA 1: Apenas root pode alterar dados de outros usuários root
+	if !isUpdatingSelf && targetUserRole == "root" && claims.Role != "root" {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar dados do usuário root %s - NEGADO", claims.Username, claims.Role, username)
+		respondError(w, http.StatusForbidden, "Apenas root pode alterar dados de outros usuários root")
+		return
+	}
+
+	// REGRA 2: Admin não pode alterar senha de outros usuários (apenas a própria)
+	if req.Password != "" && !isUpdatingSelf && claims.Role != "root" {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar senha de %s - NEGADO", claims.Username, claims.Role, username)
+		respondError(w, http.StatusForbidden, "Você só pode alterar sua própria senha. Apenas root pode alterar senhas de outros usuários")
+		return
+	}
+
+	// REGRA 3: Admin não pode alterar display_name de outros admin ou root
+	if req.DisplayName != "" && !isUpdatingSelf && claims.Role != "root" && (targetUserRole == "admin" || targetUserRole == "root") {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar display_name de %s (role: %s) - NEGADO", claims.Username, claims.Role, username, targetUserRole)
+		respondError(w, http.StatusForbidden, "Você não tem permissão para alterar dados deste usuário")
+		return
+	}
+
 	// Update username if provided and different from current
 	if req.Username != "" && req.Username != username {
 		if claims.Role != "root" {
@@ -264,7 +294,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 
 	if req.Role != "" {
 		if claims.Role != "root" {
-			log.Printf("Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, claims.Role)
+			log.Printf("SEGURANÇA: Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, claims.Role)
 			respondError(w, http.StatusForbidden, "Apenas root pode alterar role de usuários")
 			return
 		}
@@ -319,6 +349,18 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		RequestMethod: getRequestMethod(r),
 		RequestPath:   getRequestPath(r),
 	})
+
+	// Se o usuário alterou a própria senha, avisar que será deslogado
+	if isUpdatingSelf && req.Password != "" {
+		respondJSON(w, http.StatusOK, SuccessResponse{
+			Message: "Senha atualizada com sucesso. Você será deslogado e precisará fazer login novamente.",
+			Data: map[string]interface{}{
+				"password_changed": true,
+				"logout_required":  true,
+			},
+		})
+		return
+	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User updated successfully"})
 }

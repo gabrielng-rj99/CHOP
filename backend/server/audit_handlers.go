@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"Contracts-Manager/backend/domain"

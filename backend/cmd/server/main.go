@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"Contracts-Manager/backend/database"
-	"Contracts-Manager/backend/store"
+	"Contracts-Manager/backend/server"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -31,17 +31,8 @@ func main() {
 		}
 	}()
 
-	server := &Server{
-		userStore:      store.NewUserStore(db),
-		contractStore:  store.NewContractStore(db),
-		clientStore:    store.NewClientStore(db),
-		dependentStore: store.NewDependentStore(db),
-		categoryStore:  store.NewCategoryStore(db),
-		lineStore:      store.NewLineStore(db),
-		auditStore:     store.NewAuditStore(db),
-	}
-
-	server.setupRoutes()
+	srv := server.NewServer(db)
+	srv.SetupRoutes()
 
 	fmt.Println("Server running on http://localhost:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))

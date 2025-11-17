@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres_test:
+    image: postgres:16
+    container_name: contracts_test_db
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: contracts_test
+    ports:
+      - "65432:5432"
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d contracts_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test_network
+
+volumes:
+  postgres_test_data:
+    name: backend_postgres_test_data
+
+networks:
+  test_network:
+    driver: bridge

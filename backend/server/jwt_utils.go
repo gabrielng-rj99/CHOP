@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"errors"
@@ -45,7 +45,7 @@ func GenerateJWT(user *domain.User) (string, error) {
 		Username: derefString(user.Username),
 		Role:     derefString(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)), // Expira em 30min
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute)), // Expira em 1 hora
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},

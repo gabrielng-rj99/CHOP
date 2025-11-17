@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"log"
@@ -39,16 +39,29 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (s *Server) setupRoutes() {
+// Handler returns an http.Handler with all routes configured (for testing)
+func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+	return mux
+}
+
+// SetupRoutes configures routes on the default ServeMux (for production)
+func (s *Server) SetupRoutes() {
+	s.registerRoutes(http.DefaultServeMux)
+}
+
+// registerRoutes registers all routes on the provided ServeMux
+func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Health check
-	http.HandleFunc("/health", corsMiddleware(s.handleHealth))
+	mux.HandleFunc("/health", corsMiddleware(s.handleHealth))
 
 	// Auth
-	http.HandleFunc("/api/login", corsMiddleware(s.handleLogin))
-	http.HandleFunc("/api/refresh-token", corsMiddleware(s.handleRefreshToken))
+	mux.HandleFunc("/api/login", corsMiddleware(s.handleLogin))
+	mux.HandleFunc("/api/refresh-token", corsMiddleware(s.handleRefreshToken))
 
 	// Users
-	http.HandleFunc("/api/users/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/users/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/block") {
 			s.handleUserBlock(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unlock") {
@@ -57,7 +70,7 @@ func (s *Server) setupRoutes() {
 			s.handleUserByUsername(w, r)
 		}
 	})))
-	http.HandleFunc("/api/users", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/users", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Se o path é exatamente /api/users (sem ID), chama handleUsers
 		if r.URL.Path == "/api/users" {
 			s.handleUsers(w, r)
@@ -74,7 +87,7 @@ func (s *Server) setupRoutes() {
 	})))
 
 	// Clients
-	http.HandleFunc("/api/clients/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/clients/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleClientArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
@@ -85,7 +98,7 @@ func (s *Server) setupRoutes() {
 			s.handleClientByID(w, r)
 		}
 	})))
-	http.HandleFunc("/api/clients", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/clients", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/clients" {
 			s.handleClients(w, r)
 		} else {
@@ -102,10 +115,10 @@ func (s *Server) setupRoutes() {
 	})))
 
 	// Dependents
-	http.HandleFunc("/api/dependents/", corsMiddleware(s.authMiddleware(s.handleDependentByID)))
+	mux.HandleFunc("/api/dependents/", corsMiddleware(s.authMiddleware(s.handleDependentByID)))
 
 	// Contracts
-	http.HandleFunc("/api/contracts/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/contracts/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleContractArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
@@ -114,7 +127,7 @@ func (s *Server) setupRoutes() {
 			s.handleContractByID(w, r)
 		}
 	})))
-	http.HandleFunc("/api/contracts", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/contracts", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/contracts" {
 			s.handleContracts(w, r)
 		} else {
@@ -129,14 +142,14 @@ func (s *Server) setupRoutes() {
 	})))
 
 	// Categories
-	http.HandleFunc("/api/categories/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/categories/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/lines") {
 			s.handleCategoryLines(w, r)
 		} else {
 			s.handleCategoryByID(w, r)
 		}
 	})))
-	http.HandleFunc("/api/categories", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/categories", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/categories" {
 			s.handleCategories(w, r)
 		} else {
@@ -149,8 +162,8 @@ func (s *Server) setupRoutes() {
 	})))
 
 	// Lines
-	http.HandleFunc("/api/lines/", corsMiddleware(s.authMiddleware(s.handleLineByID)))
-	http.HandleFunc("/api/lines", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/lines/", corsMiddleware(s.authMiddleware(s.handleLineByID)))
+	mux.HandleFunc("/api/lines", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/lines" {
 			s.handleLines(w, r)
 		} else {
@@ -159,7 +172,7 @@ func (s *Server) setupRoutes() {
 	})))
 
 	// Audit Logs (only accessible to root)
-	http.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "root" {
@@ -175,7 +188,7 @@ func (s *Server) setupRoutes() {
 			s.handleAuditLogDetail(w, r)
 		}
 	})))
-	http.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "root" {
