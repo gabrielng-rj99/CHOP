@@ -31,7 +31,6 @@ func main() {
 		fmt.Println("║ 11 - Inicializar banco principal do zero via Docker                        ║")
 		fmt.Println("║ 12 - Iniciar servidor HTTP API (porta 3000)                                ║")
 		fmt.Println("║ 13 - Iniciar frontend Web (porta 8080)                                     ║")
-		fmt.Println("║ 19 - Criar usuário admin com senha aleatória (requer banco principal UP)   ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝\n ")
 
 		fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
@@ -70,34 +69,6 @@ func main() {
 		opt = strings.TrimSpace(opt)
 
 		switch opt {
-		case "01", "1":
-			startupAll()
-		case "02", "2":
-			shutdownAll()
-		case "03", "3":
-			shutdownAllwithVolumes()
-		case "04", "4":
-			restartServer()
-		case "10":
-			LaunchCLI()
-		case "11":
-			InitMainDatabaseDocker()
-		case "12":
-			startServer()
-		case "13":
-			startFrontend()
-		case "19":
-			CreateAdminCLI()
-		case "21":
-			StopMainDatabase()
-		case "22":
-			stopServer()
-		case "23":
-			stopFrontend()
-		case "29":
-			DropMainDatabaseWithVolumes()
-		case "31":
-			InitTestDatabaseDocker()
 		case "32", "91":
 			RunIntegrationTestsWithDockerPostgres()
 		case "39":
