@@ -50,9 +50,9 @@ bash deploy/scripts/deploy-monolith.sh logs
 **Docker:**
 ```bash
 cd deploy/scripts
-docker-compose up -d
-docker-compose down
-docker-compose logs -f
+docker compose up -d
+docker compose down
+docker compose logs -f
 ```
 
 ## 🔧 Stack
