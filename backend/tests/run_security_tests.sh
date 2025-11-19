@@ -67,7 +67,7 @@ cleanup() {
 
     log_info "Parando containers Docker..."
     cd "$SCRIPT_DIR"
-    docker-compose -f docker-compose.test.yml down -v 2>/dev/null || true
+    $DOCKER_COMPOSE -f docker-compose.test.yml down -v 2>/dev/null || true
 
     log_info "Removendo volumes Docker..."
     docker volume rm backend_postgres_test_data 2>/dev/null || true
@@ -92,12 +92,17 @@ check_dependencies() {
     fi
     log_success "Docker encontrado: $(docker --version)"
 
-    # Verificar Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose não encontrado. Instale o Docker Compose para continuar."
+    # Verificar Docker Compose (tenta moderno primeiro, depois legacy)
+    if docker compose version &> /dev/null; then
+        DOCKER_COMPOSE="docker compose"
+        log_success "Docker Compose encontrado: $(docker compose version)"
+    elif command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE="docker-compose"
+        log_success "Docker Compose encontrado: $(docker-compose --version)"
+    else
+        log_error "Docker Compose não encontrado. Instale Docker Desktop ou docker-compose plugin."
         exit 1
     fi
-    log_success "Docker Compose encontrado: $(docker-compose --version)"
 
     # Verificar Go
     if ! command -v go &> /dev/null; then
@@ -119,7 +124,7 @@ start_database() {
     fi
 
     log_info "Subindo container PostgreSQL..."
-    docker-compose -f docker-compose.test.yml up -d
+    $DOCKER_COMPOSE -f docker-compose.test.yml up -d
 
     if [ $? -eq 0 ]; then
         log_success "Container iniciado"
@@ -134,7 +139,7 @@ start_database() {
     ATTEMPT=0
 
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-        if docker-compose -f docker-compose.test.yml exec -T postgres_test pg_isready -U test_user -d contracts_test &> /dev/null; then
+        if $DOCKER_COMPOSE -f docker-compose.test.yml exec -T postgres_test pg_isready -U test_user -d contracts_test &> /dev/null; then
             log_success "Banco de dados está pronto!"
             return 0
         fi
@@ -145,7 +150,7 @@ start_database() {
     done
 
     log_error "Timeout aguardando banco de dados ficar pronto"
-    docker-compose -f docker-compose.test.yml logs postgres_test | tee -a "$REPORT_FILE"
+    $DOCKER_COMPOSE -f docker-compose.test.yml logs postgres_test | tee -a "$REPORT_FILE"
     exit 1
 }
 
@@ -160,7 +165,7 @@ verify_schema() {
     TABLES=("users" "clients" "categories" "lines" "contracts" "audit_logs" "dependents")
 
     for table in "${TABLES[@]}"; do
-        RESULT=$(docker-compose -f docker-compose.test.yml exec -T postgres_test \
+        RESULT=$($DOCKER_COMPOSE -f docker-compose.test.yml exec -T postgres_test \
             psql -U test_user -d contracts_test -tAc \
             "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table');" 2>/dev/null)
 

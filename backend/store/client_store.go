@@ -1,9 +1,9 @@
-// Contracts-Manager/backend/store/client_store.go
+// Open-Generic-Hub/backend/store/client_store.go
 
 package store
 
 import (
-	"Contracts-Manager/backend/domain"
+	"Open-Generic-Hub/backend/domain"
 	"database/sql"
 	"errors"
 	"strings"

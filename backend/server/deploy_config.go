@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"Contracts-Manager/backend/config"
+	"Open-Generic-Hub/backend/config"
 )
 
 // DeployConfigRequest represents the configuration payload from the deploy panel
@@ -103,16 +103,17 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 
 	// Create updated configuration
 	updatedCfg := &config.Config{
-		Server:      currentCfg.Server,
-		Database:    currentCfg.Database,
-		JWT:         currentCfg.JWT,
-		Logging:     currentCfg.Logging,
-		Security:    currentCfg.Security,
-		Application: currentCfg.Application,
-		Paths:       currentCfg.Paths,
+		Server:   currentCfg.Server,
+		Database: currentCfg.Database,
+		JWT:      currentCfg.JWT,
+		Logging:  currentCfg.Logging,
+		Security: currentCfg.Security,
+		App:      currentCfg.App,
+		Paths:    currentCfg.Paths,
 	}
 
 	var errors []string
+	var warnings []string
 
 	// Update server configuration if provided
 	if req.ServerPort != "" {
@@ -151,10 +152,10 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 		os.Setenv("APP_JWT_SECRET_KEY", req.JWTSecretKey)
 	}
 	if req.JWTExpirationTime > 0 {
-		updatedCfg.JWT.ExpirationTime = req.JWTExpirationTime
+		warnings = append(warnings, "Set JWT_EXPIRATION_TIME environment variable.")
 	}
 	if req.JWTRefreshExpirationTime > 0 {
-		updatedCfg.JWT.RefreshExpirationTime = req.JWTRefreshExpirationTime
+		warnings = append(warnings, "Set JWT_REFRESH_EXPIRATION_TIME environment variable.")
 	}
 
 	// Update security configuration if provided
@@ -162,37 +163,35 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 		updatedCfg.Security.PasswordMinLength = req.SecurityPasswordMinLength
 	}
 	if req.SecurityPasswordRequireUppercase {
-		updatedCfg.Security.PasswordRequireUppercase = req.SecurityPasswordRequireUppercase
+		updatedCfg.Security.PasswordUppercase = req.SecurityPasswordRequireUppercase
 	}
 	if req.SecurityPasswordRequireLowercase {
-		updatedCfg.Security.PasswordRequireLowercase = req.SecurityPasswordRequireLowercase
+		updatedCfg.Security.PasswordLowercase = req.SecurityPasswordRequireLowercase
 	}
 	if req.SecurityPasswordRequireNumbers {
-		updatedCfg.Security.PasswordRequireNumbers = req.SecurityPasswordRequireNumbers
+		updatedCfg.Security.PasswordNumbers = req.SecurityPasswordRequireNumbers
 	}
 	if req.SecurityPasswordRequireSpecial {
-		updatedCfg.Security.PasswordRequireSpecial = req.SecurityPasswordRequireSpecial
+		updatedCfg.Security.PasswordSpecial = req.SecurityPasswordRequireSpecial
 	}
 	if req.SecurityMaxFailedAttempts > 0 {
 		updatedCfg.Security.MaxFailedAttempts = req.SecurityMaxFailedAttempts
 	}
 	if req.SecurityLockoutDurationMinutes > 0 {
-		updatedCfg.Security.LockoutDurationMinutes = req.SecurityLockoutDurationMinutes
+		warnings = append(warnings, "Set LOCKOUT_DURATION environment variable.")
 	}
 
 	// Update application environment if provided
 	if req.AppEnv != "" {
-		updatedCfg.Application.Env = req.AppEnv
+		updatedCfg.App.Env = req.AppEnv
 		os.Setenv("APP_ENV", req.AppEnv)
 	}
 
-	// Apply the updated configuration
-	if err := config.SetConfig(updatedCfg); err != nil {
-		errors = append(errors, fmt.Sprintf("Failed to update config: %v", err))
-	}
+	// Note: Config updates now happen via environment variables
+	// The application will need to restart to pick up changes
 
 	// Log configuration update
-	log.Printf("✅ Configuration updated via deploy panel (env: %s)", updatedCfg.Application.Env)
+	log.Printf("✅ Configuration updated via deploy panel (env: %s)", updatedCfg.App.Env)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -211,7 +210,7 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 				"name": updatedCfg.Database.Name,
 				"user": updatedCfg.Database.User,
 			},
-			"environment": updatedCfg.Application.Env,
+			"environment": updatedCfg.App.Env,
 		},
 	})
 }
@@ -229,8 +228,8 @@ func (s *Server) HandleDeployStatus(w http.ResponseWriter, r *http.Request) {
 	status := DeployStatus{
 		Status:       "running",
 		Message:      "Application is running and operational",
-		Environment:  cfg.Application.Env,
-		Version:      cfg.Application.Version,
+		Environment:  cfg.App.Env,
+		Version:      cfg.App.Version,
 		ConfigLoaded: true,
 		Timestamp:    fmt.Sprintf("%v", os.Getenv("DEPLOY_TIMESTAMP")),
 	}

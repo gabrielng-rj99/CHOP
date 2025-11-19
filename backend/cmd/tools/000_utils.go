@@ -78,7 +78,7 @@ func getProjectRoot() (string, error) {
 	return os.Getwd()
 }
 
-// getDockerComposePath retorna o caminho do docker-compose.yml
+// getDockerComposePath retorna o caminho do docker compose.yml
 func getDockerComposePath() (string, error) {
 	projectRoot, err := getProjectRoot()
 	if err != nil {
@@ -87,7 +87,7 @@ func getDockerComposePath() (string, error) {
 	return filepath.Join(projectRoot, "database", "docker-compose.yml"), nil
 }
 
-// runDockerComposeUp sobe o serviço especificado do docker-compose
+// runDockerComposeUp sobe o serviço especificado do docker compose
 func runDockerComposeUp(service string) error {
 	dockerComposePath, err := getDockerComposePath()
 	if err != nil {
@@ -99,7 +99,7 @@ func runDockerComposeUp(service string) error {
 	return cmd.Run()
 }
 
-// runDockerComposeDown derruba todos os serviços do docker-compose
+// runDockerComposeDown derruba todos os serviços do docker compose
 func runDockerComposeDown() error {
 	dockerComposePath, err := getDockerComposePath()
 	if err != nil {
@@ -111,7 +111,7 @@ func runDockerComposeDown() error {
 	return cmd.Run()
 }
 
-// runDockerComposeStop para o serviço especificado do docker-compose
+// runDockerComposeStop para o serviço especificado do docker compose
 func runDockerComposeStop(service string) error {
 	dockerComposePath, err := getDockerComposePath()
 	if err != nil {

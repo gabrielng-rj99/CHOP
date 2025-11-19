@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // ClientsFlow handles the clients menu, allowing listing, creation, and selection

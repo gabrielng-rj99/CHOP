@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	domain "Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	domain "Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // CategoriesMenu handles the categories CRUD operations

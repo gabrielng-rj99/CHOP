@@ -1,4 +1,4 @@
-// Contracts-Manager/backend/domain/models.go
+// Open-Generic-Hub/backend/domain/models.go
 
 package domain
 

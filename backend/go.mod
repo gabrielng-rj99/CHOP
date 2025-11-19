@@ -1,4 +1,4 @@
-module Contracts-Manager/backend
+module Open-Generic-Hub/backend
 
 go 1.25.1
 

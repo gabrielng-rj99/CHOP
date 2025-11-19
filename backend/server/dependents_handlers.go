@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // ============= DEPENDENT HANDLERS =============

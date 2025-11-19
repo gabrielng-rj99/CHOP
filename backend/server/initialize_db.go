@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"Contracts-Manager/backend/config"
-	"Contracts-Manager/backend/database"
+	"Open-Generic-Hub/backend/config"
+	"Open-Generic-Hub/backend/database"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )

@@ -1,4 +1,4 @@
-// Contracts-Manager/backend/store/contract_store.go
+// Open-Generic-Hub/backend/store/contract_store.go
 
 package store
 
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"Contracts-Manager/backend/domain" // Use o nome do seu módulo
+	"Open-Generic-Hub/backend/domain" // Use o nome do seu módulo
 
 	"github.com/google/uuid"
 )

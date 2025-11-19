@@ -1,7 +1,7 @@
 package store
 
 import (
-	"Contracts-Manager/backend/domain"
+	"Open-Generic-Hub/backend/domain"
 	"testing"
 
 	"github.com/google/uuid"

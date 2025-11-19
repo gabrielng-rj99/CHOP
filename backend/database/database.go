@@ -1,4 +1,4 @@
-// Contracts-Manager/backend/database/database.go
+// Open-Generic-Hub/backend/database/database.go
 
 package database
 
@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"Contracts-Manager/backend/config"
+	"Open-Generic-Hub/backend/config"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -28,7 +28,7 @@ func ConnectDB() (*sql.DB, error) {
 	cfg := config.GetConfig()
 
 	// Set connection pool parameters
-	db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Second)
+	db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLife) * time.Second)
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 

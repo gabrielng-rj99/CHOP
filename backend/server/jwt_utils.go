@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"Contracts-Manager/backend/config"
-	"Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/config"
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 
 	"net/http"
 	"strings"

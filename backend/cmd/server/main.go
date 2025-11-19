@@ -8,18 +8,15 @@ import (
 	"os"
 	"time"
 
-	"Contracts-Manager/backend/config"
-	"Contracts-Manager/backend/server"
+	"Open-Generic-Hub/backend/config"
+	"Open-Generic-Hub/backend/server"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
-	// Load configuration from config.ini
-	cfg, err := config.LoadConfig("")
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
-	}
+	// Load configuration from environment variables
+	cfg := config.GetConfig()
 
 	// Validate required secrets are set
 	validateSecrets(cfg)
@@ -34,11 +31,6 @@ func main() {
 			Compress:   true,                   // comprimir arquivos antigos
 		}
 		log.SetOutput(logFile)
-	}
-
-	// Print configuration (for debugging)
-	if cfg.Application.Env == "development" {
-		cfg.PrintConfig()
 	}
 
 	// Create server WITHOUT database connection initially
@@ -63,10 +55,10 @@ func main() {
 	}
 
 	// Log server startup
-	fmt.Printf("🚀 %s v%s starting...\n", cfg.Application.Name, cfg.Application.Version)
+	fmt.Printf("🚀 %s v%s starting...\n", cfg.App.Name, cfg.App.Version)
 	fmt.Printf("📡 Server running on http://%s:%s\n", cfg.Server.Host, port)
 	fmt.Printf("🗄️  Database will be configured via deployment panel\n")
-	fmt.Printf("🔐 Environment: %s\n", cfg.Application.Env)
+	fmt.Printf("🔐 Environment: %s\n", cfg.App.Env)
 	fmt.Printf("💡 Open http://%s:%s in browser to initialize\n", cfg.Server.Host, port)
 
 	// Start server
@@ -75,21 +67,21 @@ func main() {
 
 // validateSecrets checks that required secrets are set via environment variables
 func validateSecrets(cfg *config.Config) {
-	dbPassword := os.Getenv("APP_DATABASE_PASSWORD")
-	jwtSecret := os.Getenv("APP_JWT_SECRET_KEY")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	hasErrors := false
 
-	// Check database password
-	if dbPassword == "" {
-		log.Println("❌ ERROR: APP_DATABASE_PASSWORD is not set")
+	// Check database password (optional in development)
+	if dbPassword == "" && cfg.App.Env == "production" {
+		log.Println("❌ ERROR: DB_PASSWORD is not set")
 		log.Println("   Set this environment variable with your database password")
 		hasErrors = true
 	}
 
 	// Check JWT secret
 	if jwtSecret == "" {
-		log.Println("❌ ERROR: APP_JWT_SECRET_KEY is not set")
+		log.Println("❌ ERROR: JWT_SECRET is not set")
 		log.Println("   Set this environment variable with a secure random key")
 		log.Println("   Generate with: openssl rand -base64 32")
 		hasErrors = true
@@ -100,14 +92,14 @@ func validateSecrets(cfg *config.Config) {
 		log.Println("⚠️  SECURITY: Secrets must NEVER be in config.ini")
 		log.Println("   They must come from environment variables only:")
 		log.Println("")
-		log.Println("   Development:  source .env && go run cmd/server/main.go")
-		log.Println("   Production:   docker run -e APP_DATABASE_PASSWORD=... -e APP_JWT_SECRET_KEY=...")
+		log.Println("   Development:  export JWT_SECRET=... && go run cmd/server/main.go")
+		log.Println("   Production:   docker run -e DB_PASSWORD=... -e JWT_SECRET=...")
 		log.Println("   CI/CD:        Use your secrets management system")
 		log.Println("")
 		log.Fatal("Cannot start server without required secrets")
 	}
 
-	if cfg.Application.Env == "production" {
+	if cfg.App.Env == "production" {
 		// Additional warnings for production
 		if len(jwtSecret) < 32 {
 			log.Println("⚠️  WARNING: JWT secret is less than 32 characters")

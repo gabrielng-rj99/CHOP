@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	domain "Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	domain "Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // LinesMenu handles the lines (contract types) administration menu

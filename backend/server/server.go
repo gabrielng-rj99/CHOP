@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/store"
 )
 
 type Server struct {

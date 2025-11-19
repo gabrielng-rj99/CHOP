@@ -1,8 +1,8 @@
 package server
 
 import (
-	"Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 	"encoding/json"
 	"net/http"
 	"strconv"

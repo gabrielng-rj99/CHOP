@@ -1,4 +1,4 @@
-// Contracts-Manager/backend/cmd/tools/check_services.go
+// Open-Generic-Hub/backend/cmd/tools/check_services.go
 
 package main
 

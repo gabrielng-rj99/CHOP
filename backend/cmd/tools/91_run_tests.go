@@ -147,7 +147,7 @@ func parseTestOutput(output string) []map[string]string {
 		line = strings.TrimSpace(line)
 
 		// Procura por linhas que iniciam com ok ou FAIL
-		// Exemplo: "ok  	Contracts-Manager/backend/domain	(cached)	coverage: 81.7% of statements"
+		// Exemplo: "ok  	Open-Generic-Hub/backend/domain	(cached)	coverage: 81.7% of statements"
 		if !strings.HasPrefix(line, "ok") && !strings.HasPrefix(line, "FAIL") {
 			continue
 		}

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	domain "Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	domain "Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // Helper functions to safely dereference user pointer fields

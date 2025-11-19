@@ -1,7 +1,7 @@
 package store
 
 import (
-	domain "Contracts-Manager/backend/domain"
+	domain "Open-Generic-Hub/backend/domain"
 	"crypto/sha256"
 	"database/sql"
 	"errors"

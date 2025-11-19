@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"Contracts-Manager/backend/domain"
-	"Contracts-Manager/backend/store"
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
 
 // ContractsFlow handles the contracts overview menu (list, filter, create, edit, delete)
