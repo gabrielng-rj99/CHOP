@@ -44,6 +44,7 @@ type DatabaseConfig struct {
 	Port          string
 	Name          string
 	User          string
+	Password      string
 	SSLMode       string
 	MaxOpenConns  int
 	MaxIdleConns  int
@@ -51,16 +52,29 @@ type DatabaseConfig struct {
 }
 
 type DockerConfig struct {
-	ComposeFile       string
-	NetworkName       string
-	PostgresContainer string
-	PostgresPort      string
-	PostgresVolume    string
-	BackendContainer  string
-	BackendPort       string
-	FrontendContainer string
-	FrontendPort      string
-	FrontendNginxPort string
+	ComposeFile              string
+	NetworkName              string
+	PostgresContainer        string
+	PostgresPort             string
+	PostgresVolume           string
+	BackendContainer         string
+	BackendPort              string
+	BackendContainerPort     string
+	FrontendContainer        string
+	FrontendPort             string
+	FrontendContainerPort    string
+	ExposeBackendPort        bool
+	ExposeFrontendPort       bool
+	ExposePostgresPort       bool
+	DBUser                   string
+	DBPassword               string
+	DBName                   string
+	DBPort                   string
+	DBSSLMode                string
+	JWTSecret                string
+	JWTExpirationTime        int
+	JWTRefreshExpirationTime int
+	JWTAlgorithm             string
 }
 
 type ServicesConfig struct {
@@ -181,6 +195,9 @@ func LoadConfig(configFile string) (*Config, error) {
 	// Interpolate variables in all sections
 	interpolateAllVars(config)
 
+	// Populate DockerConfig with database and JWT values for compose generation
+	populateDockerConfigFromSections(config)
+
 	return config, nil
 }
 
@@ -271,6 +288,7 @@ func parseConfigValue(config *Config, section, key, value string) {
 		parseServicesConfig(&config.Services, key, value)
 	case "jwt":
 		parseJWTConfig(&config.JWT, key, value)
+		parseJWTForDockerConfig(config, key, value)
 	case "logging":
 		parseLoggingConfig(&config.Logging, key, value)
 	case "security":
@@ -323,6 +341,8 @@ func parseDatabaseConfig(d *DatabaseConfig, key, value string) {
 		d.Name = value
 	case "user":
 		d.User = value
+	case "password":
+		d.Password = value
 	case "ssl_mode":
 		d.SSLMode = value
 	case "max_open_conns":
@@ -348,14 +368,55 @@ func parseDockerConfig(d *DockerConfig, key, value string) {
 		d.PostgresVolume = value
 	case "backend_container":
 		d.BackendContainer = value
-	case "backend_port":
+	case "backend_host_port":
 		d.BackendPort = value
+	case "backend_container_port":
+		d.BackendContainerPort = value
 	case "frontend_container":
 		d.FrontendContainer = value
-	case "frontend_port":
+	case "frontend_host_port":
 		d.FrontendPort = value
-	case "frontend_nginx_port":
-		d.FrontendNginxPort = value
+	case "frontend_container_port":
+		d.FrontendContainerPort = value
+	case "postgres_host_port":
+		d.PostgresPort = value
+	case "expose_backend_port":
+		d.ExposeBackendPort = toBool(value)
+	case "expose_frontend_port":
+		d.ExposeFrontendPort = toBool(value)
+	case "expose_postgres_port":
+		d.ExposePostgresPort = toBool(value)
+	}
+}
+
+// parseJWTForDockerConfig extracts JWT secret from jwt section for docker compose
+// This is called separately since JWT config goes to both JWTConfig and DockerConfig
+func parseJWTForDockerConfig(config *Config, key, value string) {
+	switch key {
+	case "secret":
+		config.Docker.JWTSecret = value
+	}
+}
+
+// populateDockerConfigFromSections copies values from other sections to DockerConfig for compose generation
+func populateDockerConfigFromSections(config *Config) {
+	// Copy database credentials for compose file generation
+	config.Docker.DBUser = config.Database.User
+	config.Docker.DBPassword = config.Database.Password
+	config.Docker.DBName = config.Database.Name
+	config.Docker.DBPort = config.Database.Port
+	config.Docker.DBSSLMode = config.Database.SSLMode
+
+	// Copy JWT config for compose file generation
+	// Secret is read from docker.ini [jwt] section
+	config.Docker.JWTExpirationTime = config.JWT.ExpirationTime
+	config.Docker.JWTRefreshExpirationTime = config.JWT.RefreshExpirationTime
+	config.Docker.JWTAlgorithm = config.JWT.Algorithm
+
+	// Parse JWT secret from config (will be set in parseDockerConfig if present)
+	// If not found, use a safe default that must be changed in production
+	if config.Docker.JWTSecret == "" {
+		config.Docker.JWTSecret = "change_me_in_production_min_32_chars"
 	}
 }
 
@@ -509,7 +570,7 @@ func (c *Config) GetServiceURL(service string) string {
 	case "backend":
 		return fmt.Sprintf("http://localhost:%s", c.Docker.BackendPort)
 	case "frontend":
-		return fmt.Sprintf("http://localhost:%s", c.Docker.FrontendNginxPort)
+		return fmt.Sprintf("http://localhost:%s", c.Docker.FrontendPort)
 	case "database":
 		return fmt.Sprintf("localhost:%s", c.Docker.PostgresPort)
 	default:

@@ -46,7 +46,7 @@ cmd/
 - `clearTerminal()` - Limpar a tela
 - `waitForEnter()` - Aguardar que usuário pressione Enter
 - `getProjectRoot()` - Encontrar diretório raiz do projeto
-- `runCommandInScripts()` - Executar comando no diretório scripts
+- `runDockerCompose()` - Executar comandos Docker Compose (detecta automaticamente docker compose vs docker-compose)
 - `runCommand()` - Executar comando em diretório específico
 - `printSuccess()`, `printError()`, `printWarning()`, etc. - Exibir mensagens formatadas
 - `confirmAction()`, `inputPrompt()` - Interação com usuário

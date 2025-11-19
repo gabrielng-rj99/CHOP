@@ -44,7 +44,7 @@ func utilitiesMenu() {
 		fmt.Println("║                                                                            ║")
 		fmt.Println("║              🔙 BACK                                                       ║")
 		fmt.Println("║                                                                            ║")
-		fmt.Println("║ 99 - 🔙 Back to main menu                                                  ║")
+		fmt.Println("║ 00 - 🔙 Back to main menu                                                  ║")
 		fmt.Println("║                                                                            ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
 		fmt.Print("\nOption: ")
@@ -84,7 +84,7 @@ func utilitiesMenu() {
 			reportDatabaseSchema()
 		case "44":
 			reportSystemRequirements()
-		case "99":
+		case "00", "0":
 			return
 		default:
 			fmt.Println("❌ Invalid option.")

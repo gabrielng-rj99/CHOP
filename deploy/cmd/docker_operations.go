@@ -10,21 +10,49 @@ import (
 // ============================================================================
 
 func dockerStartAll() {
-	fmt.Println("\n▶️  Starting all services (docker-compose up -d)...")
-	if err := runCommandInScripts("docker-compose", "up", "-d"); err != nil {
+	// Run setup flow to check volumes and configure secrets
+	setupResult, err := RunDockerSetupFlow()
+	if err != nil {
+		printError(fmt.Sprintf("Setup flow failed: %v", err))
+		waitForEnter()
+		return
+	}
+
+	if !setupResult.ShouldProceed {
+		printWarning("Setup cancelled by user.")
+		waitForEnter()
+		return
+	}
+
+	// Generate docker-compose.yml with the configured secrets
+	if err := GenerateDockerComposeWithSecrets(setupResult.DBPassword, setupResult.JWTSecret); err != nil {
+		printError(fmt.Sprintf("Failed to generate docker-compose.yml: %v", err))
+		waitForEnter()
+		return
+	}
+
+	fmt.Println("\n▶️  Starting all services (docker compose up -d)...")
+	if err := runDockerCompose("up", "-d"); err != nil {
 		printError(fmt.Sprintf("Failed to start services: %v", err))
 	} else {
 		printSuccess("All services started!")
 		fmt.Println("  Frontend: http://localhost:8081")
 		fmt.Println("  Backend:  http://localhost:3000")
 		fmt.Println("  Database: localhost:5432")
+
+		// Create admin user if this is first run
+		if setupResult.IsFirstRun && setupResult.AdminPassword != "" {
+			if err := createAdminUserInContainer(setupResult.AdminPassword); err != nil {
+				printError(fmt.Sprintf("Failed to create admin user: %v", err))
+			}
+		}
 	}
 	waitForEnter()
 }
 
 func dockerStopAll() {
-	fmt.Println("\n⏹️  Stopping all services (docker-compose down)...")
-	if err := runCommandInScripts("docker-compose", "down"); err != nil {
+	fmt.Println("\n⏹️  Stopping all services (docker compose down)...")
+	if err := runDockerCompose("down"); err != nil {
 		printError(fmt.Sprintf("Failed to stop services: %v", err))
 	} else {
 		printSuccess("All services stopped!")
@@ -40,9 +68,9 @@ func dockerRestartAll() {
 }
 
 func dockerStatus() {
-	fmt.Println("\n📊 Container status (docker-compose ps):")
+	fmt.Println("\n📊 Container status (docker compose ps):")
 	fmt.Println()
-	runCommandInScripts("docker-compose", "ps")
+	runDockerCompose("ps")
 	waitForEnter()
 }
 
@@ -51,8 +79,8 @@ func dockerStatus() {
 // ============================================================================
 
 func dockerStartDatabase() {
-	fmt.Println("\n▶️  Starting PostgreSQL Database (docker-compose up -d postgres)...")
-	if err := runCommandInScripts("docker-compose", "up", "-d", "postgres"); err != nil {
+	fmt.Println("\n▶️  Starting PostgreSQL Database (docker compose up -d postgres)...")
+	if err := runDockerCompose("up", "-d", "postgres"); err != nil {
 		printError(fmt.Sprintf("Failed to start database: %v", err))
 	} else {
 		printSuccess("PostgreSQL Database started!")
@@ -62,8 +90,8 @@ func dockerStartDatabase() {
 }
 
 func dockerStopDatabase() {
-	fmt.Println("\n⏹️  Stopping PostgreSQL Database (docker-compose stop postgres)...")
-	if err := runCommandInScripts("docker-compose", "stop", "postgres"); err != nil {
+	fmt.Println("\n⏹️  Stopping PostgreSQL Database (docker compose stop postgres)...")
+	if err := runDockerCompose("stop", "postgres"); err != nil {
 		printError(fmt.Sprintf("Failed to stop database: %v", err))
 	} else {
 		printSuccess("PostgreSQL Database stopped!")
@@ -73,7 +101,7 @@ func dockerStopDatabase() {
 
 func dockerRestartDatabase() {
 	fmt.Println("\n🔄 Restarting PostgreSQL Database...")
-	if err := runCommandInScripts("docker-compose", "restart", "postgres"); err != nil {
+	if err := runDockerCompose("restart", "postgres"); err != nil {
 		printError(fmt.Sprintf("Failed to restart database: %v", err))
 	} else {
 		printSuccess("PostgreSQL Database restarted!")
@@ -90,7 +118,7 @@ func dockerCleanDatabase() {
 	}
 
 	fmt.Println("🗑️  Cleaning database (removing container + volumes)...")
-	if err := runCommandInScripts("docker-compose", "down", "-v", "--remove-orphans"); err != nil {
+	if err := runDockerCompose("down", "-v", "--remove-orphans"); err != nil {
 		printError(fmt.Sprintf("Failed to clean database: %v", err))
 	} else {
 		printSuccess("Database cleaned!")
@@ -105,8 +133,8 @@ func dockerCleanDatabase() {
 // ============================================================================
 
 func dockerStartBackend() {
-	fmt.Println("\n▶️  Starting Backend API (docker-compose up -d backend)...")
-	if err := runCommandInScripts("docker-compose", "up", "-d", "backend"); err != nil {
+	fmt.Println("\n▶️  Starting Backend API (docker compose up -d backend)...")
+	if err := runDockerCompose("up", "-d", "backend"); err != nil {
 		printError(fmt.Sprintf("Failed to start backend: %v", err))
 	} else {
 		printSuccess("Backend API started!")
@@ -116,8 +144,8 @@ func dockerStartBackend() {
 }
 
 func dockerStopBackend() {
-	fmt.Println("\n⏹️  Stopping Backend API (docker-compose stop backend)...")
-	if err := runCommandInScripts("docker-compose", "stop", "backend"); err != nil {
+	fmt.Println("\n⏹️  Stopping Backend API (docker compose stop backend)...")
+	if err := runDockerCompose("stop", "backend"); err != nil {
 		printError(fmt.Sprintf("Failed to stop backend: %v", err))
 	} else {
 		printSuccess("Backend API stopped!")
@@ -127,7 +155,7 @@ func dockerStopBackend() {
 
 func dockerRestartBackend() {
 	fmt.Println("\n🔄 Restarting Backend API...")
-	if err := runCommandInScripts("docker-compose", "restart", "backend"); err != nil {
+	if err := runDockerCompose("restart", "backend"); err != nil {
 		printError(fmt.Sprintf("Failed to restart backend: %v", err))
 	} else {
 		printSuccess("Backend API restarted!")
@@ -140,8 +168,8 @@ func dockerRestartBackend() {
 // ============================================================================
 
 func dockerStartFrontend() {
-	fmt.Println("\n▶️  Starting Frontend (Nginx) (docker-compose up -d frontend)...")
-	if err := runCommandInScripts("docker-compose", "up", "-d", "frontend"); err != nil {
+	fmt.Println("\n▶️  Starting Frontend (Nginx) (docker compose up -d frontend)...")
+	if err := runDockerCompose("up", "-d", "frontend"); err != nil {
 		printError(fmt.Sprintf("Failed to start frontend: %v", err))
 	} else {
 		printSuccess("Frontend (Nginx) started!")
@@ -151,8 +179,8 @@ func dockerStartFrontend() {
 }
 
 func dockerStopFrontend() {
-	fmt.Println("\n⏹️  Stopping Frontend (Nginx) (docker-compose stop frontend)...")
-	if err := runCommandInScripts("docker-compose", "stop", "frontend"); err != nil {
+	fmt.Println("\n⏹️  Stopping Frontend (Nginx) (docker compose stop frontend)...")
+	if err := runDockerCompose("stop", "frontend"); err != nil {
 		printError(fmt.Sprintf("Failed to stop frontend: %v", err))
 	} else {
 		printSuccess("Frontend (Nginx) stopped!")
@@ -162,7 +190,7 @@ func dockerStopFrontend() {
 
 func dockerRestartFrontend() {
 	fmt.Println("\n🔄 Restarting Frontend (Nginx)...")
-	if err := runCommandInScripts("docker-compose", "restart", "frontend"); err != nil {
+	if err := runDockerCompose("restart", "frontend"); err != nil {
 		printError(fmt.Sprintf("Failed to restart frontend: %v", err))
 	} else {
 		printSuccess("Frontend (Nginx) restarted!")
@@ -177,28 +205,28 @@ func dockerRestartFrontend() {
 func dockerLogsAll() {
 	fmt.Println("\n📋 Displaying all logs (press Ctrl+C to exit)...")
 	fmt.Println()
-	runCommandInScripts("docker-compose", "logs", "-f")
+	runDockerCompose("logs", "-f")
 	waitForEnter()
 }
 
 func dockerLogsDatabase() {
 	fmt.Println("\n📊 Displaying PostgreSQL Database logs (press Ctrl+C to exit)...")
 	fmt.Println()
-	runCommandInScripts("docker-compose", "logs", "-f", "postgres")
+	runDockerCompose("logs", "-f", "postgres")
 	waitForEnter()
 }
 
 func dockerLogsBackend() {
 	fmt.Println("\n🔍 Displaying Backend API logs (press Ctrl+C to exit)...")
 	fmt.Println()
-	runCommandInScripts("docker-compose", "logs", "-f", "backend")
+	runDockerCompose("logs", "-f", "backend")
 	waitForEnter()
 }
 
 func dockerLogsFrontend() {
 	fmt.Println("\n🌐 Displaying Frontend (Nginx) logs (press Ctrl+C to exit)...")
 	fmt.Println()
-	runCommandInScripts("docker-compose", "logs", "-f", "frontend")
+	runDockerCompose("logs", "-f", "frontend")
 	waitForEnter()
 }
 
@@ -211,7 +239,7 @@ func dockerCleanAll() {
 	}
 
 	fmt.Println("💣 Stopping and cleaning all services...")
-	if err := runCommandInScripts("docker-compose", "down", "-v", "--remove-orphans"); err != nil {
+	if err := runDockerCompose("down", "-v", "--remove-orphans"); err != nil {
 		printError(fmt.Sprintf("Failed to clean all: %v", err))
 	} else {
 		printSuccess("All services stopped and cleaned!")

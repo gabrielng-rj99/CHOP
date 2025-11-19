@@ -9,6 +9,9 @@ import (
 	"runtime"
 )
 
+// Flag global para controlar clearTerminal
+var skipClearTerminal bool
+
 // clearTerminal clears the terminal screen
 func clearTerminal() {
 	if runtime.GOOS == "windows" {
@@ -53,22 +56,6 @@ func getProjectRoot() (string, error) {
 	}
 
 	return "", fmt.Errorf("project root not found - deploy directory not located")
-}
-
-// runCommandInScripts runs a command in the scripts directory
-func runCommandInScripts(args ...string) error {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		fmt.Printf("❌ Error finding project root: %v\n", err)
-		return err
-	}
-	scriptsDir := filepath.Join(projectRoot, "deploy", "scripts")
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Dir = scriptsDir
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 // runCommand runs a command from a specific directory
@@ -151,4 +138,26 @@ func inputPrompt(prompt string) string {
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	return input[:len(input)-1] // Remove newline
+}
+
+// runShell executa um comando shell com saída direta no terminal
+func runShell(cmd string) error {
+	command := exec.Command("bash", "-c", cmd)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	command.Env = os.Environ()
+	return command.Run()
+}
+
+// simulateEnterForNextFunction simula um ENTER para funções que esperam input do usuário
+func simulateEnterForNextFunction(f func()) {
+	originalStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	w.Write([]byte("\n"))
+	w.Close()
+	os.Stdin = r
+	skipClearTerminal = true
+	f()
+	skipClearTerminal = false
+	os.Stdin = originalStdin
 }

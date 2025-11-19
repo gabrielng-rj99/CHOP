@@ -51,7 +51,7 @@ func monolithModeMenu() {
 		fmt.Println("║                                                                            ║")
 		fmt.Println("║              🔙 BACK                                                       ║")
 		fmt.Println("║                                                                            ║")
-		fmt.Println("║ 99 - 🔙 Back to main menu                                                  ║")
+		fmt.Println("║ 00 - 🔙 Back to main menu                                                  ║")
 		fmt.Println("║                                                                            ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
 		fmt.Print("\nOption: ")
@@ -97,7 +97,7 @@ func monolithModeMenu() {
 			monolithLogsBackend()
 		case "34":
 			monolithLogsFrontend()
-		case "99":
+		case "00", "0":
 			return
 		default:
 			fmt.Println("❌ Invalid option.")

@@ -1,38 +1,43 @@
-# Multi-stage build para frontend React
-FROM node:18-alpine AS builder
+# Multi-stage build para frontend (Vite)
+FROM node:24-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build
 
-# Copiar package files
-COPY package*.json ./
+# Copiar package files do frontend
+COPY frontend/package*.json ./
 
 # Install dependencies
 RUN npm ci
 
-# Copiar código
-COPY . .
+# Copiar código do frontend
+COPY frontend/ ./
 
-# Build
+# Build application
 RUN npm run build
 
 # Stage final - Nginx para servir arquivos estáticos
 FROM nginx:alpine
 
-# Remover configuração padrão
+WORKDIR /app
+
+# Remover configuração padrão do nginx
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Copiar configuração customizada (será montada como volume)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copiar configuração customizada do nginx
+COPY deploy/docker/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copiar build do stage anterior
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /build/dist /usr/share/nginx/html
 
-# Expor porta
-EXPOSE 8081
+# Criar diretórios necessários
+RUN mkdir -p /app/logs
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:8081/ || exit 1
+# Expor porta (padrão 80, pode ser sobrescrito por NGINX_PORT env var)
+EXPOSE 80
+
+# Health check (use 127.0.0.1 to avoid IPv6 localhost issues)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+    CMD wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1
 
 # Nginx command
 CMD ["nginx", "-g", "daemon off;"]
