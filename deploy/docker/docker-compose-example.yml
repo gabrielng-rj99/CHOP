@@ -1,0 +1,245 @@
+# Docker Compose Example Configuration
+# =====================================
+# This file shows how to manually run Open-Generic-Hub with Docker Compose
+# without using the Deploy Manager CLI.
+#
+# Usage:
+#   1. Copy this file to your project root or deploy/config directory
+#   2. Adjust the environment variables below as needed
+#   3. Run: docker compose -f docker-compose-example.yml up -d
+#
+# For automated setup with the Deploy Manager, use:
+#   cd deploy/cmd && go build -o deploy_manager .
+#   ./deploy_manager
+#
+
+services:
+    postgres:
+        image: postgres:16-alpine
+        container_name: opengeneric_postgres
+        environment:
+            # Database credentials - CHANGE THESE IN PRODUCTION!
+            POSTGRES_USER: appuser
+            POSTGRES_PASSWORD: apppass
+            POSTGRES_DB: appdb
+        ports:
+            # Expose on host for local development
+            # Remove this section to keep database internal-only (production)
+            - "5432:5432"
+        volumes:
+            # Persist database data
+            - postgres_data:/var/lib/postgresql/data
+            # Initialize database with schema
+            - ../../backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U appuser"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - app-network
+        restart: unless-stopped
+
+    backend:
+        build:
+            context: ../../
+            dockerfile: deploy/docker/backend/Dockerfile
+        container_name: opengeneric_backend
+        environment:
+            # Server Configuration
+            SERVER_HOST: 0.0.0.0
+            API_PORT: 3000
+
+            # Database Configuration
+            DB_HOST: postgres
+            DB_PORT: 5432
+            DB_NAME: appdb
+            DB_USER: appuser
+            DB_PASSWORD: apppass
+            DB_SSLMODE: disable
+            DB_MAX_OPEN_CONNS: 25
+            DB_MAX_IDLE_CONNS: 5
+            DB_CONN_MAX_LIFETIME: 300
+
+            # JWT Configuration - MUST CHANGE IN PRODUCTION!
+            JWT_SECRET: change_me_in_production_min_32_chars
+            JWT_EXPIRATION_TIME: 60
+            JWT_REFRESH_EXPIRATION_TIME: 10080
+            JWT_ALGORITHM: HS256
+
+            # CORS Configuration
+            CORS_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:5173,http://frontend
+            CORS_ALLOWED_METHODS: GET,POST,PUT,DELETE,OPTIONS,PATCH
+            CORS_ALLOWED_HEADERS: Content-Type,Authorization
+            CORS_ALLOW_CREDENTIALS: "true"
+
+            # Application Configuration
+            APP_ENV: docker
+            APP_VERSION: 1.0.0
+            APP_NAME: Open-Generic-Hub
+
+            # Logging Configuration
+            LOG_ENABLED: "true"
+            LOG_LEVEL: info
+            LOG_FORMAT: json
+            LOG_FILE: logs/app.log
+
+            # Paths (relative to /app in container)
+            SCHEMA_FILE: database/schema.sql
+            MIGRATIONS_DIR: database/migrations
+            LOGS_DIR: logs
+        ports:
+            # Expose on host for local development
+            # Remove this section to keep API internal-only (production)
+            - "3000:3000"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        volumes:
+            # Mount database schema (read-only)
+            - ../../backend/database:/app/database:ro
+            # Mount logs volume
+            - backend_logs:/app/logs
+        networks:
+            - app-network
+        restart: unless-stopped
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--quiet",
+                    "--tries=1",
+                    "--spider",
+                    "http://localhost:3000/health",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+
+    frontend:
+        build:
+            context: ../../
+            dockerfile: deploy/docker/frontend/Dockerfile
+            args:
+                # Build-time configuration
+                VITE_API_URL: http://localhost:3000
+        container_name: opengeneric_frontend
+        environment:
+            # Nginx Configuration
+            NGINX_PORT: 80
+            # Backend URL for proxying requests
+            BACKEND_URL: http://backend:3000
+        ports:
+            # Expose on host for accessing the application
+            # Format: "HOST_PORT:CONTAINER_PORT"
+            - "8081:80"
+        depends_on:
+            backend:
+                condition: service_healthy
+        networks:
+            - app-network
+        restart: unless-stopped
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--quiet",
+                    "--tries=1",
+                    "--spider",
+                    "http://127.0.0.1:80/health",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 30s
+
+# Persistent volumes
+volumes:
+    postgres_data:
+        driver: local
+    backend_logs:
+        driver: local
+
+# Docker network for service-to-service communication
+networks:
+    app-network:
+        driver: bridge
+        name: opengeneric-network
+# ============================================================================
+# CUSTOMIZATION GUIDE
+# ============================================================================
+#
+# 1. CHANGE PASSWORDS (REQUIRED FOR PRODUCTION):
+#    - Find: POSTGRES_PASSWORD: apppass
+#      Replace with a strong password
+#    - Find: JWT_SECRET: change_me_in_production_min_32_chars
+#      Replace with a 32+ character random string
+#
+# 2. CUSTOMIZE PORTS:
+#    - Change frontend port: "9091:80" (instead of "8081:80")
+#    - Change backend port: "4000:3000" (instead of "3000:3000")
+#    - Change database port: "5433:5432" (if 5432 is busy)
+#
+# 3. HIDE SERVICES (PRODUCTION):
+#    Remove the entire "ports:" section for services you want to keep internal:
+#    - Remove postgres ports → Database only accessible from backend
+#    - Remove backend ports → API only accessible from Nginx
+#    - Keep frontend ports → Users access via Nginx
+#
+# 4. CUSTOMIZE DATABASE:
+#    - Change DB_NAME: appdb → your_db_name
+#    - Change DB_USER: appuser → your_user
+#    - Change DB_PASSWORD: apppass → your_password
+#    - Update all references in backend environment section
+#
+# 5. CUSTOMIZE CORS:
+#    - Add your domain: http://yourdomain.com
+#    - Add staging: http://staging.yourdomain.com
+#    - Format: CORS_ALLOWED_ORIGINS: origin1,origin2,origin3
+#
+# 6. CUSTOMIZE LOG LEVEL:
+#    - Options: debug, info, warn, error
+#    - Change: LOG_LEVEL: info → LOG_LEVEL: debug (for development)
+#
+# ============================================================================
+# QUICK START
+# ============================================================================
+#
+# 1. Start all services:
+#    docker compose -f docker-compose-example.yml up -d
+#
+# 2. Check status:
+#    docker compose -f docker-compose-example.yml ps
+#
+# 3. View logs:
+#    docker compose -f docker-compose-example.yml logs -f
+#
+# 4. Access application:
+#    Frontend: http://localhost:8081
+#    Backend API: http://localhost:3000
+#    Database: localhost:5432 (from your machine, if ports exposed)
+#
+# 5. Stop services:
+#    docker compose -f docker-compose-example.yml down
+#
+# 6. Stop and remove volumes (DELETES DATA):
+#    docker compose -f docker-compose-example.yml down -v
+#
+# ============================================================================
+# PRODUCTION CHECKLIST
+# ============================================================================
+#
+# [ ] Change POSTGRES_PASSWORD to a strong password
+# [ ] Change JWT_SECRET to a 32+ character random string
+# [ ] Remove all "ports:" sections (or expose only frontend)
+# [ ] Set LOG_LEVEL: error
+# [ ] Use a reverse proxy (Traefik, Nginx, Caddy) for HTTPS
+# [ ] Use Docker secrets instead of environment variables
+# [ ] Set restart: always (instead of unless-stopped)
+# [ ] Configure health checks properly
+# [ ] Set resource limits (cpus, memory)
+#
+# ============================================================================
