@@ -454,4 +454,4 @@ A: Menu → Contratos → Buscar, depois informar o ID.
 
 ---
 
-**Precisa de ajuda?** Abra uma [issue](https://github.com/seu-usuario/Contracts-Manager/issues) ou consulte a documentação completa.
+**Precisa de ajuda?** Abra uma [issue](https://github.com/seu-usuario/Open-Generic-Hub/issues) ou consulte a documentação completa.

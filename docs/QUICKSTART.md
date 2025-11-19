@@ -108,7 +108,7 @@ Agora que o sistema está rodando:
 go test ./store -v
 
 # Build para produção
-go build -o contracts-manager cmd/server/main.go
+go build -o Open-Generic-Hub cmd/server/main.go
 
 # Executar CLI
 go run cmd/cli/main.go

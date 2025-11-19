@@ -19,8 +19,8 @@ git --version
 ### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/seu-usuario/Contracts-Manager.git
-cd Contracts-Manager
+git clone https://github.com/seu-usuario/Open-Generic-Hub.git
+cd Open-Generic-Hub
 ```
 
 ### 2. Instale Dependências
@@ -151,8 +151,8 @@ Compile um binário executável:
 
 ```bash
 cd backend
-go build -o contracts-manager cmd/cli/main.go
-./contracts-manager
+go build -o Open-Generic-Hub cmd/cli/main.go
+./Open-Generic-Hub
 ```
 
 ## 🐳 Docker (Opcional)
@@ -285,7 +285,7 @@ go mod download
 
 **Solução:**
 ```bash
-cd Contracts-Manager/backend
+cd Open-Generic-Hub/backend
 go run cmd/cli/main.go
 ```
 
@@ -296,10 +296,10 @@ go run cmd/cli/main.go
 **Solução:**
 ```bash
 # Deve estar na raiz do projeto
-ls -la Contracts-Manager/.env
+ls -la Open-Generic-Hub/.env
 
 # Se não existir, crie
-cat > Contracts-Manager/.env << EOF
+cat > Open-Generic-Hub/.env << EOF
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=seu_usuario
@@ -368,4 +368,4 @@ Se vir o menu, parabéns! 🎉 O setup está completo.
 
 ---
 
-**Problemas?** Consulte [Troubleshooting](#-troubleshooting) acima ou abra uma [issue](https://github.com/seu-usuario/Contracts-Manager/issues).
+**Problemas?** Consulte [Troubleshooting](#-troubleshooting) acima ou abra uma [issue](https://github.com/seu-usuario/Open-Generic-Hub/issues).

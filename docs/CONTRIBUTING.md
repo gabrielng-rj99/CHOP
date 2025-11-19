@@ -7,8 +7,8 @@ Guia para contribuidores. Obrigado por querer melhorar este projeto!
 ### 1. Fork e Clone
 
 ```bash
-git clone https://github.com/seu-usuario/Contracts-Manager.git
-cd Contracts-Manager
+git clone https://github.com/seu-usuario/Open-Generic-Hub.git
+cd Open-Generic-Hub
 ```
 
 ### 2. Criar Branch
@@ -467,8 +467,8 @@ Descreva:
 
 ## 📞 Precisa de Ajuda?
 
-- 💬 Abra uma [discussion](https://github.com/seu-usuario/Contracts-Manager/discussions)
-- 🐛 Reporte um [bug](https://github.com/seu-usuario/Contracts-Manager/issues)
+- 💬 Abra uma [discussion](https://github.com/seu-usuario/Open-Generic-Hub/discussions)
+- 🐛 Reporte um [bug](https://github.com/seu-usuario/Open-Generic-Hub/issues)
 - 📖 Leia [ARCHITECTURE.md](ARCHITECTURE.md)
 - 📚 Consulte [USAGE.md](USAGE.md)
 
