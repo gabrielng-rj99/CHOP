@@ -1,0 +1,125 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+*.test
+coverage.out
+*.prof
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Dependencies cache
+vendor/
+
+# Build artifacts
+build/
+dist/
+
+# Documentation
+docs/
+README.md
+CONTRIBUTING.md
+
+# Test reports
+test_reports/
+
+# Environment files (keep .dockerignore itself)
+.env
+.env.local
+.env.*.local
+
+# Node modules (if any)
+node_modules/
+
+# Docker files in context
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+```
+
+<file_path>
+Contract-Manager/frontend/.dockerignore
+</file_path>
+
+<edit_description>
+Create .dockerignore for frontend
+</edit_description>
+
+```
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+.prettierignore
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+docs/
+README.md
+CONTRIBUTING.md
+
+# Development
+vite.config.js.bak
+tsconfig.json.bak

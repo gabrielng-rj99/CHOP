@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+    # PostgreSQL Database
+    postgres:
+        image: postgres:14-alpine
+        container_name: ${POSTGRES_CONTAINER:-contract_manager_postgres}
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: contracts_manager
+        ports:
+            - "${POSTGRES_HOST_PORT:-5432}:${POSTGRES_CONTAINER_PORT:-5432}"
+        volumes:
+            - ${POSTGRES_VOLUME:-postgres_data}:/var/lib/postgresql/data
+            - ../../backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - ${NETWORK_NAME:-contract-manager-network}
+
+    # Backend API
+    backend:
+        build:
+            context: ../../backend
+            dockerfile: ../docker/backend/Dockerfile
+        container_name: ${BACKEND_CONTAINER:-contract_manager_backend}
+        environment:
+            APP_SERVER_HOST: 0.0.0.0
+            APP_SERVER_PORT: ${BACKEND_PORT:-3000}
+            APP_DATABASE_HOST: postgres
+            APP_DATABASE_PORT: ${POSTGRES_PORT:-5432}
+            APP_DATABASE_NAME: contracts_manager
+            APP_DATABASE_USER: postgres
+            APP_DATABASE_PASSWORD: postgres
+            APP_ENV: docker
+            APP_JWT_SECRET_KEY: dev_secret_key_minimum_32_characters_required
+        ports:
+            - "${BACKEND_HOST_PORT:-3000}:${BACKEND_PORT:-3000}"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        volumes:
+            - ./docker.ini:/app/config.ini
+            - ../../backend/database:/app/database
+            - ../../backend/logs:/app/logs
+        networks:
+            - ${NETWORK_NAME:-contract-manager-network}
+        restart: unless-stopped
+
+    # Frontend
+    frontend:
+        build:
+            context: ../../frontend
+            dockerfile: ../docker/frontend/Dockerfile
+        container_name: ${FRONTEND_CONTAINER:-contract_manager_frontend}
+        ports:
+            - "${FRONTEND_HOST_PORT:-8081}:${FRONTEND_PORT:-8081}"
+        depends_on:
+            - backend
+        environment:
+            BACKEND_URL: http://backend:${BACKEND_PORT:-3000}
+        networks:
+            - ${NETWORK_NAME:-contract-manager-network}
+        restart: unless-stopped
+
+volumes:
+    postgres_data:
+        driver: local
+
+networks:
+    contract-manager-network:
+        driver: bridge
