@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"Open-Generic-Hub/backend/config"
+	"Open-Generic-Hub/backend/database"
 	"Open-Generic-Hub/backend/server"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -33,9 +34,32 @@ func main() {
 		log.SetOutput(logFile)
 	}
 
-	// Create server WITHOUT database connection initially
-	// Database will be connected/initialized via frontend deployment panel
+	// Try to connect to database automatically with retry logic
 	var db *sql.DB
+	var err error
+	maxRetries := 10
+	retryDelay := time.Second
+
+	log.Printf("🔄 Attempting to connect to database...\n")
+	for i := 0; i < maxRetries; i++ {
+		db, err = database.ConnectDB()
+		if err == nil {
+			log.Printf("✅ Database connected successfully\n")
+			break
+		}
+
+		if i < maxRetries-1 {
+			log.Printf("⏳ Database connection attempt %d/%d failed: %v. Retrying in %v...\n", i+1, maxRetries, err, retryDelay)
+			time.Sleep(retryDelay)
+			retryDelay *= 2 // Exponential backoff
+		} else {
+			log.Printf("⚠️  WARNING: Could not connect to database after %d attempts: %v\n", maxRetries, err)
+			log.Printf("📋 Server will start but endpoints requiring database will return 503\n")
+			log.Printf("💡 Initialize database via /api/initialize/database endpoint\n")
+			db = nil
+		}
+	}
+
 	srv := server.NewServer(db)
 	srv.SetupRoutes()
 
@@ -57,9 +81,12 @@ func main() {
 	// Log server startup
 	fmt.Printf("🚀 %s v%s starting...\n", cfg.App.Name, cfg.App.Version)
 	fmt.Printf("📡 Server running on http://%s:%s\n", cfg.Server.Host, port)
-	fmt.Printf("🗄️  Database will be configured via deployment panel\n")
+	if db != nil {
+		fmt.Printf("🗄️  Database: Connected\n")
+	} else {
+		fmt.Printf("🗄️  Database: Not connected (initialize via API)\n")
+	}
 	fmt.Printf("🔐 Environment: %s\n", cfg.App.Env)
-	fmt.Printf("💡 Open http://%s:%s in browser to initialize\n", cfg.Server.Host, port)
 
 	// Start server
 	log.Fatal(httpServer.ListenAndServe())
