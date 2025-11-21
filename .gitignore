@@ -95,6 +95,9 @@ coverage.html
 *.tmp
 *.bak
 *.log
+*.temp
+*.swp
+*~
 
 # =========================
 # Environment
@@ -106,3 +109,4 @@ coverage.html
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
