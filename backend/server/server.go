@@ -3,9 +3,13 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
+	"Open-Generic-Hub/backend/config"
 	"Open-Generic-Hub/backend/store"
 )
 
@@ -17,18 +21,42 @@ type Server struct {
 	categoryStore  *store.CategoryStore
 	lineStore      *store.LineStore
 	auditStore     *store.AuditStore
+	config         *config.Config
 }
 
 // NewServer creates a new Server instance with all stores
 func NewServer(db *sql.DB) *Server {
+	cfg := config.GetConfig()
+
+	// Only create stores if database is available
+	// This allows the server to start for initial setup/deploy panel
+	var userStore *store.UserStore
+	var contractStore *store.ContractStore
+	var clientStore *store.ClientStore
+	var dependentStore *store.DependentStore
+	var categoryStore *store.CategoryStore
+	var lineStore *store.LineStore
+	var auditStore *store.AuditStore
+
+	if db != nil {
+		userStore = store.NewUserStore(db)
+		contractStore = store.NewContractStore(db)
+		clientStore = store.NewClientStore(db)
+		dependentStore = store.NewDependentStore(db)
+		categoryStore = store.NewCategoryStore(db)
+		lineStore = store.NewLineStore(db)
+		auditStore = store.NewAuditStore(db)
+	}
+
 	return &Server{
-		userStore:      store.NewUserStore(db),
-		contractStore:  store.NewContractStore(db),
-		clientStore:    store.NewClientStore(db),
-		dependentStore: store.NewDependentStore(db),
-		categoryStore:  store.NewCategoryStore(db),
-		lineStore:      store.NewLineStore(db),
-		auditStore:     store.NewAuditStore(db),
+		userStore:      userStore,
+		contractStore:  contractStore,
+		clientStore:    clientStore,
+		dependentStore: dependentStore,
+		categoryStore:  categoryStore,
+		lineStore:      lineStore,
+		auditStore:     auditStore,
+		config:         cfg,
 	}
 }
 
@@ -41,14 +69,53 @@ type SuccessResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// isOriginAllowed checks if the origin is in the allowed list
+func isOriginAllowed(origin string, allowedOrigins []string) bool {
+	for _, allowed := range allowedOrigins {
+		if origin == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		// Panic recovery
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Fprintf(os.Stderr, "PANIC in handler %s %s: %v\n", r.Method, r.URL.Path, err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+
+		origin := r.Header.Get("Origin")
+
+		// Check if origin is allowed
+		if origin != "" && isOriginAllowed(origin, s.config.Server.CORSOrigins) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+
+			if s.config.Server.CORSAllowCreds {
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", strings.Join(s.config.Server.CORSMethods, ", "))
+			w.Header().Set("Access-Control-Allow-Headers", strings.Join(s.config.Server.CORSHeaders, ", "))
+
+			if len(s.config.Server.CORSExposeHeaders) > 0 {
+				w.Header().Set("Access-Control-Expose-Headers", strings.Join(s.config.Server.CORSExposeHeaders, ", "))
+			}
+
+			if s.config.Server.CORSMaxAge > 0 {
+				w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", s.config.Server.CORSMaxAge))
+			}
+		} else if origin != "" {
+			// Origin not allowed - log for security audit
+			log.Printf("CORS: Origin not allowed: %s (allowed: %v)", origin, s.config.Server.CORSOrigins)
+		}
 
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 

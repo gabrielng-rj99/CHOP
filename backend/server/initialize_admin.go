@@ -81,7 +81,6 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer db.Close()
 
 	userStore := store.NewUserStore(db)
 
@@ -94,6 +93,7 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 	// Create the root admin user
 	adminID, err := userStore.CreateUser(username, req.DisplayName, req.Password, "root")
 	if err != nil {
+		db.Close()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(InitializeAdminResponse{
@@ -105,6 +105,18 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("✅ Root admin user created via API (ID: %s, username: %s)", adminID, username)
+
+	// Reinitialize server stores with the database connection
+	// This makes the server fully operational after admin creation
+	s.userStore = store.NewUserStore(db)
+	s.contractStore = store.NewContractStore(db)
+	s.clientStore = store.NewClientStore(db)
+	s.dependentStore = store.NewDependentStore(db)
+	s.categoryStore = store.NewCategoryStore(db)
+	s.lineStore = store.NewLineStore(db)
+	s.auditStore = store.NewAuditStore(db)
+
+	log.Printf("✅ Server stores reinitialized with database connection")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -54,14 +54,14 @@ func (s *Server) SetupRoutes() {
 // registerRoutes registers all routes on the provided ServeMux
 func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Health check
-	mux.HandleFunc("/health", corsMiddleware(s.handleHealth))
+	mux.HandleFunc("/health", s.corsMiddleware(s.handleHealth))
 
 	// Auth
-	mux.HandleFunc("/api/login", corsMiddleware(s.handleLogin))
-	mux.HandleFunc("/api/refresh-token", corsMiddleware(s.handleRefreshToken))
+	mux.HandleFunc("/api/login", s.corsMiddleware(s.handleLogin))
+	mux.HandleFunc("/api/refresh-token", s.corsMiddleware(s.handleRefreshToken))
 
 	// Users
-	mux.HandleFunc("/api/users/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/users/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/block") {
 			s.handleUserBlock(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unlock") {
@@ -70,7 +70,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleUserByUsername(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/users", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/users", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Se o path é exatamente /api/users (sem ID), chama handleUsers
 		if r.URL.Path == "/api/users" {
 			s.handleUsers(w, r)
@@ -87,7 +87,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Clients
-	mux.HandleFunc("/api/clients/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/clients/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleClientArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
@@ -98,7 +98,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleClientByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/clients", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/clients", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/clients" {
 			s.handleClients(w, r)
 		} else {
@@ -115,10 +115,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Dependents
-	mux.HandleFunc("/api/dependents/", corsMiddleware(s.authMiddleware(s.handleDependentByID)))
+	mux.HandleFunc("/api/dependents/", s.corsMiddleware(s.authMiddleware(s.handleDependentByID)))
 
 	// Contracts
-	mux.HandleFunc("/api/contracts/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/contracts/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleContractArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
@@ -127,7 +127,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleContractByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/contracts", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/contracts", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/contracts" {
 			s.handleContracts(w, r)
 		} else {
@@ -142,14 +142,14 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Categories
-	mux.HandleFunc("/api/categories/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/categories/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/lines") {
 			s.handleCategoryLines(w, r)
 		} else {
 			s.handleCategoryByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/categories", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/categories", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/categories" {
 			s.handleCategories(w, r)
 		} else {
@@ -162,8 +162,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Lines
-	mux.HandleFunc("/api/lines/", corsMiddleware(s.authMiddleware(s.handleLineByID)))
-	mux.HandleFunc("/api/lines", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/lines/", s.corsMiddleware(s.authMiddleware(s.handleLineByID)))
+	mux.HandleFunc("/api/lines", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/lines" {
 			s.handleLines(w, r)
 		} else {
@@ -172,7 +172,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Audit Logs (only accessible to root)
-	mux.HandleFunc("/api/audit-logs/", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/audit-logs/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "root" {
@@ -188,7 +188,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleAuditLogDetail(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/audit-logs", corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/audit-logs", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Apenas root pode acessar
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 		if err != nil || claims.Role != "root" {
@@ -210,12 +210,13 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Deploy Configuration (accessible without auth in development, with token in production)
-	mux.HandleFunc("/api/deploy/config", corsMiddleware(s.HandleDeployConfig))
-	mux.HandleFunc("/api/deploy/config/defaults", corsMiddleware(s.HandleDeployConfigDefaults))
-	mux.HandleFunc("/api/deploy/status", corsMiddleware(s.HandleDeployStatus))
-	mux.HandleFunc("/api/deploy/validate", corsMiddleware(s.HandleDeployValidate))
+	mux.HandleFunc("/api/deploy/config", s.corsMiddleware(s.HandleDeployConfig))
+	mux.HandleFunc("/api/deploy/config/defaults", s.corsMiddleware(s.HandleDeployConfigDefaults))
+	mux.HandleFunc("/api/deploy/status", s.corsMiddleware(s.HandleDeployStatus))
+	mux.HandleFunc("/api/deploy/validate", s.corsMiddleware(s.HandleDeployValidate))
 
 	// Initialize Database & Admin (accessible during first-time setup)
-	mux.HandleFunc("/api/initialize/database", corsMiddleware(s.HandleInitializeDatabase))
-	mux.HandleFunc("/api/initialize/admin", corsMiddleware(s.HandleInitializeAdmin))
+	mux.HandleFunc("/api/initialize/database", s.corsMiddleware(s.HandleInitializeDatabase))
+	mux.HandleFunc("/api/initialize/admin", s.corsMiddleware(s.HandleInitializeAdmin))
+	mux.HandleFunc("/api/initialize/status", s.corsMiddleware(s.HandleInitializeStatus))
 }
