@@ -1,5 +1,3 @@
-const API_BASE = "/api";
-
 export const auditApi = {
     // Get audit logs with filters and pagination
     getAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
@@ -23,7 +21,7 @@ export const auditApi = {
         if (filters.offset) params.append("offset", filters.offset);
 
         const response = await fetch(
-            `${apiUrl}${API_BASE}/audit-logs?${params.toString()}`,
+            `${apiUrl}/audit-logs?${params.toString()}`,
             {
                 method: "GET",
                 headers: {
@@ -35,7 +33,9 @@ export const auditApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -48,20 +48,19 @@ export const auditApi = {
 
     // Get a specific audit log by ID
     getAuditLogDetail: async (apiUrl, token, logId, onTokenExpired) => {
-        const response = await fetch(
-            `${apiUrl}${API_BASE}/audit-logs/${logId}`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+        const response = await fetch(`${apiUrl}/audit-logs/${logId}`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-        );
+        });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -87,7 +86,7 @@ export const auditApi = {
         params.append("offset", offset);
 
         const response = await fetch(
-            `${apiUrl}${API_BASE}/audit-logs/entity/${entity}/${entityId}?${params.toString()}`,
+            `${apiUrl}/audit-logs/entity/${entityType}/${entityId}?${params.toString()}`,
             {
                 method: "GET",
                 headers: {
@@ -99,7 +98,9 @@ export const auditApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -125,7 +126,7 @@ export const auditApi = {
             params.append("changed_data", filters.changedData);
 
         const response = await fetch(
-            `${apiUrl}${API_BASE}/audit-logs/export?${params.toString()}`,
+            `${apiUrl}/audit-logs/export?${params.toString()}`,
             {
                 method: "GET",
                 headers: {
@@ -137,7 +138,9 @@ export const auditApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {

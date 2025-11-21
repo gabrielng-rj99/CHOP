@@ -2,7 +2,7 @@ export const clientsApi = {
     loadClients: async (apiUrl, token, setClients, setError, onTokenExpired) => {
         try {
             const response = await fetch(
-                `${apiUrl}/api/clients?include_stats=true`,
+                `${apiUrl}/clients?include_stats=true`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -52,7 +52,7 @@ export const clientsApi = {
             tags: formData.tags || null,
         };
 
-        const response = await fetch(`${apiUrl}/api/clients`, {
+        const response = await fetch(`${apiUrl}/clients`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -99,7 +99,7 @@ export const clientsApi = {
             tags: formData.tags || null,
         };
 
-        const response = await fetch(`${apiUrl}/api/clients/${clientId}`, {
+        const response = await fetch(`${apiUrl}/clients/${clientId}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -123,7 +123,7 @@ export const clientsApi = {
 
     archiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/clients/${clientId}/archive`,
+            `${apiUrl}/clients/${clientId}/archive`,
             {
                 method: "PUT",
                 headers: {
@@ -147,7 +147,7 @@ export const clientsApi = {
 
     unarchiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/clients/${clientId}/unarchive`,
+            `${apiUrl}/clients/${clientId}/unarchive`,
             {
                 method: "PUT",
                 headers: {
@@ -171,7 +171,7 @@ export const clientsApi = {
 
     loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/clients/${clientId}/dependents`,
+            `${apiUrl}/clients/${clientId}/dependents`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -206,7 +206,7 @@ export const clientsApi = {
         };
 
         const response = await fetch(
-            `${apiUrl}/api/clients/${clientId}/dependents`,
+            `${apiUrl}/clients/${clientId}/dependents`,
             {
                 method: "POST",
                 headers: {
@@ -243,7 +243,7 @@ export const clientsApi = {
         };
 
         const response = await fetch(
-            `${apiUrl}/api/dependents/${dependentId}`,
+            `${apiUrl}/dependents/${dependentId}`,
             {
                 method: "PUT",
                 headers: {
@@ -269,7 +269,7 @@ export const clientsApi = {
 
     deleteDependent: async (apiUrl, token, dependentId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/dependents/${dependentId}`,
+            `${apiUrl}/dependents/${dependentId}`,
             {
                 method: "DELETE",
                 headers: {

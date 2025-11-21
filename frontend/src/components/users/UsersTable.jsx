@@ -35,7 +35,6 @@ export default function UsersTable({
             </thead>
             <tbody>
                 {filteredUsers.map((user) => {
-                    console.log("User row:", user);
                     const isBlocked = user.lock_level >= 3;
                     const isCurrentUser =
                         user.username === currentUser?.username;

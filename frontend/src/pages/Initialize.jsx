@@ -2,34 +2,22 @@ import React, { useState, useEffect } from "react";
 import "./Initialize.css";
 
 const Initialize = ({ onInitializationComplete }) => {
-    const [step, setStep] = useState("check"); // check, db-config, secrets, deploy
+    const [step, setStep] = useState("check"); // check, create-admin, success
     const [status, setStatus] = useState(null);
     const [errors, setErrors] = useState([]);
-    const [serverInfo, setServerInfo] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Database configuration from config.ini defaults
-    const [dbHost, setDbHost] = useState("localhost");
-    const [dbPort, setDbPort] = useState("5432");
-    const [dbName, setDbName] = useState("contracts_manager");
-    const [dbUser, setDbUser] = useState("postgres");
-    const [dbPassword, setDbPassword] = useState("CHANGE_ME");
+    // Root user configuration
+    const [username, setUsername] = useState("root");
+    const [displayName, setDisplayName] = useState("Administrator");
+    const [password, setPassword] = useState("Change_Me_123456");
+    const [passwordLength, setPasswordLength] = useState(16);
 
-    // Secrets with bad defaults
-    const [dbPasswordSecret, setDbPasswordSecret] = useState("CHANGE_ME");
-    const [jwtSecret, setJwtSecret] = useState("CHANGE_ME");
+    const [showPassword, setShowPassword] = useState(false);
+    const [creatingAdmin, setCreatingAdmin] = useState(false);
 
-    // Password length controls
-    const [dbPasswordLength, setDbPasswordLength] = useState(32);
-    const [jwtSecretLength, setJwtSecretLength] = useState(64);
-
-    const [showSecrets, setShowSecrets] = useState(false);
-    const [testingConnection, setTestingConnection] = useState(false);
-
-    const DB_PASSWORD_MIN = 8;
-    const DB_PASSWORD_MAX = 128;
-    const JWT_SECRET_MIN = 32;
-    const JWT_SECRET_MAX = 256;
+    const PASSWORD_MIN = 8;
+    const PASSWORD_MAX = 128;
 
     useEffect(() => {
         checkBackendStatus();
@@ -49,28 +37,33 @@ const Initialize = ({ onInitializationComplete }) => {
                 throw new Error("Backend is not responding");
             }
 
-            // Check deployment status
-            const deployResponse = await fetch("/api/deploy/status", {
+            // Check initialization status
+            const statusResponse = await fetch("/api/initialize/status", {
                 method: "GET",
             });
 
-            if (!deployResponse.ok) {
-                throw new Error("Cannot check deployment status");
+            if (!statusResponse.ok) {
+                throw new Error("Cannot check initialization status");
             }
 
-            const deployData = await deployResponse.json();
-            setServerInfo(deployData);
+            const statusData = await statusResponse.json();
 
-            // Proceed to database configuration
+            // If already initialized, skip this screen
+            if (statusData.is_initialized) {
+                onInitializationComplete();
+                return;
+            }
+
+            // Proceed to admin creation
             setTimeout(() => {
-                setStep("db-config");
-            }, 1000);
+                setStep("create-admin");
+            }, 800);
         } catch (error) {
             setErrors([error.message]);
             setStatus({
                 type: "error",
                 message: "Backend server is not running",
-                advice: "Start the backend server with: cd backend && go run cmd/server/main.go",
+                advice: "Ensure the backend server is running. Contact your administrator if the issue persists.",
             });
             setStep("error");
         } finally {
@@ -78,87 +71,51 @@ const Initialize = ({ onInitializationComplete }) => {
         }
     };
 
-    const testDatabaseConnection = async () => {
-        try {
-            setTestingConnection(true);
-            setErrors([]);
+    const generateSecurePassword = (length = 16) => {
+        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*()-_=+";
+        const allChars = uppercase + lowercase + numbers + symbols;
 
-            // First, initialize the database
-            const initResponse = await fetch("/api/initialize/database", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    database_host: dbHost,
-                    database_port: dbPort,
-                    database_name: dbName,
-                    database_user: dbUser,
-                    database_password: dbPassword,
-                }),
-            });
+        let newPassword = "";
+        // Ensure at least one of each type
+        newPassword += uppercase.charAt(
+            Math.floor(Math.random() * uppercase.length),
+        );
+        newPassword += lowercase.charAt(
+            Math.floor(Math.random() * lowercase.length),
+        );
+        newPassword += numbers.charAt(
+            Math.floor(Math.random() * numbers.length),
+        );
+        newPassword += symbols.charAt(
+            Math.floor(Math.random() * symbols.length),
+        );
 
-            const initData = await initResponse.json();
-
-            if (!initResponse.ok || !initData.success) {
-                setErrors(initData.errors || ["Failed to initialize database"]);
-                return;
-            }
-
-            setStatus({
-                type: "success",
-                message: "Database initialized! ✓",
-            });
-
-            setTimeout(() => {
-                setStep("secrets");
-                setStatus(null);
-            }, 1000);
-        } catch (error) {
-            setErrors([`Database initialization failed: ${error.message}`]);
-        } finally {
-            setTestingConnection(false);
+        // Fill the rest randomly
+        for (let i = newPassword.length; i < length; i++) {
+            newPassword += allChars.charAt(
+                Math.floor(Math.random() * allChars.length),
+            );
         }
+
+        // Shuffle the password
+        return newPassword
+            .split("")
+            .sort(() => Math.random() - 0.5)
+            .join("");
     };
 
-    const generateSecurePassword = (length = 32) => {
-        const chars =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+";
-        let password = "";
-        for (let i = 0; i < length; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
+    const handleGeneratePassword = () => {
+        const newPassword = generateSecurePassword(passwordLength);
+        setPassword(newPassword);
     };
 
-    const generateSecureSecret = (length = 64) => {
-        const chars =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-        let secret = "";
-        for (let i = 0; i < length; i++) {
-            secret += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return secret;
-    };
-
-    const handleGenerateDbPassword = () => {
-        const password = generateSecurePassword(dbPasswordLength);
-        setDbPasswordSecret(password);
-    };
-
-    const handleGenerateJwtSecret = () => {
-        const secret = generateSecureSecret(jwtSecretLength);
-        setJwtSecret(secret);
-    };
-
-    const handleDbPasswordLengthChange = (newLength) => {
-        setDbPasswordLength(newLength);
-        const password = generateSecurePassword(newLength);
-        setDbPasswordSecret(password);
-    };
-
-    const handleJwtSecretLengthChange = (newLength) => {
-        setJwtSecretLength(newLength);
-        const secret = generateSecureSecret(newLength);
-        setJwtSecret(secret);
+    const handlePasswordLengthChange = (newLength) => {
+        setPasswordLength(newLength);
+        const newPassword = generateSecurePassword(newLength);
+        setPassword(newPassword);
     };
 
     const copyToClipboard = (text) => {
@@ -172,104 +129,66 @@ const Initialize = ({ onInitializationComplete }) => {
             });
     };
 
-    const handleDeployConfiguration = async () => {
+    const handleCreateRootAdmin = async () => {
         try {
-            setLoading(true);
+            setCreatingAdmin(true);
             setErrors([]);
 
-            // Validate secrets
-            if (!dbPasswordSecret || dbPasswordSecret === "CHANGE_ME") {
+            // Validate input
+            if (!username.trim()) {
+                setErrors(["Username is required"]);
+                return;
+            }
+
+            if (!displayName.trim()) {
+                setErrors(["Display name is required"]);
+                return;
+            }
+
+            if (!password || password.length < PASSWORD_MIN) {
                 setErrors([
-                    "❌ Database password not set. Please change from default!",
+                    `Password must be at least ${PASSWORD_MIN} characters`,
                 ]);
                 return;
             }
 
-            if (!jwtSecret || jwtSecret === "CHANGE_ME") {
-                setErrors([
-                    "❌ JWT secret not set. Please change from default!",
-                ]);
-                return;
-            }
-
-            if (dbPasswordSecret.length < 8) {
-                setErrors([
-                    "❌ Database password must be at least 8 characters",
-                ]);
-                return;
-            }
-
-            if (jwtSecret.length < 32) {
-                setErrors(["❌ JWT secret must be at least 32 characters"]);
-                return;
-            }
-
-            // Deploy configuration
-            const response = await fetch("/api/deploy/config", {
+            // Create root admin user
+            const response = await fetch("/api/initialize/admin", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    server_host: "localhost",
-                    server_port: "3000",
-                    database_host: dbHost,
-                    database_port: dbPort,
-                    database_name: dbName,
-                    database_user: dbUser,
-                    database_password: dbPasswordSecret,
-                    jwt_secret_key: jwtSecret,
-                    app_env: "development",
+                    username: username.trim(),
+                    display_name: displayName.trim(),
+                    password: password,
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                setErrors(data.errors || ["Failed to deploy configuration"]);
+                setErrors(data.errors || ["Failed to create root admin user"]);
                 return;
             }
 
             setStatus({
                 type: "success",
-                message:
-                    "✅ Configuration deployed! Creating root admin user...",
+                message: "✅ Root admin user created successfully!",
+                credentials: {
+                    username: username.trim(),
+                    password: password,
+                },
             });
 
-            // Small delay before creating admin
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            // Now create the root admin user
-            const adminResponse = await fetch("/api/initialize/admin", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: "root",
-                    display_name: "Administrator",
-                    password: dbPasswordSecret,
-                }),
-            });
-
-            const adminData = await adminResponse.json();
-
-            if (!adminResponse.ok || !adminData.success) {
-                setErrors(
-                    adminData.errors || ["Failed to create root admin user"],
-                );
-                return;
-            }
-
-            setStatus({
-                type: "success",
-                message: "✅ Root admin created! Redirecting to login...",
-            });
-
-            // Call completion callback after a delay
+            // Show success screen for 2 seconds then redirect
             setTimeout(() => {
                 onInitializationComplete();
-            }, 2000);
+            }, 2500);
+
+            setStep("success");
         } catch (error) {
-            setErrors([`Deployment failed: ${error.message}`]);
+            setErrors([`Creation failed: ${error.message}`]);
         } finally {
-            setLoading(false);
+            setCreatingAdmin(false);
         }
     };
 
@@ -312,11 +231,7 @@ const Initialize = ({ onInitializationComplete }) => {
                         <div className="progress-item">
                             <span className="progress-icon">✓</span>
                             <span>Backend Server</span>
-                            <span
-                                className={`status ${serverInfo ? "connected" : "checking"}`}
-                            >
-                                {serverInfo ? "Connected" : "Checking..."}
-                            </span>
+                            <span className="status checking">Checking...</span>
                         </div>
                     </div>
                 </div>
@@ -324,15 +239,14 @@ const Initialize = ({ onInitializationComplete }) => {
         );
     }
 
-    if (step === "db-config") {
+    if (step === "create-admin") {
         return (
             <div className="initialize-container">
-                <div className="initialize-screen db-config-screen">
-                    <div className="init-icon">🗄️</div>
-                    <h1>Database Configuration</h1>
+                <div className="initialize-screen admin-creation-screen">
+                    <div className="init-icon">👤</div>
+                    <h1>Create Root Administrator</h1>
                     <p className="init-message">
-                        Configure your database connection details (from
-                        config.ini)
+                        Set up your root administrator account to get started
                     </p>
 
                     {errors.length > 0 && (
@@ -346,192 +260,72 @@ const Initialize = ({ onInitializationComplete }) => {
                         </div>
                     )}
 
-                    {status && status.type === "success" && (
-                        <div className="success-alert">
-                            <strong>✅ {status.message}</strong>
-                        </div>
-                    )}
-
-                    <div className="config-form">
+                    <div className="admin-form">
                         <div className="form-section">
-                            <h3>PostgreSQL Connection</h3>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="db-host">Host</label>
-                                    <input
-                                        id="db-host"
-                                        type="text"
-                                        value={dbHost}
-                                        onChange={(e) =>
-                                            setDbHost(e.target.value)
-                                        }
-                                        placeholder="localhost"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="db-port">Port</label>
-                                    <input
-                                        id="db-port"
-                                        type="text"
-                                        value={dbPort}
-                                        onChange={(e) =>
-                                            setDbPort(e.target.value)
-                                        }
-                                        placeholder="5432"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="db-name">
-                                        Database Name
-                                    </label>
-                                    <input
-                                        id="db-name"
-                                        type="text"
-                                        value={dbName}
-                                        onChange={(e) =>
-                                            setDbName(e.target.value)
-                                        }
-                                        placeholder="contracts_manager"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="db-user">User</label>
-                                    <input
-                                        id="db-user"
-                                        type="text"
-                                        value={dbUser}
-                                        onChange={(e) =>
-                                            setDbUser(e.target.value)
-                                        }
-                                        placeholder="postgres"
-                                    />
-                                </div>
+                            <div className="form-group">
+                                <label htmlFor="username">Username</label>
+                                <input
+                                    id="username"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) =>
+                                        setUsername(e.target.value)
+                                    }
+                                    placeholder="root"
+                                    maxLength="50"
+                                />
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="db-password">Password</label>
-                                <div className="input-with-toggle">
-                                    <input
-                                        id="db-password"
-                                        type={showSecrets ? "text" : "password"}
-                                        value={dbPassword}
-                                        onChange={(e) =>
-                                            setDbPassword(e.target.value)
-                                        }
-                                        placeholder="PostgreSQL password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="toggle-secret"
-                                        onClick={() =>
-                                            setShowSecrets(!showSecrets)
-                                        }
-                                        title="Show/hide"
-                                    >
-                                        {showSecrets ? "🙈" : "👁️"}
-                                    </button>
-                                </div>
+                                <label htmlFor="display-name">
+                                    Display Name
+                                </label>
+                                <input
+                                    id="display-name"
+                                    type="text"
+                                    value={displayName}
+                                    onChange={(e) =>
+                                        setDisplayName(e.target.value)
+                                    }
+                                    placeholder="Administrator"
+                                    maxLength="100"
+                                />
                             </div>
-                        </div>
-
-                        <button
-                            className="init-button primary"
-                            onClick={testDatabaseConnection}
-                            disabled={testingConnection || !dbPassword}
-                        >
-                            {testingConnection
-                                ? "⏳ Initializing..."
-                                : "🚀 Initialize Database"}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (step === "secrets") {
-        const isDbPasswordBad = dbPasswordSecret === "CHANGE_ME";
-        const isJwtBad = jwtSecret === "CHANGE_ME";
-
-        return (
-            <div className="initialize-container">
-                <div className="initialize-screen secrets-screen">
-                    <div className="init-icon">🔐</div>
-                    <h1>Set Application Secrets</h1>
-                    <p className="init-message">
-                        ⚠️ Change these from their default insecure values!
-                    </p>
-
-                    {errors.length > 0 && (
-                        <div className="error-alert">
-                            <strong>⚠️ Error:</strong>
-                            <ul>
-                                {errors.map((err, idx) => (
-                                    <li key={idx}>{err}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-
-                    {status && status.type === "success" && (
-                        <div className="success-alert">
-                            <strong>✅ {status.message}</strong>
-                        </div>
-                    )}
-
-                    <div className="secrets-form">
-                        <div className="form-section">
-                            <h3>🗄️ Database Password</h3>
-                            <p className="warning-box">
-                                <strong>
-                                    ⚠️ Currently: {dbPasswordSecret}
-                                </strong>
-                                <br />
-                                Used to authenticate with PostgreSQL. Must be
-                                changed!
-                            </p>
 
                             <div className="form-group">
                                 <div className="form-header">
-                                    <label htmlFor="db-password-secret">
-                                        Password (Length: {dbPasswordLength})
+                                    <label htmlFor="password">
+                                        Password (Length: {passwordLength})
                                     </label>
                                     <button
                                         type="button"
                                         className="toggle-secret"
                                         onClick={() =>
-                                            setShowSecrets(!showSecrets)
+                                            setShowPassword(!showPassword)
                                         }
-                                        title="Show/hide"
+                                        title="Show/hide password"
                                     >
-                                        {showSecrets ? "🙈" : "👁️"}
+                                        {showPassword ? "🙈" : "👁️"}
                                     </button>
                                 </div>
 
                                 <div className="password-input-wrapper">
                                     <input
-                                        id="db-password-secret"
-                                        type={showSecrets ? "text" : "password"}
-                                        value={dbPasswordSecret}
+                                        id="password"
+                                        type={
+                                            showPassword ? "text" : "password"
+                                        }
+                                        value={password}
                                         onChange={(e) =>
-                                            setDbPasswordSecret(e.target.value)
+                                            setPassword(e.target.value)
                                         }
-                                        placeholder="Must be changed from default"
-                                        className={
-                                            isDbPasswordBad ? "field-error" : ""
-                                        }
+                                        placeholder="Enter a strong password"
                                     />
                                     <button
                                         type="button"
                                         className="copy-btn"
                                         onClick={() =>
-                                            copyToClipboard(dbPasswordSecret)
+                                            copyToClipboard(password)
                                         }
                                         title="Copy to clipboard"
                                     >
@@ -542,11 +336,11 @@ const Initialize = ({ onInitializationComplete }) => {
                                 <div className="slider-container">
                                     <input
                                         type="range"
-                                        min={DB_PASSWORD_MIN}
-                                        max={DB_PASSWORD_MAX}
-                                        value={dbPasswordLength}
+                                        min={PASSWORD_MIN}
+                                        max={PASSWORD_MAX}
+                                        value={passwordLength}
                                         onChange={(e) =>
-                                            handleDbPasswordLengthChange(
+                                            handlePasswordLengthChange(
                                                 parseInt(e.target.value),
                                             )
                                         }
@@ -554,156 +348,112 @@ const Initialize = ({ onInitializationComplete }) => {
                                         title="Adjust password length"
                                     />
                                     <span className="slider-label">
-                                        {DB_PASSWORD_MIN} - {DB_PASSWORD_MAX}
+                                        {PASSWORD_MIN} - {PASSWORD_MAX}
                                     </span>
                                 </div>
 
                                 <button
                                     type="button"
                                     className="generate-btn"
-                                    onClick={handleGenerateDbPassword}
+                                    onClick={handleGeneratePassword}
                                     title="Generate secure password"
                                 >
-                                    🔐 Generate
+                                    🔐 Generate Password
                                 </button>
 
-                                <small>
-                                    {isDbPasswordBad ? (
-                                        <span style={{ color: "red" }}>
-                                            ❌ Still using default value!
-                                        </span>
-                                    ) : (
-                                        <span style={{ color: "green" }}>
-                                            ✓ Custom value set
-                                        </span>
-                                    )}
+                                <small className="password-hint">
+                                    💡 Use the generator to create a strong,
+                                    secure password
                                 </small>
                             </div>
                         </div>
 
-                        <div className="form-section">
-                            <h3>🔑 JWT Secret Key</h3>
-                            <p className="warning-box">
-                                <strong>⚠️ Currently: {jwtSecret}</strong>
-                                <br />
-                                Used to sign JWT tokens. Must be changed!
-                            </p>
-
-                            <div className="form-group">
-                                <div className="form-header">
-                                    <label htmlFor="jwt-secret">
-                                        Secret Key (Length: {jwtSecretLength})
-                                    </label>
-                                </div>
-
-                                <div className="password-input-wrapper">
-                                    <input
-                                        id="jwt-secret"
-                                        type={showSecrets ? "text" : "password"}
-                                        value={jwtSecret}
-                                        onChange={(e) =>
-                                            setJwtSecret(e.target.value)
-                                        }
-                                        placeholder="Must be changed from default"
-                                        className={
-                                            isJwtBad ? "field-error" : ""
-                                        }
-                                    />
-                                    <button
-                                        type="button"
-                                        className="copy-btn"
-                                        onClick={() =>
-                                            copyToClipboard(jwtSecret)
-                                        }
-                                        title="Copy to clipboard"
-                                    >
-                                        📋
-                                    </button>
-                                </div>
-
-                                <div className="slider-container">
-                                    <input
-                                        type="range"
-                                        min={JWT_SECRET_MIN}
-                                        max={JWT_SECRET_MAX}
-                                        value={jwtSecretLength}
-                                        onChange={(e) =>
-                                            handleJwtSecretLengthChange(
-                                                parseInt(e.target.value),
-                                            )
-                                        }
-                                        className="length-slider"
-                                        title="Adjust secret length"
-                                    />
-                                    <span className="slider-label">
-                                        {JWT_SECRET_MIN} - {JWT_SECRET_MAX}
-                                    </span>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    className="generate-btn"
-                                    onClick={handleGenerateJwtSecret}
-                                    title="Generate secure JWT secret"
-                                >
-                                    🔑 Generate
-                                </button>
-
-                                <small>
-                                    {isJwtBad ? (
-                                        <span style={{ color: "red" }}>
-                                            ❌ Still using default value!
-                                        </span>
-                                    ) : (
-                                        <span style={{ color: "green" }}>
-                                            ✓ Custom value set
-                                        </span>
-                                    )}
-                                </small>
-                            </div>
-                        </div>
-
-                        <div className="form-section">
-                            <h3>📋 Status</h3>
-                            <div className="status-checklist">
-                                <div className="status-item">
-                                    <span
-                                        className={
-                                            isDbPasswordBad ? "bad" : "good"
-                                        }
-                                    >
-                                        {isDbPasswordBad ? "❌" : "✓"}
-                                    </span>
-                                    <span>Database Password Changed</span>
-                                </div>
-                                <div className="status-item">
-                                    <span className={isJwtBad ? "bad" : "good"}>
-                                        {isJwtBad ? "❌" : "✓"}
-                                    </span>
-                                    <span>JWT Secret Changed</span>
-                                </div>
-                            </div>
+                        <div className="form-section info-box">
+                            <h3>📌 Important</h3>
+                            <ul>
+                                <li>Save this password in a secure location</li>
+                                <li>
+                                    You can change it later from the dashboard
+                                </li>
+                                <li>
+                                    This account has full administrator access
+                                </li>
+                            </ul>
                         </div>
 
                         <button
                             className="init-button primary large"
-                            onClick={handleDeployConfiguration}
-                            disabled={loading || isDbPasswordBad || isJwtBad}
+                            onClick={handleCreateRootAdmin}
+                            disabled={
+                                creatingAdmin ||
+                                !username.trim() ||
+                                !displayName.trim() ||
+                                password.length < PASSWORD_MIN
+                            }
                             title={
-                                isDbPasswordBad || isJwtBad
-                                    ? "Please change both secrets from defaults"
-                                    : "Deploy configuration and create admin"
+                                password.length < PASSWORD_MIN
+                                    ? `Password must be at least ${PASSWORD_MIN} characters`
+                                    : "Create root administrator account"
                             }
                         >
-                            {loading
-                                ? "⏳ Deploying..."
-                                : "✅ Deploy & Initialize"}
+                            {creatingAdmin
+                                ? "⏳ Creating..."
+                                : "✅ Create Administrator"}
                         </button>
                     </div>
                 </div>
             </div>
         );
     }
+
+    if (step === "success") {
+        return (
+            <div className="initialize-container">
+                <div className="initialize-screen success-screen">
+                    <div className="init-icon">🎉</div>
+                    <h1>Setup Complete!</h1>
+                    <p className="init-message">
+                        Your root administrator account is ready
+                    </p>
+
+                    <div className="success-info">
+                        <div className="info-item">
+                            <span className="label">Username:</span>
+                            <span className="value">
+                                {status?.credentials?.username}
+                            </span>
+                        </div>
+                        <div className="info-item">
+                            <span className="label">Password:</span>
+                            <span className="value password-display">
+                                {"•".repeat(
+                                    status?.credentials?.password?.length || 0,
+                                )}
+                            </span>
+                            <button
+                                type="button"
+                                className="copy-btn-small"
+                                onClick={() =>
+                                    copyToClipboard(
+                                        status?.credentials?.password,
+                                    )
+                                }
+                                title="Copy password to clipboard"
+                            >
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <p className="redirect-message">
+                        Redirecting to login in a moment...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return null;
 };
 
 export default Initialize;

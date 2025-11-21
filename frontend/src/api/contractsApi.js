@@ -1,6 +1,6 @@
 export const contractsApi = {
     loadContracts: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/contracts`, {
+        const response = await fetch(`${apiUrl}/contracts`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -21,7 +21,7 @@ export const contractsApi = {
     },
 
     loadClients: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/clients`, {
+        const response = await fetch(`${apiUrl}/clients`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -42,7 +42,7 @@ export const contractsApi = {
     },
 
     loadCategories: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/categories`, {
+        const response = await fetch(`${apiUrl}/categories`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -64,7 +64,7 @@ export const contractsApi = {
 
     loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}/lines`,
+            `${apiUrl}/categories/${categoryId}/lines`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -88,7 +88,7 @@ export const contractsApi = {
 
     loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/clients/${clientId}/dependents`,
+            `${apiUrl}/clients/${clientId}/dependents`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -121,7 +121,7 @@ export const contractsApi = {
             line_id: formData.line_id,
         };
 
-        const response = await fetch(`${apiUrl}/api/contracts`, {
+        const response = await fetch(`${apiUrl}/contracts`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -155,7 +155,7 @@ export const contractsApi = {
         };
 
         const response = await fetch(
-            `${apiUrl}/api/contracts/${contractId}`,
+            `${apiUrl}/contracts/${contractId}`,
             {
                 method: "PUT",
                 headers: {
@@ -181,7 +181,7 @@ export const contractsApi = {
 
     archiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/contracts/${contractId}/archive`,
+            `${apiUrl}/contracts/${contractId}/archive`,
             {
                 method: "PUT",
                 headers: {
@@ -205,7 +205,7 @@ export const contractsApi = {
 
     unarchiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/contracts/${contractId}/unarchive`,
+            `${apiUrl}/contracts/${contractId}/unarchive`,
             {
                 method: "PUT",
                 headers: {

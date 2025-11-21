@@ -27,9 +27,9 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
             const [contractsRes, clientsRes, categoriesRes] = await Promise.all(
                 [
-                    fetch(`${apiUrl}/api/contracts`, { headers }),
-                    fetch(`${apiUrl}/api/clients`, { headers }),
-                    fetch(`${apiUrl}/api/categories`, { headers }),
+                    fetch(`${apiUrl}/contracts`, { headers }),
+                    fetch(`${apiUrl}/clients`, { headers }),
+                    fetch(`${apiUrl}/categories`, { headers }),
                 ],
             );
 
@@ -54,7 +54,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             // Load all lines for all categories
             const allLinesPromises = (categoriesData.data || []).map(
                 (category) =>
-                    fetch(`${apiUrl}/api/categories/${category.id}/lines`, {
+                    fetch(`${apiUrl}/categories/${category.id}/lines`, {
                         headers,
                     })
                         .then((res) => {

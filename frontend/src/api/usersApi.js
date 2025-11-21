@@ -1,6 +1,6 @@
 const usersApi = {
     loadUsers: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users`, {
+        const response = await fetch(`${apiUrl}/users`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -21,7 +21,7 @@ const usersApi = {
     },
 
     createUser: async (apiUrl, token, userData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users`, {
+        const response = await fetch(`${apiUrl}/users`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -44,7 +44,7 @@ const usersApi = {
     },
 
     updateUser: async (apiUrl, token, username, userData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users/${username}`, {
+        const response = await fetch(`${apiUrl}/users/${username}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -67,7 +67,7 @@ const usersApi = {
     },
 
     blockUser: async (apiUrl, token, username, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users/${username}/block`, {
+        const response = await fetch(`${apiUrl}/users/${username}/block`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -88,7 +88,7 @@ const usersApi = {
     },
 
     unlockUser: async (apiUrl, token, username, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users/${username}/unlock`, {
+        const response = await fetch(`${apiUrl}/users/${username}/unlock`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -109,7 +109,7 @@ const usersApi = {
     },
 
     deleteUser: async (apiUrl, token, username, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/users/${username}`, {
+        const response = await fetch(`${apiUrl}/users/${username}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`,

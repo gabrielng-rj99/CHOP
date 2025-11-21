@@ -1,7 +1,7 @@
 const categoriesApi = {
     loadCategories: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/categories?include_archived=true`,
+            `${apiUrl}/categories?include_archived=true`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -25,7 +25,7 @@ const categoriesApi = {
 
     loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}/lines?include_archived=true`,
+            `${apiUrl}/categories/${categoryId}/lines?include_archived=true`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -48,7 +48,7 @@ const categoriesApi = {
     },
 
     createCategory: async (apiUrl, token, categoryData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/categories`, {
+        const response = await fetch(`${apiUrl}/categories`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -71,7 +71,7 @@ const categoriesApi = {
     },
 
     updateCategory: async (apiUrl, token, categoryId, categoryData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
+        const response = await fetch(`${apiUrl}/categories/${categoryId}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -94,7 +94,7 @@ const categoriesApi = {
     },
 
     deleteCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/categories/${categoryId}`, {
+        const response = await fetch(`${apiUrl}/categories/${categoryId}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ const categoriesApi = {
 
     archiveCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}/archive`,
+            `${apiUrl}/categories/${categoryId}/archive`,
             {
                 method: "POST",
                 headers: {
@@ -140,7 +140,7 @@ const categoriesApi = {
 
     unarchiveCategory: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/categories/${categoryId}/unarchive`,
+            `${apiUrl}/categories/${categoryId}/unarchive`,
             {
                 method: "POST",
                 headers: {
@@ -163,7 +163,7 @@ const categoriesApi = {
     },
 
     createLine: async (apiUrl, token, lineData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/lines`, {
+        const response = await fetch(`${apiUrl}/lines`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -186,7 +186,7 @@ const categoriesApi = {
     },
 
     updateLine: async (apiUrl, token, lineId, lineData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/lines/${lineId}`, {
+        const response = await fetch(`${apiUrl}/lines/${lineId}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -209,7 +209,7 @@ const categoriesApi = {
     },
 
     deleteLine: async (apiUrl, token, lineId, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/lines/${lineId}`, {
+        const response = await fetch(`${apiUrl}/lines/${lineId}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -230,7 +230,7 @@ const categoriesApi = {
     },
 
     archiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/api/lines/${lineId}/archive`, {
+        const response = await fetch(`${apiUrl}/lines/${lineId}/archive`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -252,7 +252,7 @@ const categoriesApi = {
 
     unarchiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/api/lines/${lineId}/unarchive`,
+            `${apiUrl}/lines/${lineId}/unarchive`,
             {
                 method: "POST",
                 headers: {
