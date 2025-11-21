@@ -1,332 +1,261 @@
-# Deploy & Configuration
+# Contract Manager - Deploy
 
-Everything you need to run the Contract Manager application.
+Deployment simples e direto para o Contract Manager.
 
 ## 🚀 Quick Start
 
+### Docker (Recomendado)
+
 ```bash
-cd deploy
-make build
-./bin/deploy-manager
+# 1. Copie o .env.example
+cp .env.example .env
+
+# 2. Edite o .env e preencha suas senhas
+nano .env
+
+# 3. Suba tudo
+docker-compose up -d
 ```
 
-Then select your deployment mode:
-- **1** = Docker Mode (containerized, production-like)
-- **2** = Monolith Mode (host services, development)
-- **3** = Utilities (health checks, diagnostics, tests)
-- **0** = Exit
+Acesse: http://localhost:8080
 
-Access the application:
-- Docker Mode: http://localhost:8081
-- Monolith Mode: http://localhost:5173
+### Monolito (Desenvolvimento)
 
-## 📂 Directory Structure
+```bash
+# 1. Tenha o PostgreSQL rodando localmente
+sudo systemctl start postgresql  # Linux
+brew services start postgresql   # macOS
+
+# 2. Copie o .env.example
+cp .env.example .env
+
+# 3. Edite o .env e preencha suas senhas
+nano .env
+
+# 4. Execute o script
+./start-monolith.sh
+```
+
+Acesse: http://localhost:5173
+
+## 📁 Estrutura
 
 ```
 deploy/
-├── cmd/
-│   └── main.go              → Deploy Manager CLI (Go)
-├── bin/
-│   └── deploy-manager       → Compiled binary
-├── config/
-│   └── monolith.ini         → Configuration file
-├── scripts/
-│   ├── docker-compose.yml   → Docker Compose configuration
-│   └── deploy-monolith.sh   → Monolith startup script
-├── tools/
-│   ├── 000_utils.go         → Test utilities
-│   └── 91_run_tests.go      → Test runner
+├── docker-compose.yml      # Compose padrão
+├── .env.example           # Template de variáveis
+├── .env                   # Suas variáveis (não commitar!)
+├── Dockerfile.backend     # Build do backend
+├── Dockerfile.frontend    # Build do frontend
+├── nginx.conf            # Config do Nginx
+├── start-monolith.sh     # Script modo monolito
 ├── docs/
-│   ├── QUICK_START.md           → 2-minute setup guide
-│   ├── DEPLOYMENT_MODES.md      → Detailed mode comparison
-│   └── TROUBLESHOOTING.md       → Common issues & solutions
-├── Makefile                 → Build automation
-└── go.mod                   → Go module dependencies
+│   └── SSL_SETUP.md       # Guia SSL e domínios customizados
+└── README.md             # Este arquivo
 ```
 
-## 🐳 Docker Mode
+## 🔧 Configuração
 
-Run all services inside containers (production-like environment).
+### Arquivo .env
+
+Copie `.env.example` para `.env` e preencha:
 
 ```bash
-./bin/deploy-manager
-→ Select 1 (Docker Mode)
-→ Select 11 (Start all services)
+# Database - use senhas fortes!
+DB_PASSWORD=sua_senha_aqui
+DB_USER=appuser
+DB_NAME=contract_manager
+
+# JWT - mínimo 32 caracteres
+JWT_SECRET=sua_chave_jwt_secreta_min_32_chars
+
+# Root User - criado automaticamente
+ROOT_USER_EMAIL=admin@localhost
+ROOT_USER_PASSWORD=senha_admin_aqui
+
+# Portas
+API_PORT=3000
+FRONTEND_PORT=8080
+
+# SSL e API URL (importante!)
+SSL_DOMAIN=localhost
+VITE_API_URL=/api
 ```
 
-**Ports:**
-- Frontend: http://localhost:8081
-- Backend: http://localhost:3000
-- Database: localhost:5432
+**Importante:** 
+- Nunca commite o `.env`!
+- Se usar domínio SSL customizado (ex: `https://ehop.home.arpa`), **leia [docs/SSL_SETUP.md](docs/SSL_SETUP.md)**
 
-**Advantages:**
-- Production-like environment
-- Complete isolation
-- Easy to clean and restart
-- Reproducible across machines
+### 🔐 Usando Domínio SSL Customizado
 
-**Requirements:**
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-
-## 🖥️ Monolith Mode
-
-Run all services directly on your host machine (development-friendly).
+Se você vai acessar o sistema via HTTPS com domínio customizado (não localhost), você **DEVE** configurar:
 
 ```bash
-./bin/deploy-manager
-→ Select 2 (Monolith Mode)
-→ Select 11 (Start all services)
+# Seu domínio
+SSL_DOMAIN=ehop.home.arpa
+
+# IMPORTANTE: Use /api para que o Nginx faça proxy
+VITE_API_URL=/api
 ```
 
-**Ports:**
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3000
-- Database: localhost:5432
+**📖 Leia o guia completo:** [docs/SSL_SETUP.md](docs/SSL_SETUP.md)
 
-**Advantages:**
-- Fast startup (5-10 seconds)
-- Native debugging
-- Hot reload for frontend
-- Low resource usage
+Sem essa configuração, você verá erros de CORS ao tentar fazer login.
 
-**Requirements:**
-- PostgreSQL 14+ (running on host)
-- Go 1.21+
-- Node.js 18+
-
-## 🔧 Utilities Menu
-
-Access testing, diagnostics, and reporting tools:
+### Gerar senhas seguras
 
 ```bash
-./bin/deploy-manager
-→ Select 3 (Utilities)
+# Password aleatória
+openssl rand -base64 32
+
+# JWT Secret
+openssl rand -base64 48
 ```
 
-### Health Checks
-- Database connectivity
-- Backend API health
-- Frontend availability
-- Full system check
-
-### Diagnostics
-- Database separation validation (test vs main)
-- Configuration validation
-- Full system diagnostics report
-
-### Testing [Placeholders]
-- Unit tests
-- Integration tests
-- Security tests
-- Full test suite with coverage
-
-### Reports [Placeholders]
-- Code coverage report
-- Performance metrics
-- Database schema
-- System requirements
-
-## ⚡ Menu Navigation
-
-### Main Menu
-```
-1  → Docker Mode
-2  → Monolith Mode
-3  → Utilities
-0  → Exit
-```
-
-### Docker/Monolith Mode Menus
-```
-11-14 → All services (start/stop/restart/status)
-21-24 → Database operations
-25-27 → Backend operations
-28-30 → Frontend operations
-31-34 → Logs & monitoring
-50    → Stop & clean all
-99    → Back to main menu
-```
-
-### Utilities Menu
-```
-11-14 → Health checks
-21-23 → Diagnostics
-31-34 → Testing [PLACEHOLDERS]
-41-44 → Reports [PLACEHOLDERS]
-99    → Back to main menu
-```
-
-## 🔨 Build
+## 🐳 Comandos Docker
 
 ```bash
-# Build for current OS (Linux/macOS)
-cd deploy && make build
+# Iniciar
+docker-compose up -d
 
-# Build for all platforms
-make build-all
+# Ver logs
+docker-compose logs -f
 
-# Result: bin/deploy-manager
+# Parar
+docker-compose down
+
+# Reiniciar
+docker-compose restart
+
+# Limpar tudo (remove volumes)
+docker-compose down -v
 ```
 
-## 📖 Documentation
-
-- **docs/QUICK_START.md** → Get started in 2 minutes
-- **docs/DEPLOYMENT_MODES.md** → Detailed comparison of both modes
-- **docs/TROUBLESHOOTING.md** → Common problems and solutions
-
-## Direct Commands (Without CLI)
-
-### Monolith Mode
+Ou use o Makefile:
 ```bash
-bash scripts/deploy-monolith.sh start
-bash scripts/deploy-monolith.sh stop
-bash scripts/deploy-monolith.sh status
-bash scripts/deploy-monolith.sh logs
+make up
+make logs
+make down
+make clean
 ```
 
-### Docker Mode
+## 🛠️ Ferramentas
+
+Scripts simples em `../backend/tools/`:
+
 ```bash
-cd scripts
-docker-compose up -d          # Start all
-docker-compose down           # Stop all
-docker-compose ps             # Status
-docker-compose logs -f        # Follow logs
-docker-compose restart backend # Restart service
-docker-compose down -v        # Clean (remove volumes)
+cd ../backend/tools
+
+# Rodar testes
+./test.sh
+
+# Verificar saúde
+./health.sh
+
+# Backup do banco
+./backup.sh
 ```
 
-## 🔄 Common Workflows
+## 📝 Criar o Usuário Root
 
-### Fresh Start (Docker)
-```
-1. Menu → 1 (Docker)
-2. 11 (Start all)
-3. Wait 20-30 seconds
-4. http://localhost:8081
-```
+O usuário root deve ser criado manualmente na primeira execução. Use as credenciais definidas em `ROOT_USER_EMAIL` e `ROOT_USER_PASSWORD` do arquivo `.env`.
 
-### Fresh Start (Monolith)
-```
-1. Menu → 2 (Monolith)
-2. 11 (Start all)
-3. Wait 5-10 seconds
-4. http://localhost:5173
-```
+### Via API (curl)
 
-### Restart Backend After Code Changes
-```
-Menu → Select Mode → 27 (Restart backend)
-```
-
-### View Service Logs
-```
-Menu → Select Mode → 31 (All logs) or 33 (Backend only)
-```
-
-### Health Check
-```
-Menu → 3 (Utilities) → 14 (Full system health check)
-```
-
-### Stop Everything
-```
-Menu → Select Mode → 12 (Stop all)
-```
-
-### Clean Fresh Start
-```
-Menu → Select Mode → 50 (Stop & clean all)
-Then:
-Menu → Select Mode → 11 (Start all)
-```
-
-## 📊 Comparison Table
-
-| Feature | Docker | Monolith |
-|---------|--------|----------|
-| Startup Time | 20-30s | 5-10s |
-| Environment | Containerized | Host |
-| Memory Usage | 1-2GB | 200-500MB |
-| Debugging | Harder | Easier |
-| Hot Reload | No | Yes (Frontend) |
-| Production-like | Yes | No |
-| Best For | Testing, CI/CD | Development |
-| Data Persistence | Volumes | Host filesystem |
-
-## 🌐 Ports & Services
-
-All services listen on standard ports:
-
-| Service | Port | Mode |
-|---------|------|------|
-| Frontend | 5173 (Monolith) / 8081 (Docker) | Both |
-| Backend API | 3000 | Both |
-| PostgreSQL | 5432 | Both |
-
-## 🆘 Troubleshooting
-
-**Port already in use:**
 ```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@localhost",
+    "password": "sua_senha_do_env",
+    "name": "Administrator",
+    "role": "admin"
+  }'
+```
+
+### Via Interface
+
+Acesse a página de registro e crie o primeiro usuário com as credenciais do `.env`.
+
+## 🔍 Troubleshooting
+
+### Porta em uso
+
+```bash
+# Ver o que está usando a porta
 lsof -i :3000
+
+# Matar processo
 kill -9 <PID>
 ```
 
-**PostgreSQL not running (Monolith):**
+### PostgreSQL não está rodando (Monolito)
+
 ```bash
-sudo systemctl start postgresql  # Linux
-brew services start postgresql   # macOS
+# Linux
+sudo systemctl start postgresql
+sudo systemctl status postgresql
+
+# macOS
+brew services start postgresql
+brew services list
 ```
 
-**Docker daemon not running:**
+### Erro de conexão com o banco
+
+1. Verifique se o PostgreSQL está rodando
+2. Verifique as credenciais no `.env`
+3. No modo Docker, o `DB_HOST` deve ser `postgres`
+4. No modo Monolito, o `DB_HOST` deve ser `localhost`
+
+### Docker não inicia
+
 ```bash
-open /Applications/Docker.app  # macOS
-# or start Docker using system launcher
+# Ver logs
+docker-compose logs
+
+# Recriar tudo
+docker-compose down -v
+docker-compose up -d
 ```
 
-**Services won't start:**
+## 🔒 Segurança
+
+- ✅ Use senhas fortes (use `openssl rand -base64 32`)
+- ✅ Nunca commite o `.env`
+- ✅ Mude as senhas default
+- ✅ Use HTTPS em produção (reverse proxy)
+- ✅ Restrinja CORS para seu domínio
+
+## 📊 Portas
+
+| Serviço    | Docker | Monolito |
+|------------|--------|----------|
+| Frontend   | 8080   | 5173     |
+| Backend    | 3000   | 3000     |
+| PostgreSQL | 5432   | 5432     |
+
+## 🚀 Produção
+
+Para produção, adicione:
+
+1. **Reverse Proxy** (Nginx/Caddy)
+2. **SSL/TLS** (Let's Encrypt)
+3. **Firewall** (UFW/iptables)
+4. **Backups automáticos** (cron + `backend/tools/backup.sh`)
+5. **Monitoring** (logs, health checks)
+
+Exemplo de cron para backup diário:
+```bash
+0 2 * * * cd /path/to/Contract-Manager/backend/tools && ./backup.sh
 ```
-Menu → Select Mode → 31 (View logs)
-Menu → Select Mode → 50 (Clean all) → 11 (Start fresh)
-```
 
-For more help, see `docs/TROUBLESHOOTING.md`
+## 📚 Mais Informações
 
-## 📋 Requirements
-
-### Docker Mode
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- Disk space: 2-3GB
-
-### Monolith Mode
-- PostgreSQL 14+
-- Go 1.21+
-- Node.js 18+
-- npm or yarn
-- Disk space: 500MB
-
-### Both Modes
-- Linux, macOS, or Windows with WSL
-- Network: Ports 3000, 5173/8081, 5432 available
-
-## 🔧 Configuration
-
-Edit `config/monolith.ini` to customize:
-- Database credentials
-- API port
-- Log levels
-- Other deployment settings
-
-## 📝 Next Steps
-
-1. **Start:** `make build && ./bin/deploy-manager`
-2. **Read:** `docs/QUICK_START.md`
-3. **Learn:** `docs/DEPLOYMENT_MODES.md`
-4. **Troubleshoot:** `docs/TROUBLESHOOTING.md`
+- Backend: `../backend/`
+- Frontend: `../frontend/`
+- Schema SQL: `../backend/database/schema.sql`
 
 ---
 
-**Status:** ✅ Ready | **Start:** `make build && ./bin/deploy-manager`
-
-For detailed information, see the documentation in the `docs/` directory.
+**Dúvidas?** Veja os logs primeiro: `docker-compose logs` ou `./start-monolith.sh`
