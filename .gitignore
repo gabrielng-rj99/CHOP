@@ -41,6 +41,12 @@ dist-ssr
 # =========================
 .DS_Store
 Thumbs.db
+*.tmp
+*.bak
+*.log
+*.temp
+*.swp
+*~
 
 # =========================
 # Binaries
@@ -88,17 +94,6 @@ coverage.html
 *~
 .DS_Store
 
-
-# =========================
-# Temporary files
-# =========================
-*.tmp
-*.bak
-*.log
-*.temp
-*.swp
-*~
-
 # =========================
 # Environment
 # =========================
@@ -110,5 +105,6 @@ coverage.html
 .env.test.local
 .env.production.local
 !.env.example
-/data
-/certs
+data/
+certs/
+logs/
