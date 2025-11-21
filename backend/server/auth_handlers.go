@@ -15,6 +15,12 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is initialized BEFORE processing anything
+	if s.userStore == nil || s.auditStore == nil {
+		respondError(w, http.StatusServiceUnavailable, "Database not initialized. Please configure the system first.")
+		return
+	}
+
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -122,6 +128,12 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is initialized
+	if s.userStore == nil || s.auditStore == nil {
+		respondError(w, http.StatusServiceUnavailable, "Database not initialized. Please configure the system first.")
+		return
+	}
+
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -199,30 +211,8 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := ""
-	if user.Username != nil {
-		username = *user.Username
-	}
-
-	// Log successful token refresh
-	s.auditStore.LogOperation(store.AuditLogRequest{
-		Operation:     "login",
-		Entity:        "auth",
-		EntityID:      user.ID,
-		AdminID:       &user.ID,
-		AdminUsername: &username,
-		OldValue:      nil,
-		NewValue: map[string]interface{}{
-			"method": "token",
-			"result": "success",
-		},
-		Status:        "success",
-		ErrorMessage:  nil,
-		IPAddress:     getIPAddress(r),
-		UserAgent:     getUserAgent(r),
-		RequestMethod: getRequestMethod(r),
-		RequestPath:   getRequestPath(r),
-	})
+	// Token refresh bem-sucedido - não loga para evitar poluir audit logs
+	// (apenas falhas são logadas para segurança)
 
 	respondJSON(w, http.StatusOK, SuccessResponse{
 		Message: "Token renovado com sucesso",

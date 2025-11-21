@@ -6,7 +6,7 @@ import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
-import DeployPanel from "./pages/DeployPanel";
+
 import Initialize from "./pages/Initialize";
 import "./App.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -20,7 +20,7 @@ import {
     faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 
-const API_URL = "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 function App() {
     const [appReady, setAppReady] = useState(false);
@@ -36,10 +36,13 @@ function App() {
     useEffect(() => {
         const checkInitialization = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/deploy/status`);
+                const response = await fetch(`${API_URL}/initialize/status`);
                 if (response.ok) {
-                    setAppReady(true);
-                    setIsInitializing(false);
+                    const data = await response.json();
+                    if (data.is_initialized) {
+                        setAppReady(true);
+                        setIsInitializing(false);
+                    }
                 }
             } catch (error) {
                 // App not ready, show initialize screen
@@ -86,9 +89,26 @@ function App() {
         const exp = getTokenExpiration(token);
         if (!exp) return;
         const now = Date.now();
+
+        // Se o token já expirou ou está muito próximo de expirar (menos de 30 segundos), não agende
+        if (exp - now < 30000) {
+            console.log(
+                "Token já expirado ou prestes a expirar, não agendando refresh",
+            );
+            return;
+        }
+
         // Renova 2 minutos antes de expirar
-        const msUntilRefresh = Math.max(exp - now - 2 * 60 * 1000, 5000);
-        if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+        const msUntilRefresh = Math.max(exp - now - 2 * 60 * 1000, 60000); // mínimo 1 minuto
+
+        // Só agende se não houver refresh já agendado ou se o novo tempo for significativamente diferente
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+        }
+
+        console.log(
+            `Token refresh agendado para daqui ${Math.round(msUntilRefresh / 1000)}s`,
+        );
         refreshTimeoutRef.current = setTimeout(() => {
             renewAccessToken(refreshToken);
         }, msUntilRefresh);
@@ -97,7 +117,8 @@ function App() {
     // Função para renovar o access token usando o refresh token
     async function renewAccessToken(refreshToken) {
         try {
-            const response = await fetch(`${API_URL}/api/refresh-token`, {
+            console.log("Renovando access token...");
+            const response = await fetch(`${API_URL}/refresh-token`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ refresh_token: refreshToken }),
@@ -106,13 +127,21 @@ function App() {
                 throw new Error("Sessão expirada. Faça login novamente.");
             }
             const data = await response.json();
-            setToken(data.data.token);
-            try {
-                localStorage.setItem("token", data.data.token);
-            } catch (e) {
-                console.error("Error saving token:", e);
+            const newToken = data.data.token;
+
+            // Verificar se o novo token é realmente diferente e válido antes de atualizar
+            if (newToken && newToken !== token) {
+                setToken(newToken);
+                try {
+                    localStorage.setItem("token", newToken);
+                    console.log("Token renovado com sucesso");
+                } catch (e) {
+                    console.error("Error saving token:", e);
+                }
+                // Não precisa chamar scheduleTokenRefresh aqui, o useEffect vai fazer isso
+            } else {
+                console.log("Token recebido é igual ao atual, não atualizando");
             }
-            scheduleTokenRefresh(data.data.token, refreshToken);
         } catch (err) {
             console.error("Error refreshing token:", err);
             logout();
@@ -121,7 +150,7 @@ function App() {
 
     const login = async (username, password) => {
         try {
-            const response = await fetch(`${API_URL}/api/login`, {
+            const response = await fetch(`${API_URL}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -162,7 +191,7 @@ function App() {
                 error.name === "TypeError"
             ) {
                 throw new Error(
-                    "Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3000",
+                    `Não foi possível conectar ao servidor. Verifique se o backend está rodando em ${API_URL}`,
                 );
             }
             throw error;
@@ -212,7 +241,18 @@ function App() {
 
     useEffect(() => {
         if (token && refreshToken) {
-            scheduleTokenRefresh(token, refreshToken);
+            // Verificar se o token ainda é válido antes de agendar refresh
+            const exp = getTokenExpiration(token);
+            const now = Date.now();
+
+            // Só agendar se o token ainda tiver mais de 1 minuto de validade
+            if (exp && exp - now > 60000) {
+                scheduleTokenRefresh(token, refreshToken);
+            } else if (exp && exp - now <= 60000 && exp - now > 0) {
+                // Token está prestes a expirar, renovar imediatamente
+                console.log("Token prestes a expirar, renovando imediatamente");
+                renewAccessToken(refreshToken);
+            }
         }
         return () => {
             if (refreshTimeoutRef.current)
@@ -332,19 +372,6 @@ function App() {
                             )}
                         </button>
                     )}
-
-                    {user.role === "root" && (
-                        <button
-                            onClick={() => navigate("deploy")}
-                            className={`app-nav-button ${currentPage === "deploy" ? "active" : ""}`}
-                            title="Deploy"
-                        >
-                            <span className="app-nav-icon">🚀</span>
-                            {!sidebarCollapsed && (
-                                <span className="app-nav-text">Deploy</span>
-                            )}
-                        </button>
-                    )}
                 </div>
 
                 <div className="app-nav-footer">
@@ -442,7 +469,6 @@ function App() {
                         }
                     />
                 )}
-                {currentPage === "deploy" && <DeployPanel apiUrl={API_URL} />}
             </main>
         </div>
     );
