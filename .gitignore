@@ -110,3 +110,5 @@ coverage.html
 .env.test.local
 .env.production.local
 !.env.example
+/data
+/certs
