@@ -1,0 +1,75 @@
+# ============================================================================
+# CONTRACT MANAGER - FRONTEND DOCKERFILE
+# ============================================================================
+# Multi-stage build for optimized production image with Nginx
+# ============================================================================
+
+# Build stage
+FROM node:24-alpine AS builder
+
+WORKDIR /build
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy source code
+COPY frontend/ ./
+
+# Build argument for API URL
+ARG VITE_API_URL=http://localhost:3000
+
+# Build the application with API URL
+RUN VITE_API_URL=${VITE_API_URL} npm run build
+
+# Verify build output
+RUN ls -lh /build/dist
+
+# ============================================================================
+# Runtime stage
+# ============================================================================
+FROM nginx:alpine
+
+LABEL maintainer="Contract Manager Team"
+LABEL description="Contract Manager Frontend"
+
+WORKDIR /app
+
+# Remove default nginx config
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Copy custom nginx configuration
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built files from builder stage
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+# Create health check endpoint
+RUN echo "OK" > /usr/share/nginx/html/health
+
+# Create nginx user and set permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chmod -R 755 /usr/share/nginx/html
+
+# Install openssl for SSL certificate generation
+RUN apk add --no-cache openssl
+
+# Copy SSL generation script
+COPY deploy/generate-ssl.sh /generate-ssl.sh
+RUN chmod +x /generate-ssl.sh
+
+# Expose HTTP and HTTPS ports
+EXPOSE 80
+EXPOSE 443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health || exit 1
+
+# Entrypoint: generate SSL certs and start nginx
+CMD ["/bin/sh", "-c", "/generate-ssl.sh && nginx -g 'daemon off;'"]
