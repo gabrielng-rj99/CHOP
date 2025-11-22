@@ -1,0 +1,11 @@
+services:
+    postgres:
+        ports:
+            - "${DB_HOST_PORT}:${DB_PORT}" # change the left value if you whant to change the db port on host
+
+    backend:
+        ports:
+            - "${API_HOST_PORT}:${API_PORT}" # change the left value if you whant to change the api port on host
+
+    frontend:
+        # No host port exposure needed - nginx uses fixed internal ports 80/443
