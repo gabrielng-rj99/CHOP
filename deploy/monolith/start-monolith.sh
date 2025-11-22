@@ -169,18 +169,21 @@ server {
 }
 EOF
 
-# Generate SSL certs if not exist
+# Generate SSL certificates using centralized script
+echo "🔐 Generating SSL certificates..."
 SSL_DIR="${SSL_CERTS_PATH:-./certs/ssl}"
 mkdir -p "$SSL_DIR"
-if [ ! -f "$SSL_DIR/server.crt" ] || [ ! -f "$SSL_DIR/server.key" ]; then
-    echo "Generating self-signed SSL certificate..."
-    openssl req -x509 -nodes -days 365 \
-        -newkey rsa:2048 \
-        -keyout "$SSL_DIR/server.key" \
-        -out "$SSL_DIR/server.crt" \
-        -subj "/CN=localhost" >/dev/null 2>&1
-    echo -e "${GREEN}✓ SSL certificate generated${NC}"
+
+# Call centralized generate-ssl.sh script
+if [ -f "../generate-ssl.sh" ]; then
+    ../generate-ssl.sh "$SSL_DIR" || {
+        echo -e "${YELLOW}⚠️  Could not generate certificates using generate-ssl.sh${NC}"
+    }
+else
+    echo -e "${RED}❌ Error: generate-ssl.sh not found at ../generate-ssl.sh${NC}"
+    exit 1
 fi
+echo -e "${GREEN}✓ SSL certificates ready${NC}"
 
 # Start nginx with custom config
 sudo nginx -c "$NGINX_CONF" -p /tmp &

@@ -38,11 +38,19 @@ LABEL description="Contract Manager Frontend"
 
 WORKDIR /app
 
+# Install OpenSSL for certificate generation
+RUN apk add --no-cache openssl bash
+
 # Remove default nginx config
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copy custom nginx configuration
-COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy certificates config and generation script
+COPY deploy/certs-config.ini /certs-config.ini
+COPY deploy/generate-ssl.sh /usr/local/bin/generate-ssl.sh
+RUN chmod +x /usr/local/bin/generate-ssl.sh
 
 # Copy built files from builder stage
 COPY --from=builder /build/dist /usr/share/nginx/html
@@ -64,5 +72,5 @@ EXPOSE 443
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start: generate SSL certificates and start nginx
+CMD ["/bin/bash", "-c", "/usr/local/bin/generate-ssl.sh /etc/nginx/ssl && nginx -g 'daemon off;'"]
