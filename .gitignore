@@ -60,7 +60,6 @@ deploy-manager
 deploy-manager-*
 Licenses-Manager
 backend/cli
-backend/tools
 *.exe
 *.o
 *.a
