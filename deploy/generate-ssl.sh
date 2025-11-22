@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-SSL_DIR="/etc/nginx/ssl"
+SSL_DIR="./certs/ssl"
 SERVER_CERT="$SSL_DIR/server.crt"
 SERVER_KEY="$SSL_DIR/server.key"
 
