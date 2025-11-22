@@ -56,13 +56,6 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/log/nginx && \
     chmod -R 755 /usr/share/nginx/html
 
-# Install openssl for SSL certificate generation
-RUN apk add --no-cache openssl
-
-# Copy SSL generation script
-COPY deploy/generate-ssl.sh /generate-ssl.sh
-RUN chmod +x /generate-ssl.sh
-
 # Expose HTTP and HTTPS ports
 EXPOSE 80
 EXPOSE 443
@@ -71,5 +64,5 @@ EXPOSE 443
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health || exit 1
 
-# Entrypoint: generate SSL certs and start nginx
-CMD ["/bin/sh", "-c", "/generate-ssl.sh && nginx -g 'daemon off;'"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
