@@ -36,7 +36,6 @@ func main() {
 	// Temporarily disable database connection to allow app to start
 	var db *sql.DB
 	log.Printf("⚠️  Database connection disabled for testing\n")
-	db = nil
 
 	srv := server.NewServer(db)
 	srv.SetupRoutes()
@@ -59,11 +58,7 @@ func main() {
 	// Log server startup
 	fmt.Printf("🚀 %s v%s starting...\n", cfg.App.Name, cfg.App.Version)
 	fmt.Printf("📡 Server running on http://%s:%s\n", cfg.Server.Host, port)
-	if db != nil {
-		fmt.Printf("🗄️  Database: Connected\n")
-	} else {
-		fmt.Printf("🗄️  Database: Not connected (initialize via API)\n")
-	}
+	fmt.Printf("🗄️  Database: Not connected (initialize via API)\n")
 	fmt.Printf("🔐 Environment: %s\n", cfg.App.Env)
 
 	// Start server
