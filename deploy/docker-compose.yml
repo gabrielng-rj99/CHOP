@@ -6,8 +6,6 @@ services:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PASSWORD}
             POSTGRES_DB: ${DB_NAME}
-        ports:
-            - "${DB_PORT:-5432}:5432"
         volumes:
             - ${POSTGRES_VOLUME_PATH:-./data/postgres}:/var/lib/postgresql/data
             - ../backend/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -23,8 +21,6 @@ services:
         env_file: .env
         environment:
             DB_HOST: postgres
-        ports:
-            - "${API_PORT:-3000}:3000"
         depends_on:
             - postgres
         volumes:
@@ -43,9 +39,6 @@ services:
         env_file: .env
         environment:
             SSL_DOMAIN: ${SSL_DOMAIN}
-        ports:
-            - "${FRONTEND_PORT:-8080}:80"
-            - "${FRONTEND_HTTPS_PORT:-8443}:443"
         volumes:
             - ${SSL_CERTS_PATH:-./certs/ssl}:/etc/nginx/ssl
         depends_on:
