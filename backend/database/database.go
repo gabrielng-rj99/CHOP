@@ -3,6 +3,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"time"
@@ -32,8 +33,10 @@ func ConnectDB() (*sql.DB, error) {
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 
-	// Test connection
-	if err := db.Ping(); err != nil {
+	// Test connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
 		return nil, err
 	}
 
