@@ -41,10 +41,11 @@ export default function Login({ onLogin }) {
     return (
         <div className="login-container">
             <div className="login-card">
-                <h1 className="login-title">Gerenciados de Contratos</h1>
-                <p className="login-subtitle">
-                    Gerenciador de Contratos e Licenças
-                </p>
+                <h1 className="login-title">
+                    Entity Hub<br></br>
+                    Open Project
+                </h1>
+                <p className="login-subtitle">Gerenciador de Entidades FLOSS</p>
 
                 {sessionExpiredError && (
                     <div className="login-session-expired">

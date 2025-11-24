@@ -283,7 +283,7 @@ function App() {
                     <h2
                         className={`app-nav-title${sidebarCollapsed ? " hidden-title" : ""}`}
                     >
-                        {sidebarCollapsed ? "CM" : "Contract Manager"}
+                        {sidebarCollapsed ? "CM" : "Entity Hub"}
                     </h2>
                     <button onClick={toggleSidebar} className="app-nav-toggle">
                         {sidebarCollapsed ? "☰" : "←"}
