@@ -60,6 +60,19 @@ func NewServer(db *sql.DB) *Server {
 	}
 }
 
+// InitializeStores initializes all stores with the provided database connection
+func (s *Server) InitializeStores(db *sql.DB) {
+	if db != nil {
+		s.userStore = store.NewUserStore(db)
+		s.contractStore = store.NewContractStore(db)
+		s.clientStore = store.NewClientStore(db)
+		s.dependentStore = store.NewDependentStore(db)
+		s.categoryStore = store.NewCategoryStore(db)
+		s.lineStore = store.NewLineStore(db)
+		s.auditStore = store.NewAuditStore(db)
+	}
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

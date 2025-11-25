@@ -5,6 +5,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,17 +34,21 @@ func ConnectDB() (*sql.DB, error) {
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 
-	// Test connection with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		return nil, err
+	// Retry connection up to 10 times with 2 second delay
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := db.PingContext(ctx)
+		cancel()
+		if err == nil {
+			return db, nil
+		}
+		time.Sleep(2 * time.Second)
 	}
 
-	return db, nil
+	return nil, fmt.Errorf("failed to connect to database after retries: %v", err)
 }
 
-func initDB(db *sql.DB) error {
+func InitDB(db *sql.DB) error {
 	cfg := config.GetConfig()
 	sqlFilePath := cfg.Paths.SchemaFile
 
@@ -58,4 +63,18 @@ func initDB(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// IsDatabaseInitialized checks if the database has been initialized by verifying if key tables exist
+func IsDatabaseInitialized(db *sql.DB) bool {
+	// Check if the users table exists and has at least one record
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'").Scan(&count)
+	if err != nil || count == 0 {
+		return false
+	}
+
+	// Optionally check if there are users
+	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return err == nil
 }

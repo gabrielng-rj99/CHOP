@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strings"
@@ -10,6 +11,28 @@ import (
 // ============= HEALTH HANDLER =============
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	db := GetGlobalDB()
+	if db == nil {
+		respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+			"status":    "unhealthy",
+			"message":   "Database not connected",
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// Test database connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+			"status":    "unhealthy",
+			"message":   "Database connection failed",
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().Format(time.RFC3339),
