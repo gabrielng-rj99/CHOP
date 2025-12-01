@@ -156,45 +156,15 @@ test_database_connection() {
     fi
 }
 
-test_initialize_database() {
-    log_section "Database Initialization Tests"
-
-    # First check current status
-    local status=$(curl -s "$BACKEND_URL/api/initialize/status")
-    local has_db=$(echo "$status" | grep -o '"has_database":[^,}]*' | cut -d':' -f2 | tr -d ' ')
-
-    if [ "$has_db" = "true" ]; then
-        log_success "Database already initialized"
-    else
-        log_info "Attempting to initialize database..."
-
-        local db_config='{
-            "host": "postgres",
-            "port": 5432,
-            "user": "ehopuser",
-            "password": "mgQ0TClLIx95JYH0iH3GM4neDdTHlMs0xfK83sIKljuBY6FCYlUpOBnz04907raA",
-            "database": "ehopdb",
-            "sslmode": "disable"
-        }'
-
-        test_endpoint \
-            "Initialize database" \
-            "POST" \
-            "/api/initialize/database" \
-            "200" \
-            "$db_config"
-    fi
-}
-
 test_initialize_admin() {
     log_section "Admin User Initialization Tests"
 
-    # Check if admin already exists
+    # Check if database is empty (admin can only be created on empty database)
     local status=$(curl -s "$BACKEND_URL/api/initialize/status")
-    local has_users=$(echo "$status" | grep -o '"has_users":[^,}]*' | cut -d':' -f2 | tr -d ' ')
+    local db_empty=$(echo "$status" | grep -o '"database_empty":[^,}]*' | cut -d':' -f2 | tr -d ' ')
 
-    if [ "$has_users" = "true" ]; then
-        log_success "Admin user already exists"
+    if [ "$db_empty" = "false" ]; then
+        log_success "Database has data - admin already exists"
         ADMIN_USERNAME="admin"
         ADMIN_PASSWORD="Admin@123456"
     else
@@ -581,7 +551,6 @@ main() {
     test_health_endpoint
     test_database_connection
     test_initialize_status
-    test_initialize_database
     test_initialize_admin
     test_authentication
     test_protected_endpoints_without_auth
