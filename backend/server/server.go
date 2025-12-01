@@ -13,6 +13,19 @@ import (
 	"Open-Generic-Hub/backend/store"
 )
 
+// Global database connection (used for health checks and initialization)
+var globalDB *sql.DB
+
+// SetGlobalDB sets the global database connection
+func SetGlobalDB(db *sql.DB) {
+	globalDB = db
+}
+
+// GetGlobalDB returns the global database connection
+func GetGlobalDB() *sql.DB {
+	return globalDB
+}
+
 type Server struct {
 	userStore      *store.UserStore
 	contractStore  *store.ContractStore

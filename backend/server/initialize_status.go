@@ -1,23 +1,53 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 
 	"Open-Generic-Hub/backend/database"
-	"Open-Generic-Hub/backend/store"
 )
 
 // InitializeStatusResponse representa o status de inicialização
 type InitializeStatusResponse struct {
-	IsInitialized  bool   `json:"is_initialized"`
-	HasDatabase    bool   `json:"has_database"`
-	HasUsers       bool   `json:"has_users"`
-	RequiresSetup  bool   `json:"requires_setup"`
-	Message        string `json:"message"`
-	DatabaseStatus string `json:"database_status,omitempty"` // "empty", "connected", "error"
-	UsersCount     int    `json:"users_count,omitempty"`
-	RootUserExists bool   `json:"root_user_exists,omitempty"`
+	IsInitialized  bool     `json:"is_initialized"`
+	HasDatabase    bool     `json:"has_database"`
+	DatabaseEmpty  bool     `json:"database_empty"`
+	RequiresSetup  bool     `json:"requires_setup"`
+	Message        string   `json:"message"`
+	DatabaseStatus string   `json:"database_status,omitempty"` // "empty", "has_data", "connected", "error"
+	TablesWithData []string `json:"tables_with_data,omitempty"`
+}
+
+// checkDatabaseEmpty verifica se TODAS as tabelas principais estão vazias
+func checkDatabaseEmpty(db *sql.DB) (bool, []string, error) {
+	tables := []string{
+		"users",
+		"clients",
+		"dependents",
+		"categories",
+		"lines",
+		"contracts",
+		"audit_logs",
+	}
+
+	var tablesWithData []string
+
+	for _, table := range tables {
+		var count int
+		query := "SELECT COUNT(*) FROM " + table
+		err := db.QueryRow(query).Scan(&count)
+		if err != nil {
+			return false, nil, err
+		}
+
+		if count > 0 {
+			tablesWithData = append(tablesWithData, table)
+		}
+	}
+
+	isEmpty := len(tablesWithData) == 0
+	return isEmpty, tablesWithData, nil
 }
 
 // HandleInitializeStatus verifica status de inicialização
@@ -30,7 +60,7 @@ func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) 
 
 	response := InitializeStatusResponse{
 		HasDatabase:    false,
-		HasUsers:       false,
+		DatabaseEmpty:  false,
 		IsInitialized:  false,
 		RequiresSetup:  false,
 		DatabaseStatus: "unknown",
@@ -54,36 +84,27 @@ func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) 
 	response.HasDatabase = true
 	response.DatabaseStatus = "connected"
 
-	// Verifica se existem usuários
-	userStore := store.NewUserStore(db)
-
-	// Contar usuários
-	users, err := userStore.ListUsers()
+	// Verifica se o banco está completamente vazio
+	isEmpty, tablesWithData, err := checkDatabaseEmpty(db)
 	if err != nil {
-		response.Message = "Error checking users"
+		response.DatabaseStatus = "error"
+		response.Message = "Error checking database status"
 		response.RequiresSetup = true
 	} else {
-		response.UsersCount = len(users)
+		response.DatabaseEmpty = isEmpty
+		response.TablesWithData = tablesWithData
 
-		// Verificar se existe usuário root
-		for _, user := range users {
-			if user.Role != nil && *user.Role == "root" {
-				response.RootUserExists = true
-				break
-			}
-		}
-
-		if response.UsersCount == 0 {
-			response.HasUsers = false
+		if isEmpty {
+			// Banco vazio - precisa de setup inicial
+			response.DatabaseStatus = "empty"
 			response.RequiresSetup = true
-			response.Message = "Database connected but no users. Setup required."
-		} else if !response.RootUserExists {
-			response.RequiresSetup = true
-			response.Message = "Users exist but no root user. Admin creation required."
+			response.IsInitialized = false
+			response.Message = "Database is empty. Admin creation required."
 		} else {
-			response.IsInitialized = true
-			response.HasUsers = true
+			// Banco tem dados - sistema inicializado
+			response.DatabaseStatus = "has_data"
 			response.RequiresSetup = false
+			response.IsInitialized = true
 			response.Message = "System fully initialized"
 		}
 	}

@@ -238,8 +238,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/deploy/status", s.corsMiddleware(s.HandleDeployStatus))
 	mux.HandleFunc("/api/deploy/validate", s.corsMiddleware(s.HandleDeployValidate))
 
-	// Initialize Database & Admin (accessible during first-time setup)
-	mux.HandleFunc("/api/initialize/database", s.corsMiddleware(s.HandleInitializeDatabase))
+	// Initialize Admin (accessible only when database is completely empty)
 	mux.HandleFunc("/api/initialize/admin", s.corsMiddleware(s.HandleInitializeAdmin))
 	mux.HandleFunc("/api/initialize/status", s.corsMiddleware(s.HandleInitializeStatus))
 }
