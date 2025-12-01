@@ -1,500 +1,401 @@
-# Architecture — Contracts Manager
+# Architecture — Entity Hub Open Project
 
-Visão técnica do sistema, padrões adotados e diretrizes de desenvolvimento.
+Technical overview of the system, design patterns, and development guidelines.
 
-## 🏗️ Visão Geral
+## System Overview
 
-Contracts Manager é um sistema para gerenciar contratos e licenças de software com validações robustas. Backend em Go, estruturado em camadas com foco em testabilidade, integridade de dados e separação de responsabilidades.
-
-```
-┌─────────────────────────────┐
-│      CLI / Interface        │  (cmd/cli)
-│   (Menu interativo)         │
-├─────────────────────────────┤
-│     Stores & Handlers       │  (store/)
-│   - Business Logic          │
-│   - Validations             │
-│   - Data Access             │
-├─────────────────────────────┤
-│     Domain Models           │  (domain/)
-│   - Structs                 │
-│   - Value Objects           │
-├─────────────────────────────┤
-│   Database Layer            │  (database/)
-│   - PostgreSQL              │
-│   - Migrations              │
-└─────────────────────────────┘
-```
-
-## 📂 Estrutura de Diretórios
+Entity Hub is a flexible entity management system with a Go backend API and React frontend. The architecture follows a layered approach with clear separation of concerns.
 
 ```
-backend/
-├── cmd/
-│   ├── cli/
-│   │   └── main.go           # Ponto de entrada (menu CLI)
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (React)                        │
+│                  TypeScript + Vite + TailwindCSS             │
+├─────────────────────────────────────────────────────────────┤
+│                       API Gateway                            │
+│                    (NGINX / Direct)                          │
+├─────────────────────────────────────────────────────────────┤
+│                      Backend (Go)                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Handlers  │  │ Middleware  │  │   JWT Auth          │  │
+│  │   (HTTP)    │  │ (CORS/Auth) │  │   (Token Mgmt)      │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│         │                │                     │             │
+│  ┌──────┴────────────────┴─────────────────────┴──────────┐ │
+│  │                     Store Layer                         │ │
+│  │  (Business Logic + Data Access + Validations)          │ │
+│  └────────────────────────┬────────────────────────────────┘ │
+│                           │                                   │
+│  ┌────────────────────────┴────────────────────────────────┐ │
+│  │                  Domain Models                           │ │
+│  │            (User, Client, Contract, etc.)               │ │
+│  └─────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│                    PostgreSQL Database                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Directory Structure
+
+```
+Entity-Hub-Open-Project/
+├── backend/
+│   ├── cmd/
+│   │   ├── server/           # HTTP server entry point
+│   │   ├── cli/              # CLI tools entry point
+│   │   └── tools/            # Utility tools
 │   ├── server/
-│   │   └── main.go           # API (futuro)
-│   └── tools/
-│       └── main.go           # Utilitários (criar admin, etc)
-├── domain/
-│   └── models.go             # Structs (Client, Contract, User, etc)
-├── store/
-│   ├── client_store.go       # CRUD + lógica de client
-│   ├── contract_store.go     # CRUD + lógica de contract
-│   ├── user_store.go         # CRUD + autenticação
-│   ├── category_store.go     # CRUD + categorias
-│   ├── dependent_store.go    # CRUD + dependentes
-│   ├── store_interfaces.go   # Interfaces
-│   └── *_test.go             # Testes unitários (114+)
-├── database/
-│   ├── database.go           # Conexão e inicialização
-│   └── schema.sql              # Schema e migrations
-├── config/
-│   └── config.go             # Configurações e ambiente
+│   │   ├── server.go         # Server initialization
+│   │   ├── routes.go         # Route registration
+│   │   ├── auth_handlers.go  # Login, refresh token
+│   │   ├── users_handlers.go # User CRUD
+│   │   ├── jwt_utils.go      # JWT creation/validation
+│   │   └── *_handlers.go     # Entity handlers
+│   ├── store/
+│   │   ├── user_store.go     # User business logic
+│   │   ├── client_store.go   # Client business logic
+│   │   ├── contract_store.go # Contract business logic
+│   │   └── *_store.go        # Other entity stores
+│   ├── domain/
+│   │   └── models.go         # Domain entities
+│   ├── database/
+│   │   ├── database.go       # Connection management
+│   │   └── schema.sql        # Database schema
+│   └── config/
+│       └── config.go         # Configuration loading
+├── frontend/
+│   └── src/
+│       ├── components/       # React components
+│       ├── pages/            # Page components
+│       ├── services/         # API client
+│       └── hooks/            # Custom hooks
+├── deploy/
+│   ├── docker/               # Docker configurations
+│   ├── scripts/              # Deployment scripts
+│   └── docs/                 # Deployment documentation
 └── tests/
-    └── (integrados nos *_test.go)
+    ├── conftest.py           # Pytest fixtures
+    ├── test_*.py             # Test modules
+    └── docker-compose.test.yml
 ```
 
-## 🔄 Fluxo de Dados
+## Core Components
 
-### Exemplo: Criar Contrato
+### Authentication & Authorization
 
-```
-1. CLI → Pede dados ao usuário
-          ↓
-2. Validação → Formatos e valores básicos
-          ↓
-3. Store → ContractStore.Create()
-    - Valida FK (cliente, linha)
-    - Verifica sobreposição de datas
-    - Valida cliente não arquivado
-    - Garante integridade referencial
-          ↓
-4. Database → INSERT contrato
-          ↓
-5. Retorna → UUID do contrato criado
-```
-
-## 🏛️ Padrões Adotados
-
-### 1. Repository Pattern
-
-Cada entidade tem um Store (repositório):
+#### JWT Implementation
 
 ```go
-// store/contract_store.go
-type ContractStore struct {
+// Token structure with user-specific signing
+type JWTClaims struct {
+    UserID   string `json:"user_id"`
+    Username string `json:"username"`
+    Role     string `json:"role"`
+    jwt.RegisteredClaims
+}
+
+// Signing key = GlobalSecret + UserAuthSecret
+// This allows per-user token invalidation
+```
+
+#### Middleware Stack
+
+```
+Request
+   │
+   ▼
+┌─────────────────┐
+│  CORS Middleware │ ─→ Handles cross-origin requests
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Auth Middleware │ ─→ Validates JWT token
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Admin Middleware │ ─→ Checks admin/root role (for /api/users)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│     Handler     │ ─→ Processes request
+└─────────────────┘
+```
+
+#### Role-Based Access Control
+
+| Role | Access Level |
+|------|--------------|
+| `root` | Full access, can create/manage all users, view audit logs |
+| `admin` | Can manage users (except root), full entity access |
+| `user` | Limited access (configurable per deployment) |
+
+### Store Layer Pattern
+
+Each entity has a dedicated store that handles:
+
+1. **Business Logic**: Validation, authorization checks
+2. **Data Access**: SQL queries with prepared statements
+3. **Audit Integration**: Logging operations
+
+```go
+type UserStore struct {
     db *sql.DB
 }
 
-func (s *ContractStore) Create(contract domain.Contract) (string, error) {
-    // Validações
-    // INSERT
-    // Retorna ID
-}
-
-func (s *ContractStore) GetByID(id string) (*domain.Contract, error) {
-    // SELECT
+func (s *UserStore) CreateUser(username, displayName, password, role string) (string, error) {
+    // 1. Validate inputs
+    if err := ValidateUsername(username); err != nil {
+        return "", err
+    }
+    
+    // 2. Validate password strength
+    if err := ValidateStrongPassword(password); err != nil {
+        return "", err
+    }
+    
+    // 3. Check role validity
+    if role != "user" && role != "admin" && role != "root" {
+        return "", errors.New("invalid role")
+    }
+    
+    // 4. Hash password and create user
+    // ... database operations ...
 }
 ```
 
-### 2. Separação em Camadas
+### Security Implementations
 
-- **Domain:** Modelos puros, sem dependências externas
-- **Store:** Lógica de negócio + acesso a dados
-- **CLI:** Interface com usuário
-- **Database:** Persistência
-
-### 3. Validação em Múltiplos Níveis
+#### Password Validation
 
 ```go
-// Nível 1: Tipo (Go garante tipos)
-type Contract struct {
-    StartDate time.Time  // Not nullable
-    EndDate   time.Time
+func ValidateStrongPassword(password string) error {
+    if len(password) < 16 {
+        return errors.New("password must be at least 16 characters")
+    }
+    if strings.Contains(password, " ") {
+        return errors.New("password cannot contain spaces")
+    }
+    // Must have: uppercase, lowercase, number, special char
+    // ...
 }
-
-// Nível 2: Business Logic (Store)
-if !contract.StartDate.Before(contract.EndDate) {
-    return fmt.Errorf("end_date must be after start_date")
-}
-
-// Nível 3: Database (Constraints)
-ALTER TABLE contracts ADD CONSTRAINT 
-    check_dates CHECK (end_date > start_date);
 ```
 
-### 4. Soft Delete para Auditoria
-
-Entidades não são deletadas, apenas marcadas:
+#### Brute Force Protection
 
 ```go
-type Client struct {
-    ID        string
-    Name      string
-    ArchivedAt *time.Time  // nil = ativo, com data = arquivado
+type User struct {
+    // ...
+    FailedAttempts int        // Counter for failed logins
+    LockLevel      int        // 0, 1, 2 - progressive lockout
+    LockedUntil    *time.Time // When the lock expires
 }
 
-// Queries sempre filtram
-SELECT * FROM clients WHERE archived_at IS NULL;
+// Lock durations increase with each level:
+// Level 1: 5 minutes
+// Level 2: 15 minutes
+// Level 3: 60 minutes
 ```
 
-### 5. Validação de Relacionamentos
+#### SQL Injection Prevention
 
-Antes de criar contrato:
+- All queries use prepared statements
+- No string concatenation for SQL
+- Input validation at multiple layers
 
 ```go
-// 1. Verifica se cliente existe
-if err := cs.ClientExists(contract.ClientID); err != nil {
-    return err
-}
+// ✓ Correct - parameterized query
+query := "SELECT * FROM users WHERE username = $1"
+row := db.QueryRow(query, username)
 
-// 2. Verifica se linha existe
-if err := ls.LineExists(contract.LineID); err != nil {
-    return err
-}
-
-// 3. Verifica se cliente está ativo
-client, _ := cs.GetByID(contract.ClientID)
-if client.ArchivedAt != nil {
-    return errors.New("cannot create contract for archived client")
-}
+// ✗ Wrong - never do this
+query := "SELECT * FROM users WHERE username = '" + username + "'"
 ```
 
-## 📊 Modelo de Dados
+## Data Model
 
-### Relacionamentos
+### Entity Relationships
 
 ```
 ┌──────────────┐
-│  Clients     │
-└──────┬───────┘
+│   Users      │ ─── Authentication & Authorization
+└──────────────┘
+
+┌──────────────┐       ┌──────────────┐
+│  Categories  │──1:N──│    Lines     │
+└──────────────┘       └──────┬───────┘
+                              │
+                              │ 1:N
+                              ▼
+┌──────────────┐       ┌──────────────┐
+│   Clients    │──1:N──│  Contracts   │
+└──────┬───────┘       └──────────────┘
+       │
        │ 1:N
-       ├─→ Dependents (filiais)
-       └─→ Contracts (licenças)
+       ▼
+┌──────────────┐
+│  Dependents  │ ─── Optional client subsidiaries
+└──────────────┘
 
 ┌──────────────┐
-│ Categories   │
-└──────┬───────┘
-       │ 1:N
-       └─→ Lines (produtos)
-           │ 1:N
-           └─→ Contracts
-
-┌──────────────┐
-│  Contracts   │ (centro do modelo)
-└──────┬───────┘
-       ├─→ Clients (quem tem)
-       ├─→ Lines (o que é)
-       ├─→ Dependents (onde, opcional)
-       └─→ Status (calculado automaticamente)
-
-┌──────────────┐
-│   Users      │ (autenticação)
+│  Audit Logs  │ ─── All operations logged (root only access)
 └──────────────┘
 ```
 
-### Entidades
+### Key Constraints
 
-| Entidade | Descrição | Relacionamentos |
-|----------|-----------|-----------------|
-| **Client** | Empresa/cliente | N dependents, N contracts |
-| **Dependent** | Filial/unidade | 1 client, N contracts |
-| **Category** | Classificação (Antivírus, DB, SO) | N lines |
-| **Line** | Produto específico (Windows 10, Oracle 19c) | 1 category, N contracts |
-| **Contract** | Contrato/licença com datas | 1 client, 1 line, 0-1 dependent |
-| **User** | Usuário com autenticação | 1 client (atribuível) |
+- `username` is unique per user (case-insensitive via CITEXT)
+- `registration_id` (CNPJ) is unique per client
+- Contracts cannot overlap for the same client/line combination
+- Soft delete via `archived_at` / `deleted_at` timestamps
 
-### Constraints Principais
+## API Design
 
-- `registration_id` (CNPJ) único em clients
-- Nome + CategoryID único em lines
-- Nome + ClientID único em dependents
-- `end_date > start_date` em contracts
-- Sem sobreposição temporal para mesma linha/cliente
-- Soft delete via `archived_at` NOT NULL
+### Request/Response Format
 
-## 🛡️ Validações de Negócio
+All responses follow a consistent structure:
 
-| Regra | Local | Erro |
-|-------|-------|------|
-| CNPJ válido | Store | ValidationError |
-| Datas válidas | Store + DB | ValidationError |
-| Cliente existe | Store | NotFoundError |
-| Cliente não arquivado | Store | StateError |
-| Sem sobreposição de datas | Store + DB | ConstraintError |
-| Linha existe | Store | NotFoundError |
-| Dependente existe (se informado) | Store | NotFoundError |
-| Nome único na categoria | Database | ConstraintError |
-| Integridade referencial | Database | ConstraintError |
-
-## 🧪 Testes
-
-### Estrutura
-
-```
-backend/store/
-├── client_test.go           # 28 testes
-├── contract_test.go         # 33 testes
-├── user_test.go             # 19 testes
-├── category_test.go         # 17 testes
-├── lines_test.go            # 26 testes
-├── dependent_test.go        # 11 testes
-├── validation_test.go       # 4 testes
-├── errors_test.go           # 6 testes
-├── types_test.go            # 5 testes
-└── integration_test.go      # 3 testes
-
-Total: 114+ testes
-```
-
-### Padrão de Teste
-
-```go
-func TestCreateContract_ValidatesDates(t *testing.T) {
-    contract := domain.Contract{
-        Model:     "Windows 10",
-        StartDate: time.Now(),
-        EndDate:   time.Now().AddDate(-1, 0, 0),  // Data anterior!
+```json
+// Success response
+{
+    "message": "User created successfully",
+    "data": {
+        "id": "uuid-here"
     }
-    
-    _, err := store.Create(contract)
-    
-    require.Error(t, err)
-    require.Contains(t, err.Error(), "end_date must be after start_date")
+}
+
+// Error response
+{
+    "error": "Validation failed",
+    "details": ["Username is required", "Password too weak"]
 }
 ```
 
-### Cobertura
-
-- ✅ Casos de sucesso
-- ✅ Validações
-- ✅ Erros
-- ✅ Edge cases
-- ✅ Integridade referencial
-
-## 🔐 Segurança
-
-- **Prepared Statements:** Previnem SQL Injection
-- **Validação de Input:** Todos os dados validados antes de usar
-- **Soft Delete:** Histórico mantido para auditoria
-- **Transações:** Operações multi-tabela são atômicas
-- **Autenticação:** Sistema de usuários com roles
-- **Proteção contra força bruta:** Bloqueio automático após falhas
-
-## 📝 Convenções de Código
-
-### Nomenclatura
-
-- **Structs:** PascalCase (`Client`, `Contract`, `User`)
-- **Métodos:** PascalCase (`Create`, `GetByID`, `Archive`)
-- **Variáveis:** camelCase (`clientID`, `startDate`, `hasLicenses`)
-- **Constantes:** UPPER_SNAKE_CASE (`MAX_NAME_LENGTH`, `DEFAULT_PAGE_SIZE`)
-- **Arquivos:** snake_case (`client_store.go`, `contract_test.go`)
-
-### Erros
-
-```go
-// ✓ Bom - descritivo
-return fmt.Errorf("contract not found: %s", id)
-return fmt.Errorf("end_date must be after start_date")
-return fmt.Errorf("overlapping contract dates for line %s", lineID)
-
-// ✗ Ruim - genérico
-return errors.New("error")
-return errors.New("invalid")
-```
-
-### Comentários
-
-```go
-// ✓ Explica o por quê
-// Soft delete preserva histórico para auditoria
-client.ArchivedAt = time.Now()
-
-// ✗ Óbvio
-// Set archived at to now
-client.ArchivedAt = time.Now()
-```
-
-## 🔗 Dependências Externas Mínimas
+### Authentication Flow
 
 ```
-github.com/google/uuid        # Geração de IDs (UUID v4)
-github.com/jackc/pgx/v5/stdlib # Driver PostgreSQL
-golang.org/x/crypto           # Hashing de senhas
+1. POST /api/login
+   ├── Validate credentials
+   ├── Check account lock status
+   ├── Generate JWT with user's auth_secret
+   └── Return token + refresh token
+
+2. Authenticated Request
+   ├── Extract token from Authorization header
+   ├── Validate signature using user's current auth_secret
+   ├── Check token expiration
+   └── Process request
+
+3. POST /api/refresh-token
+   ├── Validate refresh token
+   ├── Generate new access token
+   └── Return new tokens
 ```
 
-**Stack:** Go stdlib + PostgreSQL (desenvolvimento e produção)
+### Endpoint Security Matrix
 
+| Endpoint | Public | User | Admin | Root |
+|----------|--------|------|-------|------|
+| `/health` | ✓ | ✓ | ✓ | ✓ |
+| `/api/login` | ✓ | ✓ | ✓ | ✓ |
+| `/api/initialize/*` | ✓ | - | - | - |
+| `/api/users` | - | - | ✓ | ✓ |
+| `/api/clients` | - | ✓ | ✓ | ✓ |
+| `/api/audit-logs` | - | - | - | ✓ |
 
-## 🚀 Escalabilidade e Evolução
+## Testing Strategy
 
-### Preparado Para
+### Test Categories
 
-- ✅ Múltiplas unidades por cliente (Dependents)
-- ✅ Histórico de operações (via soft delete)
-- ✅ Filtros complexos (por categoria, linha, status, período)
-- ✅ Expiração automática de contratos
-- ✅ Sistema de usuários com permissões
-- ✅ Migração para PostgreSQL em produção
+1. **Unit Tests** (Go): Store layer, validation functions
+2. **Security Tests** (Python/pytest): OWASP Top 10 coverage
+3. **Integration Tests**: API endpoint testing
+4. **E2E Tests**: Full stack testing
 
-### Roadmap Futuro
+### Security Test Suite
 
-**v1.1:**
-- [ ] API REST
-- [ ] Paginação em listagens
-- [ ] Filtros avançados
-- [ ] Export CSV/PDF
-
-**v2.0:**
-- [ ] Dashboard web
-- [ ] Notificações (email/Slack)
-- [ ] Auditoria detalhada
-- [ ] Integração com sistemas externos
-
-## 🤝 Para Desenvolvedores
-
-### Adicionar Nova Entidade
-
-1. Definir struct em `domain/models.go`
-2. Criar store em `store/new_entity_store.go`
-3. Criar testes em `store/new_entity_store_test.go`
-4. Atualizar `database/schema.sql` com tabela
-5. Integrar no menu CLI (`cmd/cli/main.go`)
-
-### Exemplo: Adicionar Campo a Contrato
-
-**1. Domain** (`domain/models.go`):
-```go
-type Contract struct {
-    // ... campos existentes ...
-    Notes string  // Novo campo
-}
+```
+tests/
+├── test_jwt_security.py      # Token manipulation attacks
+├── test_sql_injection.py     # SQLi payloads
+├── test_xss_security.py      # XSS prevention
+├── test_authorization.py     # RBAC enforcement
+├── test_password_validation.py
+├── test_input_validation.py
+├── test_login_blocking.py    # Brute force protection
+└── test_data_leakage.py      # Sensitive data exposure
 ```
 
-**2. Store** (`store/contract_store.go`):
-```go
-// UPDATE query para incluir Notes
-// Validação se necessário
+### Test Environment
 
-func (s *ContractStore) Create(contract domain.Contract) (string, error) {
-    if len(contract.Notes) > 1000 {
-        return "", errors.New("notes must be 1000 characters or less")
-    }
-    // ... INSERT com Notes ...
-}
+```yaml
+# docker-compose.test.yml
+services:
+  test_db:
+    port: 65432
+  test_backend:
+    port: 63000
+  test_frontend:
+    port: 65080
 ```
 
-**3. Tests** (`store/contract_test.go`):
-```go
-func TestCreateContract_WithNotes(t *testing.T) {
-    contract := domain.Contract{
-        // ... dados necessários ...
-        Notes: "Licença para departamento de TI",
-    }
-    
-    id, err := store.Create(contract)
-    require.NoError(t, err)
-    // Verificar se Notes foi salvo
-}
+## Deployment
+
+### Docker Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│               Docker Network                 │
+│                                             │
+│  ┌─────────┐  ┌──────────┐  ┌───────────┐  │
+│  │ NGINX   │──│ Backend  │──│ PostgreSQL│  │
+│  │ :8081   │  │ :3000    │  │ :5432     │  │
+│  └─────────┘  └──────────┘  └───────────┘  │
+│       │                                     │
+│  ┌────┴────┐                               │
+│  │Frontend │                               │
+│  │(static) │                               │
+│  └─────────┘                               │
+└─────────────────────────────────────────────┘
 ```
 
-**4. Database** (`database/schema.sql`):
-```sql
-ALTER TABLE contracts ADD COLUMN notes TEXT;
-```
+### Configuration Hierarchy
 
-### Executar Testes Localmente
+1. Environment variables (highest priority)
+2. Config file (config.ini)
+3. Default values (code)
 
-```bash
-cd backend
+## Development Guidelines
 
-# Todos os testes
-go test ./store -v
+### Adding a New Entity
 
-# Com cobertura
-go test ./store -cover
+1. Define model in `domain/models.go`
+2. Create store in `store/new_entity_store.go`
+3. Write tests in `store/new_entity_test.go`
+4. Add handlers in `server/new_entity_handlers.go`
+5. Register routes in `server/routes.go`
+6. Update database schema
 
-# Teste específico
-go test -run TestContractCreate ./store -v
+### Code Style
 
-# Com race detector
-go test -race ./store
-```
+- **Go**: Follow standard Go formatting (`go fmt`)
+- **Naming**: PascalCase for exports, camelCase for internal
+- **Errors**: Descriptive messages, no generic "error" responses
+- **Comments**: Explain "why", not "what"
 
-### Linting e Formatação
+### Security Checklist
 
-```bash
-# Formatar código
-go fmt ./...
+- [ ] All inputs validated
+- [ ] SQL uses prepared statements
+- [ ] Sensitive data excluded from JSON (`json:"-"`)
+- [ ] Authorization checks in handlers
+- [ ] Audit logging for mutations
+- [ ] Rate limiting considered
 
-# Lint
-golangci-lint run ./...
-
-# Análise estática
-go vet ./...
-```
-
-## 📚 Referências Técnicas
-
-### Database Layer
-
-- Prepared statements para todas as queries
-- Connection pooling automático via `database/sql`
-- Transações para operações multi-tabela
-- Índices em ForeignKeys e campos de busca
-
-### Performance
-
-- PostgreSQL para desenvolvimento e produção (escalável)
-- Índices em campos frequentemente consultados
-- Lazy loading de relacionamentos
-
-## 🔍 Debugging
-
-### Logs
-
-```go
-// Adicione em desenvolvimento
-log.Printf("Creating contract: %+v", contract)
-log.Printf("Query: %s", query)
-```
-
-### Testes Isolados
-
-```bash
-# Teste uma função específica
-go test -run TestContractCreate ./store -v
-
-# Com debugging
-go test -v -run TestContractCreate ./store --race
-```
-
-### Inspeção de Banco
-
-PostgreSQL:
-```bash
-psql $POSTGRES_DB -c "\dt"
-psql $POSTGRES_DB -c "SELECT * FROM contracts LIMIT 5;"
-```
-
-PostgreSQL:
-```bash
-psql -d contracts_manager -c "\dt"
-psql -d contracts_manager -c "SELECT * FROM contracts LIMIT 5;"
-```
-
-## 📖 Leitura Recomendada
+## References
 
 - [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [Effective Go](https://golang.org/doc/effective_go)
-- [Domain-Driven Design](https://www.domainlanguage.com/ddd/)
-- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-
----
-
-**Para usar o sistema:** Veja [USAGE.md](USAGE.md)
-**Para instalar:** Veja [SETUP.md](SETUP.md)
-**Para contribuir:** Veja [CONTRIBUTING.md](CONTRIBUTING.md)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [JWT Best Practices](https://auth0.com/blog/jwt-security-best-practices/)

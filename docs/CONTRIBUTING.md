@@ -1,479 +1,292 @@
-# Contributing — Contracts Manager
+# Contributing to Entity Hub
 
-Guia para contribuidores. Obrigado por querer melhorar este projeto!
+Thank you for your interest in contributing to Entity Hub! This guide will help you get started.
 
-## 🚀 Começando
+## Getting Started
 
-### 1. Fork e Clone
-
-```bash
-git clone https://github.com/seu-usuario/Open-Generic-Hub.git
-cd Open-Generic-Hub
-```
-
-### 2. Criar Branch
+### 1. Fork and Clone
 
 ```bash
-git checkout -b feature/descricao
-# ou
-git checkout -b fix/descricao
+git clone https://github.com/your-username/Entity-Hub-Open-Project.git
+cd Entity-Hub-Open-Project
 ```
 
-**Convenção de nomes:**
-- `feature/` — Nova funcionalidade
-- `fix/` — Correção de bug
-- `docs/` — Documentação
-- `refactor/` — Refatoração
-- `test/` — Testes
+### 2. Create a Branch
 
-### 3. Setup Local
+```bash
+git checkout -b feature/description
+# or
+git checkout -b fix/description
+```
 
+**Branch naming convention:**
+- `feature/` — New functionality
+- `fix/` — Bug fixes
+- `docs/` — Documentation updates
+- `refactor/` — Code refactoring
+- `test/` — Test additions/fixes
+- `chore/` — Maintenance tasks
+
+### 3. Setup Development Environment
+
+**Backend:**
 ```bash
 cd backend
 go mod tidy
-
-# Teste se tudo funciona
-go test ./store -v
+go test ./... -v
 ```
 
-## 📝 Desenvolvendo
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Padrões de Código
+**Tests:**
+```bash
+cd tests
+pip install -r requirements.txt
+docker compose -f docker-compose.test.yml up -d
+python run_tests.py
+```
+
+## Code Standards
+
+### Go Backend
 
 ```go
-// ✓ Bom - função com validação
-func (s *ClientStore) CreateClient(client *domain.Client) (string, error) {
-    if client == nil {
-        return "", errors.New("client cannot be nil")
+// ✓ Good - clear validation and error handling
+func (s *UserStore) CreateUser(username, displayName, password, role string) (string, error) {
+    if err := ValidateUsername(username); err != nil {
+        return "", err
     }
-
-    if len(client.Name) == 0 {
-        return "", errors.New("name is required")
+    
+    if err := ValidateStrongPassword(password); err != nil {
+        return "", err
     }
-
-    id := uuid.New().String()
-    // INSERT
+    
+    // ... implementation
     return id, nil
 }
 
-// ✗ Ruim - sem validação
-func CreateClient(client domain.Client) string {
-    id := uuid.New().String()
+// ✗ Bad - no validation, unclear errors
+func CreateUser(u string, p string) string {
+    // direct insert without checks
     return id
 }
 ```
 
-### Estrutura de Método
-
-1. Validações de entrada
-2. Regras de negócio
-3. Persistência
-4. Retorno (ID ou erro)
-
-### Exemplo: Adicionar Validação
-
-**1. Domain** (`domain/models.go`):
-```go
-type Contract struct {
-    Model     string
-    ProductKey string
-    // ...
-}
-```
-
-**2. Store** (`store/contract_store.go`):
-```go
-func (s *ContractStore) Create(contract *domain.Contract) (string, error) {
-    // Validação: model não vazio
-    if len(contract.Model) < 1 || len(contract.Model) > 255 {
-        return "", fmt.Errorf("model must be 1-255 characters")
-    }
-
-    // Validação: datas válidas
-    if !contract.StartDate.Before(contract.EndDate) {
-        return "", errors.New("end_date must be after start_date")
-    }
-
-    // ... resto da lógica ...
-    return id, nil
-}
-```
-
-**3. Test** (`store/contract_test.go`):
-```go
-func TestCreateContract_ValidatesModel(t *testing.T) {
-    store := setupTestStore()
-
-    contract := &domain.Contract{
-        Model: "", // inválido
-    }
-
-    _, err := store.Create(contract)
-
-    require.Error(t, err)
-    require.Contains(t, err.Error(), "model must be 1-255")
-}
-
-func TestCreateContract_ValidatesDates(t *testing.T) {
-    store := setupTestStore()
-
-    contract := &domain.Contract{
-        Model:     "Windows 10",
-        StartDate: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-        EndDate:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), // ❌
-    }
-
-    _, err := store.Create(contract)
-
-    require.Error(t, err)
-    require.Contains(t, err.Error(), "end_date must be after start_date")
-}
-```
-
-**4. Database** (`database/schema.sql`):
-```sql
-ALTER TABLE contracts
-ADD CONSTRAINT check_model_length
-CHECK (char_length(model) >= 1 AND char_length(model) <= 255);
-
-ALTER TABLE contracts
-ADD CONSTRAINT check_dates
-CHECK (end_date > start_date);
-```
-
-## 🧪 Testes
-
-### Rodar Testes
-
-```bash
-cd backend
-
-# Todos os testes
-go test ./store -v
-
-# Com cobertura
-go test ./store -cover
-
-# Teste específico
-go test -run TestCreateContract ./store -v
-
-# Com race detector
-go test -race ./store
-```
-
-### Escrever Testes
-
-Padrão: **Arrange → Act → Assert**
+### Error Messages
 
 ```go
-func TestCreateContract_Success(t *testing.T) {
-    // ARRANGE: Setup
-    store := setupTestStore()
-    contract := &domain.Contract{
-        Model:      "Windows 10",
-        ProductKey: "KEY123",
-        StartDate:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-        EndDate:    time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-        LineID:     "line-id",
-        ClientID:   "client-id",
-    }
+// ✓ Descriptive
+return fmt.Errorf("user not found: %s", username)
+return errors.New("password must be at least 16 characters")
 
-    // ACT: Executa
-    id, err := store.Create(contract)
-
-    // ASSERT: Verifica
-    require.NoError(t, err)
-    require.NotEmpty(t, id)
-
-    // Verifica se foi salvo
-    saved, err := store.GetByID(id)
-    require.NoError(t, err)
-    require.Equal(t, contract.Model, saved.Model)
-}
-
-func TestCreateContract_InvalidDates(t *testing.T) {
-    store := setupTestStore()
-    contract := &domain.Contract{
-        Model:     "Windows 10",
-        StartDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-        EndDate:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), // ❌
-    }
-
-    _, err := store.Create(contract)
-
-    require.Error(t, err)
-    require.Contains(t, err.Error(), "end_date must be after start_date")
-}
-```
-
-### Cobertura Esperada
-
-- ✅ Caso de sucesso
-- ✅ Validações (cada campo)
-- ✅ Erros (FK não encontrada, etc)
-- ✅ Edge cases (limites, valores nulos)
-- ✅ Integridade referencial
-
-### Status Atual
-
-```bash
-go test ./store -v
-# 114+ testes ✅
-```
-
-## 📋 Checklist Antes de Submeter
-
-- [ ] Código segue convenções do projeto
-- [ ] Testes passam: `go test ./store -v`
-- [ ] Testes adicionados para nova funcionalidade
-- [ ] Documentação atualizada (se necessário)
-- [ ] Commits com mensagens descritivas
-- [ ] Sem console.log/print statements
-- [ ] Sem dependências desnecessárias
-- [ ] Rodou linter: `go fmt ./...`
-
-## 🔄 Processo de Pull Request
-
-### 1. Fazer Commits
-
-```bash
-git add .
-git commit -m "feat: validar datas em contratos"
-```
-
-**Convenção Conventional Commits:**
-- `feat:` — Nova funcionalidade
-- `fix:` — Correção de bug
-- `docs:` — Documentação
-- `refactor:` — Refatoração
-- `test:` — Testes
-- `chore:` — Manutenção
-
-### 2. Push
-
-```bash
-git push origin feature/descricao
-```
-
-### 3. Abrir Pull Request
-
-No GitHub:
-1. Compare e crie PR
-2. Descreva as mudanças
-3. Referencie issues relacionadas (`Closes #123`)
-4. Aguarde review
-
-**Template de PR:**
-
-```markdown
-## Descrição
-O que foi feito e por quê.
-
-## Tipo de Mudança
-- [ ] Bug fix
-- [ ] Nova funcionalidade
-- [ ] Breaking change
-- [ ] Documentação
-
-## Testes
-- [ ] Testes adicionados
-- [ ] Testes passam: go test ./store -v
-
-## Checklist
-- [ ] Código segue o padrão
-- [ ] Documentação atualizada
-- [ ] Sem warnings
-```
-
-## 🎨 Padrões de Código
-
-### Go
-
-```go
-// ✓ Bom
-func (s *ClientStore) GetByID(id string) (*domain.Client, error) {
-    if id == "" {
-        return nil, errors.New("id cannot be empty")
-    }
-
-    client := &domain.Client{}
-    err := s.db.QueryRow("SELECT id, name, registration_id FROM clients WHERE id = $1", id).
-        Scan(&client.ID, &client.Name, &client.RegistrationID)
-
-    if err == sql.ErrNoRows {
-        return nil, fmt.Errorf("client not found: %s", id)
-    }
-
-    if err != nil {
-        return nil, err
-    }
-
-    return client, nil
-}
-
-// ✗ Ruim
-func GetClient(id string) (domain.Client, error) {
-    row := db.QueryRow("SELECT * FROM clients WHERE id = $1", id)
-    var c domain.Client
-    row.Scan(&c)
-    return c, nil
-}
-```
-
-### Nomenclatura
-
-```go
-// Funções
-Create, GetByID, GetAll, Update, Archive, Delete
-
-// Variáveis
-clientID, startDate, hasContracts, maxRetries
-
-// Constantes
-const (
-    MAX_NAME_LENGTH = 255
-    DEFAULT_TIMEOUT = 30 * time.Second
-)
-```
-
-### Erros
-
-```go
-// ✓ Descritivo
-return fmt.Errorf("contract not found: %s", id)
-return fmt.Errorf("end_date must be after start_date, got %s <= %s",
-    endDate, startDate)
-
-// ✗ Genérico
+// ✗ Generic
 return errors.New("error")
 return errors.New("invalid")
 ```
 
-### Comentários
+### Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Structs | PascalCase | `UserStore`, `Contract` |
+| Methods | PascalCase | `CreateUser`, `GetByID` |
+| Variables | camelCase | `clientID`, `startDate` |
+| Constants | UPPER_SNAKE | `MAX_PASSWORD_LENGTH` |
+| Files | snake_case | `user_store.go` |
+
+## Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat` — New feature
+- `fix` — Bug fix
+- `docs` — Documentation
+- `refactor` — Code refactoring
+- `test` — Adding/fixing tests
+- `chore` — Maintenance
+- `security` — Security improvements
+
+**Examples:**
+```bash
+git commit -m "feat(auth): add password strength validation"
+git commit -m "fix(api): return 403 for unauthorized user access"
+git commit -m "docs: update API endpoint documentation"
+git commit -m "test(security): add SQL injection test cases"
+```
+
+## Testing Requirements
+
+### Before Submitting
+
+1. **Run existing tests:**
+   ```bash
+   # Go unit tests
+   cd backend && go test ./... -v
+   
+   # Python security tests
+   cd tests && python run_tests.py
+   ```
+
+2. **Add tests for new code:**
+   - Unit tests for new functions
+   - Integration tests for new endpoints
+   - Security tests if touching auth/validation
+
+### Test Structure
 
 ```go
-// ✓ Explica o porquê
-// Soft delete preserva histórico para auditoria
-client.ArchivedAt = time.Now()
-
-// ✗ Óbvio
-// Set archived_at to now
-client.ArchivedAt = time.Now()
+func TestCreateUser_ValidatesPassword(t *testing.T) {
+    // Arrange
+    store := setupTestStore(t)
+    
+    // Act
+    _, err := store.CreateUser("testuser", "Test User", "weak", "user")
+    
+    // Assert
+    require.Error(t, err)
+    require.Contains(t, err.Error(), "at least 16 characters")
+}
 ```
 
-## 📚 Atualizar Documentação
+## Pull Request Process
 
-Se adicionar funcionalidade, atualize:
+### 1. Before Creating PR
 
-- **[USAGE.md](USAGE.md)** — Novo comando ou caso de uso
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — Mudanças arquiteturais
-- **Comentários inline** — Para lógica complexa
+- [ ] Code follows project conventions
+- [ ] Tests pass locally
+- [ ] New tests added for new functionality
+- [ ] Documentation updated if needed
+- [ ] No console.log or debug prints
+- [ ] `go fmt ./...` run on Go code
 
-Exemplo:
+### 2. PR Template
 
 ```markdown
-### Arquivar Contrato
+## Description
+Brief description of changes and why.
 
-Menu → `5. Contracts` → `4. Archive`
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
 
-Marca como arquivado (soft delete), preservando histórico.
+## Testing
+- [ ] Tests added/updated
+- [ ] All tests pass
+
+## Security Checklist (if applicable)
+- [ ] Input validation added
+- [ ] SQL uses prepared statements
+- [ ] Sensitive data not logged
+- [ ] Authorization checks in place
+
+## Related Issues
+Closes #123
 ```
 
-## 🐛 Reportar Bugs
+### 3. Review Process
 
-Abra uma issue com:
+- At least one approval required
+- All CI checks must pass
+- Address review feedback promptly
 
-1. **Descrição clara** do problema
-2. **Passos para reproduzir**
-3. **Comportamento esperado vs atual**
-4. **Versão do Go, SO**
-5. **Logs/screenshots**
+## Security Guidelines
 
-Exemplo:
+### Required Practices
 
+1. **Never expose sensitive data:**
+   ```go
+   type User struct {
+       PasswordHash string `json:"-"`      // Hidden from JSON
+       AuthSecret   string `json:"-"`      // Hidden from JSON
+   }
+   ```
+
+2. **Use prepared statements:**
+   ```go
+   // ✓ Correct
+   db.QueryRow("SELECT * FROM users WHERE id = $1", userID)
+   
+   // ✗ Never do this
+   db.QueryRow("SELECT * FROM users WHERE id = '" + userID + "'")
+   ```
+
+3. **Validate all inputs:**
+   ```go
+   if err := ValidateUsername(username); err != nil {
+       return "", err
+   }
+   ```
+
+4. **Check authorization:**
+   ```go
+   if claims.Role != "admin" && claims.Role != "root" {
+       return http.StatusForbidden, "Access denied"
+   }
+   ```
+
+## Reporting Bugs
+
+Open an issue with:
+
+1. **Clear description** of the problem
+2. **Steps to reproduce**
+3. **Expected vs actual behavior**
+4. **Environment** (Go version, OS, browser)
+5. **Logs/screenshots** if applicable
+
+## Feature Requests
+
+Open a discussion or issue with:
+
+1. Problem being solved
+2. Proposed solution
+3. Alternatives considered
+4. Impact on existing functionality
+
+## Development Tips
+
+### Adding a New Entity
+
+1. Define model in `backend/domain/models.go`
+2. Create store in `backend/store/entity_store.go`
+3. Write tests in `backend/store/entity_store_test.go`
+4. Add handlers in `backend/server/entity_handlers.go`
+5. Register routes in `backend/server/routes.go`
+6. Update database schema if needed
+7. Add security tests in `tests/test_api_endpoints.py`
+
+### Debugging
+
+```go
+// Use structured logging
+log.Printf("Creating user: username=%s, role=%s", username, role)
+
+// Check response codes in tests
+assert response.status_code == 200, f"Unexpected: {response.text}"
 ```
-## Descrição
-Ao criar contrato com datas invertidas, o sistema aceita.
 
-## Reproduzir
-1. Menu → Contracts → Create
-2. Start Date: 2026-01-01
-3. End Date: 2025-01-01
-4. Clique Create
+## Getting Help
 
-## Esperado
-Erro: "end_date must be after start_date"
-
-## Atual
-Contrato criado sem erro
-
-## Ambiente
-- Go 1.25
-- PostgreSQL 12+
-```
-
-## 💡 Sugestões de Funcionalidades
-
-Abra uma issue com `enhancement` label ou discussion.
-
-Descreva:
-- Problema que resolve
-- Solução proposta
-- Alternativas consideradas
-- Impacto no sistema
-
-## 📖 Referências
-
-- [Golang Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [Conventional Commits](https://www.conventionalcommits.org/)
-- [Clean Code](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)
-
-## ✅ Diretrizes de Review
-
-### O que Aceitar
-
-✅ Correções de bugs com testes
-✅ Novas funcionalidades bem planejadas
-✅ Melhorias de documentação
-✅ Refatorações que não quebram API
-✅ Testes adicionais
-✅ Performance improvements
-
-### O que Não Aceitar
-
-❌ Mudanças de estilo sem justificativa
-❌ Código sem testes
-❌ Breaking changes sem discussão
-❌ Dependências desnecessárias
-❌ Código com warnings
-❌ Documentação não atualizada
-
-## 🏆 Boas Práticas
-
-1. **Commits atômicos** — Um conceito por commit
-2. **Testes primeiro** — TDD ou cobertura após
-3. **Documentação** — Atualizar sempre
-4. **Review próprio** — Ler diff antes de submeter
-5. **Comunicação** — Explicar decisões técnicas
-
-## 🎯 Iniciativas Bem-Vindas
-
-- ✅ Novos testes
-- ✅ Melhorias de performance
-- ✅ Correções de bugs
-- ✅ Refatorações
-- ✅ Documentação
-- ✅ Exemplos de uso
-
-## 📞 Precisa de Ajuda?
-
-- 💬 Abra uma [discussion](https://github.com/seu-usuario/Open-Generic-Hub/discussions)
-- 🐛 Reporte um [bug](https://github.com/seu-usuario/Open-Generic-Hub/issues)
-- 📖 Leia [ARCHITECTURE.md](ARCHITECTURE.md)
-- 📚 Consulte [USAGE.md](USAGE.md)
+- 📖 Read [ARCHITECTURE.md](ARCHITECTURE.md)
+- 💬 Open a GitHub Discussion
+- 🐛 File an Issue
 
 ---
 
-**Obrigado por contribuir!** 🙌
-
-Qualquer dúvida, abra uma issue ou discussion. Estamos aqui para ajudar!
+Thank you for contributing to Entity Hub! 🙌
