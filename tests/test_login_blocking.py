@@ -197,7 +197,7 @@ class TestLoginBlocking:
             time.sleep(0.02)
 
         # Tentar desbloquear
-        unlock_response = http_client.post(
+        unlock_response = http_client.put(
             f"{api_url}/users/{test_username}/unlock",
             headers=headers
         )
@@ -226,7 +226,7 @@ class TestLoginBlocking:
             pytest.skip("Não foi possível criar usuário de teste")
 
         # Tentar bloquear manualmente
-        block_response = http_client.post(
+        block_response = http_client.put(
             f"{api_url}/users/{test_username}/block",
             headers=headers
         )

@@ -80,23 +80,18 @@ class TestAuthorization:
             pytest.skip("Regular user não disponível")
 
         headers = {"Authorization": f"Bearer {regular_user['token']}"}
-        user_id = regular_user.get("id")
+        username = regular_user.get("username")
 
-        if not user_id:
-            pytest.skip("User ID não disponível")
+        if not username:
+            pytest.skip("Username não disponível")
 
-        # Tentar mudar role para admin
-        response = http_client.put(f"{api_url}/users/{user_id}", json={
+        # Tentar mudar role para admin - deve falhar pois user não tem acesso a /users
+        response = http_client.put(f"{api_url}/users/{username}", json={
             "role": "admin"
         }, headers=headers)
 
-        assert response.status_code in [403, 401, 400], "User não deve elevar próprios privilégios"
-
-        # Verificar que role não mudou
-        check_response = http_client.get(f"{api_url}/users/{user_id}", headers=headers)
-        if check_response.status_code == 200:
-            user_data = check_response.json()
-            assert user_data.get("role") != "admin", "Role não deve ter mudado"
+        # Com adminOnlyMiddleware, usuários comuns recebem 403 ao acessar /api/users
+        assert response.status_code in [403, 401], "User não deve ter acesso a gerenciamento de usuários"
 
     def test_user_cannot_access_other_users_data(self, http_client, api_url, regular_user, root_user, timer):
         """Usuário não pode acessar dados de outros usuários"""
@@ -106,13 +101,11 @@ class TestAuthorization:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {regular_user['token']}"}
-        root_id = root_user.get("id")
+        root_username = root_user.get("username", "root")
 
-        if not root_id:
-            pytest.skip("Root ID não disponível")
-
-        response = http_client.get(f"{api_url}/users/{root_id}", headers=headers)
-        assert response.status_code in [403, 401], "User não deve acessar dados de outros"
+        # Com adminOnlyMiddleware, usuários comuns não podem acessar /api/users
+        response = http_client.get(f"{api_url}/users/{root_username}", headers=headers)
+        assert response.status_code == 403, "User não deve acessar dados de outros usuários"
 
     def test_token_with_forged_role_rejected(self, http_client, api_url, timer):
         """Token com role forjado deve ser rejeitado"""
@@ -137,13 +130,14 @@ class TestAuthorization:
             pytest.skip("Regular user não disponível")
 
         headers = {"Authorization": f"Bearer {regular_user['token']}"}
-        fake_user_id = "12345678-1234-1234-1234-123456789012"
+        fake_username = "nonexistent_user"
 
-        response = http_client.put(f"{api_url}/users/{fake_user_id}", json={
+        # Com adminOnlyMiddleware, usuários comuns não podem acessar /api/users
+        response = http_client.put(f"{api_url}/users/{fake_username}", json={
             "display_name": "Hacked User"
         }, headers=headers)
 
-        assert response.status_code in [403, 401, 404], "User não deve modificar outros"
+        assert response.status_code == 403, "User não deve ter acesso a gerenciamento de usuários"
 
     def test_admin_can_manage_users(self, http_client, api_url, admin_user, timer):
         """Admin PODE gerenciar usuários (mas não root)"""
@@ -199,17 +193,18 @@ class TestAuthorization:
             pytest.skip("Admin user não disponível")
 
         user_headers = {"Authorization": f"Bearer {regular_user['token']}"}
-        admin_id = admin_user.get("id")
+        admin_username = admin_user.get("username")
 
-        if not admin_id:
-            pytest.skip("Admin ID não disponível")
+        if not admin_username:
+            pytest.skip("Admin username não disponível")
 
         # User tentando modificar admin (horizontal escalation)
-        response = http_client.put(f"{api_url}/users/{admin_id}", json={
+        # Com adminOnlyMiddleware, usuários comuns não podem acessar /api/users
+        response = http_client.put(f"{api_url}/users/{admin_username}", json={
             "display_name": "Hacked Admin"
         }, headers=user_headers)
 
-        assert response.status_code in [403, 401], "Escalação horizontal deve ser bloqueada"
+        assert response.status_code == 403, "Escalação horizontal deve ser bloqueada"
 
     def test_vertical_privilege_escalation_blocked(self, http_client, api_url, regular_user, timer):
         """Escalação vertical de privilégios deve ser bloqueada"""

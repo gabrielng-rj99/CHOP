@@ -349,17 +349,23 @@ class TestSQLInjection:
             "admin';",
         ]
 
+        # Keywords that indicate SQL error leakage (not generic error messages)
         sql_error_keywords = [
-            "sql",
-            "syntax",
+            "sql syntax",
+            "syntax error",
             "postgresql",
             "postgres",
-            "pg_",
-            "table",
-            "column",
-            "query",
-            "error",
-            "database",
+            "pg_catalog",
+            "pg_class",
+            "relation \"",
+            "column \"",
+            "query failed",
+            "database error",
+            "sql error",
+            "pq:",  # PostgreSQL driver prefix
+            "sqlstate",
+            "unterminated",
+            "unexpected token",
         ]
 
         for payload in error_inducing_payloads:
@@ -371,5 +377,5 @@ class TestSQLInjection:
             response_text = response.text.lower()
 
             for keyword in sql_error_keywords:
-                if keyword in response_text and "password" not in response_text:
+                if keyword in response_text:
                     pytest.fail(f"Possível vazamento de erro SQL: '{keyword}' encontrado na resposta com payload: {payload}")

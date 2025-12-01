@@ -87,7 +87,7 @@ class TestPasswordValidation:
         response = http_client.post(f"{api_url}/users", json={
             "username": f"shortpass_{int(time.time())}",
             "display_name": "Short Password",
-            "password": "Ab1!efghijklmn",  # 15 chars
+            "password": "Ab1!efghijklmno",  # 15 chars
             "role": "user"
         }, headers=headers)
         assert response.status_code in [400, 422], "Senha com 15 chars deveria ser rejeitada"
@@ -96,7 +96,7 @@ class TestPasswordValidation:
         response = http_client.post(f"{api_url}/users", json={
             "username": f"exactpass_{int(time.time())}",
             "display_name": "Exact Length Password",
-            "password": "Ab1!efghijklmno",  # 16 chars
+            "password": "Ab1!efghijklmnop",  # 16 chars
             "role": "user"
         }, headers=headers)
         assert response.status_code in [200, 201], "Senha com 16 chars deveria ser aceita"

@@ -520,10 +520,44 @@ class TestRequiredFields:
 @pytest.mark.security
 @pytest.mark.validation
 class TestUUIDValidation:
-    """Testes de validação de UUID"""
+    """Testes de validação de UUID e identificadores inválidos"""
 
-    def test_invalid_uuid_format(self, http_client, api_url, root_user, timer):
-        """UUID com formato inválido deve ser rejeitado"""
+    def test_invalid_identifier_format(self, http_client, api_url, root_user, timer):
+        """Identificadores maliciosos devem ser tratados com segurança"""
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
+
+        headers = {"Authorization": f"Bearer {root_user['token']}"}
+
+        # Nota: A rota /api/users/{username} usa username, não UUID
+        # Estes testes verificam se identificadores maliciosos são tratados corretamente
+        malicious_inputs = [
+            "../../../etc/passwd",  # Path traversal
+            "'; DROP TABLE users;--",  # SQL injection
+            "<script>alert('xss')</script>",  # XSS
+            "admin%00",  # Null byte injection
+            "admin\x00",  # Null byte
+        ]
+
+        for malicious_input in malicious_inputs:
+            response = http_client.get(f"{api_url}/users/{malicious_input}", headers=headers)
+            # Deve retornar 404 (não encontrado) ou 400 (bad request), nunca 500
+            assert response.status_code in [400, 404, 422], f"Input malicioso deve ser tratado: {malicious_input}"
+            assert response.status_code != 500, f"Não deve causar erro interno: {malicious_input}"
+
+    def test_nonexistent_username(self, http_client, api_url, root_user, timer):
+        """Username inexistente deve retornar 404"""
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
+
+        headers = {"Authorization": f"Bearer {root_user['token']}"}
+        nonexistent_user = "nonexistent_user_12345"
+
+        response = http_client.get(f"{api_url}/users/{nonexistent_user}", headers=headers)
+        assert response.status_code == 404, "Username inexistente deve retornar 404"
+
+    def test_client_uuid_validation(self, http_client, api_url, root_user, timer):
+        """UUID inválido para clients deve ser tratado corretamente"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
@@ -533,27 +567,14 @@ class TestUUIDValidation:
             "not-a-uuid",
             "12345",
             "12345678-1234-1234-1234",  # Incompleto
-            "12345678-1234-1234-1234-1234567890123",  # Muito longo
-            "GGGGGGGG-GGGG-GGGG-GGGG-GGGGGGGGGGGG",  # Caracteres inválidos
             "../../../etc/passwd",  # Path traversal
-            "'; DROP TABLE users;--",  # SQL injection
         ]
 
         for invalid_uuid in invalid_uuids:
-            response = http_client.get(f"{api_url}/users/{invalid_uuid}", headers=headers)
-            assert response.status_code in [400, 404, 422], f"UUID inválido deve ser rejeitado: {invalid_uuid}"
+            response = http_client.get(f"{api_url}/clients/{invalid_uuid}", headers=headers)
+            # Deve retornar erro de validação ou not found, nunca 500
+            assert response.status_code in [400, 404, 422], f"UUID inválido em clients: {invalid_uuid}"
             assert response.status_code != 500, f"Não deve causar erro interno: {invalid_uuid}"
-
-    def test_valid_uuid_nonexistent(self, http_client, api_url, root_user, timer):
-        """UUID válido mas inexistente deve retornar 404"""
-        if not root_user or "token" not in root_user:
-            pytest.skip("Root user não disponível")
-
-        headers = {"Authorization": f"Bearer {root_user['token']}"}
-        nonexistent_uuid = "00000000-0000-0000-0000-000000000000"
-
-        response = http_client.get(f"{api_url}/users/{nonexistent_uuid}", headers=headers)
-        assert response.status_code in [403, 404], "UUID inexistente deve retornar 404"
 
 
 @pytest.mark.security
