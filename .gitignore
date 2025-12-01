@@ -2,7 +2,7 @@
 # Logs
 # =========================
 *.log
-logs
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -20,6 +20,7 @@ coverage/
 dist/
 build/
 dist-ssr
+htmlcov/
 
 # =========================
 # Editor/IDE
@@ -37,16 +38,13 @@ dist-ssr
 *.sw?
 
 # =========================
-# Temp Files/SO
+# Temp Files/OS
 # =========================
 .DS_Store
 Thumbs.db
 *.tmp
 *.bak
-*.log
 *.temp
-*.swp
-*~
 
 # =========================
 # Binaries
@@ -60,10 +58,6 @@ deploy-manager
 deploy-manager-*
 Licenses-Manager
 backend/cli
-*.exe
-*.o
-*.a
-*.so
 backend/cmd/server/server
 
 # =========================
@@ -80,30 +74,63 @@ node_modules/
 # =========================
 *.test
 *.prof
-coverage.out
-coverage.html
 
 # =========================
-# IDE
+# Python specific
 # =========================
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =========================
+# Test Reports
+# =========================
+tests/test_reports/*.html
+tests/test_reports/*.json
+tests/report.html
+tests/*.html
+junit.xml
+pytest.xml
 
 # =========================
 # Environment
 # =========================
 .env
 .env.local
-.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
 !.env.example
+!tests/.env.example
+
+# =========================
+# Data & Secrets
+# =========================
 data/
 certs/
-logs/
+*.pem
+*.key
+*.crt
+!certs/.gitkeep
+
+# =========================
+# Database
+# =========================
+tests/database/*.sql
+!tests/database/schema.sql
+*.db
+*.sqlite
+*.sqlite3
