@@ -62,6 +62,50 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// adminOnlyMiddleware restricts access to admin and root users only
+// Must be used after authMiddleware
+func (s *Server) adminOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString := extractTokenFromHeader(r)
+		claims, err := ValidateJWT(tokenString, s.userStore)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Token inválido")
+			return
+		}
+
+		if claims.Role != "admin" && claims.Role != "root" {
+			log.Printf("🚫 Acesso negado: usuário %s (role: %s) tentou acessar recurso administrativo %s %s",
+				claims.Username, claims.Role, r.Method, r.URL.Path)
+			respondError(w, http.StatusForbidden, "Acesso negado. Apenas administradores podem acessar este recurso.")
+			return
+		}
+
+		next(w, r)
+	}
+}
+
+// rootOnlyMiddleware restricts access to root users only
+// Must be used after authMiddleware
+func (s *Server) rootOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString := extractTokenFromHeader(r)
+		claims, err := ValidateJWT(tokenString, s.userStore)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Token inválido")
+			return
+		}
+
+		if claims.Role != "root" {
+			log.Printf("🚫 Acesso negado: usuário %s (role: %s) tentou acessar recurso exclusivo de root %s %s",
+				claims.Username, claims.Role, r.Method, r.URL.Path)
+			respondError(w, http.StatusForbidden, "Acesso negado. Apenas usuários root podem acessar este recurso.")
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 // Handler returns an http.Handler with all routes configured (for testing)
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -83,8 +127,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/login", s.corsMiddleware(s.handleLogin))
 	mux.HandleFunc("/api/refresh-token", s.corsMiddleware(s.handleRefreshToken))
 
-	// Users
-	mux.HandleFunc("/api/users/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	// Users - admin/root only for management operations
+	mux.HandleFunc("/api/users/", s.corsMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/block") {
 			s.handleUserBlock(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unlock") {
@@ -92,8 +136,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		} else {
 			s.handleUserByUsername(w, r)
 		}
-	})))
-	mux.HandleFunc("/api/users", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	}))))
+	mux.HandleFunc("/api/users", s.corsMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Se o path é exatamente /api/users (sem ID), chama handleUsers
 		if r.URL.Path == "/api/users" {
 			s.handleUsers(w, r)
@@ -107,7 +151,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 				s.handleUserByUsername(w, r)
 			}
 		}
-	})))
+	}))))
 
 	// Clients
 	mux.HandleFunc("/api/clients/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {

@@ -52,6 +52,19 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate role is provided
+	if req.Role == "" {
+		respondError(w, http.StatusBadRequest, "Role is required. Must be 'user', 'admin', or 'root'")
+		return
+	}
+
+	// Only root users can create other root users
+	if req.Role == "root" && claims.Role != "root" {
+		log.Printf("🚫 Acesso negado: %s (role: %s) tentou criar usuário root", claims.Username, claims.Role)
+		respondError(w, http.StatusForbidden, "Apenas usuários root podem criar outros usuários root")
+		return
+	}
+
 	id, err := s.userStore.CreateUser(req.Username, req.DisplayName, req.Password, req.Role)
 	if err != nil {
 		// Log failed attempt
