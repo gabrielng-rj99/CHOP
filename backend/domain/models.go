@@ -86,7 +86,7 @@ type User struct {
 	FailedAttempts int        `json:"failed_attempts"`
 	LockLevel      int        `json:"lock_level"`
 	LockedUntil    *time.Time `json:"locked_until"`
-	AuthSecret     string     `json:"auth_secret"`
+	AuthSecret     string     `json:"-"`
 }
 
 // GetEffectiveStartDate retorna a data de início efetiva para cálculos.
