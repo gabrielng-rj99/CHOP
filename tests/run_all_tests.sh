@@ -227,9 +227,9 @@ run_unit_tests() {
         TEST_TIMES["unit"]=$duration
 
         # Extrair estatísticas
-        local unit_passed=$(grep -c "^--- PASS:" "$output_file" 2>/dev/null || echo "0")
-        local unit_failed=$(grep -c "^--- FAIL:" "$output_file" 2>/dev/null || echo "0")
-        local unit_skipped=$(grep -c "^--- SKIP:" "$output_file" 2>/dev/null || echo "0")
+        local unit_passed=$(grep -c "^--- PASS:" "$output_file" 2>/dev/null | head -n1 || echo "0")
+        local unit_failed=$(grep -c "^--- FAIL:" "$output_file" 2>/dev/null | head -n1 || echo "0")
+        local unit_skipped=$(grep -c "^--- SKIP:" "$output_file" 2>/dev/null | head -n1 || echo "0")
 
         PASSED_TESTS=$((PASSED_TESTS + unit_passed))
         FAILED_TESTS=$((FAILED_TESTS + unit_failed))
@@ -338,8 +338,8 @@ run_security_tests() {
     TEST_TIMES["security"]=$duration
 
     # Extrair estatísticas
-    local sec_passed=$(grep -c "PASS" "$output_file" 2>/dev/null || echo "0")
-    local sec_failed=$(grep -c "FAIL" "$output_file" 2>/dev/null || echo "0")
+    local sec_passed=$(grep "PASS" "$output_file" 2>/dev/null | wc -l)
+    local sec_failed=$(grep "FAIL" "$output_file" 2>/dev/null | wc -l)
 
     PASSED_TESTS=$((PASSED_TESTS + sec_passed))
     FAILED_TESTS=$((FAILED_TESTS + sec_failed))
@@ -374,8 +374,8 @@ run_integration_tests() {
         local duration=$(end_timer $start)
         TEST_TIMES["integration"]=$duration
 
-        local int_passed=$(grep -c "✓" "$output_file" 2>/dev/null || echo "0")
-        local int_failed=$(grep -c "✗" "$output_file" 2>/dev/null || echo "0")
+        local int_passed=$(grep "✓" "$output_file" 2>/dev/null | wc -l)
+        local int_failed=$(grep "✗" "$output_file" 2>/dev/null | wc -l)
 
         PASSED_TESTS=$((PASSED_TESTS + int_passed))
         FAILED_TESTS=$((FAILED_TESTS + int_failed))
@@ -414,8 +414,8 @@ run_api_tests() {
         local duration=$(end_timer $start)
         TEST_TIMES["api"]=$duration
 
-        local api_passed=$(grep -c "✓" "$output_file" 2>/dev/null || echo "0")
-        local api_failed=$(grep -c "✗" "$output_file" 2>/dev/null || echo "0")
+        local api_passed=$(grep "✓" "$output_file" 2>/dev/null | wc -l)
+        local api_failed=$(grep "✗" "$output_file" 2>/dev/null | wc -l)
 
         PASSED_TESTS=$((PASSED_TESTS + api_passed))
         FAILED_TESTS=$((FAILED_TESTS + api_failed))
@@ -454,8 +454,8 @@ run_e2e_tests() {
         local duration=$(end_timer $start)
         TEST_TIMES["e2e"]=$duration
 
-        local e2e_passed=$(grep -c "✓" "$output_file" 2>/dev/null || echo "0")
-        local e2e_failed=$(grep -c "✗" "$output_file" 2>/dev/null || echo "0")
+        local e2e_passed=$(grep "✓" "$output_file" 2>/dev/null | wc -l)
+        local e2e_failed=$(grep "✗" "$output_file" 2>/dev/null | wc -l)
 
         PASSED_TESTS=$((PASSED_TESTS + e2e_passed))
         FAILED_TESTS=$((FAILED_TESTS + e2e_failed))
@@ -495,7 +495,7 @@ generate_final_report() {
 - **Pulado:** $SKIPPED_TESTS ⊘
 
 ### Taxa de Sucesso
-- **$(awk "BEGIN {printf \"%.2f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}")%**
+- **$(if [ $TOTAL_TESTS -gt 0 ]; then awk "BEGIN {printf \"%.2f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}"; else echo "N/A"; fi)%**
 
 ---
 
@@ -554,7 +554,11 @@ EOF
     echo -e "${MAGENTA}╠════════════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${MAGENTA}║${NC} Total: $TOTAL_TESTS | ${GREEN}Passou: $PASSED_TESTS${NC} | ${RED}Falhou: $FAILED_TESTS${NC} | ${YELLOW}Pulado: $SKIPPED_TESTS${NC}"
     echo -e "${MAGENTA}║${NC} Duração total: $(format_duration $total_duration)"
-    echo -e "${MAGENTA}║${NC} Taxa de sucesso: $(awk "BEGIN {printf \"%.2f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}")%"
+    if [ $TOTAL_TESTS -gt 0 ]; then
+        echo -e "${MAGENTA}║${NC} Taxa de sucesso: $(awk "BEGIN {printf \"%.2f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}")%"
+    else
+        echo -e "${MAGENTA}║${NC} Taxa de sucesso: N/A"
+    fi
     echo -e "${MAGENTA}╚════════════════════════════════════════════════════════════════════╝${NC}\n"
 }
 

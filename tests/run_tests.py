@@ -197,12 +197,19 @@ def run_go_tests() -> Tuple[bool, float, Dict]:
             print_warning(f"Diretório backend não encontrado: {backend_path}")
             return False, 0, {}
 
+        env["POSTGRES_HOST"] = TEST_CONFIG["DB_HOST"]
+        env["POSTGRES_PORT"] = TEST_CONFIG["DB_PORT"]
+        env["POSTGRES_USER"] = "test_user"
+        env["POSTGRES_PASSWORD"] = "test_password"
+        env["POSTGRES_DB"] = "contracts_test"
+        
         result = subprocess.run(
             ["go", "test", "-v", "-cover", "-coverprofile=coverage.out", "./..."],
             cwd=backend_path,
             capture_output=True,
             text=True,
-            timeout=180
+            timeout=180,
+            env=env
         )
 
         duration = time.time() - start
@@ -510,6 +517,21 @@ def main():
 
     # 13. Testes de API
     run_test_category("Testes API", "api", results)
+
+    # 14. Testes de Inicialização
+    run_test_category("Testes Inicialização", "initialization", results)
+
+    # 15. Testes de CORS
+    run_test_category("Testes CORS", "cors", results)
+
+    # 16. Testes de Headers HTTP
+    run_test_category("Testes Headers", "headers", results)
+
+    # 17. Testes de Concorrência
+    run_test_category("Testes Concorrência", "concurrency", results)
+
+    # 18. Testes de Rate Limiting
+    run_test_category("Testes Rate Limiting", "rate_limiting", results)
 
     # 14. Todos os testes Python (completo com relatório HTML)
     print_section("Executando Todos os Testes Python (Relatório Completo)")

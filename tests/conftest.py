@@ -272,6 +272,30 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "data_leakage: marca testes de vazamento de dados"
     )
+    config.addinivalue_line(
+        "markers", "initialization: marca testes de inicialização do sistema"
+    )
+    config.addinivalue_line(
+        "markers", "cors: marca testes de CORS security"
+    )
+    config.addinivalue_line(
+        "markers", "headers: marca testes de HTTP security headers"
+    )
+    config.addinivalue_line(
+        "markers", "concurrency: marca testes de concorrência/race conditions"
+    )
+    config.addinivalue_line(
+        "markers", "database: marca testes de resiliência de banco de dados"
+    )
+    config.addinivalue_line(
+        "markers", "rate_limiting: marca testes de rate limiting"
+    )
+    config.addinivalue_line(
+        "markers", "compliance: marca testes de conformidade AGPL"
+    )
+    config.addinivalue_line(
+        "markers", "input_validation: marca testes de validação de entrada"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -303,6 +327,20 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.security)
         if "test_api" in item.nodeid:
             item.add_marker(pytest.mark.api)
+        if "test_initialization" in item.nodeid:
+            item.add_marker(pytest.mark.initialization)
+            item.add_marker(pytest.mark.security)
+        if "cors" in item.nodeid.lower():
+            item.add_marker(pytest.mark.cors)
+            item.add_marker(pytest.mark.security)
+        if "headers" in item.nodeid.lower():
+            item.add_marker(pytest.mark.headers)
+            item.add_marker(pytest.mark.security)
+        if "concurrency" in item.nodeid.lower():
+            item.add_marker(pytest.mark.concurrency)
+        if "rate_limiting" in item.nodeid.lower():
+            item.add_marker(pytest.mark.rate_limiting)
+            item.add_marker(pytest.mark.security)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
