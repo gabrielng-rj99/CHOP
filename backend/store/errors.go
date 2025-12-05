@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Package store provides the error lines and handling for the license management system.
-// This file contains custom error lines used throughout the store package to provide
+// Package store provides the error subcategories and handling for the license management system.
+// This file contains custom error subcategories used throughout the store package to provide
 // more specific error information and handling capabilities.
 package store
 
@@ -25,7 +25,7 @@ import "errors"
 
 // Domain-specific errors
 var (
-	ErrClientNotFound           = errors.New("client not found")
+	ErrClientNotFound           = errors.New("entity not found")
 	ErrClientHasActiveLicenses  = errors.New("client has active licenses")
 	ErrDuplicatedRegistrationID = errors.New("registration ID already registered")
 	ErrEntityNotFound           = errors.New("entity not found")
@@ -39,7 +39,7 @@ var (
 )
 
 // ValidationError represents an error that occurs when input validation fails.
-// It is used to distinguish validation errors from other lines of errors (like database errors)
+// It is used to distinguish validation errors from other subcategories of errors (like database errors)
 // and provides a consistent way to handle validation failures across the application.
 type ValidationError struct {
 	message string

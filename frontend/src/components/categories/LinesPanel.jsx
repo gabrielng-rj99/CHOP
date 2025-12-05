@@ -30,7 +30,7 @@ export default function LinesPanel({
     onEditLine,
     onDeleteLine,
     onArchiveLine,
-    onUnarchiveLine,
+    onUnarchiveSubcategory,
     onClose,
 }) {
     if (!selectedCategory) {
@@ -121,7 +121,7 @@ export default function LinesPanel({
                                             {isArchived ? (
                                                 <button
                                                     onClick={() =>
-                                                        onUnarchiveLine(
+                                                        onUnarchiveSubcategory(
                                                             line.id,
                                                             line.line,
                                                         )

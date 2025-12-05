@@ -240,23 +240,23 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 		return errors.New("category does not exist")
 	}
 
-	// Check if any lines are used in active contracts
-	var contractsCount int
+	// Check if any subcategories are used in active agreements
+	var agreementsCount int
 	err = s.db.QueryRow(`
 		SELECT COUNT(*)
-		FROM contracts c
-		INNER JOIN lines l ON c.line_id = l.id
+		FROM agreements c
+		INNER JOIN subcategories l ON c.subcategory_id = l.id
 		WHERE l.category_id = $1
-	`, id).Scan(&contractsCount)
+	`, id).Scan(&agreementsCount)
 	if err != nil {
 		return err
 	}
-	if contractsCount > 0 {
-		return errors.New("cannot delete category: it has lines associated with active contracts")
+	if agreementsCount > 0 {
+		return errors.New("cannot delete category: it has subcategories associated with active agreements")
 	}
 
-	// Delete all lines associated with this category first
-	_, err = s.db.Exec("DELETE FROM lines WHERE category_id = $1", id)
+	// Delete all subcategories associated with this category first
+	_, err = s.db.Exec("DELETE FROM subcategories WHERE category_id = $1", id)
 	if err != nil {
 		return err
 	}
@@ -358,14 +358,14 @@ func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
 		return nil // Don't update status for archived categories
 	}
 
-	// Check if category has any lines associated with active contracts
+	// Check if category has any subcategories associated with active agreements
 	// Active = not archived and (no end_date or end_date in future)
 	var activeContracts int
 	now := time.Now()
 	err = s.db.QueryRow(`
 		SELECT COUNT(DISTINCT c.id)
-		FROM contracts c
-		INNER JOIN lines l ON c.line_id = l.id
+		FROM agreements c
+		INNER JOIN subcategories l ON c.subcategory_id = l.id
 		WHERE l.category_id = $1
 		AND c.archived_at IS NULL
 		AND (c.end_date IS NULL OR c.end_date > $2)
@@ -374,7 +374,7 @@ func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
 		return err
 	}
 
-	// Set status based on usage in active contracts
+	// Set status based on usage in active agreements
 	var newStatus string
 	if activeContracts > 0 {
 		newStatus = "ativo"

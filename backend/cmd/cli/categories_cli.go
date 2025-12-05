@@ -30,7 +30,7 @@ import (
 )
 
 // CategoriesMenu handles the categories CRUD operations
-func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineStore) {
+func CategoriesMenu(categoryStore *store.CategoryStore, subcategoryStore *store.SubcategoryStore) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- Categories Menu ---")
@@ -103,7 +103,7 @@ func CategoriesMenu(categoryStore *store.CategoryStore, lineStore *store.LineSto
 				continue
 			}
 			category := categories[idx-1]
-			CategorySubmenu(category, categoryStore, lineStore)
+			CategorySubmenu(category, categoryStore, subcategoryStore)
 		case "4":
 			clearTerminal()
 			fmt.Print("Enter category name: ")
@@ -177,7 +177,7 @@ func filterCategories(categories []domain.Category, searchTerm string) []domain.
 }
 
 // CategorySubmenu handles operations for a selected category
-func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStore, lineStore *store.LineStore) {
+func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStore, subcategoryStore *store.SubcategoryStore) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -185,7 +185,7 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 		fmt.Printf("\n--- Category: %s ---\n", category.Name)
 		fmt.Println("0 - Back")
 		fmt.Println("1 - Edit category")
-		fmt.Println("2 - View lines in this category")
+		fmt.Println("2 - View subcategories in this category")
 		fmt.Println("3 - Add line to this category")
 		fmt.Println("4 - Edit line in this category")
 		fmt.Println("5 - Delete line from this category")
@@ -217,96 +217,96 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 			}
 		case "2":
 			clearTerminal()
-			// View lines in this category
-			lines, err := lineStore.GetLinesByCategoryID(category.ID)
+			// View subcategories in this category
+			subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(category.ID)
 			if err != nil {
-				fmt.Println("Error retrieving lines:", err)
+				fmt.Println("Error retrieving subcategories:", err)
 				waitForEnter()
 				continue
 			}
-			if len(lines) == 0 {
-				fmt.Println("No lines found in this category.")
+			if len(subcategories) == 0 {
+				fmt.Println("No subcategories found in this category.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Lines in this category:")
-			for i, line := range lines {
-				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Line)
+			for i, line := range subcategories {
+				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Name)
 			}
 			waitForEnter()
 		case "3":
 			clearTerminal()
 			// Add line to this category
-			fmt.Print("Line name: ")
+			fmt.Print("Subcategory name: ")
 			lineName, _ := reader.ReadString('\n')
 			lineName = strings.TrimSpace(lineName)
 			if lineName == "" {
-				fmt.Println("Error: Line name cannot be empty.")
+				fmt.Println("Error: Subcategory name cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			id, err := lineStore.CreateLine(domain.Line{
-				Line:       lineName,
+			id, err := subcategoryStore.CreateSubcategory(domain.Subcategory{
+				Name:       lineName,
 				CategoryID: category.ID,
 			})
 			if err != nil {
 				fmt.Println("Error creating line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line created with ID:", id)
+				fmt.Println("Subcategory created with ID:", id)
 				waitForEnter()
 			}
 		case "4":
 			clearTerminal()
 			// Edit line in this category
-			lines, err := lineStore.GetLinesByCategoryID(category.ID)
-			if err != nil || len(lines) == 0 {
-				fmt.Println("No lines found in this category.")
+			subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(category.ID)
+			if err != nil || len(subcategories) == 0 {
+				fmt.Println("No subcategories found in this category.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a line to edit by number:")
-			for i, line := range lines {
-				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Line)
+			for i, line := range subcategories {
+				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Name)
 			}
 			fmt.Print("Enter the number of the line: ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(lines) {
+			if err != nil || idx < 1 || idx > len(subcategories) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			lineObj := lines[idx-1]
+			lineObj := subcategories[idx-1]
 			PrintOptionalFieldHint()
-			fmt.Printf("Current name: %s | New name: ", lineObj.Line)
+			fmt.Printf("Current name: %s | New name: ", lineObj.Name)
 			lineName, _ := reader.ReadString('\n')
 			lineName = strings.TrimSpace(lineName)
 			if lineName == "" {
-				lineName = lineObj.Line
+				lineName = lineObj.Name
 			}
-			lineObj.Line = lineName
-			err = lineStore.UpdateLine(lineObj)
+			lineObj.Name = lineName
+			err = subcategoryStore.UpdateSubcategory(lineObj)
 			if err != nil {
 				fmt.Println("Error updating line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line updated.")
+				fmt.Println("Subcategory updated.")
 				waitForEnter()
 			}
 		case "5":
 			clearTerminal()
 			// Delete line from this category
-			lines, err := lineStore.GetLinesByCategoryID(category.ID)
-			if err != nil || len(lines) == 0 {
-				fmt.Println("No lines found in this category.")
+			subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(category.ID)
+			if err != nil || len(subcategories) == 0 {
+				fmt.Println("No subcategories found in this category.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a line to delete by number:")
-			for i, line := range lines {
-				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Line)
+			for i, line := range subcategories {
+				fmt.Printf("%d - ID: %s | Name: %s\n", i+1, line.ID, line.Name)
 			}
 			fmt.Print("Enter the number of the line: ")
 			idxStr, _ := reader.ReadString('\n')
@@ -315,18 +315,18 @@ func CategorySubmenu(category domain.Category, categoryStore *store.CategoryStor
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(lines) {
+			if err != nil || idx < 1 || idx > len(subcategories) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			lineID := lines[idx-1].ID
-			err = lineStore.DeleteLine(lineID)
+			subcategoryID := subcategories[idx-1].ID
+			err = subcategoryStore.DeleteSubcategory(subcategoryID)
 			if err != nil {
 				fmt.Println("Error deleting line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line deleted.")
+				fmt.Println("Subcategory deleted.")
 				waitForEnter()
 			}
 		default:

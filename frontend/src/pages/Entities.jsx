@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { clientsApi } from "../api/clientsApi";
+import { entitiesApi } from "../api/entitiesApi";
 import {
     filterClients,
     formatClientForEdit,
@@ -25,26 +25,26 @@ import {
     getInitialFormData,
     getInitialDependentForm,
 } from "../utils/clientHelpers";
-import ClientModal from "../components/clients/ClientModal";
-import ClientsTable from "../components/clients/ClientsTable";
-import DependentsPanel from "../components/clients/DependentsPanel";
-import DependentModal from "../components/clients/DependentModal";
-import "./Clients.css";
+import EntityModal from "../components/entities/EntityModal";
+import EntitiesTable from "../components/entities/EntitiesTable";
+import SubEntitiesPanel from "../components/entities/SubEntitiesPanel";
+import SubEntityModal from "../components/entities/SubEntityModal";
+import "./Entities.css";
 
 export default function Clients({ token, apiUrl, onTokenExpired }) {
-    const [clients, setClients] = useState([]);
+    const [clients, setEntities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [modalError, setModalError] = useState("");
-    const [dependentModalError, setDependentModalError] = useState("");
+    const [dependentModalError, setSubEntityModalError] = useState("");
     const [filter, setFilter] = useState("active");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedClient, setSelectedClient] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
-    const [showDependentsPanel, setShowDependentsPanel] = useState(false);
-    const [showDependentModal, setShowDependentModal] = useState(false);
-    const [dependentModalMode, setDependentModalMode] = useState("create");
+    const [showSubEntitiesPanel, setShowSubEntitiesPanel] = useState(false);
+    const [showSubEntityModal, setShowSubEntityModal] = useState(false);
+    const [dependentModalMode, setSubEntityModalMode] = useState("create");
     const [dependents, setDependents] = useState([]);
     const [selectedDependent, setSelectedDependent] = useState(null);
     const [formData, setFormData] = useState(getInitialFormData());
@@ -53,22 +53,22 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     );
 
     useEffect(() => {
-        loadClients();
+        loadEntities();
     }, []);
 
-    const loadClients = async () => {
+    const loadEntities = async () => {
         setLoading(true);
         setError("");
         try {
-            await clientsApi.loadClients(apiUrl, token, setClients, setError, onTokenExpired);
+            await entitiesApi.loadEntities(apiUrl, token, setEntities, setError, onTokenExpired);
         } finally {
             setLoading(false);
         }
     };
 
-    const loadDependents = async (clientId) => {
+    const loadSubEntities = async (clientId) => {
         try {
-            const data = await clientsApi.loadDependents(
+            const data = await entitiesApi.loadSubEntities(
                 apiUrl,
                 token,
                 clientId,
@@ -80,96 +80,96 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const createClient = async () => {
+    const createEntity = async () => {
         setModalError("");
         try {
-            await clientsApi.createClient(apiUrl, token, formData, onTokenExpired);
-            await loadClients();
+            await entitiesApi.createEntity(apiUrl, token, formData, onTokenExpired);
+            await loadEntities();
             closeModal();
         } catch (err) {
             setModalError(err.message);
         }
     };
 
-    const updateClient = async () => {
+    const updateEntity = async () => {
         setModalError("");
         try {
-            await clientsApi.updateClient(
+            await entitiesApi.updateEntity(
                 apiUrl,
                 token,
                 selectedClient.id,
                 formData,
                 onTokenExpired,
             );
-            await loadClients();
+            await loadEntities();
             closeModal();
         } catch (err) {
             setModalError(err.message);
         }
     };
 
-    const archiveClient = async (clientId) => {
+    const archiveEntity = async (clientId) => {
         if (!window.confirm("Tem certeza que deseja arquivar este cliente?"))
             return;
 
         try {
-            await clientsApi.archiveClient(apiUrl, token, clientId, onTokenExpired);
-            await loadClients();
+            await entitiesApi.archiveEntity(apiUrl, token, clientId, onTokenExpired);
+            await loadEntities();
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const unarchiveClient = async (clientId) => {
+    const unarchiveEntity = async (clientId) => {
         try {
-            await clientsApi.unarchiveClient(apiUrl, token, clientId, onTokenExpired);
-            await loadClients();
+            await entitiesApi.unarchiveEntity(apiUrl, token, clientId, onTokenExpired);
+            await loadEntities();
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const createDependent = async () => {
-        setDependentModalError("");
+    const createSubEntity = async () => {
+        setSubEntityModalError("");
         try {
-            await clientsApi.createDependent(
+            await entitiesApi.createSubEntity(
                 apiUrl,
                 token,
                 selectedClient.id,
                 dependentForm,
                 onTokenExpired,
             );
-            await loadDependents(selectedClient.id);
-            closeDependentModal();
+            await loadSubEntities(selectedClient.id);
+            closeSubEntityModal();
         } catch (err) {
-            setDependentModalError(err.message);
+            setSubEntityModalError(err.message);
         }
     };
 
-    const updateDependent = async () => {
-        setDependentModalError("");
+    const updateSubEntity = async () => {
+        setSubEntityModalError("");
         try {
-            await clientsApi.updateDependent(
+            await entitiesApi.updateSubEntity(
                 apiUrl,
                 token,
                 selectedDependent.id,
                 dependentForm,
                 onTokenExpired,
             );
-            await loadDependents(selectedClient.id);
-            closeDependentModal();
+            await loadSubEntities(selectedClient.id);
+            closeSubEntityModal();
         } catch (err) {
-            setDependentModalError(err.message);
+            setSubEntityModalError(err.message);
         }
     };
 
-    const deleteDependent = async (dependentId) => {
+    const deleteSubEntity = async (dependentId) => {
         if (!window.confirm("Tem certeza que deseja deletar este dependente?"))
             return;
 
         try {
-            await clientsApi.deleteDependent(apiUrl, token, dependentId, onTokenExpired);
-            await loadDependents(selectedClient.id);
+            await entitiesApi.deleteSubEntity(apiUrl, token, dependentId, onTokenExpired);
+            await loadSubEntities(selectedClient.id);
         } catch (err) {
             setError(err.message);
         }
@@ -188,37 +188,37 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         setShowModal(true);
     };
 
-    const openDependentsPanel = async (client) => {
+    const openSubEntitiesPanel = async (client) => {
         setSelectedClient(client);
-        await loadDependents(client.id);
-        setShowDependentsPanel(true);
+        await loadSubEntities(client.id);
+        setShowSubEntitiesPanel(true);
     };
 
-    const closeDependentsPanel = () => {
-        setShowDependentsPanel(false);
+    const closeSubEntitiesPanel = () => {
+        setShowSubEntitiesPanel(false);
         setSelectedClient(null);
         setDependents([]);
     };
 
-    const openCreateDependentModal = () => {
-        setDependentModalMode("create");
+    const openCreateSubEntityModal = () => {
+        setSubEntityModalMode("create");
         setSelectedDependent(null);
         setDependentForm(getInitialDependentForm());
-        setShowDependentModal(true);
+        setShowSubEntityModal(true);
     };
 
-    const openEditDependentModal = (dependent) => {
-        setDependentModalMode("edit");
+    const openEditSubEntityModal = (dependent) => {
+        setSubEntityModalMode("edit");
         setSelectedDependent(dependent);
         setDependentForm(formatDependentForEdit(dependent));
-        setShowDependentModal(true);
+        setShowSubEntityModal(true);
     };
 
-    const closeDependentModal = () => {
-        setShowDependentModal(false);
+    const closeSubEntityModal = () => {
+        setShowSubEntityModal(false);
         setSelectedDependent(null);
         setDependentForm(getInitialDependentForm());
-        setDependentModalError("");
+        setSubEntityModalError("");
     };
 
     const closeModal = () => {
@@ -230,18 +230,18 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (modalMode === "create") {
-            createClient();
+            createEntity();
         } else {
-            updateClient();
+            updateEntity();
         }
     };
 
     const handleDependentSubmit = (e) => {
         e.preventDefault();
         if (dependentModalMode === "create") {
-            createDependent();
+            createSubEntity();
         } else {
-            updateDependent();
+            updateSubEntity();
         }
     };
 
@@ -280,7 +280,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 <h1 className="clients-title">Clientes</h1>
                 <div className="clients-button-group">
                     <button
-                        onClick={loadClients}
+                        onClick={loadEntities}
                         className="clients-button-secondary"
                     >
                         Atualizar
@@ -337,16 +337,16 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 {/* <div className="clients-table-header">
                     <h2 className="clients-table-header-title">Clientes</h2>
                 </div>*/}
-                <ClientsTable
+                <EntitiesTable
                     filteredClients={filteredClients}
                     openEditModal={openEditModal}
-                    openDependentsPanel={openDependentsPanel}
-                    archiveClient={archiveClient}
-                    unarchiveClient={unarchiveClient}
+                    openSubEntitiesPanel={openSubEntitiesPanel}
+                    archiveEntity={archiveEntity}
+                    unarchiveEntity={unarchiveEntity}
                 />
             </div>
 
-            <ClientModal
+            <EntityModal
                 showModal={showModal}
                 modalMode={modalMode}
                 formData={formData}
@@ -356,24 +356,24 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 error={modalError}
             />
 
-            {showDependentsPanel && (
-                <DependentsPanel
+            {showSubEntitiesPanel && (
+                <SubEntitiesPanel
                     selectedClient={selectedClient}
                     dependents={dependents}
-                    onCreateDependent={openCreateDependentModal}
-                    onEditDependent={openEditDependentModal}
-                    onDeleteDependent={deleteDependent}
-                    onClose={closeDependentsPanel}
+                    onCreateDependent={openCreateSubEntityModal}
+                    onEditDependent={openEditSubEntityModal}
+                    onDeleteDependent={deleteSubEntity}
+                    onClose={closeSubEntitiesPanel}
                 />
             )}
 
-            <DependentModal
-                showModal={showDependentModal}
+            <SubEntityModal
+                showModal={showSubEntityModal}
                 modalMode={dependentModalMode}
                 dependentForm={dependentForm}
                 setDependentForm={setDependentForm}
                 onSubmit={handleDependentSubmit}
-                onClose={closeDependentModal}
+                onClose={closeSubEntityModal}
                 error={dependentModalError}
             />
         </div>

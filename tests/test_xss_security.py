@@ -137,7 +137,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for payload in self.XSS_PAYLOADS[:10]:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -155,7 +155,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for i, payload in enumerate(self.XSS_PAYLOADS[:5]):
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"XSS Notes Test {int(time.time())}_{i}",
                 "notes": payload,
                 "email": "test@test.com"
@@ -164,10 +164,10 @@ class TestXSSSecurity:
             if response.status_code in [200, 201]:
                 # Buscar o cliente criado
                 client_data = response.json()
-                client_id = client_data.get("data", {}).get("id") or client_data.get("id")
+                entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-                if client_id:
-                    get_response = http_client.get(f"{api_url}/clients/{client_id}", headers=headers)
+                if entity_id:
+                    get_response = http_client.get(f"{api_url}/entities/{entity_id}", headers=headers)
                     if get_response.status_code == 200:
                         client = get_response.json()
                         notes = str(client.get("notes", ""))
@@ -199,7 +199,7 @@ class TestXSSSecurity:
 
         for payload in self.XSS_PAYLOADS[:10]:
             response = http_client.get(
-                f"{api_url}/clients",
+                f"{api_url}/entities",
                 params={"search": payload},
                 headers=headers
             )
@@ -267,7 +267,7 @@ class TestXSSSecurity:
         ]
 
         for email in xss_emails:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"XSS Email Test {int(time.time())}",
                 "email": email
             }, headers=headers)
@@ -286,7 +286,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for payload in self.XSS_PAYLOADS[:5]:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"XSS Address Test {int(time.time())}",
                 "address": payload,
                 "email": "test@test.com"
@@ -320,7 +320,7 @@ class TestXSSSecurity:
             pytest.skip("ID da categoria não retornado")
 
         # Criar linha
-        line_response = http_client.post(f"{api_url}/lines", json={
+        line_response = http_client.post(f"{api_url}/subcategories", json={
             "name": f"XSS Test Line {int(time.time())}",
             "category_id": cat_id
         }, headers=headers)
@@ -329,13 +329,13 @@ class TestXSSSecurity:
             pytest.skip("Não foi possível criar linha de teste")
 
         line_data = line_response.json()
-        line_id = line_data.get("data", {}).get("id") or line_data.get("id")
+        subcategory_id = line_data.get("data", {}).get("id") or line_data.get("id")
 
-        if not line_id:
+        if not subcategory_id:
             pytest.skip("ID da linha não retornado")
 
         # Criar cliente
-        client_response = http_client.post(f"{api_url}/clients", json={
+        client_response = http_client.post(f"{api_url}/entities", json={
             "name": f"XSS Test Client {int(time.time())}",
             "email": "xsstest@test.com"
         }, headers=headers)
@@ -344,18 +344,18 @@ class TestXSSSecurity:
             pytest.skip("Não foi possível criar cliente de teste")
 
         client_data = client_response.json()
-        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not client_id:
+        if not entity_id:
             pytest.skip("ID do cliente não retornado")
 
         # Testar XSS no contrato
         for payload in self.XSS_PAYLOADS[:3]:
-            response = http_client.post(f"{api_url}/contracts", json={
+            response = http_client.post(f"{api_url}/agreements", json={
                 "model": payload,
-                "product_key": f"XSS-{int(time.time())}-{hash(payload) % 10000}",
-                "line_id": line_id,
-                "client_id": client_id
+                "item_key": f"XSS-{int(time.time())}-{hash(payload) % 10000}",
+                "subcategory_id": subcategory_id,
+                "entity_id": entity_id
             }, headers=headers)
 
             if response.status_code in [200, 201]:
@@ -382,7 +382,7 @@ class TestXSSSecurity:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        endpoints = ["/users", "/clients", "/categories", "/contracts"]
+        endpoints = ["/users", "/entities", "/categories", "/agreements"]
 
         for endpoint in endpoints:
             response = http_client.get(f"{api_url}{endpoint}", headers=headers)
@@ -424,7 +424,7 @@ class TestXSSSecurity:
 
         for payload in malformed_payloads:
             response = http_client.post(
-                f"{api_url}/clients",
+                f"{api_url}/entities",
                 data=payload,
                 headers=headers
             )
@@ -450,7 +450,7 @@ class TestXSSSecurity:
         ]
 
         for payload in svg_payloads:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -476,7 +476,7 @@ class TestXSSSecurity:
         ]
 
         for payload in polyglot_payloads:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"Polyglot Test {int(time.time())}",
                 "notes": payload,
                 "email": "test@test.com"

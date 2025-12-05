@@ -71,7 +71,7 @@ func SetupTestDB() (*sql.DB, error) {
 		port = "5432"
 	}
 	if dbname == "" {
-		dbname = "contracts_manager_test"
+		dbname = "agreements_manager_test"
 	}
 	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
@@ -118,7 +118,7 @@ func ClearTables(db *sql.DB) error {
 	defer db.Exec("SET session_replication_role = 'origin'")
 
 	// Limpar todas as tabelas
-	tables := []string{"contracts", "dependents", "lines", "categories", "clients", "users"}
+	tables := []string{"agreements", "sub_entities", "subcategories", "categories", "entities", "users"}
 	for _, table := range tables {
 		// Deletar em vez de truncate para evitar problemas com sequences
 		_, err := db.Exec("DELETE FROM " + table)
@@ -134,29 +134,29 @@ func ClearTables(db *sql.DB) error {
 	return nil
 }
 
-// InsertTestClient inserts a test client and returns its ID
-func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
+// InsertTestEntity inserts a test entity and returns its ID
+func InsertTestEntity(db *sql.DB, name, registrationID string) (string, error) {
 	// Gera um UUID válido
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO clients (id, name, registration_id) VALUES ($1, $2, $3)",
+		"INSERT INTO entities (id, name, registration_id) VALUES ($1, $2, $3)",
 		id, name, registrationID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test client: %v", err)
+		return "", fmt.Errorf("failed to insert test entity: %v", err)
 	}
 	return id, nil
 }
 
-// InsertTestDependent inserts a test entity and returns its ID
-func InsertTestDependent(db *sql.DB, name string, clientID string) (string, error) {
+// InsertTestSubEntity inserts a test sub-entity and returns its ID
+func InsertTestSubEntity(db *sql.DB, name string, entityID string) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
-		id, name, clientID,
+		"INSERT INTO sub_entities (id, name, entity_id) VALUES ($1, $2, $3)",
+		id, name, entityID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test dependent: %v", err)
+		return "", fmt.Errorf("failed to insert test sub-entity: %v", err)
 	}
 	return id, nil
 }
@@ -174,29 +174,29 @@ func InsertTestCategory(db *sql.DB, name string) (string, error) {
 	return id, nil
 }
 
-// InsertTestLine inserts a test type and returns its ID
-func InsertTestLine(db *sql.DB, name string, categoryID string) (string, error) {
+// InsertTestSubcategory inserts a test subcategory and returns its ID
+func InsertTestSubcategory(db *sql.DB, name string, categoryID string) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO lines (id, name, category_id) VALUES ($1, $2, $3)",
+		"INSERT INTO subcategories (id, name, category_id) VALUES ($1, $2, $3)",
 		id, name, categoryID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test line: %v", err)
+		return "", fmt.Errorf("failed to insert test subcategory: %v", err)
 	}
 	return id, nil
 }
 
-// InsertTestContract inserts a test license and returns its UUID
+// InsertTestAgreement inserts a test agreement and returns its UUID
 // startDate and endDate can be nil to represent nullable dates
-func InsertTestContract(db *sql.DB, model, productKey string, startDate, endDate *time.Time, lineID, clientID string, entityID interface{}) (string, error) {
+func InsertTestAgreement(db *sql.DB, model, itemKey string, startDate, endDate *time.Time, subcategoryID, entityID string, subEntityID interface{}) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO contracts (id, model, product_key, start_date, end_date, line_id, client_id, dependent_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-		id, model, productKey, startDate, endDate, lineID, clientID, entityID, nil,
+		"INSERT INTO agreements (id, model, item_key, start_date, end_date, subcategory_id, entity_id, sub_entity_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+		id, model, itemKey, startDate, endDate, subcategoryID, entityID, subEntityID, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test license: %v", err)
+		return "", fmt.Errorf("failed to insert test agreement: %v", err)
 	}
 	return id, nil
 }

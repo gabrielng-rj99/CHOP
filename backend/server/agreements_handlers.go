@@ -30,45 +30,45 @@ import (
 
 // ============= CONTRACT HANDLERS =============
 
-func (s *Server) handleContracts(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleAgreements(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.handleListContracts(w, r)
+		s.handleListAgreements(w, r)
 	case http.MethodPost:
-		s.handleCreateContract(w, r)
+		s.handleCreateAgreement(w, r)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleListContracts(w http.ResponseWriter, r *http.Request) {
-	contracts, err := s.contractStore.GetAllContractsIncludingArchived()
+func (s *Server) handleListAgreements(w http.ResponseWriter, r *http.Request) {
+	agreements, err := s.agreementStore.GetAllAgreementsIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: contracts})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: agreements})
 }
 
-func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
-	var contract domain.Contract
-	if err := json.NewDecoder(r.Body).Decode(&contract); err != nil {
+func (s *Server) handleCreateAgreement(w http.ResponseWriter, r *http.Request) {
+	var agreement domain.Agreement
+	if err := json.NewDecoder(r.Body).Decode(&agreement); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	id, err := s.contractStore.CreateContract(contract)
+	id, err := s.agreementStore.CreateAgreement(agreement)
 	if err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(contract)
+			newValueJSON, _ := json.Marshal(agreement)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "contract",
+				Entity:        "agreement",
 				EntityID:      "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
@@ -86,16 +86,16 @@ func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update client status based on active contracts
-	if err := s.clientStore.UpdateClientStatus(contract.ClientID); err != nil {
+	// Update entity status based on active agreements
+	if err := s.entityStore.UpdateEntityStatus(agreement.EntityID); err != nil {
 		// Log warning but don't fail the request
 		// This is a non-critical operation
 	}
 
 	// Update category status based on usage
-	contractData, _ := s.contractStore.GetContractByID(id)
+	contractData, _ := s.agreementStore.GetAgreementByID(id)
 	if contractData != nil {
-		lineData, _ := s.lineStore.GetLineByID(contractData.LineID)
+		lineData, _ := s.subcategoryStore.GetSubcategoryByID(contractData.SubcategoryID)
 		if lineData != nil {
 			if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
 				// Log warning but don't fail the request
@@ -105,11 +105,11 @@ func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
 
 	// Log successful creation
 	if claims != nil {
-		contract.ID = id
-		newValueJSON, _ := json.Marshal(contract)
+		agreement.ID = id
+		newValueJSON, _ := json.Marshal(agreement)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "contract",
+			Entity:        "agreement",
 			EntityID:      id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
@@ -124,16 +124,16 @@ func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
-		Message: "Contract created successfully",
+		Message: "Agreement created successfully",
 		Data:    map[string]string{"id": id},
 	})
 }
 
-func (s *Server) handleContractByID(w http.ResponseWriter, r *http.Request) {
-	contractID := getIDFromPath(r, "/api/contracts/")
+func (s *Server) handleAgreementByID(w http.ResponseWriter, r *http.Request) {
+	contractID := getIDFromPath(r, "/api/agreements/")
 
 	if contractID == "" {
-		respondError(w, http.StatusBadRequest, "Contract ID required")
+		respondError(w, http.StatusBadRequest, "Agreement ID required")
 		return
 	}
 
@@ -141,17 +141,17 @@ func (s *Server) handleContractByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		s.handleGetContract(w, r, contractID)
 	case http.MethodPut:
-		s.handleUpdateContract(w, r, contractID)
+		s.handleUpdateAgreement(w, r, contractID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
 func (s *Server) handleGetContract(w http.ResponseWriter, r *http.Request, contractID string) {
-	contract, err := s.contractStore.GetContractByID(contractID)
+	contract, err := s.agreementStore.GetAgreementByID(contractID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			respondError(w, http.StatusNotFound, "Contract not found")
+			respondError(w, http.StatusNotFound, "Agreement not found")
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
@@ -161,9 +161,9 @@ func (s *Server) handleGetContract(w http.ResponseWriter, r *http.Request, contr
 	respondJSON(w, http.StatusOK, SuccessResponse{Data: contract})
 }
 
-func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, contractID string) {
-	var contract domain.Contract
-	if err := json.NewDecoder(r.Body).Decode(&contract); err != nil {
+func (s *Server) handleUpdateAgreement(w http.ResponseWriter, r *http.Request, contractID string) {
+	var agreement domain.Agreement
+	if err := json.NewDecoder(r.Body).Decode(&agreement); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -171,19 +171,19 @@ func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, co
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldContract, _ := s.contractStore.GetContractByID(contractID)
+	oldContract, _ := s.agreementStore.GetAgreementByID(contractID)
 	oldValueJSON, _ := json.Marshal(oldContract)
 
-	contract.ID = contractID
+	agreement.ID = contractID
 
-	if err := s.contractStore.UpdateContract(contract); err != nil {
+	if err := s.agreementStore.UpdateAgreement(agreement); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(contract)
+			newValueJSON, _ := json.Marshal(agreement)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "contract",
+				Entity:        "agreement",
 				EntityID:      contractID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
@@ -201,14 +201,14 @@ func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, co
 		return
 	}
 
-	// Update client status based on active contracts
-	if err := s.clientStore.UpdateClientStatus(contract.ClientID); err != nil {
+	// Update entity status based on active agreements
+	if err := s.entityStore.UpdateEntityStatus(agreement.EntityID); err != nil {
 		// Log warning but don't fail the request
 		// This is a non-critical operation
 	}
 
 	// Update category status based on usage
-	lineData, _ := s.lineStore.GetLineByID(contract.LineID)
+	lineData, _ := s.subcategoryStore.GetSubcategoryByID(agreement.SubcategoryID)
 	if lineData != nil {
 		if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
 			// Log warning but don't fail the request
@@ -217,10 +217,10 @@ func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, co
 
 	// Log successful update
 	if claims != nil {
-		newValueJSON, _ := json.Marshal(contract)
+		newValueJSON, _ := json.Marshal(agreement)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "contract",
+			Entity:        "agreement",
 			EntityID:      contractID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
@@ -234,41 +234,41 @@ func (s *Server) handleUpdateContract(w http.ResponseWriter, r *http.Request, co
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract updated successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Agreement updated successfully"})
 }
 
-func (s *Server) handleContractArchive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleAgreementArchive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/contracts/"), "/")
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/agreements/"), "/")
 	if len(parts) < 2 || parts[0] == "" {
-		respondError(w, http.StatusBadRequest, "Contract ID required")
+		respondError(w, http.StatusBadRequest, "Agreement ID required")
 		return
 	}
 
 	contractID := parts[0]
 
-	// Get contract before archiving to update client status
-	oldContract, _ := s.contractStore.GetContractByID(contractID)
+	// Get contract before archiving to update entity status
+	oldContract, _ := s.agreementStore.GetAgreementByID(contractID)
 
 	// Archive contract by deleting it (or you can add an archived_at field)
-	if err := s.contractStore.DeleteContract(contractID); err != nil {
+	if err := s.agreementStore.DeleteAgreement(contractID); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Update client status based on active contracts
+	// Update entity status based on active agreements
 	if oldContract != nil {
-		if err := s.clientStore.UpdateClientStatus(oldContract.ClientID); err != nil {
+		if err := s.entityStore.UpdateEntityStatus(oldContract.EntityID); err != nil {
 			// Log warning but don't fail the request
 			// This is a non-critical operation
 		}
 
 		// Update category status based on usage
-		lineData, _ := s.lineStore.GetLineByID(oldContract.LineID)
+		lineData, _ := s.subcategoryStore.GetSubcategoryByID(oldContract.SubcategoryID)
 		if lineData != nil {
 			if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
 				// Log warning but don't fail the request
@@ -276,14 +276,14 @@ func (s *Server) handleContractArchive(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract archived successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Agreement archived successfully"})
 }
 
-func (s *Server) handleContractUnarchive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleAgreementUnarchive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract unarchive not implemented"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Agreement unarchive not implemented"})
 }

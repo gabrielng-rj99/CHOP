@@ -39,12 +39,12 @@ func setupLineTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-// TestGetAllLines tests retrieving all license lines
-func TestGetAllLines(t *testing.T) {
+// TestGetAllSubcategories tests retrieving all license subcategories
+func TestGetAllSubcategories(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID, err := InsertTestCategory(db, "Software")
@@ -52,44 +52,44 @@ func TestGetAllLines(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	// Insert multiple lines
-	line1, err := InsertTestLine(db, "Windows", categoryID)
+	// Insert multiple subcategories
+	line1, err := InsertTestSubcategory(db, "Windows", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert line 1: %v", err)
 	}
 
-	line2, err := InsertTestLine(db, "Linux", categoryID)
+	line2, err := InsertTestSubcategory(db, "Linux", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert line 2: %v", err)
 	}
 
-	// Get all lines
-	lines, err := lineStore.GetAllLines()
+	// Get all subcategories
+	subcategories, err := subcategoryStore.GetAllSubcategories()
 	if err != nil {
-		t.Fatalf("Failed to get all lines: %v", err)
+		t.Fatalf("Failed to get all subcategories: %v", err)
 	}
 
-	if len(lines) != 2 {
-		t.Errorf("Expected 2 lines, got %d", len(lines))
+	if len(subcategories) != 2 {
+		t.Errorf("Expected 2 subcategories, got %d", len(subcategories))
 	}
 
-	// Verify lines are present
-	lineIDs := make(map[string]bool)
-	for _, l := range lines {
-		lineIDs[l.ID] = true
+	// Verify subcategories are present
+	subcategoryIDs := make(map[string]bool)
+	for _, l := range subcategories {
+		subcategoryIDs[l.ID] = true
 	}
 
-	if !lineIDs[line1] || !lineIDs[line2] {
-		t.Error("Expected both lines in results")
+	if !subcategoryIDs[line1] || !subcategoryIDs[line2] {
+		t.Error("Expected both subcategories in results")
 	}
 }
 
-// TestUpdateLineCritical tests updating a line
-func TestUpdateLineCritical(t *testing.T) {
+// TestUpdateSubcategoryCritical tests updating a line
+func TestUpdateSubcategoryCritical(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID, err := InsertTestCategory(db, "Software")
@@ -97,49 +97,49 @@ func TestUpdateLineCritical(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Original Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Original Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		line        domain.Line
+		line        domain.Subcategory
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "success - update line name",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "Updated Line",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Updated Subcategory",
 				CategoryID: categoryID,
 			},
 			expectError: false,
 		},
 		{
 			name: "error - empty line id",
-			line: domain.Line{
+			line: domain.Subcategory{
 				ID:         "",
-				Line:       "Test",
+				Name:       "Test",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "error - empty line name",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "error - line name too long",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       string(make([]byte, 256)),
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       string(make([]byte, 256)),
 				CategoryID: categoryID,
 			},
 			expectError: true,
@@ -147,18 +147,18 @@ func TestUpdateLineCritical(t *testing.T) {
 		},
 		{
 			name: "error - empty category id",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "Test",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Test",
 				CategoryID: "",
 			},
 			expectError: true,
 		},
 		{
 			name: "error - non-existent category",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "Test",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Test",
 				CategoryID: uuid.New().String(),
 			},
 			expectError: true,
@@ -167,7 +167,7 @@ func TestUpdateLineCritical(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := lineStore.UpdateLine(tt.line)
+			err := subcategoryStore.UpdateSubcategory(tt.line)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -179,12 +179,12 @@ func TestUpdateLineCritical(t *testing.T) {
 	}
 }
 
-// TestDeleteLineCritical tests deleting a line
-func TestDeleteLineCritical(t *testing.T) {
+// TestDeleteSubcategoryCritical tests deleting a line
+func TestDeleteSubcategoryCritical(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID, err := InsertTestCategory(db, "Software")
@@ -192,20 +192,20 @@ func TestDeleteLineCritical(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Delete the line
-	err = lineStore.DeleteLine(lineID)
+	err = subcategoryStore.DeleteSubcategory(subcategoryID)
 	if err != nil {
 		t.Errorf("Expected no error deleting line, got: %v", err)
 	}
 
 	// Verify line is deleted
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", lineID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", subcategoryID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}
@@ -214,15 +214,15 @@ func TestDeleteLineCritical(t *testing.T) {
 	}
 }
 
-// TestDeleteLineWithActiveContracts tests that deletion fails with associated contracts
-func TestDeleteLineWithActiveContracts(t *testing.T) {
+// TestDeleteSubcategoryWithActiveAgreements tests that deletion fails with associated agreements
+func TestDeleteSubcategoryWithActiveAgreements(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -232,27 +232,27 @@ func TestDeleteLineWithActiveContracts(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Insert a license for this line
 	now := time.Now()
-	_, err = InsertTestContract(db, "Test License", "TEST-KEY", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID, clientID, nil)
+	_, err = InsertTestAgreement(db, "Test License", "TEST-KEY", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), subcategoryID, entityID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)
 	}
 
 	// Try to delete - should fail
-	err = lineStore.DeleteLine(lineID)
+	err = subcategoryStore.DeleteSubcategory(subcategoryID)
 	if err == nil {
-		t.Error("Expected error deleting line with associated contracts")
+		t.Error("Expected error deleting line with associated agreements")
 	}
 
 	// Verify line still exists
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", lineID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", subcategoryID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}
@@ -261,12 +261,12 @@ func TestDeleteLineWithActiveContracts(t *testing.T) {
 	}
 }
 
-// TestUpdateLineCannotMoveBetweenCategories tests that lines cannot be moved between categories
-func TestUpdateLineCannotMoveBetweenCategories(t *testing.T) {
+// TestUpdateSubcategoryCannotMoveBetweenCategories tests that subcategories cannot be moved between categories
+func TestUpdateSubcategoryCannotMoveBetweenCategories(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID1, err := InsertTestCategory(db, "Software")
@@ -279,26 +279,26 @@ func TestUpdateLineCannotMoveBetweenCategories(t *testing.T) {
 		t.Fatalf("Failed to insert category 2: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID1)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID1)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Try to move line to different category
-	updatedLine := domain.Line{
-		ID:         lineID,
-		Line:       "Test Line",
+	updatedLine := domain.Subcategory{
+		ID:         subcategoryID,
+		Name:       "Test Subcategory",
 		CategoryID: categoryID2,
 	}
 
-	err = lineStore.UpdateLine(updatedLine)
+	err = subcategoryStore.UpdateSubcategory(updatedLine)
 	if err == nil {
 		t.Error("Expected error when trying to move line between categories")
 	}
 
 	// Verify line is still in original category
 	var currentCategoryID string
-	err = db.QueryRow("SELECT category_id FROM lines WHERE id = $1", lineID).Scan(&currentCategoryID)
+	err = db.QueryRow("SELECT category_id FROM subcategories WHERE id = $1", subcategoryID).Scan(&currentCategoryID)
 	if err != nil {
 		t.Fatalf("Failed to query line: %v", err)
 	}
@@ -307,12 +307,12 @@ func TestUpdateLineCannotMoveBetweenCategories(t *testing.T) {
 	}
 }
 
-// TestGetLinesByCategory tests retrieving lines by category
+// TestGetLinesByCategory tests retrieving subcategories by category
 func TestGetLinesByCategory(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID1, err := InsertTestCategory(db, "Software")
@@ -325,55 +325,55 @@ func TestGetLinesByCategory(t *testing.T) {
 		t.Fatalf("Failed to insert category 2: %v", err)
 	}
 
-	// Insert lines for different categories
-	line1, err := InsertTestLine(db, "Windows", categoryID1)
+	// Insert subcategories for different categories
+	line1, err := InsertTestSubcategory(db, "Windows", categoryID1)
 	if err != nil {
 		t.Fatalf("Failed to insert line 1: %v", err)
 	}
 
-	line2, err := InsertTestLine(db, "Linux", categoryID1)
+	line2, err := InsertTestSubcategory(db, "Linux", categoryID1)
 	if err != nil {
 		t.Fatalf("Failed to insert line 2: %v", err)
 	}
 
-	line3, err := InsertTestLine(db, "Monitor", categoryID2)
+	line3, err := InsertTestSubcategory(db, "Monitor", categoryID2)
 	if err != nil {
 		t.Fatalf("Failed to insert line 3: %v", err)
 	}
 
-	// Get lines for category 1
-	lines, err := lineStore.GetLinesByCategoryID(categoryID1)
+	// Get subcategories for category 1
+	subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(categoryID1)
 	if err != nil {
-		t.Fatalf("Failed to get lines by category: %v", err)
+		t.Fatalf("Failed to get subcategories by category: %v", err)
 	}
 
-	if len(lines) != 2 {
-		t.Errorf("Expected 2 lines for category 1, got %d", len(lines))
+	if len(subcategories) != 2 {
+		t.Errorf("Expected 2 subcategories for category 1, got %d", len(subcategories))
 	}
 
-	// Verify correct lines are returned
-	lineIDs := make(map[string]bool)
-	for _, l := range lines {
-		lineIDs[l.ID] = true
+	// Verify correct subcategories are returned
+	subcategoryIDs := make(map[string]bool)
+	for _, l := range subcategories {
+		subcategoryIDs[l.ID] = true
 		if l.CategoryID != categoryID1 {
 			t.Errorf("Expected category ID '%s', got '%s'", categoryID1, l.CategoryID)
 		}
 	}
 
-	if !lineIDs[line1] || !lineIDs[line2] {
-		t.Error("Expected lines 1 and 2 in results")
+	if !subcategoryIDs[line1] || !subcategoryIDs[line2] {
+		t.Error("Expected subcategories 1 and 2 in results")
 	}
-	if lineIDs[line3] {
+	if subcategoryIDs[line3] {
 		t.Error("Did not expect line 3 in results")
 	}
 }
 
-// TestCreateLineUniquePerCategory tests that line names must be unique per category
-func TestCreateLineUniquePerCategory(t *testing.T) {
+// TestCreateSubcategoryUniquePerCategory tests that line names must be unique per category
+func TestCreateSubcategoryUniquePerCategory(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID, err := InsertTestCategory(db, "Software")
@@ -382,12 +382,12 @@ func TestCreateLineUniquePerCategory(t *testing.T) {
 	}
 
 	// Create first line
-	firstLine := domain.Line{
-		Line:       "Windows",
+	firstLine := domain.Subcategory{
+		Name:       "Windows",
 		CategoryID: categoryID,
 	}
 
-	id, err := lineStore.CreateLine(firstLine)
+	id, err := subcategoryStore.CreateSubcategory(firstLine)
 	if err != nil {
 		t.Fatalf("Failed to create first line: %v", err)
 	}
@@ -396,23 +396,23 @@ func TestCreateLineUniquePerCategory(t *testing.T) {
 	}
 
 	// Try to create duplicate line in same category
-	duplicateLine := domain.Line{
-		Line:       "Windows",
+	duplicateLine := domain.Subcategory{
+		Name:       "Windows",
 		CategoryID: categoryID,
 	}
 
-	_, err = lineStore.CreateLine(duplicateLine)
+	_, err = subcategoryStore.CreateSubcategory(duplicateLine)
 	if err == nil {
 		t.Error("Expected error creating duplicate line in same category")
 	}
 }
 
-// TestGetLineByIDCritical tests retrieving a specific line
-func TestGetLineByIDCritical(t *testing.T) {
+// TestGetSubcategoryByIDCritical tests retrieving a specific line
+func TestGetSubcategoryByIDCritical(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
 	categoryID, err := InsertTestCategory(db, "Software")
@@ -420,13 +420,13 @@ func TestGetLineByIDCritical(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Get the line
-	line, err := lineStore.GetLineByID(lineID)
+	line, err := subcategoryStore.GetSubcategoryByID(subcategoryID)
 	if err != nil {
 		t.Fatalf("Failed to get line: %v", err)
 	}
@@ -435,12 +435,12 @@ func TestGetLineByIDCritical(t *testing.T) {
 		t.Error("Expected line, got nil")
 	}
 
-	if line != nil && line.ID != lineID {
-		t.Errorf("Expected line ID '%s', got '%s'", lineID, line.ID)
+	if line != nil && line.ID != subcategoryID {
+		t.Errorf("Expected line ID '%s', got '%s'", subcategoryID, line.ID)
 	}
 
-	if line != nil && line.Line != "Test Line" {
-		t.Errorf("Expected line name 'Test Line', got '%s'", line.Line)
+	if line != nil && line.Name != "Test Subcategory" {
+		t.Errorf("Expected line name 'Test Subcategory', got '%s'", line.Name)
 	}
 
 	if line != nil && line.CategoryID != categoryID {
@@ -448,14 +448,14 @@ func TestGetLineByIDCritical(t *testing.T) {
 	}
 }
 
-// TestGetLineByIDNonExistent tests retrieving a non-existent line
-func TestGetLineByIDNonExistent(t *testing.T) {
+// TestGetSubcategoryByIDNonExistent tests retrieving a non-existent line
+func TestGetSubcategoryByIDNonExistent(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
-	line, err := lineStore.GetLineByID(uuid.New().String())
+	line, err := subcategoryStore.GetSubcategoryByID(uuid.New().String())
 	if err != nil {
 		t.Fatalf("Expected no error for non-existent line, got: %v", err)
 	}
@@ -711,8 +711,8 @@ func TestCategoryNameTrimming(t *testing.T) {
 	}
 }
 
-// TestCreateLineWithInvalidNames tests various invalid line name formats
-func TestCreateLineWithInvalidNames(t *testing.T) {
+// TestCreateSubcategoryWithInvalidNames tests various invalid line name formats
+func TestCreateSubcategoryWithInvalidNames(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -725,7 +725,7 @@ func TestCreateLineWithInvalidNames(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Generate long names
 	longName := strings.Repeat("a", 256)
@@ -741,49 +741,49 @@ func TestCreateLineWithInvalidNames(t *testing.T) {
 			name:        "invalid - name too long (256 chars)",
 			lineName:    longName,
 			expectError: true,
-			description: "Line name with 256 characters should be rejected",
+			description: "Subcategory name with 256 characters should be rejected",
 		},
 		{
 			name:        "invalid - name way too long (1000 chars)",
 			lineName:    veryLongName,
 			expectError: true,
-			description: "Line name with 1000 characters should be rejected",
+			description: "Subcategory name with 1000 characters should be rejected",
 		},
 		{
 			name:        "invalid - name with only spaces",
 			lineName:    "     ",
 			expectError: true,
-			description: "Line name with only whitespace should be rejected",
+			description: "Subcategory name with only whitespace should be rejected",
 		},
 		{
 			name:        "valid - name at max length (255 chars)",
 			lineName:    strings.Repeat("a", 255),
 			expectError: false,
-			description: "Line name with exactly 255 characters should be allowed",
+			description: "Subcategory name with exactly 255 characters should be allowed",
 		},
 		{
 			name:        "valid - name with special characters",
-			lineName:    "Line Pro - Edition 2025",
+			lineName:    "Subcategory Pro - Edition 2025",
 			expectError: false,
-			description: "Line name with special characters should be allowed",
+			description: "Subcategory name with special characters should be allowed",
 		},
 		{
 			name:        "valid - name with accents",
 			lineName:    "Linha Profissional",
 			expectError: false,
-			description: "Line name with Portuguese accents should be allowed",
+			description: "Subcategory name with Portuguese accents should be allowed",
 		},
 	}
 
 	counter := 0
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			line := domain.Line{
-				Line:       tt.lineName,
+			line := domain.Subcategory{
+				Name:       tt.lineName,
 				CategoryID: categoryID,
 			}
 
-			_, err := lineStore.CreateLine(line)
+			_, err := subcategoryStore.CreateSubcategory(line)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -796,15 +796,15 @@ func TestCreateLineWithInvalidNames(t *testing.T) {
 	}
 }
 
-// TestCreateLineWithInvalidCategory tests line creation with invalid category
-func TestCreateLineWithInvalidCategory(t *testing.T) {
+// TestCreateSubcategoryWithInvalidCategory tests line creation with invalid category
+func TestCreateSubcategoryWithInvalidCategory(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	tests := []struct {
 		name        string
@@ -816,24 +816,24 @@ func TestCreateLineWithInvalidCategory(t *testing.T) {
 			name:        "invalid - non-existent category",
 			categoryID:  "non-existent-category-id",
 			expectError: true,
-			description: "Line with non-existent category should be rejected",
+			description: "Subcategory with non-existent category should be rejected",
 		},
 		{
 			name:        "invalid - empty category ID",
 			categoryID:  "",
 			expectError: true,
-			description: "Line with empty category ID should be rejected",
+			description: "Subcategory with empty category ID should be rejected",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			line := domain.Line{
-				Line:       "Test Line",
+			line := domain.Subcategory{
+				Name:       "Test Subcategory",
 				CategoryID: tt.categoryID,
 			}
 
-			_, err := lineStore.CreateLine(line)
+			_, err := subcategoryStore.CreateSubcategory(line)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -853,7 +853,7 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Create two categories
 	category1ID, err := InsertTestCategory(db, "Category 1")
@@ -867,8 +867,8 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 	}
 
 	// Create line in category 1
-	_, err = lineStore.CreateLine(domain.Line{
-		Line:       "Shared Line Name",
+	_, err = subcategoryStore.CreateSubcategory(domain.Subcategory{
+		Name:       "Shared Subcategory Name",
 		CategoryID: category1ID,
 	})
 	if err != nil {
@@ -884,14 +884,14 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 	}{
 		{
 			name:        "duplicate - same name in same category",
-			lineName:    "Shared Line Name",
+			lineName:    "Shared Subcategory Name",
 			categoryID:  category1ID,
 			expectError: true,
 			description: "Duplicate line name in same category should be rejected",
 		},
 		{
 			name:        "valid - same name in different category",
-			lineName:    "Shared Line Name",
+			lineName:    "Shared Subcategory Name",
 			categoryID:  category2ID,
 			expectError: false,
 			description: "Same line name in different category should be allowed",
@@ -901,18 +901,18 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 			lineName:    "shared line name",
 			categoryID:  category1ID,
 			expectError: true, // Depends on DB collation - may need to adjust
-			description: "Line name with different case in same category",
+			description: "Subcategory name with different case in same category",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			line := domain.Line{
-				Line:       tt.lineName,
+			line := domain.Subcategory{
+				Name:       tt.lineName,
 				CategoryID: tt.categoryID,
 			}
 
-			_, err := lineStore.CreateLine(line)
+			_, err := subcategoryStore.CreateSubcategory(line)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -924,8 +924,8 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 	}
 }
 
-// TestUpdateLineWithInvalidData tests update operations with invalid data
-func TestUpdateLineWithInvalidData(t *testing.T) {
+// TestUpdateSubcategoryWithInvalidData tests update operations with invalid data
+func TestUpdateSubcategoryWithInvalidData(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -936,7 +936,7 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	lineStore := NewLineStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
 
 	// Create category and line
 	categoryID, err := InsertTestCategory(db, "TestCategory-"+uuid.New().String()[:8])
@@ -944,22 +944,22 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Original Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Original Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		line        domain.Line
+		line        domain.Subcategory
 		expectError bool
 		description string
 	}{
 		{
 			name: "invalid - update with name too long",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       strings.Repeat("a", 256),
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       strings.Repeat("a", 256),
 				CategoryID: categoryID,
 			},
 			expectError: true,
@@ -967,9 +967,9 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with only whitespace",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "    ",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "    ",
 				CategoryID: categoryID,
 			},
 			expectError: true,
@@ -977,9 +977,9 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with empty name",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
@@ -987,9 +987,9 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "valid - update with valid name",
-			line: domain.Line{
-				ID:         lineID,
-				Line:       "Updated Line Name",
+			line: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Updated Subcategory Name",
 				CategoryID: categoryID,
 			},
 			expectError: false,
@@ -999,7 +999,7 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := lineStore.UpdateLine(tt.line)
+			err := subcategoryStore.UpdateSubcategory(tt.line)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1011,8 +1011,8 @@ func TestUpdateLineWithInvalidData(t *testing.T) {
 	}
 }
 
-// TestCreateDependentWithInvalidNames tests various invalid dependent name formats
-func TestCreateDependentWithInvalidNames(t *testing.T) {
+// TestCreateSubEntityWithInvalidNames tests various invalid dependent name formats
+func TestCreateSubEntityWithInvalidNames(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -1024,12 +1024,12 @@ func TestCreateDependentWithInvalidNames(t *testing.T) {
 	}
 
 	// Create test client first
-	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	// Generate long names
 	longName := strings.Repeat("a", 256)
@@ -1045,55 +1045,55 @@ func TestCreateDependentWithInvalidNames(t *testing.T) {
 			name:          "invalid - name too long (256 chars)",
 			dependentName: longName,
 			expectError:   true,
-			description:   "Dependent name with 256 characters should be rejected",
+			description:   "SubEntity name with 256 characters should be rejected",
 		},
 		{
 			name:          "invalid - name way too long (1000 chars)",
 			dependentName: veryLongName,
 			expectError:   true,
-			description:   "Dependent name with 1000 characters should be rejected",
+			description:   "SubEntity name with 1000 characters should be rejected",
 		},
 		{
 			name:          "invalid - name with only spaces",
 			dependentName: "     ",
 			expectError:   true,
-			description:   "Dependent name with only whitespace should be rejected",
+			description:   "SubEntity name with only whitespace should be rejected",
 		},
 		{
 			name:          "valid - name at max length (255 chars)",
 			dependentName: strings.Repeat("a", 255),
 			expectError:   false,
-			description:   "Dependent name with exactly 255 characters should be allowed",
+			description:   "SubEntity name with exactly 255 characters should be allowed",
 		},
 		{
 			name:          "valid - name with special characters",
 			dependentName: "Unit A - Building 2",
 			expectError:   false,
-			description:   "Dependent name with special characters should be allowed",
+			description:   "SubEntity name with special characters should be allowed",
 		},
 		{
 			name:          "valid - name with accents",
 			dependentName: "Unidade São Paulo",
 			expectError:   false,
-			description:   "Dependent name with Portuguese accents should be allowed",
+			description:   "SubEntity name with Portuguese accents should be allowed",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear dependents table between tests
-			_, err = db.Exec("DELETE FROM dependents")
+			// Clear sub_entities table between tests
+			_, err = db.Exec("DELETE FROM sub_entities")
 			if err != nil {
-				t.Fatalf("Failed to clear dependents: %v", err)
+				t.Fatalf("Failed to clear sub_entities: %v", err)
 			}
 
-			dependent := domain.Dependent{
+			dependent := domain.SubEntity{
 				Name:     tt.dependentName,
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			}
 
-			_, err = dependentStore.CreateDependent(dependent)
+			_, err = subEntityStore.CreateSubEntity(dependent)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1105,45 +1105,45 @@ func TestCreateDependentWithInvalidNames(t *testing.T) {
 	}
 }
 
-// TestCreateDependentWithInvalidClient tests dependent creation with invalid client
-func TestCreateDependentWithInvalidClient(t *testing.T) {
+// TestCreateSubEntityWithInvalidClient tests dependent creation with invalid client
+func TestCreateSubEntityWithInvalidClient(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	tests := []struct {
 		name        string
-		clientID    string
+		entityID    string
 		expectError bool
 		description string
 	}{
 		{
 			name:        "invalid - non-existent client",
-			clientID:    "non-existent-client-id",
+			entityID:    "non-existent-client-id",
 			expectError: true,
-			description: "Dependent with non-existent client should be rejected",
+			description: "SubEntity with non-existent client should be rejected",
 		},
 		{
-			name:        "invalid - empty client ID",
-			clientID:    "",
+			name:        "invalid - empty entity ID",
+			entityID:    "",
 			expectError: true,
-			description: "Dependent with empty client ID should be rejected",
+			description: "SubEntity with empty entity ID should be rejected",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependent := domain.Dependent{
-				Name:     "Test Dependent",
-				ClientID: tt.clientID,
+			dependent := domain.SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: tt.entityID,
 				Status:   "ativo",
 			}
 
-			_, err := dependentStore.CreateDependent(dependent)
+			_, err := subEntityStore.CreateSubEntity(dependent)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1155,41 +1155,41 @@ func TestCreateDependentWithInvalidClient(t *testing.T) {
 	}
 }
 
-// TestUpdateDependentWithInvalidData tests update operations with invalid data
-func TestUpdateDependentWithInvalidData(t *testing.T) {
+// TestUpdateSubEntityWithInvalidData tests update operations with invalid data
+func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	// Create client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentID := uuid.New().String()
-	_, err = db.Exec("INSERT INTO dependents (id, name, client_id) VALUES ($1, $2, $3)",
-		dependentID, "Original Dependent", clientID)
+	subEntityID := uuid.New().String()
+	_, err = db.Exec("INSERT INTO sub_entities (id, name, entity_id) VALUES ($1, $2, $3)",
+		subEntityID, "Original SubEntity", entityID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		dependent   domain.Dependent
+		dependent   domain.SubEntity
 		expectError bool
 		description string
 	}{
 		{
 			name: "invalid - update with name too long",
-			dependent: domain.Dependent{
-				ID:       dependentID,
+			dependent: domain.SubEntity{
+				ID:       subEntityID,
 				Name:     strings.Repeat("a", 256),
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1197,10 +1197,10 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with only whitespace",
-			dependent: domain.Dependent{
-				ID:       dependentID,
+			dependent: domain.SubEntity{
+				ID:       subEntityID,
 				Name:     "    ",
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1208,10 +1208,10 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with empty name",
-			dependent: domain.Dependent{
-				ID:       dependentID,
+			dependent: domain.SubEntity{
+				ID:       subEntityID,
 				Name:     "",
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1219,10 +1219,10 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "valid - update with valid name",
-			dependent: domain.Dependent{
-				ID:       dependentID,
-				Name:     "Updated Dependent Name",
-				ClientID: clientID,
+			dependent: domain.SubEntity{
+				ID:       subEntityID,
+				Name:     "Updated SubEntity Name",
+				EntityID: entityID,
 				Status:   "ativo",
 			},
 			expectError: false,
@@ -1232,7 +1232,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := dependentStore.UpdateDependent(tt.dependent)
+			err := subEntityStore.UpdateSubEntity(tt.dependent)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1244,7 +1244,7 @@ func TestUpdateDependentWithInvalidData(t *testing.T) {
 	}
 }
 
-// TestDependentNameTrimming tests that whitespace is properly handled for dependents
+// TestDependentNameTrimming tests that whitespace is properly handled for sub_entities
 func TestDependentNameTrimming(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
@@ -1257,12 +1257,12 @@ func TestDependentNameTrimming(t *testing.T) {
 	}
 
 	// Create test client first
-	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	tests := []struct {
 		name         string
@@ -1297,19 +1297,19 @@ func TestDependentNameTrimming(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear dependents between tests
-			_, err := db.Exec("DELETE FROM dependents")
+			// Clear sub_entities between tests
+			_, err := db.Exec("DELETE FROM sub_entities")
 			if err != nil {
-				t.Fatalf("Failed to clear dependents: %v", err)
+				t.Fatalf("Failed to clear sub_entities: %v", err)
 			}
 
-			dependent := domain.Dependent{
+			dependent := domain.SubEntity{
 				Name:     tt.inputName,
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			}
 
-			id, err := dependentStore.CreateDependent(dependent)
+			id, err := subEntityStore.CreateSubEntity(dependent)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -1320,7 +1320,7 @@ func TestDependentNameTrimming(t *testing.T) {
 
 			// If creation succeeded, verify the name was trimmed
 			if !tt.expectError && err == nil {
-				retrievedDependent, err := dependentStore.GetDependentByID(id)
+				retrievedDependent, err := subEntityStore.GetSubEntityByID(id)
 				if err != nil {
 					t.Errorf("Failed to retrieve dependent: %v", err)
 				}

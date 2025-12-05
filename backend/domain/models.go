@@ -22,15 +22,15 @@ import (
 	"time"
 )
 
-// Client representa a tabela 'clients'
-type Client struct {
+// Entity representa a tabela 'entities'
+type Entity struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
 	RegistrationID    *string    `json:"registration_id,omitempty"`    // CPF/CNPJ (opcional)
 	Nickname          *string    `json:"nickname,omitempty"`           // Apelido/Nome fantasia (opcional)
 	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
-	Email             *string    `json:"email,omitempty"`              // Email do cliente (opcional)
-	Phone             *string    `json:"phone,omitempty"`              // Telefone do cliente (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email da entidade (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone da entidade (opcional)
 	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
 	Notes             *string    `json:"notes,omitempty"`              // Observações gerais (opcional)
 	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
@@ -43,15 +43,15 @@ type Client struct {
 	ArchivedAt        *time.Time `json:"archived_at"`                  // Soft delete via archived_at
 }
 
-// Dependent representa a tabela 'dependents' (Client Dependent, como unidades, filhos, parentes)
-type Dependent struct {
+// SubEntity representa a tabela 'sub_entities' (Sub-entidades, como unidades, filhos, parentes)
+type SubEntity struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
-	ClientID          string     `json:"client_id"`
+	EntityID          string     `json:"entity_id"`
 	Description       *string    `json:"description,omitempty"`        // Descrição livre (opcional)
 	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
-	Email             *string    `json:"email,omitempty"`              // Email do dependente (opcional)
-	Phone             *string    `json:"phone,omitempty"`              // Telefone do dependente (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email da sub-entidade (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone da sub-entidade (opcional)
 	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
 	Notes             *string    `json:"notes,omitempty"`              // Observações (opcional)
 	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
@@ -68,25 +68,25 @@ type Category struct {
 	ArchivedAt *time.Time `json:"archived_at"`
 }
 
-// Line representa a tabela 'lines' (Product Line)
-type Line struct {
+// Subcategory representa a tabela 'subcategories'
+type Subcategory struct {
 	ID         string     `json:"id"`
-	Line       string     `json:"line" db:"name"`
+	Name       string     `json:"name" db:"name"`
 	CategoryID string     `json:"category_id"`
 	ArchivedAt *time.Time `json:"archived_at"`
 }
 
-// Contract representa a tabela 'contracts'
-type Contract struct {
-	ID          string     `json:"id"`
-	Model       string     `json:"model" db:"name"`
-	ProductKey  string     `json:"product_key"`
-	StartDate   *time.Time `json:"start_date,omitempty"`
-	EndDate     *time.Time `json:"end_date,omitempty"`
-	LineID      string     `json:"line_id"`
-	ClientID    string     `json:"client_id"`
-	DependentID *string    `json:"dependent_id"` // Usamos um ponteiro para que possa ser nulo
-	ArchivedAt  *time.Time `json:"archived_at"`
+// Agreement representa a tabela 'agreements'
+type Agreement struct {
+	ID            string     `json:"id"`
+	Model         string     `json:"model" db:"name"`
+	ItemKey       string     `json:"item_key"`
+	StartDate     *time.Time `json:"start_date,omitempty"`
+	EndDate       *time.Time `json:"end_date,omitempty"`
+	SubcategoryID string     `json:"subcategory_id"`
+	EntityID      string     `json:"entity_id"`
+	SubEntityID   *string    `json:"sub_entity_id"` // Usamos um ponteiro para que possa ser nulo
+	ArchivedAt    *time.Time `json:"archived_at"`
 }
 
 // User representa um usuário do sistema para autenticação
@@ -107,28 +107,28 @@ type User struct {
 
 // GetEffectiveStartDate retorna a data de início efetiva para cálculos.
 // Se StartDate for nil, retorna time.Time{} (infinito inferior) para indicar que começou "sempre".
-func (c *Contract) GetEffectiveStartDate() time.Time {
-	if c.StartDate == nil {
+func (a *Agreement) GetEffectiveStartDate() time.Time {
+	if a.StartDate == nil {
 		return time.Time{}
 	}
-	return *c.StartDate
+	return *a.StartDate
 }
 
 // GetEffectiveEndDate retorna a data de fim efetiva para cálculos.
 // Se EndDate for nil, retorna uma data muito distante no futuro (infinito superior) para indicar que nunca expira.
-func (c *Contract) GetEffectiveEndDate() time.Time {
-	if c.EndDate == nil {
+func (a *Agreement) GetEffectiveEndDate() time.Time {
+	if a.EndDate == nil {
 		return time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
 	}
-	return *c.EndDate
+	return *a.EndDate
 }
 
-// IsActive verifica se o contrato está ativo no momento especificado.
+// IsActive verifica se o agreement está ativo no momento especificado.
 // StartDate nil = começou sempre (infinito inferior)
 // EndDate nil = nunca expira (infinito superior)
-func (c *Contract) IsActive(at time.Time) bool {
-	effectiveStart := c.GetEffectiveStartDate()
-	effectiveEnd := c.GetEffectiveEndDate()
+func (a *Agreement) IsActive(at time.Time) bool {
+	effectiveStart := a.GetEffectiveStartDate()
+	effectiveEnd := a.GetEffectiveEndDate()
 
 	// Se StartDate é nil (infinito inferior), sempre começou
 	startedAlready := effectiveStart.IsZero() || !at.Before(effectiveStart)
@@ -139,16 +139,16 @@ func (c *Contract) IsActive(at time.Time) bool {
 	return startedAlready && notExpired
 }
 
-// Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).
-func (c *Contract) Status() string {
+// Status calcula e retorna o estado atual do agreement (Ativo, Expirando, Expirado).
+func (a *Agreement) Status() string {
 	now := time.Now()
 
 	// EndDate nil = nunca expira, sempre "Ativo"
-	if c.EndDate == nil {
+	if a.EndDate == nil {
 		return "Ativo"
 	}
 
-	effectiveEnd := c.GetEffectiveEndDate()
+	effectiveEnd := a.GetEffectiveEndDate()
 
 	if effectiveEnd.Before(now) {
 		return "Expirado"
@@ -168,7 +168,7 @@ type AuditLog struct {
 	ID              string    `json:"id"`
 	Timestamp       time.Time `json:"timestamp"`
 	Operation       string    `json:"operation"` // 'create', 'update', 'delete', 'read'
-	Entity          string    `json:"entity"`    // 'client', 'contract', 'user', 'line', 'category', 'dependent'
+	Entity          string    `json:"entity"`    // 'entity', 'agreement', 'user', 'subcategory', 'category', 'sub_entity'
 	EntityID        string    `json:"entity_id"`
 	AdminID         *string   `json:"admin_id,omitempty"`
 	AdminUsername   *string   `json:"admin_username,omitempty"`
@@ -179,7 +179,7 @@ type AuditLog struct {
 	IPAddress       *string   `json:"ip_address,omitempty"`
 	UserAgent       *string   `json:"user_agent,omitempty"`
 	RequestMethod   *string   `json:"request_method,omitempty"`    // GET, POST, PUT, DELETE
-	RequestPath     *string   `json:"request_path,omitempty"`      // /api/users, /api/clients, etc
+	RequestPath     *string   `json:"request_path,omitempty"`      // /api/users, /api/entities, etc
 	RequestID       *string   `json:"request_id,omitempty"`        // Correlação entre requisições
 	ResponseCode    *int      `json:"response_code,omitempty"`     // HTTP status code
 	ExecutionTimeMs *int      `json:"execution_time_ms,omitempty"` // Tempo de execução em ms

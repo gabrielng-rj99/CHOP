@@ -31,14 +31,14 @@ import (
 	"Open-Generic-Hub/backend/store"
 )
 
-// ContractsFlow handles the contracts overview menu (list, filter, create, edit, delete)
-func ContractsFlow(contractStore *store.ContractStore, clientStore *store.ClientStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// ContractsFlow handles the agreements overview menu (list, filter, create, edit, delete)
+func ContractsFlow(agreementStore *store.AgreementStore, entityStore *store.EntityStore, subEntityStore *store.SubEntityStore, subcategoryStore *store.SubcategoryStore, categoryStore *store.CategoryStore) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- Contracts (Overview) ---")
 		fmt.Println("0 - Back")
-		fmt.Println("1 - List all contracts")
-		fmt.Println("2 - Search/Filter contracts")
+		fmt.Println("1 - List all agreements")
+		fmt.Println("2 - Search/Filter agreements")
 		fmt.Println("3 - Filter by client")
 		fmt.Println("4 - Filter by line")
 		fmt.Println("5 - Filter by category")
@@ -55,13 +55,13 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			return
 		case "1":
 			clearTerminal()
-			contracts, err := contractStore.GetAllContracts()
+			agreements, err := agreementStore.GetAllAgreements()
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
-			displayContractsList(contracts)
+			displayContractsList(agreements)
 			waitForEnter()
 
 		case "2":
@@ -77,42 +77,42 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				continue
 			}
 
-			contracts, err := contractStore.GetAllContracts()
+			agreements, err := agreementStore.GetAllAgreements()
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
 
-			filtered := filterContracts(contracts, searchTerm)
+			filtered := filterContracts(agreements, searchTerm)
 			displayContractsList(filtered)
 			waitForEnter()
 
 		case "3":
 			clearTerminal()
-			clients, err := clientStore.GetAllClients()
-			if err != nil || len(clients) == 0 {
-				fmt.Println("No clients found.")
+			entities, err := entityStore.GetAllEntities()
+			if err != nil || len(entities) == 0 {
+				fmt.Println("No entities found.")
 				waitForEnter()
 				continue
 			}
 
-			fmt.Println("\n=== Select Client ===")
+			fmt.Println("\n=== Select Entity ===")
 			fmt.Print("Search term (or leave empty for all): ")
 			searchTerm, _ := reader.ReadString('\n')
 			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
 
 			if searchTerm != "" {
-				clients = filterClients(clients, searchTerm)
+				entities = filterClients(entities, searchTerm)
 			}
 
-			if len(clients) == 0 {
-				fmt.Println("No clients match your search.")
+			if len(entities) == 0 {
+				fmt.Println("No entities match your search.")
 				waitForEnter()
 				continue
 			}
 
-			displayClientsList(clients)
+			displayClientsList(entities)
 			fmt.Print("\nEnter the number of the client (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -120,32 +120,32 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(clients) {
+			if err != nil || idx < 1 || idx > len(entities) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			clientID := clients[idx-1].ID
+			entityID := entities[idx-1].ID
 
-			contracts, err := contractStore.GetContractsByClientID(clientID)
+			agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
-			displayContractsList(contracts)
+			displayContractsList(agreements)
 			waitForEnter()
 		case "4":
 			clearTerminal()
-			lines, err := lineStore.GetAllLines()
-			if err != nil || len(lines) == 0 {
-				fmt.Println("No lines found.")
+			subcategories, err := subcategoryStore.GetAllSubcategories()
+			if err != nil || len(subcategories) == 0 {
+				fmt.Println("No subcategories found.")
 				waitForEnter()
 				continue
 			}
 
-			fmt.Println("\n=== Select Line ===")
-			displayLinesList(lines)
+			fmt.Println("\n=== Select Subcategory ===")
+			displayLinesList(subcategories)
 			fmt.Print("\nEnter the number of the line (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -153,20 +153,20 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(lines) {
+			if err != nil || idx < 1 || idx > len(subcategories) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			lineID := lines[idx-1].ID
+			subcategoryID := subcategories[idx-1].ID
 
-			contracts, err := contractStore.GetContractsByLineID(lineID)
+			agreements, err := agreementStore.GetAgreementsBySubcategoryID(subcategoryID)
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
-			displayContractsList(contracts)
+			displayContractsList(agreements)
 			waitForEnter()
 		case "5":
 			clearTerminal()
@@ -193,96 +193,96 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 			}
 			categoryID := categories[idx-1].ID
 
-			contracts, err := contractStore.GetContractsByCategoryID(categoryID)
+			agreements, err := agreementStore.GetAgreementsByCategoryID(categoryID)
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
-			displayContractsList(contracts)
+			displayContractsList(agreements)
 			waitForEnter()
 		case "7":
 			clearTerminal()
 			fmt.Print("Buscar contrato para editar por (1) ID ou (2) nome/modelo? ")
 			searchOpt, _ := reader.ReadString('\n')
 			searchOpt = strings.TrimSpace(searchOpt)
-			var contract *domain.Contract
+			var agreement *domain.Agreement
 			if searchOpt == "2" {
 				fmt.Print("Digite parte do nome/modelo: ")
 				searchName, _ := reader.ReadString('\n')
 				searchName = strings.TrimSpace(searchName)
-				contracts, err := contractStore.GetContractsByName(searchName)
-				if err != nil || len(contracts) == 0 {
+				agreements, err := agreementStore.GetAgreementsByName(searchName)
+				if err != nil || len(agreements) == 0 {
 					fmt.Println("Nenhum contrato encontrado.")
 					waitForEnter()
 					continue
 				}
-				for i, c := range contracts {
-					fmt.Printf("%d - ID: %s | Modelo: %s | Produto: %s\n", i+1, c.ID, c.Model, c.ProductKey)
+				for i, c := range agreements {
+					fmt.Printf("%d - ID: %s | Modelo: %s | Produto: %s\n", i+1, c.ID, c.Model, c.ItemKey)
 				}
 				fmt.Print("Escolha o número do contrato: ")
 				idxStr, _ := reader.ReadString('\n')
 				idxStr = strings.TrimSpace(idxStr)
 				idx, err := strconv.Atoi(idxStr)
-				if err != nil || idx < 1 || idx > len(contracts) {
+				if err != nil || idx < 1 || idx > len(agreements) {
 					fmt.Println("Opção inválida.")
 					waitForEnter()
 					continue
 				}
-				contract = &contracts[idx-1]
+				agreement = &agreements[idx-1]
 			} else {
-				fmt.Print("contract ID to edit: ")
+				fmt.Print("agreement ID to edit: ")
 				id, _ := reader.ReadString('\n')
 				id = strings.TrimSpace(id)
 				if id == "" {
-					fmt.Println("Error: contract ID cannot be empty.")
+					fmt.Println("Error: agreement ID cannot be empty.")
 					waitForEnter()
 					continue
 				}
-				c, err := contractStore.GetContractByID(id)
+				c, err := agreementStore.GetAgreementByID(id)
 				if err != nil || c == nil {
-					fmt.Println("contract not found.")
+					fmt.Println("agreement not found.")
 					waitForEnter()
 					continue
 				}
-				contract = c
+				agreement = c
 			}
 			reader := bufio.NewReader(os.Stdin)
 			PrintOptionalFieldHint()
-			fmt.Printf("Current name: %s | New name: ", contract.Model)
+			fmt.Printf("Current name: %s | New name: ", agreement.Model)
 			name, _ := reader.ReadString('\n')
-			fmt.Printf("Current key: %s | New key: ", contract.ProductKey)
-			productKey, _ := reader.ReadString('\n')
-			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", contract.StartDate.Format("2006-01-02"))
+			fmt.Printf("Current key: %s | New key: ", agreement.ItemKey)
+			itemKey, _ := reader.ReadString('\n')
+			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", agreement.StartDate.Format("2006-01-02"))
 			startStr, _ := reader.ReadString('\n')
-			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", contract.EndDate.Format("2006-01-02"))
+			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", agreement.EndDate.Format("2006-01-02"))
 			endStr, _ := reader.ReadString('\n')
-			fmt.Printf("Current type ID: %s | New type ID: ", contract.LineID)
-			lineID, _ := reader.ReadString('\n')
-			currentDependentID := "-"
-			if contract.DependentID != nil {
-				currentDependentID = *contract.DependentID
+			fmt.Printf("Current type ID: %s | New type ID: ", agreement.SubcategoryID)
+			subcategoryID, _ := reader.ReadString('\n')
+			currentSubEntityID := "-"
+			if agreement.SubEntityID != nil {
+				currentSubEntityID = *agreement.SubEntityID
 			}
-			fmt.Printf("Current dependent ID: %s | New dependent (optional): ", currentDependentID)
-			dependentID, _ := reader.ReadString('\n')
+			fmt.Printf("Current dependent ID: %s | New dependent (optional): ", currentSubEntityID)
+			subEntityID, _ := reader.ReadString('\n')
 
 			name = strings.TrimSpace(name)
-			productKey = strings.TrimSpace(productKey)
-			lineID = strings.TrimSpace(lineID)
+			itemKey = strings.TrimSpace(itemKey)
+			subcategoryID = strings.TrimSpace(subcategoryID)
 
 			// Handle required fields: empty keeps current value
 			if name == "" {
-				name = contract.Model
+				name = agreement.Model
 			}
-			if productKey == "" {
-				productKey = contract.ProductKey
+			if itemKey == "" {
+				itemKey = agreement.ItemKey
 			}
-			if lineID == "" {
-				lineID = contract.LineID
+			if subcategoryID == "" {
+				subcategoryID = agreement.SubcategoryID
 			}
 
-			startDate := contract.StartDate
-			endDate := contract.EndDate
+			startDate := agreement.StartDate
+			endDate := agreement.EndDate
 			if strings.TrimSpace(startStr) != "" {
 				parsedStart, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
 				if errStart != nil {
@@ -301,21 +301,21 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				}
 				endDate = &parsedEnd
 			}
-			contract.Model = name
-			contract.ProductKey = productKey
-			contract.StartDate = startDate
-			contract.EndDate = endDate
-			contract.LineID = lineID
+			agreement.Model = name
+			agreement.ItemKey = itemKey
+			agreement.StartDate = startDate
+			agreement.EndDate = endDate
+			agreement.SubcategoryID = subcategoryID
 			// Handle optional dependent ID: "-" clears it, empty keeps it, other value updates it
-			depVal, depUpdate, depClear := HandleOptionalField(dependentID)
+			depVal, depUpdate, depClear := HandleOptionalField(subEntityID)
 			if depUpdate {
 				if depClear {
-					contract.DependentID = nil
+					agreement.SubEntityID = nil
 				} else {
-					contract.DependentID = &depVal
+					agreement.SubEntityID = &depVal
 				}
 			}
-			err := contractStore.UpdateContract(*contract)
+			err := agreementStore.UpdateAgreement(*agreement)
 			if err != nil {
 				fmt.Println("Error updating contract:", err)
 				waitForEnter()
@@ -333,37 +333,37 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 				fmt.Print("Digite parte do nome/modelo: ")
 				searchName, _ := reader.ReadString('\n')
 				searchName = strings.TrimSpace(searchName)
-				contracts, err := contractStore.GetContractsByName(searchName)
-				if err != nil || len(contracts) == 0 {
+				agreements, err := agreementStore.GetAgreementsByName(searchName)
+				if err != nil || len(agreements) == 0 {
 					fmt.Println("Nenhum contrato encontrado.")
 					waitForEnter()
 					continue
 				}
-				for i, c := range contracts {
-					fmt.Printf("%d - ID: %s | Modelo: %s | Produto: %s\n", i+1, c.ID, c.Model, c.ProductKey)
+				for i, c := range agreements {
+					fmt.Printf("%d - ID: %s | Modelo: %s | Produto: %s\n", i+1, c.ID, c.Model, c.ItemKey)
 				}
 				fmt.Print("Escolha o número do contrato para excluir: ")
 				idxStr, _ := reader.ReadString('\n')
 				idxStr = strings.TrimSpace(idxStr)
 				idx, err := strconv.Atoi(idxStr)
-				if err != nil || idx < 1 || idx > len(contracts) {
+				if err != nil || idx < 1 || idx > len(agreements) {
 					fmt.Println("Opção inválida.")
 					waitForEnter()
 					continue
 				}
-				contractID = contracts[idx-1].ID
+				contractID = agreements[idx-1].ID
 			} else {
-				fmt.Print("contract ID to delete: ")
+				fmt.Print("agreement ID to delete: ")
 				id, _ := reader.ReadString('\n')
 				id = strings.TrimSpace(id)
 				if id == "" {
-					fmt.Println("Error: contract ID cannot be empty.")
+					fmt.Println("Error: agreement ID cannot be empty.")
 					waitForEnter()
 					continue
 				}
 				contractID = id
 			}
-			err := contractStore.DeleteContract(contractID)
+			err := agreementStore.DeleteAgreement(contractID)
 			if err != nil {
 				fmt.Println("Error deleting contract:", err)
 				waitForEnter()
@@ -379,7 +379,7 @@ func ContractsFlow(contractStore *store.ContractStore, clientStore *store.Client
 }
 
 // ContractsSubmenu handles contract creation for a specific client
-func ContractsSubmenu(clientID string, contractStore *store.ContractStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+func ContractsSubmenu(entityID string, agreementStore *store.AgreementStore, subEntityStore *store.SubEntityStore, subcategoryStore *store.SubcategoryStore, categoryStore *store.CategoryStore) {
 	clearTerminal()
 	reader := bufio.NewReader(os.Stdin)
 
@@ -405,43 +405,43 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 	}
 	categoryID := categories[catIdx-1].ID
 
-	// 2. Select Line
+	// 2. Select Subcategory
 	fmt.Println("Select a line (type) for the contract:")
-	lines, err := lineStore.GetLinesByCategoryID(categoryID)
-	if err != nil || len(lines) == 0 {
-		fmt.Println("Error: No lines available for this category.")
+	subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(categoryID)
+	if err != nil || len(subcategories) == 0 {
+		fmt.Println("Error: No subcategories available for this category.")
 		waitForEnter()
 		return
 	}
-	for i, l := range lines {
-		fmt.Printf("%d - %s\n", i+1, l.Line)
+	for i, l := range subcategories {
+		fmt.Printf("%d - %s\n", i+1, l.Name)
 	}
 	fmt.Print("Enter the number of the line: ")
 	lineIdxStr, _ := reader.ReadString('\n')
 	lineIdxStr = strings.TrimSpace(lineIdxStr)
 	lineIdx, err := strconv.Atoi(lineIdxStr)
-	if err != nil || lineIdx < 1 || lineIdx > len(lines) {
+	if err != nil || lineIdx < 1 || lineIdx > len(subcategories) {
 		fmt.Println("Error: Invalid line selection.")
 		waitForEnter()
 		return
 	}
-	lineID := lines[lineIdx-1].ID
+	subcategoryID := subcategories[lineIdx-1].ID
 
 	// 3. Enter contract model/name
-	fmt.Print("Contract model/name: ")
+	fmt.Print("Agreement model/name: ")
 	name, _ := reader.ReadString('\n')
 	name = strings.TrimSpace(name)
 	if name == "" {
-		fmt.Println("Error: Contract model/name cannot be empty.")
+		fmt.Println("Error: Agreement model/name cannot be empty.")
 		waitForEnter()
 		return
 	}
 
 	// 4. Enter product key
 	fmt.Print("Product key: ")
-	productKey, _ := reader.ReadString('\n')
-	productKey = strings.TrimSpace(productKey)
-	if productKey == "" {
+	itemKey, _ := reader.ReadString('\n')
+	itemKey = strings.TrimSpace(itemKey)
+	if itemKey == "" {
 		fmt.Println("Error: Product key cannot be empty.")
 		waitForEnter()
 		return
@@ -476,13 +476,13 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 		endDate = &parsed
 	}
 
-	// 6. Select dependents (optional, comma-separated for multiple, or Enter for global)
-	dependents, err := dependentStore.GetDependentsByClientID(clientID)
+	// 6. Select sub_entities (optional, comma-separated for multiple, or Enter for global)
+	sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
 	var dependentPtr *string
-	if err == nil && len(dependents) > 0 {
-		fmt.Println("Select dependents for this contract (optional).")
-		fmt.Println("Enter the numbers separated by commas for multiple selection, or press Enter for global contract (no dependents):")
-		for i, d := range dependents {
+	if err == nil && len(sub_entities) > 0 {
+		fmt.Println("Select sub_entities for this contract (optional).")
+		fmt.Println("Enter the numbers separated by commas for multiple selection, or press Enter for global contract (no sub_entities):")
+		for i, d := range sub_entities {
 			fmt.Printf("%d - %s\n", i+1, d.Name)
 		}
 		fmt.Print("Dependents: ")
@@ -491,59 +491,59 @@ func ContractsSubmenu(clientID string, contractStore *store.ContractStore, depen
 		if depIdxStr != "" {
 			depIdxList := strings.Split(depIdxStr, ",")
 			if len(depIdxList) > 1 {
-				fmt.Println("Warning: Only one dependent can be associated per contract. Using the first selected.")
+				fmt.Println("Warning: Only one dependent can be associated per agreement. Using the first selected.")
 			}
 			idxStr := strings.TrimSpace(depIdxList[0])
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(dependents) {
+			if err != nil || idx < 1 || idx > len(sub_entities) {
 				fmt.Println("Error: Invalid dependent selection.")
 				waitForEnter()
 				return
 			}
-			depID := dependents[idx-1].ID
+			depID := sub_entities[idx-1].ID
 			dependentPtr = &depID
 		}
 	}
 
-	contract := domain.Contract{
+	contract := domain.Agreement{
 		Model:       name,
-		ProductKey:  productKey,
+		ItemKey:  itemKey,
 		StartDate:   startDate,
 		EndDate:     endDate,
-		LineID:      lineID,
-		ClientID:    clientID,
-		DependentID: dependentPtr,
+		SubcategoryID:      subcategoryID,
+		EntityID:    entityID,
+		SubEntityID: dependentPtr,
 	}
-	id, err := contractStore.CreateContract(contract)
+	id, err := agreementStore.CreateAgreement(contract)
 	if err != nil {
 		fmt.Println("Error creating contract:", err)
 		waitForEnter()
 	} else {
-		fmt.Println("Contract created with ID:", id)
+		fmt.Println("Agreement created with ID:", id)
 		waitForEnter()
 	}
 }
 
-// displayContractsList shows a compact list of contracts with essential information
-func displayContractsList(contracts []domain.Contract) {
+// displayContractsList shows a compact list of agreements with essential information
+func displayContractsList(agreements []domain.Agreement) {
 	fmt.Println("\n=== Contracts ===")
-	if len(contracts) == 0 {
-		fmt.Println("No contracts found.")
+	if len(agreements) == 0 {
+		fmt.Println("No agreements found.")
 		return
 	}
 
 	fmt.Printf("\n%-4s | %-25s | %-25s | %-12s | %-12s | %-12s\n", "#", "Model", "Product Key", "Status", "Start Date", "End Date")
 	fmt.Println(strings.Repeat("-", 100))
 
-	for i, c := range contracts {
+	for i, c := range agreements {
 		model := c.Model
 		if len(model) > 25 {
 			model = model[:22] + "..."
 		}
 
-		productKey := c.ProductKey
-		if len(productKey) > 25 {
-			productKey = productKey[:22] + "..."
+		itemKey := c.ItemKey
+		if len(itemKey) > 25 {
+			itemKey = itemKey[:22] + "..."
 		}
 
 		status := c.Status()
@@ -556,23 +556,23 @@ func displayContractsList(contracts []domain.Contract) {
 			endDate = c.EndDate.Format("2006-01-02")
 		}
 
-		fmt.Printf("%-4d | %-25s | %-25s | %-12s | %-12s | %-12s\n", i+1, model, productKey, status, startDate, endDate)
+		fmt.Printf("%-4d | %-25s | %-25s | %-12s | %-12s | %-12s\n", i+1, model, itemKey, status, startDate, endDate)
 	}
 	fmt.Println()
 }
 
-// filterContracts filters contracts by model or product key
-func filterContracts(contracts []domain.Contract, searchTerm string) []domain.Contract {
-	var filtered []domain.Contract
+// filterContracts filters agreements by model or product key
+func filterContracts(agreements []domain.Agreement, searchTerm string) []domain.Agreement {
+	var filtered []domain.Agreement
 	searchTerm = normalizeString(searchTerm)
 
-	for _, c := range contracts {
+	for _, c := range agreements {
 		if strings.Contains(normalizeString(c.Model), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
 
-		if strings.Contains(normalizeString(c.ProductKey), searchTerm) {
+		if strings.Contains(normalizeString(c.ItemKey), searchTerm) {
 			filtered = append(filtered, c)
 			continue
 		}
@@ -581,17 +581,17 @@ func filterContracts(contracts []domain.Contract, searchTerm string) []domain.Co
 	return filtered
 }
 
-// displayLinesList shows a compact list of lines sorted by category
-func displayLinesList(lines []domain.Line) {
+// displayLinesList shows a compact list of subcategories sorted by category
+func displayLinesList(subcategories []domain.Subcategory) {
 	fmt.Println("\n=== Lines ===")
-	if len(lines) == 0 {
-		fmt.Println("No lines found.")
+	if len(subcategories) == 0 {
+		fmt.Println("No subcategories found.")
 		return
 	}
 
-	// Group lines by category
-	categoryMap := make(map[string][]domain.Line)
-	for _, l := range lines {
+	// Group subcategories by category
+	categoryMap := make(map[string][]domain.Subcategory)
+	for _, l := range subcategories {
 		categoryMap[l.CategoryID] = append(categoryMap[l.CategoryID], l)
 	}
 
@@ -602,21 +602,21 @@ func displayLinesList(lines []domain.Line) {
 	}
 	sort.Strings(categories)
 
-	fmt.Printf("\n%-4s | %-40s | %-30s\n", "#", "Line Name", "Category")
+	fmt.Printf("\n%-4s | %-40s | %-30s\n", "#", "Subcategory Name", "Category")
 	fmt.Println(strings.Repeat("-", 80))
 
 	count := 0
 	for _, cat := range categories {
 		categoryLines := categoryMap[cat]
 
-		// Sort lines within category
+		// Sort subcategories within category
 		sort.Slice(categoryLines, func(i, j int) bool {
-			return categoryLines[i].Line < categoryLines[j].Line
+			return categoryLines[i].Name < categoryLines[j].Name
 		})
 
 		for _, l := range categoryLines {
 			count++
-			name := l.Line
+			name := l.Name
 			if len(name) > 40 {
 				name = name[:37] + "..."
 			}

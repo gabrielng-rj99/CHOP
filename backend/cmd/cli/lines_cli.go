@@ -29,14 +29,14 @@ import (
 	"Open-Generic-Hub/backend/store"
 )
 
-// LinesMenu handles the lines (contract types) administration menu
-func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// LinesMenu handles the subcategories (contract types) administration menu
+func LinesMenu(subcategoryStore *store.SubcategoryStore, categoryStore *store.CategoryStore) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- contract Lines ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List all lines")
-		fmt.Println("2 - Search/Filter lines")
+		fmt.Println("1 - List all subcategories")
+		fmt.Println("2 - Search/Filter subcategories")
 		fmt.Println("3 - Edit line")
 		fmt.Println("4 - Create line")
 		fmt.Println("5 - Delete line")
@@ -50,13 +50,13 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			return
 		case "1":
 			clearTerminal()
-			lines, err := lineStore.GetAllLines()
+			subcategories, err := subcategoryStore.GetAllSubcategories()
 			if err != nil {
-				fmt.Println("Error listing lines:", err)
+				fmt.Println("Error listing subcategories:", err)
 				waitForEnter()
 				continue
 			}
-			displayLinesList(lines)
+			displayLinesList(subcategories)
 			waitForEnter()
 		case "2":
 			clearTerminal()
@@ -71,14 +71,14 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				continue
 			}
 
-			lines, err := lineStore.GetAllLines()
+			subcategories, err := subcategoryStore.GetAllSubcategories()
 			if err != nil {
-				fmt.Println("Error listing lines:", err)
+				fmt.Println("Error listing subcategories:", err)
 				waitForEnter()
 				continue
 			}
 
-			filtered := filterLines(lines, searchTerm)
+			filtered := filterLines(subcategories, searchTerm)
 			displayLinesList(filtered)
 			waitForEnter()
 		case "3":
@@ -86,40 +86,40 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			fmt.Print("Buscar linha para editar por (1) ID ou (2) nome? ")
 			searchOpt, _ := reader.ReadString('\n')
 			searchOpt = strings.TrimSpace(searchOpt)
-			var lineObj *domain.Line
+			var lineObj *domain.Subcategory
 			if searchOpt == "2" {
 				fmt.Print("Digite parte do nome da linha: ")
 				searchName, _ := reader.ReadString('\n')
 				searchName = strings.TrimSpace(searchName)
-				lines, err := lineStore.GetLinesByName(searchName)
-				if err != nil || len(lines) == 0 {
+				subcategories, err := subcategoryStore.GetSubcategoriesByName(searchName)
+				if err != nil || len(subcategories) == 0 {
 					fmt.Println("Nenhuma linha encontrada.")
 					waitForEnter()
 					continue
 				}
-				for i, l := range lines {
-					fmt.Printf("%d - ID: %s | Nome: %s | Categoria: %s\n", i+1, l.ID, l.Line, l.CategoryID)
+				for i, l := range subcategories {
+					fmt.Printf("%d - ID: %s | Nome: %s | Categoria: %s\n", i+1, l.ID, l.Name, l.CategoryID)
 				}
 				fmt.Print("Escolha o número da linha: ")
 				idxStr, _ := reader.ReadString('\n')
 				idxStr = strings.TrimSpace(idxStr)
 				idx, err := strconv.Atoi(idxStr)
-				if err != nil || idx < 1 || idx > len(lines) {
+				if err != nil || idx < 1 || idx > len(subcategories) {
 					fmt.Println("Opção inválida.")
 					waitForEnter()
 					continue
 				}
-				lineObj = &lines[idx-1]
+				lineObj = &subcategories[idx-1]
 			} else {
-				fmt.Print("Line ID to edit: ")
+				fmt.Print("Subcategory ID to edit: ")
 				id, _ := reader.ReadString('\n')
 				id = strings.TrimSpace(id)
 				if id == "" {
-					fmt.Println("Error: Line ID cannot be empty.")
+					fmt.Println("Error: Subcategory ID cannot be empty.")
 					waitForEnter()
 					continue
 				}
-				l, err := lineStore.GetLineByID(id)
+				l, err := subcategoryStore.GetSubcategoryByID(id)
 				if err != nil || l == nil {
 					fmt.Println("Linha não encontrada.")
 					waitForEnter()
@@ -128,7 +128,7 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				lineObj = l
 			}
 			PrintOptionalFieldHint()
-			fmt.Printf("Current name: %s | New name: ", lineObj.Line)
+			fmt.Printf("Current name: %s | New name: ", lineObj.Name)
 			line, _ := reader.ReadString('\n')
 			fmt.Printf("Current category: %s | New category for line: ", lineObj.CategoryID)
 			categoryID, _ := reader.ReadString('\n')
@@ -136,19 +136,19 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			categoryID = strings.TrimSpace(categoryID)
 			// Handle required fields: empty keeps current value
 			if line == "" {
-				line = lineObj.Line
+				line = lineObj.Name
 			}
 			if categoryID == "" {
 				categoryID = lineObj.CategoryID
 			}
-			lineObj.Line = line
+			lineObj.Name = line
 			lineObj.CategoryID = categoryID
-			err := lineStore.UpdateLine(*lineObj)
+			err := subcategoryStore.UpdateSubcategory(*lineObj)
 			if err != nil {
 				fmt.Println("Error updating line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line updated.")
+				fmt.Println("Subcategory updated.")
 				waitForEnter()
 			}
 		case "4":
@@ -175,37 +175,37 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 			}
 			categoryID := categories[idx-1].ID
 
-			fmt.Print("Line name: ")
+			fmt.Print("Subcategory name: ")
 			line, _ := reader.ReadString('\n')
 			line = strings.TrimSpace(line)
 			if line == "" {
-				fmt.Println("Error: Line name cannot be empty.")
+				fmt.Println("Error: Subcategory name cannot be empty.")
 				waitForEnter()
 				continue
 			}
 
-			id, err := lineStore.CreateLine(domain.Line{
-				Line:       line,
+			id, err := subcategoryStore.CreateSubcategory(domain.Subcategory{
+				Name:       line,
 				CategoryID: categoryID,
 			})
 			if err != nil {
 				fmt.Println("Error creating line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line created with ID:", id)
+				fmt.Println("Subcategory created with ID:", id)
 				waitForEnter()
 			}
 		case "5":
 			clearTerminal()
-			lines, err := lineStore.GetAllLines()
-			if err != nil || len(lines) == 0 {
-				fmt.Println("No lines found.")
+			subcategories, err := subcategoryStore.GetAllSubcategories()
+			if err != nil || len(subcategories) == 0 {
+				fmt.Println("No subcategories found.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a line to delete by number:")
-			for i, t := range lines {
-				fmt.Printf("%d - %s (Category: %s)\n", i+1, t.Line, t.CategoryID)
+			for i, t := range subcategories {
+				fmt.Printf("%d - %s (Category: %s)\n", i+1, t.Name, t.CategoryID)
 			}
 			fmt.Print("Enter the number of the line: ")
 			idxStr, _ := reader.ReadString('\n')
@@ -214,18 +214,18 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(lines) {
+			if err != nil || idx < 1 || idx > len(subcategories) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			lineID := lines[idx-1].ID
-			err = lineStore.DeleteLine(lineID)
+			subcategoryID := subcategories[idx-1].ID
+			err = subcategoryStore.DeleteSubcategory(subcategoryID)
 			if err != nil {
 				fmt.Println("Error deleting line:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Line deleted.")
+				fmt.Println("Subcategory deleted.")
 				waitForEnter()
 			}
 		default:
@@ -234,13 +234,13 @@ func LinesMenu(lineStore *store.LineStore, categoryStore *store.CategoryStore) {
 	}
 }
 
-// filterLines filters lines by name
-func filterLines(lines []domain.Line, searchTerm string) []domain.Line {
-	var filtered []domain.Line
+// filterLines filters subcategories by name
+func filterLines(subcategories []domain.Subcategory, searchTerm string) []domain.Subcategory {
+	var filtered []domain.Subcategory
 	searchTerm = normalizeString(searchTerm)
 
-	for _, l := range lines {
-		if strings.Contains(normalizeString(l.Line), searchTerm) {
+	for _, l := range subcategories {
+		if strings.Contains(normalizeString(l.Name), searchTerm) {
 			filtered = append(filtered, l)
 			continue
 		}

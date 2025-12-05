@@ -19,7 +19,7 @@
 import React from "react";
 import { formatDate } from "../../utils/clientHelpers";
 
-export default function DependentsModal({
+export default function SubEntitiesModal({
     showDependents,
     selectedClient,
     dependents,
@@ -28,9 +28,9 @@ export default function DependentsModal({
     selectedDependent,
     handleDependentSubmit,
     editDependent,
-    deleteDependent,
+    deleteSubEntity,
     cancelDependentEdit,
-    closeDependentsModal,
+    closeSubEntitiesModal,
 }) {
     if (!showDependents || !selectedClient) return null;
 
@@ -78,7 +78,7 @@ export default function DependentsModal({
                         Dependentes de {selectedClient.name}
                     </h2>
                     <button
-                        onClick={closeDependentsModal}
+                        onClick={closeSubEntitiesModal}
                         style={{
                             background: "transparent",
                             border: "none",
@@ -394,7 +394,7 @@ export default function DependentsModal({
                                         </button>
                                         <button
                                             onClick={() =>
-                                                deleteDependent(dependent.id)
+                                                deleteSubEntity(dependent.id)
                                             }
                                             style={{
                                                 padding: "6px 12px",
@@ -423,7 +423,7 @@ export default function DependentsModal({
                     }}
                 >
                     <button
-                        onClick={closeDependentsModal}
+                        onClick={closeSubEntitiesModal}
                         style={{
                             padding: "10px 24px",
                             background: "#7f8c8d",

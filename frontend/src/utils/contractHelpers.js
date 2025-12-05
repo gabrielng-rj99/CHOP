@@ -42,26 +42,26 @@ const convertDateToAPI = (dateString) => {
 
 export const getInitialFormData = () => ({
     model: "",
-    product_key: "",
+    item_key: "",
     start_date: "",
     end_date: "",
-    client_id: "",
-    dependent_id: "",
+    entity_id: "",
+    sub_entity_id: "",
     category_id: "",
-    line_id: "",
+    subcategory_id: "",
 });
 
 export const formatContractForEdit = (contract) => ({
     model: contract.model || "",
-    product_key: contract.product_key || "",
+    item_key: contract.item_key || "",
     start_date: contract.start_date
         ? convertDateToDisplay(contract.start_date)
         : "",
     end_date: contract.end_date ? convertDateToDisplay(contract.end_date) : "",
-    client_id: contract.client_id || "",
-    dependent_id: contract.dependent_id || "",
+    entity_id: contract.entity_id || "",
+    sub_entity_id: contract.sub_entity_id || "",
     category_id: contract.line?.category_id || "",
-    line_id: contract.line_id || "",
+    subcategory_id: contract.subcategory_id || "",
 });
 
 export const formatDate = (dateString) => {
@@ -138,15 +138,15 @@ export const filterContracts = (
             (filter === "archived" && isArchived) ||
             (filter === "all" && !isArchived);
 
-        const client = clients.find((c) => c.id === contract.client_id);
+        const client = clients.find((c) => c.id === contract.entity_id);
         const category = categories.find((cat) =>
-            cat.lines?.some((line) => line.id === contract.line_id),
+            cat.lines?.some((line) => line.id === contract.subcategory_id),
         );
 
         const matchesSearch =
             searchTerm === "" ||
             contract.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            contract.product_key
+            contract.item_key
                 ?.toLowerCase()
                 .includes(searchTerm.toLowerCase()) ||
             client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

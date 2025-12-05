@@ -181,12 +181,12 @@ func TestDeleteCategoryWithLinesAssociated(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineStore := NewLineStore(db)
-	line := domain.Line{
-		Line:       "Linha Teste",
+	subcategoryStore := NewSubcategoryStore(db)
+	line := domain.Subcategory{
+		Name:       "Linha Teste",
 		CategoryID: categoryID,
 	}
-	_, err = lineStore.CreateLine(line)
+	_, err = subcategoryStore.CreateSubcategory(line)
 	if err != nil {
 		t.Fatalf("Failed to create line: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestDeleteCategoryWithLinesAssociated(t *testing.T) {
 	categoryStore := NewCategoryStore(db)
 	err = categoryStore.DeleteCategory(categoryID)
 	if err == nil {
-		t.Error("Expected error when deleting category with lines associated, got none")
+		t.Error("Expected error when deleting category with subcategories associated, got none")
 	}
 }
 
@@ -218,18 +218,18 @@ func TestLineNameUniquePerCategory(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineStore := NewLineStore(db)
-	line := domain.Line{
-		Line:       "Linha Unica",
+	subcategoryStore := NewSubcategoryStore(db)
+	line := domain.Subcategory{
+		Name:       "Linha Unica",
 		CategoryID: categoryID,
 	}
-	_, err = lineStore.CreateLine(line)
+	_, err = subcategoryStore.CreateSubcategory(line)
 	if err != nil {
 		t.Fatalf("Failed to create first line: %v", err)
 	}
 
 	// Tentar criar segunda linha com mesmo nome na mesma categoria
-	_, err = lineStore.CreateLine(line)
+	_, err = subcategoryStore.CreateSubcategory(line)
 	if err == nil {
 		t.Error("Expected error when creating duplicate line name in same category, got none")
 	}

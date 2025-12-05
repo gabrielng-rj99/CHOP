@@ -160,7 +160,7 @@ class TestSQLInjection:
         ]
 
         for payload in dangerous_payloads:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -169,7 +169,7 @@ class TestSQLInjection:
             assert response.status_code in [200, 201, 400], "Não deve causar erro de SQL"
 
             # Verificar que tabela não foi dropada tentando buscar clientes
-            check_response = http_client.get(f"{api_url}/clients", headers=headers)
+            check_response = http_client.get(f"{api_url}/entities", headers=headers)
             assert check_response.status_code == 200, "Tabela de clientes não deve ser afetada"
 
     def test_sql_injection_in_user_creation(self, http_client, api_url, root_user, timer):
@@ -213,8 +213,8 @@ class TestSQLInjection:
 
         for payload in self.SQL_PAYLOADS[:10]:
             response = http_client.get(
-                f"{api_url}/contracts",
-                params={"product_key": payload},
+                f"{api_url}/agreements",
+                params={"item_key": payload},
                 headers=headers
             )
 

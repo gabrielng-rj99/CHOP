@@ -29,7 +29,7 @@ import (
 )
 
 // AdministrationFlow handles the administration menu and routes to subcategories
-func AdministrationFlow(categoryStore *store.CategoryStore, lineStore *store.LineStore, userStore *store.UserStore, user *domain.User) {
+func AdministrationFlow(categoryStore *store.CategoryStore, subcategoryStore *store.SubcategoryStore, userStore *store.UserStore, user *domain.User) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- Administration ---")
@@ -46,9 +46,9 @@ func AdministrationFlow(categoryStore *store.CategoryStore, lineStore *store.Lin
 		case "0":
 			return
 		case "1":
-			CategoriesMenu(categoryStore, lineStore)
+			CategoriesMenu(categoryStore, subcategoryStore)
 		case "2":
-			LinesMenu(lineStore, categoryStore)
+			LinesMenu(subcategoryStore, categoryStore)
 		case "3":
 			UsersMenu(userStore, user)
 		default:

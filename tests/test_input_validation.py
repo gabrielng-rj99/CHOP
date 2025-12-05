@@ -49,13 +49,13 @@ class TestEmptyRequests:
         assert response.status_code in [400, 422], "Body vazio deve ser rejeitado"
         assert response.status_code != 500, "Não deve causar erro interno"
 
-    def test_create_client_empty_body(self, http_client, api_url, root_user, timer):
+    def test_create_entity_empty_body(self, http_client, api_url, root_user, timer):
         """Criar cliente com body vazio deve ser rejeitado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.post(f"{api_url}/clients", json={}, headers=headers)
+        response = http_client.post(f"{api_url}/entities", json={}, headers=headers)
 
         assert response.status_code in [400, 422], "Body vazio deve ser rejeitado"
         assert response.status_code != 500, "Não deve causar erro interno"
@@ -71,13 +71,13 @@ class TestEmptyRequests:
         assert response.status_code in [400, 422], "Body vazio deve ser rejeitado"
         assert response.status_code != 500, "Não deve causar erro interno"
 
-    def test_create_contract_empty_body(self, http_client, api_url, root_user, timer):
+    def test_create_agreement_empty_body(self, http_client, api_url, root_user, timer):
         """Criar contrato com body vazio deve ser rejeitado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.post(f"{api_url}/contracts", json={}, headers=headers)
+        response = http_client.post(f"{api_url}/agreements", json={}, headers=headers)
 
         assert response.status_code in [400, 422], "Body vazio deve ser rejeitado"
         assert response.status_code != 500, "Não deve causar erro interno"
@@ -145,13 +145,13 @@ class TestNullValues:
         }, headers=headers)
         assert response.status_code in [400, 422], "Role null deve ser rejeitado"
 
-    def test_create_client_null_name(self, http_client, api_url, root_user, timer):
+    def test_create_entity_null_name(self, http_client, api_url, root_user, timer):
         """Criar cliente com nome null deve ser rejeitado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": None,
             "email": "test@test.com"
         }, headers=headers)
@@ -331,7 +331,7 @@ class TestFieldLengthValidation:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
         long_name = "Cliente " + "A" * 10000  # 10000+ caracteres
 
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": long_name,
             "email": "test@test.com"
         }, headers=headers)
@@ -347,7 +347,7 @@ class TestFieldLengthValidation:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
         very_long_notes = "Nota " * 50000  # Muitos caracteres
 
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": f"Long Notes Client {int(time.time())}",
             "notes": very_long_notes,
             "email": "test@test.com"
@@ -407,7 +407,7 @@ class TestSpecialCharacters:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": "Client\nWith\nNewlines",
             "email": "test@test.com"
         }, headers=headers)
@@ -422,7 +422,7 @@ class TestSpecialCharacters:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": "Client\tWith\tTabs",
             "email": "test@test.com"
         }, headers=headers)
@@ -437,7 +437,7 @@ class TestSpecialCharacters:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "name": "Client\x00With\x00NullBytes",
             "email": "test@test.com"
         }, headers=headers)
@@ -493,13 +493,13 @@ class TestRequiredFields:
 
         assert response.status_code in [400, 422], "Falta de role deve ser rejeitada"
 
-    def test_create_client_missing_name(self, http_client, api_url, root_user, timer):
+    def test_create_entity_missing_name(self, http_client, api_url, root_user, timer):
         """Criar cliente sem nome deve ser rejeitado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.post(f"{api_url}/clients", json={
+        response = http_client.post(f"{api_url}/entities", json={
             "email": "test@test.com"
         }, headers=headers)
 
@@ -515,24 +515,24 @@ class TestRequiredFields:
 
         assert response.status_code in [400, 422], "Falta de nome deve ser rejeitada"
 
-    def test_create_contract_missing_required_fields(self, http_client, api_url, root_user, timer):
+    def test_create_agreement_missing_required_fields(self, http_client, api_url, root_user, timer):
         """Criar contrato sem campos obrigatórios deve ser rejeitado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        # Sem line_id
-        response = http_client.post(f"{api_url}/contracts", json={
-            "client_id": "12345678-1234-1234-1234-123456789012"
+        # Sem subcategory_id
+        response = http_client.post(f"{api_url}/agreements", json={
+            "entity_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
-        assert response.status_code in [400, 422], "Falta de line_id deve ser rejeitada"
+        assert response.status_code in [400, 422], "Falta de subcategory_id deve ser rejeitada"
 
-        # Sem client_id
-        response = http_client.post(f"{api_url}/contracts", json={
-            "line_id": "12345678-1234-1234-1234-123456789012"
+        # Sem entity_id
+        response = http_client.post(f"{api_url}/agreements", json={
+            "subcategory_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
-        assert response.status_code in [400, 422], "Falta de client_id deve ser rejeitada"
+        assert response.status_code in [400, 422], "Falta de entity_id deve ser rejeitada"
 
 
 @pytest.mark.security
@@ -589,7 +589,7 @@ class TestUUIDValidation:
         ]
 
         for invalid_uuid in invalid_uuids:
-            response = http_client.get(f"{api_url}/clients/{invalid_uuid}", headers=headers)
+            response = http_client.get(f"{api_url}/entities/{invalid_uuid}", headers=headers)
             # Deve retornar erro de validação ou not found, nunca 500
             assert response.status_code in [400, 404, 422], f"UUID inválido em clients: {invalid_uuid}"
             assert response.status_code != 500, f"Não deve causar erro interno: {invalid_uuid}"
@@ -619,7 +619,7 @@ class TestEmailValidation:
         ]
 
         for email in invalid_emails:
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"Email Test {int(time.time())}",
                 "email": email
             }, headers=headers)
@@ -645,7 +645,7 @@ class TestEmailValidation:
         ]
 
         for i, email in enumerate(valid_emails[:3]):  # Testar apenas 3 para não criar muitos
-            response = http_client.post(f"{api_url}/clients", json={
+            response = http_client.post(f"{api_url}/entities", json={
                 "name": f"Valid Email Test {int(time.time())}_{i}",
                 "email": email
             }, headers=headers)

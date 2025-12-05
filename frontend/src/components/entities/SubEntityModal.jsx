@@ -17,9 +17,9 @@
  */
 
 import React, { useState } from "react";
-import "./DependentModal.css";
+import "./SubEntityModal.css";
 
-export default function DependentModal({
+export default function SubEntityModal({
     showModal,
     modalMode,
     dependentForm,

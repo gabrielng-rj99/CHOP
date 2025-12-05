@@ -29,56 +29,56 @@ import (
 
 // ============= DEPENDENT HANDLERS =============
 
-func (s *Server) handleClientDependents(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/clients/"), "/")
+func (s *Server) handleEntitySubEntities(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/entities/"), "/")
 	if len(parts) < 2 || parts[0] == "" {
-		respondError(w, http.StatusBadRequest, "Client ID required")
+		respondError(w, http.StatusBadRequest, "Entity ID required")
 		return
 	}
 
-	clientID := parts[0]
+	entityID := parts[0]
 
 	switch r.Method {
 	case http.MethodGet:
-		s.handleListDependents(w, r, clientID)
+		s.handleListDependents(w, r, entityID)
 	case http.MethodPost:
-		s.handleCreateDependent(w, r, clientID)
+		s.handleCreateSubEntity(w, r, entityID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleListDependents(w http.ResponseWriter, r *http.Request, clientID string) {
-	dependents, err := s.dependentStore.GetDependentsByClientID(clientID)
+func (s *Server) handleListDependents(w http.ResponseWriter, r *http.Request, entityID string) {
+	sub_entities, err := s.subEntityStore.GetSubEntitiesByEntityID(entityID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: dependents})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: sub_entities})
 }
 
-func (s *Server) handleCreateDependent(w http.ResponseWriter, r *http.Request, clientID string) {
-	var dependent domain.Dependent
-	if err := json.NewDecoder(r.Body).Decode(&dependent); err != nil {
+func (s *Server) handleCreateSubEntity(w http.ResponseWriter, r *http.Request, entityID string) {
+	var subEntity domain.SubEntity
+	if err := json.NewDecoder(r.Body).Decode(&subEntity); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	dependent.ClientID = clientID
-	dependent.Status = "ativo"
+	subEntity.EntityID = entityID
+	subEntity.Status = "ativo"
 
-	id, err := s.dependentStore.CreateDependent(dependent)
+	id, err := s.subEntityStore.CreateSubEntity(subEntity)
 	if err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(dependent)
+			newValueJSON, _ := json.Marshal(subEntity)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "dependent",
+				Entity:        "sub_entity",
 				EntityID:      "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
@@ -98,11 +98,11 @@ func (s *Server) handleCreateDependent(w http.ResponseWriter, r *http.Request, c
 
 	// Log successful creation
 	if claims != nil {
-		dependent.ID = id
-		newValueJSON, _ := json.Marshal(dependent)
+		subEntity.ID = id
+		newValueJSON, _ := json.Marshal(subEntity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "dependent",
+			Entity:        "sub_entity",
 			EntityID:      id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
@@ -117,32 +117,32 @@ func (s *Server) handleCreateDependent(w http.ResponseWriter, r *http.Request, c
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
-		Message: "Dependent created successfully",
+		Message: "SubEntity created successfully",
 		Data:    map[string]string{"id": id},
 	})
 }
 
-func (s *Server) handleDependentByID(w http.ResponseWriter, r *http.Request) {
-	dependentID := getIDFromPath(r, "/api/dependents/")
+func (s *Server) handleSubEntityByID(w http.ResponseWriter, r *http.Request) {
+	subEntityID := getIDFromPath(r, "/api/sub-entities/")
 
-	if dependentID == "" {
-		respondError(w, http.StatusBadRequest, "Dependent ID required")
+	if subEntityID == "" {
+		respondError(w, http.StatusBadRequest, "SubEntity ID required")
 		return
 	}
 
 	switch r.Method {
 	case http.MethodPut:
-		s.handleUpdateDependent(w, r, dependentID)
+		s.handleUpdateSubEntity(w, r, subEntityID)
 	case http.MethodDelete:
-		s.handleDeleteDependent(w, r, dependentID)
+		s.handleDeleteSubEntity(w, r, subEntityID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleUpdateDependent(w http.ResponseWriter, r *http.Request, dependentID string) {
-	var dependent domain.Dependent
-	if err := json.NewDecoder(r.Body).Decode(&dependent); err != nil {
+func (s *Server) handleUpdateSubEntity(w http.ResponseWriter, r *http.Request, subEntityID string) {
+	var subEntity domain.SubEntity
+	if err := json.NewDecoder(r.Body).Decode(&subEntity); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -150,20 +150,20 @@ func (s *Server) handleUpdateDependent(w http.ResponseWriter, r *http.Request, d
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldDependent, _ := s.dependentStore.GetDependentByID(dependentID)
+	oldDependent, _ := s.subEntityStore.GetSubEntityByID(subEntityID)
 	oldValueJSON, _ := json.Marshal(oldDependent)
 
-	dependent.ID = dependentID
+	subEntity.ID = subEntityID
 
-	if err := s.dependentStore.UpdateDependent(dependent); err != nil {
+	if err := s.subEntityStore.UpdateSubEntity(subEntity); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(dependent)
+			newValueJSON, _ := json.Marshal(subEntity)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "dependent",
-				EntityID:      dependentID,
+				Entity:        "sub_entity",
+				EntityID:      subEntityID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -182,11 +182,11 @@ func (s *Server) handleUpdateDependent(w http.ResponseWriter, r *http.Request, d
 
 	// Log successful update
 	if claims != nil {
-		newValueJSON, _ := json.Marshal(dependent)
+		newValueJSON, _ := json.Marshal(subEntity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "dependent",
-			EntityID:      dependentID,
+			Entity:        "sub_entity",
+			EntityID:      subEntityID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -199,24 +199,24 @@ func (s *Server) handleUpdateDependent(w http.ResponseWriter, r *http.Request, d
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Dependent updated successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "SubEntity updated successfully"})
 }
 
-func (s *Server) handleDeleteDependent(w http.ResponseWriter, r *http.Request, dependentID string) {
+func (s *Server) handleDeleteSubEntity(w http.ResponseWriter, r *http.Request, subEntityID string) {
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldDependent, _ := s.dependentStore.GetDependentByID(dependentID)
+	oldDependent, _ := s.subEntityStore.GetSubEntityByID(subEntityID)
 	oldValueJSON, _ := json.Marshal(oldDependent)
 
-	if err := s.dependentStore.DeleteDependent(dependentID); err != nil {
+	if err := s.subEntityStore.DeleteSubEntity(subEntityID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Entity:        "dependent",
-				EntityID:      dependentID,
+				Entity:        "sub_entity",
+				EntityID:      subEntityID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -237,8 +237,8 @@ func (s *Server) handleDeleteDependent(w http.ResponseWriter, r *http.Request, d
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "dependent",
-			EntityID:      dependentID,
+			Entity:        "sub_entity",
+			EntityID:      subEntityID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -251,5 +251,5 @@ func (s *Server) handleDeleteDependent(w http.ResponseWriter, r *http.Request, d
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Dependent deleted successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "SubEntity deleted successfully"})
 }

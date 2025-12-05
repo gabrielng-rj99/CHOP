@@ -46,11 +46,11 @@ func GetGlobalDB() *sql.DB {
 
 type Server struct {
 	userStore      *store.UserStore
-	contractStore  *store.ContractStore
-	clientStore    *store.ClientStore
-	dependentStore *store.DependentStore
+	agreementStore  *store.AgreementStore
+	entityStore    *store.EntityStore
+	subEntityStore *store.SubEntityStore
 	categoryStore  *store.CategoryStore
-	lineStore      *store.LineStore
+	subcategoryStore      *store.SubcategoryStore
 	auditStore     *store.AuditStore
 	config         *config.Config
 }
@@ -62,30 +62,30 @@ func NewServer(db *sql.DB) *Server {
 	// Only create stores if database is available
 	// This allows the server to start for initial setup/deploy panel
 	var userStore *store.UserStore
-	var contractStore *store.ContractStore
-	var clientStore *store.ClientStore
-	var dependentStore *store.DependentStore
+	var agreementStore *store.AgreementStore
+	var entityStore *store.EntityStore
+	var subEntityStore *store.SubEntityStore
 	var categoryStore *store.CategoryStore
-	var lineStore *store.LineStore
+	var subcategoryStore *store.SubcategoryStore
 	var auditStore *store.AuditStore
 
 	if db != nil {
 		userStore = store.NewUserStore(db)
-		contractStore = store.NewContractStore(db)
-		clientStore = store.NewClientStore(db)
-		dependentStore = store.NewDependentStore(db)
+		agreementStore = store.NewAgreementStore(db)
+		entityStore = store.NewEntityStore(db)
+		subEntityStore = store.NewSubEntityStore(db)
 		categoryStore = store.NewCategoryStore(db)
-		lineStore = store.NewLineStore(db)
+		subcategoryStore = store.NewSubcategoryStore(db)
 		auditStore = store.NewAuditStore(db)
 	}
 
 	return &Server{
 		userStore:      userStore,
-		contractStore:  contractStore,
-		clientStore:    clientStore,
-		dependentStore: dependentStore,
+		agreementStore:  agreementStore,
+		entityStore:    entityStore,
+		subEntityStore: subEntityStore,
 		categoryStore:  categoryStore,
-		lineStore:      lineStore,
+		subcategoryStore:      subcategoryStore,
 		auditStore:     auditStore,
 		config:         cfg,
 	}
@@ -95,11 +95,11 @@ func NewServer(db *sql.DB) *Server {
 func (s *Server) InitializeStores(db *sql.DB) {
 	if db != nil {
 		s.userStore = store.NewUserStore(db)
-		s.contractStore = store.NewContractStore(db)
-		s.clientStore = store.NewClientStore(db)
-		s.dependentStore = store.NewDependentStore(db)
+		s.agreementStore = store.NewAgreementStore(db)
+		s.entityStore = store.NewEntityStore(db)
+		s.subEntityStore = store.NewSubEntityStore(db)
 		s.categoryStore = store.NewCategoryStore(db)
-		s.lineStore = store.NewLineStore(db)
+		s.subcategoryStore = store.NewSubcategoryStore(db)
 		s.auditStore = store.NewAuditStore(db)
 	}
 }

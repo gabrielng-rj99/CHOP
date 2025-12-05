@@ -41,11 +41,11 @@ type InitializeStatusResponse struct {
 func checkDatabaseEmpty(db *sql.DB) (bool, []string, error) {
 	tables := []string{
 		"users",
-		"clients",
-		"dependents",
+		"entities",
+		"sub_entities",
 		"categories",
-		"lines",
-		"contracts",
+		"subcategories",
+		"agreements",
 		"audit_logs",
 	}
 

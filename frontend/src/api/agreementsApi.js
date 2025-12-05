@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const contractsApi = {
-    loadContracts: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/contracts`, {
+export const agreementsApi = {
+    loadAgreements: async (apiUrl, token, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/agreements`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -38,8 +38,8 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadClients: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/clients`, {
+    loadEntities: async (apiUrl, token, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/entities`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -80,9 +80,9 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
+    loadSubcategories: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/categories/${categoryId}/lines`,
+            `${apiUrl}/categories/${categoryId}/subcategories`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -104,9 +104,9 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
+    loadSubEntities: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/clients/${clientId}/dependents`,
+            `${apiUrl}/entities/${clientId}/sub_entities`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -128,18 +128,18 @@ export const contractsApi = {
         return data.data || [];
     },
 
-    createContract: async (apiUrl, token, formData, onTokenExpired) => {
+    createAgreement: async (apiUrl, token, formData, onTokenExpired) => {
         const payload = {
             model: formData.model || "",
-            product_key: formData.product_key || "",
+            item_key: formData.item_key || "",
             start_date: formData.start_date,
             end_date: formData.end_date,
-            client_id: formData.client_id,
-            dependent_id: formData.dependent_id || null,
-            line_id: formData.line_id,
+            entity_id: formData.entity_id,
+            sub_entity_id: formData.sub_entity_id || null,
+            subcategory_id: formData.subcategory_id,
         };
 
-        const response = await fetch(`${apiUrl}/contracts`, {
+        const response = await fetch(`${apiUrl}/agreements`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -161,19 +161,19 @@ export const contractsApi = {
         return response.json();
     },
 
-    updateContract: async (apiUrl, token, contractId, formData, onTokenExpired) => {
+    updateAgreement: async (apiUrl, token, contractId, formData, onTokenExpired) => {
         const payload = {
             model: formData.model || "",
-            product_key: formData.product_key || "",
+            item_key: formData.item_key || "",
             start_date: formData.start_date,
             end_date: formData.end_date,
-            client_id: formData.client_id,
-            dependent_id: formData.dependent_id || null,
-            line_id: formData.line_id,
+            entity_id: formData.entity_id,
+            sub_entity_id: formData.sub_entity_id || null,
+            subcategory_id: formData.subcategory_id,
         };
 
         const response = await fetch(
-            `${apiUrl}/contracts/${contractId}`,
+            `${apiUrl}/agreements/${contractId}`,
             {
                 method: "PUT",
                 headers: {
@@ -197,9 +197,9 @@ export const contractsApi = {
         return response.json();
     },
 
-    archiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
+    archiveAgreement: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/contracts/${contractId}/archive`,
+            `${apiUrl}/agreements/${contractId}/archive`,
             {
                 method: "PUT",
                 headers: {
@@ -221,9 +221,9 @@ export const contractsApi = {
         return response.json();
     },
 
-    unarchiveContract: async (apiUrl, token, contractId, onTokenExpired) => {
+    unarchiveAgreement: async (apiUrl, token, contractId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/contracts/${contractId}/unarchive`,
+            `${apiUrl}/agreements/${contractId}/unarchive`,
             {
                 method: "PUT",
                 headers: {

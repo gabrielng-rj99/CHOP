@@ -29,25 +29,25 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-// TestValidateClientEmailNil testa validação de email nulo (opcional)
-func TestValidateClientEmailNil(t *testing.T) {
-	result := ValidateClientEmail(nil)
+// TestValidateEntityEmailNil testa validação de email nulo (opcional)
+func TestValidateEntityEmailNil(t *testing.T) {
+	result := ValidateEntityEmail(nil)
 	if result != nil {
 		t.Errorf("expected nil email to be valid (optional), but got error: %v", result)
 	}
 }
 
-// TestValidateClientEmailEmpty testa validação de email vazio (opcional)
-func TestValidateClientEmailEmpty(t *testing.T) {
+// TestValidateEntityEmailEmpty testa validação de email vazio (opcional)
+func TestValidateEntityEmailEmpty(t *testing.T) {
 	emptyEmail := ""
-	result := ValidateClientEmail(&emptyEmail)
+	result := ValidateEntityEmail(&emptyEmail)
 	if result != nil {
 		t.Errorf("expected empty email to be valid (optional), but got error: %v", result)
 	}
 }
 
-// TestValidateClientPhone testa validação de telefone internacional
-func TestValidateClientPhone(t *testing.T) {
+// TestValidateEntityPhone testa validação de telefone internacional
+func TestValidateEntityPhone(t *testing.T) {
 	tests := []struct {
 		name      string
 		phone     *string
@@ -149,9 +149,9 @@ func TestValidateClientPhone(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateClientPhone(tt.phone)
+			err := ValidateEntityPhone(tt.phone)
 			if (err != nil) != tt.wantError {
-				t.Errorf("ValidateClientPhone() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("ValidateEntityPhone() error = %v, wantError %v", err, tt.wantError)
 			}
 		})
 	}
@@ -209,8 +209,8 @@ func TestNormalizePhone(t *testing.T) {
 	}
 }
 
-// TestValidateClientEmailValid testa emails válidos
-func TestValidateClientEmailValid(t *testing.T) {
+// TestValidateEntityEmailValid testa emails válidos
+func TestValidateEntityEmailValid(t *testing.T) {
 	tests := []struct {
 		name  string
 		email string
@@ -223,7 +223,7 @@ func TestValidateClientEmailValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateClientEmail(&tt.email)
+			err := ValidateEntityEmail(&tt.email)
 			if err != nil {
 				t.Errorf("expected valid email, got error: %v", err)
 			}
@@ -231,8 +231,8 @@ func TestValidateClientEmailValid(t *testing.T) {
 	}
 }
 
-// TestValidateClientEmailInvalid testa emails inválidos
-func TestValidateClientEmailInvalid(t *testing.T) {
+// TestValidateEntityEmailInvalid testa emails inválidos
+func TestValidateEntityEmailInvalid(t *testing.T) {
 	tests := []struct {
 		name  string
 		email string
@@ -249,7 +249,7 @@ func TestValidateClientEmailInvalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateClientEmail(&tt.email)
+			err := ValidateEntityEmail(&tt.email)
 			if err == nil {
 				t.Errorf("expected invalid email, but validation passed")
 			}
@@ -257,19 +257,19 @@ func TestValidateClientEmailInvalid(t *testing.T) {
 	}
 }
 
-// TestValidateClient testa validação completa de cliente
-func TestValidateClient(t *testing.T) {
+// TestValidateEntity testa validação completa de cliente
+func TestValidateEntity(t *testing.T) {
 	validPhone := "+5511987654321"
 	invalidPhone := "123"
 
 	tests := []struct {
 		name          string
-		client        *Client
+		client        *Entity
 		expectsErrors bool
 	}{
 		{
 			name: "cliente válido com email e telefone",
-			client: &Client{
+			client: &Entity{
 				Name:           "Test Company",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "ativo",
@@ -280,7 +280,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		{
 			name: "cliente válido sem comunicação",
-			client: &Client{
+			client: &Entity{
 				Name:           "Test Company",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "ativo",
@@ -289,7 +289,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		{
 			name: "cliente inválido - name vazio",
-			client: &Client{
+			client: &Entity{
 				Name:           "",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "ativo",
@@ -297,17 +297,17 @@ func TestValidateClient(t *testing.T) {
 			expectsErrors: true,
 		},
 		{
-			name: "cliente sem status",
-			client: &Client{
+			name: "cliente válido sem status (auto-gerenciado)",
+			client: &Entity{
 				Name:           "Test Company",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "",
 			},
-			expectsErrors: true,
+			expectsErrors: false,
 		},
 		{
 			name: "cliente inválido - email inválido",
-			client: &Client{
+			client: &Entity{
 				Name:           "Test Company",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "ativo",
@@ -317,7 +317,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		{
 			name: "cliente inválido - telefone inválido",
-			client: &Client{
+			client: &Entity{
 				Name:           "Test Company",
 				RegistrationID: stringPtr("12345678000180"),
 				Status:         "ativo",
@@ -334,7 +334,7 @@ func TestValidateClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := ValidateClient(tt.client)
+			errors := ValidateEntity(tt.client)
 			if tt.expectsErrors && errors.IsValid() {
 				t.Errorf("expected validation errors, but got none")
 			}
@@ -345,20 +345,20 @@ func TestValidateClient(t *testing.T) {
 	}
 }
 
-func TestValidateDependent(t *testing.T) {
+func TestValidateSubEntity(t *testing.T) {
 	validPhone := "+5511987654321"
 	invalidPhone := "invalid"
 
 	tests := []struct {
 		name          string
-		dependent     *Dependent
+		dependent     *SubEntity
 		expectsErrors bool
 	}{
 		{
 			name: "dependente válido com todos os campos",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				Description:       stringPtr("Test description"),
 				Email:             stringPtr("dep@example.com"),
@@ -369,54 +369,54 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente válido apenas campos obrigatórios",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "client-123",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "client-123",
 				Status:   "ativo",
 			},
 			expectsErrors: false,
 		},
 		{
 			name: "dependente inválido - nome vazio",
-			dependent: &Dependent{
+			dependent: &SubEntity{
 				Name:     "",
-				ClientID: "client-123",
+				EntityID: "client-123",
 				Status:   "ativo",
 			},
 			expectsErrors: true,
 		},
 		{
 			name: "dependente inválido - nome muito longo",
-			dependent: &Dependent{
+			dependent: &SubEntity{
 				Name:     string(make([]byte, 256)),
-				ClientID: "client-123",
+				EntityID: "client-123",
 				Status:   "ativo",
 			},
 			expectsErrors: true,
 		},
 		{
-			name: "dependente inválido - client_id vazio",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "",
+			name: "dependente inválido - entity_id vazio",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "",
 				Status:   "ativo",
 			},
 			expectsErrors: true,
 		},
 		{
 			name: "dependente inválido - status vazio",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "client-123",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "client-123",
 				Status:   "",
 			},
 			expectsErrors: true,
 		},
 		{
 			name: "dependente inválido - descrição muito longa",
-			dependent: &Dependent{
-				Name:        "Test Dependent",
-				ClientID:    "client-123",
+			dependent: &SubEntity{
+				Name:        "Test SubEntity",
+				EntityID:    "client-123",
 				Status:      "ativo",
 				Description: stringPtr(string(make([]byte, 1001))),
 			},
@@ -424,9 +424,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente inválido - endereço muito longo",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "client-123",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "client-123",
 				Status:   "ativo",
 				Address:  stringPtr(string(make([]byte, 1001))),
 			},
@@ -434,9 +434,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente inválido - contact_preference inválido",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				ContactPreference: stringPtr("invalid-preference"),
 			},
@@ -444,9 +444,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente inválido - email inválido",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "client-123",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "client-123",
 				Status:   "ativo",
 				Email:    stringPtr("invalid-email-format"),
 			},
@@ -454,9 +454,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente inválido - telefone inválido",
-			dependent: &Dependent{
-				Name:     "Test Dependent",
-				ClientID: "client-123",
+			dependent: &SubEntity{
+				Name:     "Test SubEntity",
+				EntityID: "client-123",
 				Status:   "ativo",
 				Phone:    &invalidPhone,
 			},
@@ -469,9 +469,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente válido - contact_preference email",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				ContactPreference: stringPtr("email"),
 			},
@@ -479,9 +479,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente válido - contact_preference phone",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				ContactPreference: stringPtr("phone"),
 			},
@@ -489,9 +489,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente válido - contact_preference sms",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				ContactPreference: stringPtr("sms"),
 			},
@@ -499,9 +499,9 @@ func TestValidateDependent(t *testing.T) {
 		},
 		{
 			name: "dependente válido - contact_preference outros",
-			dependent: &Dependent{
-				Name:              "Test Dependent",
-				ClientID:          "client-123",
+			dependent: &SubEntity{
+				Name:              "Test SubEntity",
+				EntityID:          "client-123",
 				Status:            "ativo",
 				ContactPreference: stringPtr("outros"),
 			},
@@ -511,7 +511,7 @@ func TestValidateDependent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := ValidateDependent(tt.dependent)
+			errors := ValidateSubEntity(tt.dependent)
 
 			if tt.expectsErrors && errors.IsValid() {
 				t.Error("Expected validation errors but got none")
@@ -577,17 +577,17 @@ func TestValidationErrorMethods(t *testing.T) {
 	})
 }
 
-// TestValidateClientEdgeCases testa casos extremos de ValidateClient
-func TestValidateClientEdgeCases(t *testing.T) {
+// TestValidateEntityEdgeCases testa casos extremos de ValidateEntity
+func TestValidateEntityEdgeCases(t *testing.T) {
 	t.Run("cliente com nome no limite de caracteres", func(t *testing.T) {
-		client := &Client{
+		entity := &Entity{
 			Name:   string(make([]byte, 255)),
 			Status: "ativo",
 		}
-		for i := range client.Name {
-			client.Name = client.Name[:i] + "a" + client.Name[i+1:]
+		for i := range entity.Name {
+			entity.Name = entity.Name[:i] + "a" + entity.Name[i+1:]
 		}
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Expected no errors for name with exactly 255 chars, got: %v", errors)
 		}
@@ -598,12 +598,12 @@ func TestValidateClientEdgeCases(t *testing.T) {
 		for i := range regID {
 			regID = regID[:i] + "1" + regID[i+1:]
 		}
-		client := &Client{
+		entity := &Entity{
 			Name:           "Test",
 			Status:         "ativo",
 			RegistrationID: &regID,
 		}
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		// Deve ter erro porque não é CPF/CNPJ válido, mas não deve ser por tamanho
 		hasLengthError := false
 		for _, err := range errors {
@@ -621,12 +621,12 @@ func TestValidateClientEdgeCases(t *testing.T) {
 		for i := range nickname {
 			nickname = nickname[:i] + "a" + nickname[i+1:]
 		}
-		client := &Client{
+		entity := &Entity{
 			Name:     "Test",
 			Status:   "ativo",
 			Nickname: &nickname,
 		}
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Expected no errors for nickname with exactly 255 chars, got: %v", errors)
 		}
@@ -637,12 +637,12 @@ func TestValidateClientEdgeCases(t *testing.T) {
 		for i := range address {
 			address = address[:i] + "a" + address[i+1:]
 		}
-		client := &Client{
+		entity := &Entity{
 			Name:    "Test",
 			Status:  "ativo",
 			Address: &address,
 		}
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Expected no errors for address with exactly 1000 chars, got: %v", errors)
 		}
@@ -651,12 +651,12 @@ func TestValidateClientEdgeCases(t *testing.T) {
 	t.Run("cliente com contact_preference válidos em diferentes cases", func(t *testing.T) {
 		preferences := []string{"WhatsApp", "EMAIL", "Phone", "SMS", "OUTROS"}
 		for _, pref := range preferences {
-			client := &Client{
+			entity := &Entity{
 				Name:              "Test",
 				Status:            "ativo",
 				ContactPreference: &pref,
 			}
-			errors := ValidateClient(client)
+			errors := ValidateEntity(entity)
 			if !errors.IsValid() {
 				t.Errorf("Expected no errors for contact preference '%s', got: %v", pref, errors)
 			}
@@ -665,12 +665,12 @@ func TestValidateClientEdgeCases(t *testing.T) {
 
 	t.Run("cliente com contact_preference com espaços", func(t *testing.T) {
 		pref := "  whatsapp  "
-		client := &Client{
+		entity := &Entity{
 			Name:              "Test",
 			Status:            "ativo",
 			ContactPreference: &pref,
 		}
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Expected no errors for contact preference with spaces, got: %v", errors)
 		}
@@ -808,8 +808,8 @@ func TestValidationErrorsIsValid(t *testing.T) {
 	}
 }
 
-// TestValidateClientEmailMaxLength testa email com exatamente 254 e 255+ caracteres
-func TestValidateClientEmailMaxLength(t *testing.T) {
+// TestValidateEntityEmailMaxLength testa email com exatamente 254 e 255+ caracteres
+func TestValidateEntityEmailMaxLength(t *testing.T) {
 	t.Run("email com exatamente 254 caracteres deve ser válido", func(t *testing.T) {
 		// Construir email com 254 caracteres: local@domain.com
 		// local: 64 chars, @ = 1, domain = 189 chars (185 + ".com") = 254 total
@@ -822,7 +822,7 @@ func TestValidateClientEmailMaxLength(t *testing.T) {
 		}
 
 		// Nota: Este teste pode falhar na validação MX, mas não deve falhar no tamanho
-		err := ValidateClientEmail(&email)
+		err := ValidateEntityEmail(&email)
 		if err != nil {
 			valErr, ok := err.(ValidationError)
 			if ok && strings.Contains(valErr.Message, "mais de 254 caracteres") {
@@ -840,7 +840,7 @@ func TestValidateClientEmailMaxLength(t *testing.T) {
 			t.Fatalf("Email deveria ter 255 chars, tem %d", len(email))
 		}
 
-		err := ValidateClientEmail(&email)
+		err := ValidateEntityEmail(&email)
 		if err == nil {
 			t.Error("Esperava erro para email com 255 caracteres")
 		}
@@ -858,7 +858,7 @@ func TestValidateClientEmailMaxLength(t *testing.T) {
 	t.Run("email com 300 caracteres deve falhar", func(t *testing.T) {
 		email := strings.Repeat("a", 300) + "@example.com"
 
-		err := ValidateClientEmail(&email)
+		err := ValidateEntityEmail(&email)
 		if err == nil {
 			t.Error("Esperava erro para email com 300 caracteres")
 		}
@@ -874,8 +874,8 @@ func TestValidateClientEmailMaxLength(t *testing.T) {
 	})
 }
 
-// TestValidateClientEmailDomainWithoutDot testa domínios sem ponto
-func TestValidateClientEmailDomainWithoutDot(t *testing.T) {
+// TestValidateEntityEmailDomainWithoutDot testa domínios sem ponto
+func TestValidateEntityEmailDomainWithoutDot(t *testing.T) {
 	testCases := []struct {
 		name  string
 		email string
@@ -887,7 +887,7 @@ func TestValidateClientEmailDomainWithoutDot(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateClientEmail(&tc.email)
+			err := ValidateEntityEmail(&tc.email)
 			if err == nil {
 				t.Errorf("Esperava erro para email '%s' com domínio sem ponto", tc.email)
 			}
@@ -905,17 +905,17 @@ func TestValidateClientEmailDomainWithoutDot(t *testing.T) {
 	}
 }
 
-// TestValidateClientBirthDateEdgeCases testa datas de nascimento inválidas
-func TestValidateClientBirthDateEdgeCases(t *testing.T) {
+// TestValidateEntityBirthDateEdgeCases testa datas de nascimento inválidas
+func TestValidateEntityBirthDateEdgeCases(t *testing.T) {
 	t.Run("data de nascimento no futuro", func(t *testing.T) {
 		futureDate := time.Now().AddDate(1, 0, 0) // 1 ano no futuro
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			BirthDate: &futureDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para data de nascimento no futuro")
 		}
@@ -934,13 +934,13 @@ func TestValidateClientBirthDateEdgeCases(t *testing.T) {
 
 	t.Run("data de nascimento muito antiga", func(t *testing.T) {
 		ancientDate := time.Date(1000, 1, 1, 0, 0, 0, 0, time.UTC)
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			BirthDate: &ancientDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para data de nascimento muito antiga")
 		}
@@ -959,13 +959,13 @@ func TestValidateClientBirthDateEdgeCases(t *testing.T) {
 
 	t.Run("data de nascimento válida em 1900", func(t *testing.T) {
 		validDate := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			BirthDate: &validDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para data de 1900, mas obteve: %v", errors)
 		}
@@ -973,29 +973,29 @@ func TestValidateClientBirthDateEdgeCases(t *testing.T) {
 
 	t.Run("data de nascimento válida hoje", func(t *testing.T) {
 		today := time.Now()
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			BirthDate: &today,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para data de hoje, mas obteve: %v", errors)
 		}
 	})
 }
 
-// TestValidateClientUnicodeAndEmojis testa campos com Unicode e emojis
-func TestValidateClientUnicodeAndEmojis(t *testing.T) {
+// TestValidateEntityUnicodeAndEmojis testa campos com Unicode e emojis
+func TestValidateEntityUnicodeAndEmojis(t *testing.T) {
 	t.Run("nome com emojis", func(t *testing.T) {
 		name := "Empresa 🚀 Tecnologia"
-		client := &Client{
+		entity := &Entity{
 			Name:   name,
 			Status: "ativo",
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Cliente com nome contendo emojis deveria ser válido, erros: %v", errors)
 		}
@@ -1003,12 +1003,12 @@ func TestValidateClientUnicodeAndEmojis(t *testing.T) {
 
 	t.Run("nome com caracteres unicode variados", func(t *testing.T) {
 		name := "Empresa Açúcar é Ñoño 日本語"
-		client := &Client{
+		entity := &Entity{
 			Name:   name,
 			Status: "ativo",
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Cliente com nome unicode deveria ser válido, erros: %v", errors)
 		}
@@ -1016,13 +1016,13 @@ func TestValidateClientUnicodeAndEmojis(t *testing.T) {
 
 	t.Run("notas com emojis e unicode", func(t *testing.T) {
 		notes := "Cliente importante! 💼 Contato preferencial 📞 日本語対応可能"
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Notes:  &notes,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Notas com emojis e unicode deveriam ser válidas, erros: %v", errors)
 		}
@@ -1030,13 +1030,13 @@ func TestValidateClientUnicodeAndEmojis(t *testing.T) {
 
 	t.Run("endereço com caracteres especiais", func(t *testing.T) {
 		address := "Rua José da Silva, 123 - Apto 45-B (Edifício São João)"
-		client := &Client{
+		entity := &Entity{
 			Name:    "Test",
 			Status:  "ativo",
 			Address: &address,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Endereço com caracteres especiais deveria ser válido, erros: %v", errors)
 		}
@@ -1049,12 +1049,12 @@ func TestValidateClientUnicodeAndEmojis(t *testing.T) {
 		// Um emoji pode ter 4 bytes em UTF-8
 		name := strings.Repeat(emoji, 63) + "Test" // ~252 bytes + 4 = 256
 
-		client := &Client{
+		entity := &Entity{
 			Name:   name,
 			Status: "ativo",
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		// Verificar se a validação é por bytes ou por caracteres
 		if len(name) > 255 && errors.IsValid() {
 			t.Errorf("Nome com mais de 255 bytes deveria ser inválido")
@@ -1062,17 +1062,17 @@ func TestValidateClientUnicodeAndEmojis(t *testing.T) {
 	})
 }
 
-// TestValidateClientTagsWithSpecialCharacters testa tags com caracteres especiais
-func TestValidateClientTagsWithSpecialCharacters(t *testing.T) {
+// TestValidateEntityTagsWithSpecialCharacters testa tags com caracteres especiais
+func TestValidateEntityTagsWithSpecialCharacters(t *testing.T) {
 	t.Run("tags com vírgulas", func(t *testing.T) {
 		tags := "cliente,vip,importante,prioritário"
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Tags:   &tags,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Tags com vírgulas deveriam ser válidas, erros: %v", errors)
 		}
@@ -1080,13 +1080,13 @@ func TestValidateClientTagsWithSpecialCharacters(t *testing.T) {
 
 	t.Run("tags com ponto e vírgula", func(t *testing.T) {
 		tags := "cliente;vip;importante"
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Tags:   &tags,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Tags com ponto-e-vírgula deveriam ser válidas, erros: %v", errors)
 		}
@@ -1094,27 +1094,27 @@ func TestValidateClientTagsWithSpecialCharacters(t *testing.T) {
 
 	t.Run("tags com quebras de linha", func(t *testing.T) {
 		tags := "cliente\nvip\nimportante"
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Tags:   &tags,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		// Atualmente não há validação específica para quebras de linha
 		// Este teste documenta o comportamento
 		_ = errors
 	})
 
 	t.Run("tags com caracteres especiais SQL", func(t *testing.T) {
-		tags := "'; DROP TABLE clients; --"
-		client := &Client{
+		tags := "'; DROP TABLE entities; --"
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Tags:   &tags,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		// Validar que caracteres SQL não causam problemas
 		if !errors.IsValid() {
 			t.Errorf("Tags com caracteres SQL deveriam ser válidas (proteção deve ser no DB), erros: %v", errors)
@@ -1122,17 +1122,17 @@ func TestValidateClientTagsWithSpecialCharacters(t *testing.T) {
 	})
 }
 
-// TestValidateDependentUnicodeAndEmojis testa dependentes com Unicode
-func TestValidateDependentUnicodeAndEmojis(t *testing.T) {
+// TestValidateSubEntityUnicodeAndEmojis testa dependentes com Unicode
+func TestValidateSubEntityUnicodeAndEmojis(t *testing.T) {
 	t.Run("dependente com nome contendo emojis", func(t *testing.T) {
 		name := "Filial São Paulo 🏢"
-		dependent := &Dependent{
+		dependent := &SubEntity{
 			Name:     name,
-			ClientID: "client-123",
+			EntityID: "client-123",
 			Status:   "ativo",
 		}
 
-		errors := ValidateDependent(dependent)
+		errors := ValidateSubEntity(dependent)
 		if !errors.IsValid() {
 			t.Errorf("Dependente com nome contendo emojis deveria ser válido, erros: %v", errors)
 		}
@@ -1140,31 +1140,31 @@ func TestValidateDependentUnicodeAndEmojis(t *testing.T) {
 
 	t.Run("dependente com descrição multilíngue", func(t *testing.T) {
 		description := "Escritório principal - Main Office - 本社 - Oficina Principal"
-		dependent := &Dependent{
+		dependent := &SubEntity{
 			Name:        "Test",
-			ClientID:    "client-123",
+			EntityID:    "client-123",
 			Status:      "ativo",
 			Description: &description,
 		}
 
-		errors := ValidateDependent(dependent)
+		errors := ValidateSubEntity(dependent)
 		if !errors.IsValid() {
 			t.Errorf("Dependente com descrição multilíngue deveria ser válido, erros: %v", errors)
 		}
 	})
 }
 
-// TestValidateClientNextActionDatePast testa NextActionDate no passado
-func TestValidateClientNextActionDatePast(t *testing.T) {
+// TestValidateEntityNextActionDatePast testa NextActionDate no passado
+func TestValidateEntityNextActionDatePast(t *testing.T) {
 	t.Run("next action date no passado recente deve ser válido", func(t *testing.T) {
 		pastDate := time.Now().AddDate(0, -6, 0) // 6 meses atrás
-		client := &Client{
+		entity := &Entity{
 			Name:           "Test",
 			Status:         "ativo",
 			NextActionDate: &pastDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para data 6 meses no passado, mas obteve: %v", errors)
 		}
@@ -1172,13 +1172,13 @@ func TestValidateClientNextActionDatePast(t *testing.T) {
 
 	t.Run("next action date mais de 1 ano no passado deve falhar", func(t *testing.T) {
 		pastDate := time.Now().AddDate(-2, 0, 0) // 2 anos atrás
-		client := &Client{
+		entity := &Entity{
 			Name:           "Test",
 			Status:         "ativo",
 			NextActionDate: &pastDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para NextActionDate mais de 1 ano no passado")
 		}
@@ -1197,13 +1197,13 @@ func TestValidateClientNextActionDatePast(t *testing.T) {
 
 	t.Run("next action date muito no futuro", func(t *testing.T) {
 		futureDate := time.Now().AddDate(20, 0, 0) // 20 anos no futuro
-		client := &Client{
+		entity := &Entity{
 			Name:           "Test",
 			Status:         "ativo",
 			NextActionDate: &futureDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para NextActionDate mais de 10 anos no futuro")
 		}
@@ -1222,30 +1222,30 @@ func TestValidateClientNextActionDatePast(t *testing.T) {
 
 	t.Run("next action date válido - 5 anos no futuro", func(t *testing.T) {
 		futureDate := time.Now().AddDate(5, 0, 0) // 5 anos no futuro
-		client := &Client{
+		entity := &Entity{
 			Name:           "Test",
 			Status:         "ativo",
 			NextActionDate: &futureDate,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para data 5 anos no futuro, mas obteve: %v", errors)
 		}
 	})
 }
 
-// TestValidateClientNotesOverflow testa overflow em campos de texto
-func TestValidateClientNotesOverflow(t *testing.T) {
+// TestValidateEntityNotesOverflow testa overflow em campos de texto
+func TestValidateEntityNotesOverflow(t *testing.T) {
 	t.Run("notes com exatamente 50000 caracteres deve ser válido", func(t *testing.T) {
 		notes := strings.Repeat("a", 50000)
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Notes:  &notes,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para notes com 50000 chars, mas obteve: %v", errors)
 		}
@@ -1253,13 +1253,13 @@ func TestValidateClientNotesOverflow(t *testing.T) {
 
 	t.Run("notes com mais de 50000 caracteres deve falhar", func(t *testing.T) {
 		notes := strings.Repeat("a", 50001)
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Notes:  &notes,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para notes com mais de 50000 caracteres")
 		}
@@ -1282,13 +1282,13 @@ func TestValidateClientNotesOverflow(t *testing.T) {
 		// Criar string com 16666 caracteres = ~50k bytes
 		notes := strings.Repeat(char, 16666)
 
-		client := &Client{
+		entity := &Entity{
 			Name:   "Test",
 			Status: "ativo",
 			Notes:  &notes,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		// Validação é por caracteres, não bytes, então deve ser válido
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para notes com unicode < 50k chars, mas obteve: %v", errors)
@@ -1297,13 +1297,13 @@ func TestValidateClientNotesOverflow(t *testing.T) {
 
 	t.Run("documents com exatamente 10000 caracteres deve ser válido", func(t *testing.T) {
 		docs := strings.Repeat("a", 10000)
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			Documents: &docs,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if !errors.IsValid() {
 			t.Errorf("Não esperava erro para documents com 10000 chars, mas obteve: %v", errors)
 		}
@@ -1311,13 +1311,13 @@ func TestValidateClientNotesOverflow(t *testing.T) {
 
 	t.Run("documents com mais de 10000 caracteres deve falhar", func(t *testing.T) {
 		longURL := "https://example.com/" + strings.Repeat("a", 10000)
-		client := &Client{
+		entity := &Entity{
 			Name:      "Test",
 			Status:    "ativo",
 			Documents: &longURL,
 		}
 
-		errors := ValidateClient(client)
+		errors := ValidateEntity(entity)
 		if errors.IsValid() {
 			t.Error("Esperava erro para documents com mais de 10000 caracteres")
 		}
@@ -1335,25 +1335,25 @@ func TestValidateClientNotesOverflow(t *testing.T) {
 	})
 }
 
-// TestValidateClientNullVsEmpty testa diferença entre null e vazio
-func TestValidateClientNullVsEmpty(t *testing.T) {
+// TestValidateEntityNullVsEmpty testa diferença entre null e vazio
+func TestValidateEntityNullVsEmpty(t *testing.T) {
 	t.Run("email null vs string vazia", func(t *testing.T) {
 		empty := ""
 
-		client1 := &Client{
+		client1 := &Entity{
 			Name:   "Test 1",
 			Status: "ativo",
 			Email:  nil,
 		}
 
-		client2 := &Client{
+		client2 := &Entity{
 			Name:   "Test 2",
 			Status: "ativo",
 			Email:  &empty,
 		}
 
-		errors1 := ValidateClient(client1)
-		errors2 := ValidateClient(client2)
+		errors1 := ValidateEntity(client1)
+		errors2 := ValidateEntity(client2)
 
 		if !errors1.IsValid() {
 			t.Errorf("Cliente com email nil deveria ser válido, erros: %v", errors1)
@@ -1368,14 +1368,14 @@ func TestValidateClientNullVsEmpty(t *testing.T) {
 		empty := ""
 		spaces := "   "
 
-		clients := []*Client{
+		entities := []*Entity{
 			{Name: "Test 1", Status: "ativo", Phone: nil},
 			{Name: "Test 2", Status: "ativo", Phone: &empty},
 			{Name: "Test 3", Status: "ativo", Phone: &spaces},
 		}
 
-		for i, client := range clients {
-			errors := ValidateClient(client)
+		for i, entity := range entities {
+			errors := ValidateEntity(entity)
 			if !errors.IsValid() {
 				t.Errorf("Cliente %d deveria ser válido, erros: %v", i+1, errors)
 			}

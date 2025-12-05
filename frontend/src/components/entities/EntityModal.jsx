@@ -17,9 +17,9 @@
  */
 
 import React, { useState } from "react";
-import "./ClientModal.css";
+import "./EntityModal.css";
 
-export default function ClientModal({
+export default function EntityModal({
     showModal,
     modalMode,
     formData,

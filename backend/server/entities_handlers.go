@@ -30,83 +30,83 @@ import (
 
 // ============= CLIENT HANDLERS =============
 
-func (s *Server) handleClients(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleEntities(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.handleListClients(w, r)
+		s.handleListEntities(w, r)
 	case http.MethodPost:
-		s.handleCreateClient(w, r)
+		s.handleCreateEntity(w, r)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleListClients(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListEntities(w http.ResponseWriter, r *http.Request) {
 	// Check if requesting with contract stats
 	includeStats := r.URL.Query().Get("include_stats") == "true"
 
-	clients, err := s.clientStore.GetAllClientsIncludingArchived()
+	entities, err := s.entityStore.GetAllEntitiesIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if includeStats {
-		// Get contract stats for all clients
-		statsMap, err := s.contractStore.GetContractStatsForAllClients()
+		// Get contract stats for all entities
+		statsMap, err := s.agreementStore.GetAgreementStatsForAllEntities()
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// Create response with clients and their stats
-		type ClientWithStats struct {
-			domain.Client
-			ActiveContracts   int `json:"active_contracts"`
-			ExpiredContracts  int `json:"expired_contracts"`
-			ArchivedContracts int `json:"archived_contracts"`
+		// Create response with entities and their stats
+		type EntityWithStats struct {
+			domain.Entity
+			ActiveAgreements   int `json:"active_agreements"`
+			ExpiredAgreements  int `json:"expired_agreements"`
+			ArchivedAgreements int `json:"archived_agreements"`
 		}
 
-		clientsWithStats := make([]ClientWithStats, 0, len(clients))
-		for _, client := range clients {
-			cws := ClientWithStats{Client: client}
-			if stats, ok := statsMap[client.ID]; ok {
-				cws.ActiveContracts = stats.ActiveContracts
-				cws.ExpiredContracts = stats.ExpiredContracts
-				cws.ArchivedContracts = stats.ArchivedContracts
+		entitiesWithStats := make([]EntityWithStats, 0, len(entities))
+		for _, entity := range entities {
+			cws := EntityWithStats{Entity: entity}
+			if stats, ok := statsMap[entity.ID]; ok {
+				cws.ActiveAgreements = stats.ActiveAgreements
+				cws.ExpiredAgreements = stats.ExpiredAgreements
+				cws.ArchivedAgreements = stats.ArchivedAgreements
 			}
-			clientsWithStats = append(clientsWithStats, cws)
+			entitiesWithStats = append(entitiesWithStats, cws)
 		}
 
-		respondJSON(w, http.StatusOK, SuccessResponse{Data: clientsWithStats})
+		respondJSON(w, http.StatusOK, SuccessResponse{Data: entitiesWithStats})
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: clients})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: entities})
 }
 
-func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
-	var client domain.Client
-	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
+func (s *Server) handleCreateEntity(w http.ResponseWriter, r *http.Request) {
+	var entity domain.Entity
+	if err := json.NewDecoder(r.Body).Decode(&entity); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	// Status will be auto-calculated by CreateClient based on active contracts
+	// Status will be auto-calculated by CreateEntity based on active agreements
 	// Ignore any status sent from frontend
-	client.Status = ""
+	entity.Status = ""
 
-	id, err := s.clientStore.CreateClient(client)
+	id, err := s.entityStore.CreateEntity(entity)
 	if err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(client)
+			newValueJSON, _ := json.Marshal(entity)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "client",
+				Entity:        "entity",
 				EntityID:      "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
@@ -126,11 +126,11 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 
 	// Log successful creation
 	if claims != nil {
-		client.ID = id
-		newValueJSON, _ := json.Marshal(client)
+		entity.ID = id
+		newValueJSON, _ := json.Marshal(entity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "client",
+			Entity:        "entity",
 			EntityID:      id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
@@ -145,46 +145,46 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
-		Message: "Client created successfully",
+		Message: "Entity created successfully",
 		Data:    map[string]string{"id": id},
 	})
 }
 
-func (s *Server) handleClientByID(w http.ResponseWriter, r *http.Request) {
-	clientID := getIDFromPath(r, "/api/clients/")
+func (s *Server) handleEntityByID(w http.ResponseWriter, r *http.Request) {
+	entityID := getIDFromPath(r, "/api/entities/")
 
-	if clientID == "" {
-		respondError(w, http.StatusBadRequest, "Client ID required")
+	if entityID == "" {
+		respondError(w, http.StatusBadRequest, "Entity ID required")
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		s.handleGetClient(w, r, clientID)
+		s.handleGetEntity(w, r, entityID)
 	case http.MethodPut:
-		s.handleUpdateClient(w, r, clientID)
+		s.handleUpdateEntity(w, r, entityID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleGetClient(w http.ResponseWriter, r *http.Request, clientID string) {
-	client, err := s.clientStore.GetClientByID(clientID)
+func (s *Server) handleGetEntity(w http.ResponseWriter, r *http.Request, entityID string) {
+	entity, err := s.entityStore.GetEntityByID(entityID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			respondError(w, http.StatusNotFound, "Client not found")
+			respondError(w, http.StatusNotFound, "Entity not found")
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: client})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: entity})
 }
 
-func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clientID string) {
-	var client domain.Client
-	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
+func (s *Server) handleUpdateEntity(w http.ResponseWriter, r *http.Request, entityID string) {
+	var entity domain.Entity
+	if err := json.NewDecoder(r.Body).Decode(&entity); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -192,23 +192,23 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
-	oldValueJSON, _ := json.Marshal(oldClient)
+	oldEntity, _ := s.entityStore.GetEntityByID(entityID)
+	oldValueJSON, _ := json.Marshal(oldEntity)
 
-	client.ID = clientID
-	// Status will be auto-calculated by UpdateClient based on active contracts
+	entity.ID = entityID
+	// Status will be auto-calculated by UpdateEntity based on active agreements
 	// Ignore any status sent from frontend
-	client.Status = ""
+	entity.Status = ""
 
-	if err := s.clientStore.UpdateClient(client); err != nil {
+	if err := s.entityStore.UpdateEntity(entity); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
-			newValueJSON, _ := json.Marshal(client)
+			newValueJSON, _ := json.Marshal(entity)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "client",
-				EntityID:      clientID,
+				Entity:        "entity",
+				EntityID:      entityID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -225,19 +225,19 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		return
 	}
 
-	// Update client status based on active contracts
-	if err := s.clientStore.UpdateClientStatus(clientID); err != nil {
+	// Update entity status based on active agreements
+	if err := s.entityStore.UpdateEntityStatus(entityID); err != nil {
 		// Log warning but don't fail the request
 		// This is a non-critical operation
 	}
 
 	// Log successful update
 	if claims != nil {
-		newValueJSON, _ := json.Marshal(client)
+		newValueJSON, _ := json.Marshal(entity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "client",
-			EntityID:      clientID,
+			Entity:        "entity",
+			EntityID:      entityID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -250,36 +250,36 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client updated successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Entity updated successfully"})
 }
 
-func (s *Server) handleClientArchive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleEntityArchive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/clients/"), "/")
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/entities/"), "/")
 	if len(parts) < 2 || parts[0] == "" {
-		respondError(w, http.StatusBadRequest, "Client ID required")
+		respondError(w, http.StatusBadRequest, "Entity ID required")
 		return
 	}
 
-	clientID := parts[0]
+	entityID := parts[0]
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
-	oldValueJSON, _ := json.Marshal(oldClient)
+	oldEntity, _ := s.entityStore.GetEntityByID(entityID)
+	oldValueJSON, _ := json.Marshal(oldEntity)
 
-	if err := s.clientStore.ArchiveClient(clientID); err != nil {
+	if err := s.entityStore.ArchiveEntity(entityID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "client",
-				EntityID:      clientID,
+				Entity:        "entity",
+				EntityID:      entityID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -298,12 +298,12 @@ func (s *Server) handleClientArchive(w http.ResponseWriter, r *http.Request) {
 
 	// Log successful archive
 	if claims != nil {
-		newClient, _ := s.clientStore.GetClientByID(clientID)
-		newValueJSON, _ := json.Marshal(newClient)
+		newEntity, _ := s.entityStore.GetEntityByID(entityID)
+		newValueJSON, _ := json.Marshal(newEntity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "client",
-			EntityID:      clientID,
+			Entity:        "entity",
+			EntityID:      entityID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -316,36 +316,36 @@ func (s *Server) handleClientArchive(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client archived successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Entity archived successfully"})
 }
 
-func (s *Server) handleClientUnarchive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleEntityUnarchive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/clients/"), "/")
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/entities/"), "/")
 	if len(parts) < 2 || parts[0] == "" {
-		respondError(w, http.StatusBadRequest, "Client ID required")
+		respondError(w, http.StatusBadRequest, "Entity ID required")
 		return
 	}
 
-	clientID := parts[0]
+	entityID := parts[0]
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
-	oldValueJSON, _ := json.Marshal(oldClient)
+	oldEntity, _ := s.entityStore.GetEntityByID(entityID)
+	oldValueJSON, _ := json.Marshal(oldEntity)
 
-	if err := s.clientStore.UnarchiveClient(clientID); err != nil {
+	if err := s.entityStore.UnarchiveEntity(entityID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "client",
-				EntityID:      clientID,
+				Entity:        "entity",
+				EntityID:      entityID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -364,12 +364,12 @@ func (s *Server) handleClientUnarchive(w http.ResponseWriter, r *http.Request) {
 
 	// Log successful unarchive
 	if claims != nil {
-		newClient, _ := s.clientStore.GetClientByID(clientID)
-		newValueJSON, _ := json.Marshal(newClient)
+		newEntity, _ := s.entityStore.GetEntityByID(entityID)
+		newValueJSON, _ := json.Marshal(newEntity)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "client",
-			EntityID:      clientID,
+			Entity:        "entity",
+			EntityID:      entityID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -382,5 +382,5 @@ func (s *Server) handleClientUnarchive(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Client unarchived successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Entity unarchived successfully"})
 }

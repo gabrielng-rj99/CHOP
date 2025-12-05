@@ -17,11 +17,11 @@
  */
 
 import React from "react";
-import "./DependentsPanel.css";
+import "./SubEntitiesPanel.css";
 import EditIcon from "../../assets/icons/edit.svg";
 import TrashIcon from "../../assets/icons/trash.svg";
 
-export default function DependentsPanel({
+export default function SubEntitiesPanel({
     selectedClient,
     dependents,
     onCreateDependent,

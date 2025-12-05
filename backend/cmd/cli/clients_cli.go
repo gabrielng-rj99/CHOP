@@ -30,17 +30,17 @@ import (
 	"Open-Generic-Hub/backend/store"
 )
 
-// ClientsFlow handles the clients menu, allowing listing, creation, and selection
-func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.DependentStore, contractStore *store.ContractStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// ClientsFlow handles the entities menu, allowing listing, creation, and selection
+func ClientsFlow(entityStore *store.EntityStore, subEntityStore *store.SubEntityStore, agreementStore *store.AgreementStore, subcategoryStore *store.SubcategoryStore, categoryStore *store.CategoryStore) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- Clients Menu ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List all clients")
-		fmt.Println("2 - Search/Filter clients")
+		fmt.Println("1 - List all entities")
+		fmt.Println("2 - Search/Filter entities")
 		fmt.Println("3 - Create client")
 		fmt.Println("4 - Select client")
-		fmt.Println("5 - List archived clients")
+		fmt.Println("5 - List archived entities")
 		fmt.Print("Option: ")
 		reader := bufio.NewReader(os.Stdin)
 		opt, _ := reader.ReadString('\n')
@@ -51,13 +51,13 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 			return
 		case "1":
 			clearTerminal()
-			clients, err := clientStore.GetAllClients()
+			entities, err := entityStore.GetAllEntities()
 			if err != nil {
-				fmt.Println("Error listing clients:", err)
+				fmt.Println("Error listing entities:", err)
 				waitForEnter()
 				continue
 			}
-			displayClientsList(clients)
+			displayClientsList(entities)
 			waitForEnter()
 		case "2":
 			clearTerminal()
@@ -72,21 +72,21 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				continue
 			}
 
-			clients, err := clientStore.GetAllClients()
+			entities, err := entityStore.GetAllEntities()
 			if err != nil {
-				fmt.Println("Error listing clients:", err)
+				fmt.Println("Error listing entities:", err)
 				waitForEnter()
 				continue
 			}
 
-			filtered := filterClients(clients, searchTerm)
+			filtered := filterClients(entities, searchTerm)
 			displayClientsList(filtered)
 			waitForEnter()
 		case "3":
 			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Println("=== Create New Client ===")
-			fmt.Print("Client name (required): ")
+			fmt.Println("=== Create New Entity ===")
+			fmt.Print("Entity name (required): ")
 			name, _ := reader.ReadString('\n')
 			fmt.Print("Registration ID (optional, CPF/CNPJ): ")
 			registrationID, _ := reader.ReadString('\n')
@@ -119,7 +119,7 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 			tags = strings.TrimSpace(tags)
 
 			if name == "" {
-				fmt.Println("Error: Client name cannot be empty.")
+				fmt.Println("Error: Entity name cannot be empty.")
 				waitForEnter()
 				continue
 			}
@@ -160,7 +160,7 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				}
 			}
 
-			client := domain.Client{
+			client := domain.Entity{
 				Name:              name,
 				RegistrationID:    regIDPtr,
 				Nickname:          nicknamePtr,
@@ -173,7 +173,7 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				ContactPreference: contactPrefPtr,
 				Tags:              tagsPtr,
 			}
-			validationErrors := domain.ValidateClient(&client)
+			validationErrors := domain.ValidateEntity(&client)
 			if !validationErrors.IsValid() {
 				fmt.Println("Validation errors:")
 				for _, err := range validationErrors {
@@ -182,40 +182,40 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				waitForEnter()
 				continue
 			}
-			id, err := clientStore.CreateClient(client)
+			id, err := entityStore.CreateEntity(client)
 			if err != nil {
 				fmt.Println("Error creating client:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Client created with ID:", id)
+				fmt.Println("Entity created with ID:", id)
 				waitForEnter()
 			}
 			continue
 		case "4":
 			clearTerminal()
-			fmt.Println("\n=== Select Client ===")
+			fmt.Println("\n=== Select Entity ===")
 			fmt.Print("Search term (or leave empty for all): ")
 			searchTerm, _ := reader.ReadString('\n')
 			searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
 
-			clients, err := clientStore.GetAllClients()
-			if err != nil || len(clients) == 0 {
-				fmt.Println("No clients found.")
+			entities, err := entityStore.GetAllEntities()
+			if err != nil || len(entities) == 0 {
+				fmt.Println("No entities found.")
 				waitForEnter()
 				continue
 			}
 
 			if searchTerm != "" {
-				clients = filterClients(clients, searchTerm)
+				entities = filterClients(entities, searchTerm)
 			}
 
-			if len(clients) == 0 {
-				fmt.Println("No clients match your search.")
+			if len(entities) == 0 {
+				fmt.Println("No entities match your search.")
 				waitForEnter()
 				continue
 			}
 
-			displayClientsList(clients)
+			displayClientsList(entities)
 			fmt.Print("\nEnter the number of the client (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -223,27 +223,27 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(clients) {
+			if err != nil || idx < 1 || idx > len(entities) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			clientID := clients[idx-1].ID
-			ClientSubmenu(clientID, clientStore, dependentStore, contractStore, lineStore, categoryStore)
+			entityID := entities[idx-1].ID
+			ClientSubmenu(entityID, entityStore, subEntityStore, agreementStore, subcategoryStore, categoryStore)
 		case "5":
 			clearTerminal()
-			clients, err := clientStore.GetArchivedClients()
+			entities, err := entityStore.GetArchivedEntities()
 			if err != nil {
-				fmt.Println("Error listing archived clients:", err)
+				fmt.Println("Error listing archived entities:", err)
 				waitForEnter()
 				continue
 			}
-			if len(clients) == 0 {
-				fmt.Println("No archived clients found.")
+			if len(entities) == 0 {
+				fmt.Println("No archived entities found.")
 				waitForEnter()
 				continue
 			}
-			displayClientsList(clients)
+			displayClientsList(entities)
 			fmt.Print("\nEnter the number of the client to unarchive (0 to cancel): ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -251,18 +251,18 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(clients) {
+			if err != nil || idx < 1 || idx > len(entities) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			clientID := clients[idx-1].ID
-			err = clientStore.UnarchiveClient(clientID)
+			entityID := entities[idx-1].ID
+			err = entityStore.UnarchiveEntity(entityID)
 			if err != nil {
 				fmt.Println("Error unarchiving client:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Client unarchived successfully.")
+				fmt.Println("Entity unarchived successfully.")
 				waitForEnter()
 			}
 		default:
@@ -271,18 +271,18 @@ func ClientsFlow(clientStore *store.ClientStore, dependentStore *store.Dependent
 	}
 }
 
-// displayClientsList shows a compact list of clients with essential information
-func displayClientsList(clients []domain.Client) {
+// displayClientsList shows a compact list of entities with essential information
+func displayClientsList(entities []domain.Entity) {
 	fmt.Println("\n=== Clients ===")
-	if len(clients) == 0 {
-		fmt.Println("No clients found.")
+	if len(entities) == 0 {
+		fmt.Println("No entities found.")
 		return
 	}
 
 	fmt.Printf("\n%-4s | %-30s | %-25s | %-20s\n", "#", "Name", "Nickname", "Registration ID")
 	fmt.Println(strings.Repeat("-", 85))
 
-	for i, c := range clients {
+	for i, c := range entities {
 		nickname := "-"
 		if c.Nickname != nil && *c.Nickname != "" {
 			nickname = *c.Nickname
@@ -306,12 +306,12 @@ func displayClientsList(clients []domain.Client) {
 	fmt.Println()
 }
 
-// filterClients filters clients by name, nickname, or registration ID
-func filterClients(clients []domain.Client, searchTerm string) []domain.Client {
-	var filtered []domain.Client
+// filterClients filters entities by name, nickname, or registration ID
+func filterClients(entities []domain.Entity, searchTerm string) []domain.Entity {
+	var filtered []domain.Entity
 	searchTerm = normalizeString(searchTerm)
 
-	for _, c := range clients {
+	for _, c := range entities {
 		if strings.Contains(normalizeString(c.Name), searchTerm) {
 			filtered = append(filtered, c)
 			continue
@@ -331,14 +331,14 @@ func filterClients(clients []domain.Client, searchTerm string) []domain.Client {
 	return filtered
 }
 
-// DependentsSubmenu handles the dependents management for a specific client
-func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
+// DependentsSubmenu handles the sub_entities management for a specific client
+func DependentsSubmenu(entityID string, subEntityStore *store.SubEntityStore) {
 	for {
 		clearTerminal()
-		fmt.Printf("\n--- Dependents of Client %s ---\n", clientID)
+		fmt.Printf("\n--- Dependents of Entity %s ---\n", entityID)
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List all dependents")
-		fmt.Println("2 - Search/Filter dependents")
+		fmt.Println("1 - List all sub_entities")
+		fmt.Println("2 - Search/Filter sub_entities")
 		fmt.Println("3 - Create dependent")
 		fmt.Println("4 - Edit dependent")
 		fmt.Println("5 - Delete dependent")
@@ -352,13 +352,13 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 			return
 		case "1":
 			clearTerminal()
-			dependents, err := dependentStore.GetDependentsByClientID(clientID)
+			sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
 			if err != nil {
-				fmt.Println("Error listing dependents:", err)
+				fmt.Println("Error listing sub_entities:", err)
 				waitForEnter()
 				continue
 			}
-			displayDependentsList(dependents)
+			displayDependentsList(sub_entities)
 			waitForEnter()
 		case "2":
 			clearTerminal()
@@ -373,21 +373,21 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				continue
 			}
 
-			dependents, err := dependentStore.GetDependentsByClientID(clientID)
+			sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
 			if err != nil {
-				fmt.Println("Error listing dependents:", err)
+				fmt.Println("Error listing sub_entities:", err)
 				waitForEnter()
 				continue
 			}
 
-			filtered := filterDependents(dependents, searchTerm)
+			filtered := filterDependents(sub_entities, searchTerm)
 			displayDependentsList(filtered)
 			waitForEnter()
 		case "3":
 			clearTerminal()
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Println("=== Create New Dependent ===")
-			fmt.Print("Dependent name (required): ")
+			fmt.Println("=== Create New SubEntity ===")
+			fmt.Print("SubEntity name (required): ")
 			name, _ := reader.ReadString('\n')
 			fmt.Print("Description (optional): ")
 			description, _ := reader.ReadString('\n')
@@ -417,7 +417,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 			tags = strings.TrimSpace(tags)
 
 			if name == "" {
-				fmt.Println("Error: Dependent name cannot be empty.")
+				fmt.Println("Error: SubEntity name cannot be empty.")
 				waitForEnter()
 				continue
 			}
@@ -455,9 +455,9 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				}
 			}
 
-			dependent := domain.Dependent{
+			dependent := domain.SubEntity{
 				Name:              name,
-				ClientID:          clientID,
+				EntityID:          entityID,
 				Description:       descPtr,
 				BirthDate:         birthDate,
 				Email:             emailPtr,
@@ -469,7 +469,7 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				Tags:              tagsPtr,
 			}
 
-			validationErrors := domain.ValidateDependent(&dependent)
+			validationErrors := domain.ValidateSubEntity(&dependent)
 			if !validationErrors.IsValid() {
 				fmt.Println("Validation errors:")
 				for _, err := range validationErrors {
@@ -479,23 +479,23 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				continue
 			}
 
-			id, err := dependentStore.CreateDependent(dependent)
+			id, err := subEntityStore.CreateSubEntity(dependent)
 			if err != nil {
 				fmt.Println("Error creating dependent:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Dependent created with ID:", id)
+				fmt.Println("SubEntity created with ID:", id)
 				waitForEnter()
 			}
 		case "4":
 			clearTerminal()
-			dependents, err := dependentStore.GetDependentsByClientID(clientID)
-			if err != nil || len(dependents) == 0 {
-				fmt.Println("No dependents found.")
+			sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
+			if err != nil || len(sub_entities) == 0 {
+				fmt.Println("No sub_entities found.")
 				waitForEnter()
 				continue
 			}
-			displayDependentsList(dependents)
+			displayDependentsList(sub_entities)
 			fmt.Print("Enter the number of the dependent: ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -503,38 +503,38 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(dependents) {
+			if err != nil || idx < 1 || idx > len(sub_entities) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			dependent := &dependents[idx-1]
-			fmt.Printf("Current name: %s | New name: ", dependent.Name)
+			subEntity := &sub_entities[idx-1]
+			fmt.Printf("Current name: %s | New name: ", subEntity.Name)
 			name, _ := reader.ReadString('\n')
 			name = strings.TrimSpace(name)
 			if name == "" {
-				fmt.Println("Error: Dependent name cannot be empty.")
+				fmt.Println("Error: SubEntity name cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			dependent.Name = name
-			err = dependentStore.UpdateDependent(*dependent)
+			subEntity.Name = name
+			err = subEntityStore.UpdateSubEntity(*subEntity)
 			if err != nil {
 				fmt.Println("Error updating dependent:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Dependent updated.")
+				fmt.Println("SubEntity updated.")
 				waitForEnter()
 			}
 		case "5":
 			clearTerminal()
-			dependents, err := dependentStore.GetDependentsByClientID(clientID)
-			if err != nil || len(dependents) == 0 {
-				fmt.Println("No dependents found.")
+			sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
+			if err != nil || len(sub_entities) == 0 {
+				fmt.Println("No sub_entities found.")
 				waitForEnter()
 				continue
 			}
-			displayDependentsList(dependents)
+			displayDependentsList(sub_entities)
 			fmt.Print("Enter the number of the dependent: ")
 			idxStr, _ := reader.ReadString('\n')
 			idxStr = strings.TrimSpace(idxStr)
@@ -542,18 +542,18 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(dependents) {
+			if err != nil || idx < 1 || idx > len(sub_entities) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			dependentID := dependents[idx-1].ID
-			err = dependentStore.DeleteDependent(dependentID)
+			subEntityID := sub_entities[idx-1].ID
+			err = subEntityStore.DeleteSubEntity(subEntityID)
 			if err != nil {
 				fmt.Println("Error deleting dependent:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Dependent deleted.")
+				fmt.Println("SubEntity deleted.")
 				waitForEnter()
 			}
 		default:
@@ -563,26 +563,26 @@ func DependentsSubmenu(clientID string, dependentStore *store.DependentStore) {
 }
 
 // ClientSubmenu handles operations for a specific client
-func ClientSubmenu(clientID string,
-	clientStore *store.ClientStore,
-	dependentStore *store.DependentStore,
-	contractStore *store.ContractStore,
-	lineStore *store.LineStore,
+func ClientSubmenu(entityID string,
+	entityStore *store.EntityStore,
+	subEntityStore *store.SubEntityStore,
+	agreementStore *store.AgreementStore,
+	subcategoryStore *store.SubcategoryStore,
 	categoryStore *store.CategoryStore) {
-	if clientID == "" {
-		fmt.Println("Error: Client ID cannot be empty.")
+	if entityID == "" {
+		fmt.Println("Error: Entity ID cannot be empty.")
 		waitForEnter()
 		return
 	}
-	clientName, err := clientStore.GetClientNameByID(clientID)
+	clientName, err := entityStore.GetEntityNameByID(entityID)
 	if err != nil {
-		fmt.Println("Error: Client not found.")
+		fmt.Println("Error: Entity not found.")
 		waitForEnter()
 		return
 	}
 	for {
 		clearTerminal()
-		fmt.Printf("\n--- Client %s ---\n", clientName)
+		fmt.Printf("\n--- Entity %s ---\n", clientName)
 		fmt.Println("0 - Back/Cancel")
 		fmt.Println("1 - Edit client")
 		fmt.Println("2 - Dependents")
@@ -599,68 +599,68 @@ func ClientSubmenu(clientID string,
 			return
 		case "1":
 			clearTerminal()
-			client, err := clientStore.GetClientByID(clientID)
-			if err != nil || client == nil {
-				fmt.Println("Client not found.")
+			entity, err := entityStore.GetEntityByID(entityID)
+			if err != nil || entity == nil {
+				fmt.Println("Entity not found.")
 				waitForEnter()
 				continue
 			}
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Println("=== Edit Client ===")
+			fmt.Println("=== Edit Entity ===")
 			PrintOptionalFieldHint()
-			fmt.Printf("Current name: %s | New name: ", client.Name)
+			fmt.Printf("Current name: %s | New name: ", entity.Name)
 			name, _ := reader.ReadString('\n')
 			currentRegID := "-"
-			if client.RegistrationID != nil {
-				currentRegID = *client.RegistrationID
+			if entity.RegistrationID != nil {
+				currentRegID = *entity.RegistrationID
 			}
 			fmt.Printf("Current registration ID: %s | New registration ID (optional): ", currentRegID)
 			registrationID, _ := reader.ReadString('\n')
 			currentNickname := "-"
-			if client.Nickname != nil {
-				currentNickname = *client.Nickname
+			if entity.Nickname != nil {
+				currentNickname = *entity.Nickname
 			}
 			fmt.Printf("Current nickname: %s | New nickname: ", currentNickname)
 			nickname, _ := reader.ReadString('\n')
 			currentBirthDate := "-"
-			if client.BirthDate != nil {
-				currentBirthDate = client.BirthDate.Format("2006-01-02")
+			if entity.BirthDate != nil {
+				currentBirthDate = entity.BirthDate.Format("2006-01-02")
 			}
 			fmt.Printf("Current birth date: %s | New birth date (YYYY-MM-DD): ", currentBirthDate)
 			birthDateStr, _ := reader.ReadString('\n')
 			currentEmail := "-"
-			if client.Email != nil {
-				currentEmail = *client.Email
+			if entity.Email != nil {
+				currentEmail = *entity.Email
 			}
 			fmt.Printf("Current email: %s | New email: ", currentEmail)
 			email, _ := reader.ReadString('\n')
 			currentPhone := "-"
-			if client.Phone != nil {
-				currentPhone = *client.Phone
+			if entity.Phone != nil {
+				currentPhone = *entity.Phone
 			}
 			fmt.Printf("Current phone: %s | New phone: ", currentPhone)
 			phone, _ := reader.ReadString('\n')
 			currentAddress := "-"
-			if client.Address != nil {
-				currentAddress = *client.Address
+			if entity.Address != nil {
+				currentAddress = *entity.Address
 			}
 			fmt.Printf("Current address: %s | New address: ", currentAddress)
 			address, _ := reader.ReadString('\n')
 			currentNotes := "-"
-			if client.Notes != nil {
-				currentNotes = *client.Notes
+			if entity.Notes != nil {
+				currentNotes = *entity.Notes
 			}
 			fmt.Printf("Current notes: %s | New notes: ", currentNotes)
 			notes, _ := reader.ReadString('\n')
 			currentContactPref := "-"
-			if client.ContactPreference != nil {
-				currentContactPref = *client.ContactPreference
+			if entity.ContactPreference != nil {
+				currentContactPref = *entity.ContactPreference
 			}
 			fmt.Printf("Current contact preference: %s | New contact preference: ", currentContactPref)
 			contactPref, _ := reader.ReadString('\n')
 			currentTags := "-"
-			if client.Tags != nil {
-				currentTags = *client.Tags
+			if entity.Tags != nil {
+				currentTags = *entity.Tags
 			}
 			fmt.Printf("Current tags: %s | New tags: ", currentTags)
 			tags, _ := reader.ReadString('\n')
@@ -678,17 +678,17 @@ func ClientSubmenu(clientID string,
 
 			// Handle required fields: empty keeps current value
 			if name == "" {
-				name = client.Name
+				name = entity.Name
 			}
-			client.Name = name
+			entity.Name = name
 
 			// Handle optional registration ID: "-" clears it, empty keeps it, other value updates it
 			regIDVal, regIDUpdate, regIDClear := HandleOptionalField(registrationID)
 			if regIDUpdate {
 				if regIDClear {
-					client.RegistrationID = nil
+					entity.RegistrationID = nil
 				} else {
-					client.RegistrationID = &regIDVal
+					entity.RegistrationID = &regIDVal
 				}
 			}
 
@@ -696,9 +696,9 @@ func ClientSubmenu(clientID string,
 			nicknameVal, nicknameUpdate, nicknameClear := HandleOptionalField(nickname)
 			if nicknameUpdate {
 				if nicknameClear {
-					client.Nickname = nil
+					entity.Nickname = nil
 				} else {
-					client.Nickname = &nicknameVal
+					entity.Nickname = &nicknameVal
 				}
 			}
 
@@ -706,13 +706,13 @@ func ClientSubmenu(clientID string,
 			birthDateVal, birthDateUpdate, birthDateClear := HandleOptionalField(birthDateStr)
 			if birthDateUpdate {
 				if birthDateClear {
-					client.BirthDate = nil
+					entity.BirthDate = nil
 				} else {
 					parsedDate, err := time.Parse("2006-01-02", birthDateVal)
 					if err != nil {
 						fmt.Printf("Warning: Invalid date format '%s'. Keeping previous value.\n", birthDateVal)
 					} else {
-						client.BirthDate = &parsedDate
+						entity.BirthDate = &parsedDate
 					}
 				}
 			}
@@ -721,9 +721,9 @@ func ClientSubmenu(clientID string,
 			emailVal, emailUpdate, emailClear := HandleOptionalField(email)
 			if emailUpdate {
 				if emailClear {
-					client.Email = nil
+					entity.Email = nil
 				} else {
-					client.Email = &emailVal
+					entity.Email = &emailVal
 				}
 			}
 
@@ -731,9 +731,9 @@ func ClientSubmenu(clientID string,
 			phoneVal, phoneUpdate, phoneClear := HandleOptionalField(phone)
 			if phoneUpdate {
 				if phoneClear {
-					client.Phone = nil
+					entity.Phone = nil
 				} else {
-					client.Phone = &phoneVal
+					entity.Phone = &phoneVal
 				}
 			}
 
@@ -741,9 +741,9 @@ func ClientSubmenu(clientID string,
 			addressVal, addressUpdate, addressClear := HandleOptionalField(address)
 			if addressUpdate {
 				if addressClear {
-					client.Address = nil
+					entity.Address = nil
 				} else {
-					client.Address = &addressVal
+					entity.Address = &addressVal
 				}
 			}
 
@@ -751,9 +751,9 @@ func ClientSubmenu(clientID string,
 			notesVal, notesUpdate, notesClear := HandleOptionalField(notes)
 			if notesUpdate {
 				if notesClear {
-					client.Notes = nil
+					entity.Notes = nil
 				} else {
-					client.Notes = &notesVal
+					entity.Notes = &notesVal
 				}
 			}
 
@@ -761,9 +761,9 @@ func ClientSubmenu(clientID string,
 			contactPrefVal, contactPrefUpdate, contactPrefClear := HandleOptionalField(contactPref)
 			if contactPrefUpdate {
 				if contactPrefClear {
-					client.ContactPreference = nil
+					entity.ContactPreference = nil
 				} else {
-					client.ContactPreference = &contactPrefVal
+					entity.ContactPreference = &contactPrefVal
 				}
 			}
 
@@ -771,12 +771,12 @@ func ClientSubmenu(clientID string,
 			tagsVal, tagsUpdate, tagsClear := HandleOptionalField(tags)
 			if tagsUpdate {
 				if tagsClear {
-					client.Tags = nil
+					entity.Tags = nil
 				} else {
-					client.Tags = &tagsVal
+					entity.Tags = &tagsVal
 				}
 			}
-			validationErrors := domain.ValidateClient(client)
+			validationErrors := domain.ValidateEntity(entity)
 			if !validationErrors.IsValid() {
 				fmt.Println("Validation errors:")
 				for _, err := range validationErrors {
@@ -785,35 +785,35 @@ func ClientSubmenu(clientID string,
 				waitForEnter()
 				continue
 			}
-			err = clientStore.UpdateClient(*client)
+			err = entityStore.UpdateEntity(*entity)
 			if err != nil {
 				fmt.Println("Error updating client:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Client updated.")
+				fmt.Println("Entity updated.")
 				waitForEnter()
 			}
 		case "2":
-			DependentsSubmenu(clientID, dependentStore)
+			DependentsSubmenu(entityID, subEntityStore)
 		case "3":
-			ContractsClientSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
+			ContractsClientSubmenu(entityID, agreementStore, subEntityStore, subcategoryStore, categoryStore)
 		case "4":
-			err := clientStore.ArchiveClient(clientID)
+			err := entityStore.ArchiveEntity(entityID)
 			if err != nil {
 				fmt.Println("Error archiving client:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Client archived.")
+				fmt.Println("Entity archived.")
 				waitForEnter()
 				return
 			}
 		case "5":
-			err := clientStore.DeleteClientPermanently(clientID)
+			err := entityStore.DeleteEntityPermanently(entityID)
 			if err != nil {
 				fmt.Println("Error deleting client:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Client permanently deleted.")
+				fmt.Println("Entity permanently deleted.")
 				waitForEnter()
 				return
 			}
@@ -823,13 +823,13 @@ func ClientSubmenu(clientID string,
 	}
 }
 
-// ContractsClientSubmenu handles contracts for a specific client
-func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore, dependentStore *store.DependentStore, lineStore *store.LineStore, categoryStore *store.CategoryStore) {
+// ContractsClientSubmenu handles agreements for a specific client
+func ContractsClientSubmenu(entityID string, agreementStore *store.AgreementStore, subEntityStore *store.SubEntityStore, subcategoryStore *store.SubcategoryStore, categoryStore *store.CategoryStore) {
 	for {
 		clearTerminal()
 		fmt.Println("\n--- Contracts ---")
 		fmt.Println("0 - Back/Cancel")
-		fmt.Println("1 - List contracts")
+		fmt.Println("1 - List agreements")
 		fmt.Println("2 - Create contract")
 		fmt.Println("3 - Edit contract")
 		fmt.Println("4 - Delete contract")
@@ -843,41 +843,41 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 			return
 		case "1":
 			clearTerminal()
-			contracts, err := contractStore.GetContractsByClientID(clientID)
+			agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
 			if err != nil {
-				fmt.Println("Error listing contracts:", err)
+				fmt.Println("Error listing agreements:", err)
 				waitForEnter()
 				continue
 			}
-			if len(contracts) == 0 {
-				fmt.Println("No contracts found for this client.")
+			if len(agreements) == 0 {
+				fmt.Println("No agreements found for this client.")
 				waitForEnter()
 				continue
 			}
-			fmt.Println("\n=== Contracts for Client ===")
-			for i, c := range contracts {
+			fmt.Println("\n=== Contracts for Entity ===")
+			for i, c := range agreements {
 				dependent := ""
-				if c.DependentID != nil {
-					dependent = *c.DependentID
+				if c.SubEntityID != nil {
+					dependent = *c.SubEntityID
 				}
 				status := c.Status()
-				fmt.Printf("%d - ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | Dependent: %s\n",
-					i+1, c.ID, c.Model, c.ProductKey, status, c.StartDate.Format("2006-01-02"), c.EndDate.Format("2006-01-02"), dependent)
+				fmt.Printf("%d - ID: %s | Model: %s | Product: %s | Status: %s | Start: %s | End: %s | SubEntity: %s\n",
+					i+1, c.ID, c.Model, c.ItemKey, status, c.StartDate.Format("2006-01-02"), c.EndDate.Format("2006-01-02"), dependent)
 			}
 			waitForEnter()
 		case "2":
-			ContractsSubmenu(clientID, contractStore, dependentStore, lineStore, categoryStore)
+			ContractsSubmenu(entityID, agreementStore, subEntityStore, subcategoryStore, categoryStore)
 		case "3":
 			clearTerminal()
-			contracts, err := contractStore.GetContractsByClientID(clientID)
-			if err != nil || len(contracts) == 0 {
-				fmt.Println("No contracts found for this client.")
+			agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
+			if err != nil || len(agreements) == 0 {
+				fmt.Println("No agreements found for this client.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a contract to edit by number:")
-			for i, c := range contracts {
-				fmt.Printf("%d - %s | %s\n", i+1, c.Model, c.ProductKey)
+			for i, c := range agreements {
+				fmt.Printf("%d - %s | %s\n", i+1, c.Model, c.ItemKey)
 			}
 			fmt.Print("Enter the number of the contract: ")
 			idxStr, _ := reader.ReadString('\n')
@@ -886,37 +886,37 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(contracts) {
+			if err != nil || idx < 1 || idx > len(agreements) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			contract := &contracts[idx-1]
-			fmt.Printf("Current model: %s | New model: ", contract.Model)
+			agreement := &agreements[idx-1]
+			fmt.Printf("Current model: %s | New model: ", agreement.Model)
 			name, _ := reader.ReadString('\n')
-			fmt.Printf("Current key: %s | New key: ", contract.ProductKey)
-			productKey, _ := reader.ReadString('\n')
-			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", contract.StartDate.Format("2006-01-02"))
+			fmt.Printf("Current key: %s | New key: ", agreement.ItemKey)
+			itemKey, _ := reader.ReadString('\n')
+			fmt.Printf("Current start date: %s | New date (YYYY-MM-DD): ", agreement.StartDate.Format("2006-01-02"))
 			startStr, _ := reader.ReadString('\n')
-			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", contract.EndDate.Format("2006-01-02"))
+			fmt.Printf("Current end date: %s | New date (YYYY-MM-DD): ", agreement.EndDate.Format("2006-01-02"))
 			endStr, _ := reader.ReadString('\n')
 
 			name = strings.TrimSpace(name)
-			productKey = strings.TrimSpace(productKey)
+			itemKey = strings.TrimSpace(itemKey)
 
 			if name == "" {
-				fmt.Println("Error: Contract model cannot be empty.")
+				fmt.Println("Error: Agreement model cannot be empty.")
 				waitForEnter()
 				continue
 			}
-			if productKey == "" {
+			if itemKey == "" {
 				fmt.Println("Error: Product key cannot be empty.")
 				waitForEnter()
 				continue
 			}
 
-			startDate := contract.StartDate
-			endDate := contract.EndDate
+			startDate := agreement.StartDate
+			endDate := agreement.EndDate
 			if strings.TrimSpace(startStr) != "" {
 				parsedStart, errStart := time.Parse("2006-01-02", strings.TrimSpace(startStr))
 				if errStart != nil {
@@ -936,29 +936,29 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 				endDate = &parsedEnd
 			}
 
-			contract.Model = name
-			contract.ProductKey = productKey
-			contract.StartDate = startDate
-			contract.EndDate = endDate
-			err = contractStore.UpdateContract(*contract)
+			agreement.Model = name
+			agreement.ItemKey = itemKey
+			agreement.StartDate = startDate
+			agreement.EndDate = endDate
+			err = agreementStore.UpdateAgreement(*agreement)
 			if err != nil {
 				fmt.Println("Error updating contract:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Contract updated.")
+				fmt.Println("Agreement updated.")
 				waitForEnter()
 			}
 		case "4":
 			clearTerminal()
-			contracts, err := contractStore.GetContractsByClientID(clientID)
-			if err != nil || len(contracts) == 0 {
-				fmt.Println("No contracts found for this client.")
+			agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
+			if err != nil || len(agreements) == 0 {
+				fmt.Println("No agreements found for this client.")
 				waitForEnter()
 				continue
 			}
 			fmt.Println("Select a contract to delete by number:")
-			for i, c := range contracts {
-				fmt.Printf("%d - %s | %s\n", i+1, c.Model, c.ProductKey)
+			for i, c := range agreements {
+				fmt.Printf("%d - %s | %s\n", i+1, c.Model, c.ItemKey)
 			}
 			fmt.Print("Enter the number of the contract: ")
 			idxStr, _ := reader.ReadString('\n')
@@ -967,18 +967,18 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 				continue
 			}
 			idx, err := strconv.Atoi(idxStr)
-			if err != nil || idx < 1 || idx > len(contracts) {
+			if err != nil || idx < 1 || idx > len(agreements) {
 				fmt.Println("Invalid selection.")
 				waitForEnter()
 				continue
 			}
-			contractID := contracts[idx-1].ID
-			err = contractStore.DeleteContract(contractID)
+			contractID := agreements[idx-1].ID
+			err = agreementStore.DeleteAgreement(contractID)
 			if err != nil {
 				fmt.Println("Error deleting contract:", err)
 				waitForEnter()
 			} else {
-				fmt.Println("Contract deleted.")
+				fmt.Println("Agreement deleted.")
 				waitForEnter()
 			}
 		default:
@@ -987,18 +987,18 @@ func ContractsClientSubmenu(clientID string, contractStore *store.ContractStore,
 	}
 }
 
-// displayDependentsList shows a compact list of dependents with essential information
-func displayDependentsList(dependents []domain.Dependent) {
+// displayDependentsList shows a compact list of sub_entities with essential information
+func displayDependentsList(sub_entities []domain.SubEntity) {
 	fmt.Println("\n=== Dependents ===")
-	if len(dependents) == 0 {
-		fmt.Println("No dependents found.")
+	if len(sub_entities) == 0 {
+		fmt.Println("No sub_entities found.")
 		return
 	}
 
 	fmt.Printf("\n%-4s | %-35s | %-40s | %-15s\n", "#", "Name", "Description", "Status")
 	fmt.Println(strings.Repeat("-", 100))
 
-	for i, d := range dependents {
+	for i, d := range sub_entities {
 		description := "-"
 		if d.Description != nil && *d.Description != "" {
 			description = *d.Description
@@ -1017,12 +1017,12 @@ func displayDependentsList(dependents []domain.Dependent) {
 	fmt.Println()
 }
 
-// filterDependents filters dependents by name, email, or description
-func filterDependents(dependents []domain.Dependent, searchTerm string) []domain.Dependent {
-	var filtered []domain.Dependent
+// filterDependents filters sub_entities by name, email, or description
+func filterDependents(sub_entities []domain.SubEntity, searchTerm string) []domain.SubEntity {
+	var filtered []domain.SubEntity
 	searchTerm = normalizeString(searchTerm)
 
-	for _, d := range dependents {
+	for _, d := range sub_entities {
 		if strings.Contains(normalizeString(d.Name), searchTerm) {
 			filtered = append(filtered, d)
 			continue

@@ -50,11 +50,11 @@ type InitializeAdminResponse struct {
 func isDatabaseEmpty(db *sql.DB) (bool, error) {
 	tables := []string{
 		"users",
-		"clients",
-		"dependents",
+		"entities",
+		"sub_entities",
 		"categories",
-		"lines",
-		"contracts",
+		"subcategories",
+		"agreements",
 		"audit_logs",
 	}
 
@@ -188,11 +188,11 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 	// Reinitialize server stores with the database connection
 	// This makes the server fully operational after admin creation
 	s.userStore = store.NewUserStore(db)
-	s.contractStore = store.NewContractStore(db)
-	s.clientStore = store.NewClientStore(db)
-	s.dependentStore = store.NewDependentStore(db)
+	s.agreementStore = store.NewAgreementStore(db)
+	s.entityStore = store.NewEntityStore(db)
+	s.subEntityStore = store.NewSubEntityStore(db)
 	s.categoryStore = store.NewCategoryStore(db)
-	s.lineStore = store.NewLineStore(db)
+	s.subcategoryStore = store.NewSubcategoryStore(db)
 	s.auditStore = store.NewAuditStore(db)
 
 	log.Printf("✅ Server stores reinitialized with database connection")

@@ -62,7 +62,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             // Load all lines for all categories for search functionality
             const allLinesPromises = data.map((category) =>
                 categoriesApi
-                    .loadLines(apiUrl, token, category.id, onTokenExpired)
+                    .loadSubcategories(apiUrl, token, category.id, onTokenExpired)
                     .catch(() => []),
             );
             const allLinesResults = await Promise.all(allLinesPromises);
@@ -75,9 +75,9 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const loadLines = async (categoryId) => {
+    const loadSubcategories = async (categoryId) => {
         try {
-            const data = await categoriesApi.loadLines(
+            const data = await categoriesApi.loadSubcategories(
                 apiUrl,
                 token,
                 categoryId,
@@ -208,8 +208,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                 line: lineForm.line,
                 category_id: selectedCategory.id,
             };
-            await categoriesApi.createLine(apiUrl, token, lineData, onTokenExpired);
-            await loadLines(selectedCategory.id);
+            await categoriesApi.createSubcategory(apiUrl, token, lineData, onTokenExpired);
+            await loadSubcategories(selectedCategory.id);
             closeLineModal();
         } catch (err) {
             setLineModalError(err.message);
@@ -219,14 +219,14 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const handleUpdateLine = async () => {
         setLineModalError("");
         try {
-            await categoriesApi.updateLine(
+            await categoriesApi.updateSubcategory(
                 apiUrl,
                 token,
                 selectedLine.id,
                 lineForm,
                 onTokenExpired,
             );
-            await loadLines(selectedCategory.id);
+            await loadSubcategories(selectedCategory.id);
             closeLineModal();
         } catch (err) {
             setLineModalError(err.message);
@@ -242,8 +242,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.deleteLine(apiUrl, token, lineId, onTokenExpired);
-            await loadLines(selectedCategory.id);
+            await categoriesApi.deleteSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
         }
@@ -258,14 +258,14 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.archiveLine(apiUrl, token, lineId, onTokenExpired);
-            await loadLines(selectedCategory.id);
+            await categoriesApi.archiveSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const handleUnarchiveLine = async (lineId, lineName) => {
+    const handleUnarchiveSubcategory = async (lineId, lineName) => {
         if (
             !window.confirm(
                 `Tem certeza que deseja desarquivar a linha "${lineName}"?`,
@@ -274,8 +274,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.unarchiveLine(apiUrl, token, lineId, onTokenExpired);
-            await loadLines(selectedCategory.id);
+            await categoriesApi.unarchiveSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
         }
@@ -342,7 +342,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const selectCategory = async (category) => {
         setSelectedCategory(category);
-        await loadLines(category.id);
+        await loadSubcategories(category.id);
     };
 
     function compareAlphaNum(a, b) {
@@ -447,7 +447,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                     onEditLine={openEditLineModal}
                     onDeleteLine={handleDeleteLine}
                     onArchiveLine={handleArchiveLine}
-                    onUnarchiveLine={handleUnarchiveLine}
+                    onUnarchiveSubcategory={handleUnarchiveSubcategory}
                     onClose={() => setSelectedCategory(null)}
                 />
             )}

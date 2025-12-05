@@ -25,7 +25,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestCreateLine(t *testing.T) {
+func TestCreateSubcategory(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -47,37 +47,37 @@ func TestCreateLine(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		lineData    domain.Line
+		lineData    domain.Subcategory
 		expectError bool
 	}{
 		{
 			name: "sucesso - criação normal",
-			lineData: domain.Line{
-				Line:       "Test Line",
+			lineData: domain.Subcategory{
+				Name:       "Test Subcategory",
 				CategoryID: categoryID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - nome vazio",
-			lineData: domain.Line{
-				Line:       "",
+			lineData: domain.Subcategory{
+				Name:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria não existe",
-			lineData: domain.Line{
-				Line:       "Test Line",
+			lineData: domain.Subcategory{
+				Name:       "Test Subcategory",
 				CategoryID: "non-existent-category",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria vazia",
-			lineData: domain.Line{
-				Line:       "Test Line",
+			lineData: domain.Subcategory{
+				Name:       "Test Subcategory",
 				CategoryID: "",
 			},
 			expectError: true,
@@ -98,8 +98,8 @@ func TestCreateLine(t *testing.T) {
 				tt.lineData.CategoryID = categoryID
 			}
 
-			lineStore := NewLineStore(db)
-			id, err := lineStore.CreateLine(tt.lineData)
+			subcategoryStore := NewSubcategoryStore(db)
+			id, err := subcategoryStore.CreateSubcategory(tt.lineData)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -114,7 +114,7 @@ func TestCreateLine(t *testing.T) {
 	}
 }
 
-func TestGetLineByID(t *testing.T) {
+func TestGetSubcategoryByID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -135,7 +135,7 @@ func TestGetLineByID(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestGetLineByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - tipo encontrado",
-			id:          lineID,
+			id:          subcategoryID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -168,8 +168,8 @@ func TestGetLineByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lineStore := NewLineStore(db)
-			lineData, err := lineStore.GetLineByID(tt.id)
+			subcategoryStore := NewSubcategoryStore(db)
+			lineData, err := subcategoryStore.GetSubcategoryByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -187,7 +187,7 @@ func TestGetLineByID(t *testing.T) {
 	}
 }
 
-func TestGetLinesByCategoryID(t *testing.T) {
+func TestGetSubcategoriesByCategoryID(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -207,10 +207,10 @@ func TestGetLinesByCategoryID(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	// Insert test lines
-	testLines := []string{"Line 1", "Line 2", "Line 3"}
+	// Insert test subcategories
+	testLines := []string{"Subcategory 1", "Subcategory 2", "Subcategory 3"}
 	for _, name := range testLines {
-		_, err := InsertTestLine(db, name, categoryID)
+		_, err := InsertTestSubcategory(db, name, categoryID)
 		if err != nil {
 			t.Fatalf("Failed to insert test line: %v", err)
 		}
@@ -244,8 +244,8 @@ func TestGetLinesByCategoryID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lineStore := NewLineStore(db)
-			lines, err := lineStore.GetLinesByCategoryID(tt.categoryID)
+			subcategoryStore := NewSubcategoryStore(db)
+			subcategories, err := subcategoryStore.GetSubcategoriesByCategoryID(tt.categoryID)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -253,14 +253,14 @@ func TestGetLinesByCategoryID(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if !tt.expectError && len(lines) != tt.expectCount {
-				t.Errorf("Expected %d lines but got %d", tt.expectCount, len(lines))
+			if !tt.expectError && len(subcategories) != tt.expectCount {
+				t.Errorf("Expected %d subcategories but got %d", tt.expectCount, len(subcategories))
 			}
 		})
 	}
 }
 
-func TestUpdateLine(t *testing.T) {
+func TestUpdateSubcategory(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -281,48 +281,48 @@ func TestUpdateLine(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		lineData    domain.Line
+		lineData    domain.Subcategory
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
-			lineData: domain.Line{
-				ID:         lineID,
-				Line:       "Updated Line",
+			lineData: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Updated Subcategory",
 				CategoryID: categoryID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - id vazio",
-			lineData: domain.Line{
+			lineData: domain.Subcategory{
 				ID:         "",
-				Line:       "Updated Line",
+				Name:       "Updated Subcategory",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
-			lineData: domain.Line{
-				ID:         lineID,
-				Line:       "",
+			lineData: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "",
 				CategoryID: categoryID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - categoria inválida",
-			lineData: domain.Line{
-				ID:         lineID,
-				Line:       "Updated Line",
+			lineData: domain.Subcategory{
+				ID:         subcategoryID,
+				Name:       "Updated Subcategory",
 				CategoryID: "non-existent-category",
 			},
 			expectError: true,
@@ -331,8 +331,8 @@ func TestUpdateLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lineStore := NewLineStore(db)
-			err := lineStore.UpdateLine(tt.lineData)
+			subcategoryStore := NewSubcategoryStore(db)
+			err := subcategoryStore.UpdateSubcategory(tt.lineData)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -344,13 +344,13 @@ func TestUpdateLine(t *testing.T) {
 			if !tt.expectError {
 				// Verify update
 				var name, categoryID string
-				err = db.QueryRow("SELECT name, category_id FROM lines WHERE id = $1", tt.lineData.ID).
+				err = db.QueryRow("SELECT name, category_id FROM subcategories WHERE id = $1", tt.lineData.ID).
 					Scan(&name, &categoryID)
 				if err != nil {
 					t.Errorf("Failed to query updated line: %v", err)
 				}
-				if name != tt.lineData.Line {
-					t.Errorf("Expected type %q but got %q", tt.lineData.Line, name)
+				if name != tt.lineData.Name {
+					t.Errorf("Expected type %q but got %q", tt.lineData.Name, name)
 				}
 				if categoryID != tt.lineData.CategoryID {
 					t.Errorf("Expected category_id %q but got %q", tt.lineData.CategoryID, categoryID)
@@ -360,7 +360,7 @@ func TestUpdateLine(t *testing.T) {
 	}
 }
 
-func TestDeleteLine(t *testing.T) {
+func TestDeleteSubcategory(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -381,7 +381,7 @@ func TestDeleteLine(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestDeleteLine(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          lineID,
+			id:          subcategoryID,
 			expectError: false,
 		},
 		{
@@ -410,8 +410,8 @@ func TestDeleteLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lineStore := NewLineStore(db)
-			err := lineStore.DeleteLine(tt.id)
+			subcategoryStore := NewSubcategoryStore(db)
+			err := subcategoryStore.DeleteSubcategory(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -423,7 +423,7 @@ func TestDeleteLine(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted line: %v", err)
 				}

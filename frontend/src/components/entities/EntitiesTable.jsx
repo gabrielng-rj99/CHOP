@@ -17,18 +17,18 @@
  */
 
 import React from "react";
-import "./ClientsTable.css";
+import "./EntitiesTable.css";
 import BranchIcon from "../../assets/icons/branch.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
 
-export default function ClientsTable({
+export default function EntitiesTable({
     filteredClients,
     openEditModal,
-    openDependentsPanel,
-    archiveClient,
-    unarchiveClient,
+    openSubEntitiesPanel,
+    archiveEntity,
+    unarchiveEntity,
 }) {
     if (filteredClients.length === 0) {
         return (
@@ -53,7 +53,7 @@ export default function ClientsTable({
                 {filteredClients.map((client) => {
                     const isArchived = !!client.archived_at;
                     const hasActiveContracts =
-                        (client.active_contracts || 0) > 0;
+                        (client.active_agreements || 0) > 0;
                     const effectiveStatus = hasActiveContracts
                         ? "ativo"
                         : client.status;
@@ -78,13 +78,13 @@ export default function ClientsTable({
                                 </span>
                             </td>
                             <td className="contracts-count">
-                                {client.active_contracts || 0}
+                                {client.active_agreements || 0}
                             </td>
                             <td className="contracts-count">
-                                {client.expired_contracts || 0}
+                                {client.expired_agreements || 0}
                             </td>
                             <td className="contracts-count">
-                                {client.archived_contracts || 0}
+                                {client.archived_agreements || 0}
                             </td>
                             <td className="actions">
                                 <div className="clients-table-actions">
@@ -105,7 +105,7 @@ export default function ClientsTable({
                                     </button>
                                     <button
                                         onClick={() =>
-                                            openDependentsPanel(client)
+                                            openSubEntitiesPanel(client)
                                         }
                                         className="clients-table-icon-button"
                                         title="Filiais/Dependentes"
@@ -123,7 +123,7 @@ export default function ClientsTable({
                                     {isArchived ? (
                                         <button
                                             onClick={() =>
-                                                unarchiveClient(client.id)
+                                                unarchiveEntity(client.id)
                                             }
                                             className="clients-table-icon-button"
                                             title="Desarquivar"
@@ -141,7 +141,7 @@ export default function ClientsTable({
                                     ) : (
                                         <button
                                             onClick={() =>
-                                                archiveClient(client.id)
+                                                archiveEntity(client.id)
                                             }
                                             className="clients-table-icon-button"
                                             title="Arquivar"

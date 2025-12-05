@@ -63,7 +63,7 @@ func setupClientTestDB(t *testing.T) *sql.DB {
 // BASIC CRUD TESTS
 // ============================================================================
 
-func TestCreateClient(t *testing.T) {
+func TestCreateEntity(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
@@ -72,13 +72,13 @@ func TestCreateClient(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		client      domain.Client
+		client      domain.Entity
 		expectError bool
 	}{
 		{
 			name: "sucesso - criação normal",
-			client: domain.Client{
-				Name:           "Test Client",
+			client: domain.Entity{
+				Name:           "Test Entity",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
 				Email:          stringPtr("test@example.com"),
@@ -88,8 +88,8 @@ func TestCreateClient(t *testing.T) {
 		},
 		{
 			name: "erro - CNPJ duplicado",
-			client: domain.Client{
-				Name:           "Another Client",
+			client: domain.Entity{
+				Name:           "Another Entity",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
 				Email:          stringPtr("another@example.com"),
@@ -99,8 +99,8 @@ func TestCreateClient(t *testing.T) {
 		},
 		{
 			name: "sucesso - CNPJ vazio (opcional)",
-			client: domain.Client{
-				Name:           "Test Client Without CNPJ",
+			client: domain.Entity{
+				Name:           "Test Entity Without CNPJ",
 				RegistrationID: nil,
 				Status:         "ativo",
 				Email:          stringPtr("test@example.com"),
@@ -110,7 +110,7 @@ func TestCreateClient(t *testing.T) {
 		},
 		{
 			name: "erro - nome vazio",
-			client: domain.Client{
+			client: domain.Entity{
 				Name:           "",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -123,9 +123,9 @@ func TestCreateClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clientStore := NewClientStore(db)
+			entityStore := NewEntityStore(db)
 
-			id, err := clientStore.CreateClient(tt.client)
+			id, err := entityStore.CreateEntity(tt.client)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -145,16 +145,16 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	// Test 1: Create client with name "Test Company" and registration_id
 	regID1 := "45.723.174/0001-10"
-	client1 := domain.Client{
+	client1 := domain.Entity{
 		Name:           "Test Company",
 		RegistrationID: &regID1,
 		Status:         "ativo",
 	}
-	id1, err := clientStore.CreateClient(client1)
+	id1, err := entityStore.CreateEntity(client1)
 	if err != nil {
 		t.Fatalf("Failed to create first client with registration_id: %v", err)
 	}
@@ -164,12 +164,12 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 
 	// Test 2: Create another client with SAME name but DIFFERENT registration_id - should succeed
 	regID2 := "11.222.333/0001-81"
-	client2 := domain.Client{
+	client2 := domain.Entity{
 		Name:           "Test Company",
 		RegistrationID: &regID2,
 		Status:         "ativo",
 	}
-	id2, err := clientStore.CreateClient(client2)
+	id2, err := entityStore.CreateEntity(client2)
 	if err != nil {
 		t.Errorf("Should allow duplicate name when both have different registration_id, but got error: %v", err)
 	}
@@ -178,12 +178,12 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 	}
 
 	// Test 3: Create client with name "Another Company" WITHOUT registration_id
-	client3 := domain.Client{
+	client3 := domain.Entity{
 		Name:           "Another Company",
 		RegistrationID: nil,
 		Status:         "ativo",
 	}
-	id3, err := clientStore.CreateClient(client3)
+	id3, err := entityStore.CreateEntity(client3)
 	if err != nil {
 		t.Fatalf("Failed to create client without registration_id: %v", err)
 	}
@@ -192,12 +192,12 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 	}
 
 	// Test 4: Try to create another client with SAME name WITHOUT registration_id - should fail
-	client4 := domain.Client{
+	client4 := domain.Entity{
 		Name:           "Another Company",
 		RegistrationID: nil,
 		Status:         "ativo",
 	}
-	_, err = clientStore.CreateClient(client4)
+	_, err = entityStore.CreateEntity(client4)
 	if err == nil {
 		t.Error("Should NOT allow duplicate name when both have NULL registration_id")
 	}
@@ -208,12 +208,12 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 	// Test 5: Create client with name "Another Company" WITH registration_id - should succeed
 	// (same name as client3, but this one has registration_id)
 	regID5 := "33.444.555/0001-81"
-	client5 := domain.Client{
+	client5 := domain.Entity{
 		Name:           "Another Company",
 		RegistrationID: &regID5,
 		Status:         "ativo",
 	}
-	id5, err := clientStore.CreateClient(client5)
+	id5, err := entityStore.CreateEntity(client5)
 	if err != nil {
 		t.Errorf("Should allow same name when one has NULL registration_id and other has registration_id, but got error: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestClientNameUniquenessWithRegistrationID(t *testing.T) {
 	}
 }
 
-func TestCreateClientWithFormatStandardization(t *testing.T) {
+func TestCreateEntityWithFormatStandardization(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
@@ -268,15 +268,15 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 				t.Fatalf("Failed to clear tables: %v", err)
 			}
 
-			clientStore := NewClientStore(db)
+			entityStore := NewEntityStore(db)
 
-			client := domain.Client{
-				Name:           "Test Client " + tt.name,
+			client := domain.Entity{
+				Name:           "Test Entity " + tt.name,
 				RegistrationID: &tt.inputRegistration,
 				Status:         "ativo",
 			}
 
-			id, err := clientStore.CreateClient(client)
+			id, err := entityStore.CreateEntity(client)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -286,7 +286,7 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 			}
 
 			if !tt.expectError {
-				retrievedClient, err := clientStore.GetClientByID(id)
+				retrievedClient, err := entityStore.GetEntityByID(id)
 				if err != nil {
 					t.Errorf("Failed to retrieve client: %v", err)
 				}
@@ -306,7 +306,7 @@ func TestCreateClientWithFormatStandardization(t *testing.T) {
 	}
 }
 
-func TestGetClientByID(t *testing.T) {
+func TestGetEntityByID(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 
@@ -315,7 +315,7 @@ func TestGetClientByID(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestGetClientByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - empresa encontrada",
-			id:          clientID,
+			id:          entityID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -348,8 +348,8 @@ func TestGetClientByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clientStore := NewClientStore(db)
-			client, err := clientStore.GetClientByID(tt.id)
+			entityStore := NewEntityStore(db)
+			client, err := entityStore.GetEntityByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -367,14 +367,14 @@ func TestGetClientByID(t *testing.T) {
 	}
 }
 
-func TestArchiveClient(t *testing.T) {
+func TestArchiveEntity(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "11.111.111/0001-11")
+	entityID, err := InsertTestEntity(db, "Test Entity", "11.111.111/0001-11")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestArchiveClient(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - arquivamento normal",
-			id:          clientID,
+			id:          entityID,
 			expectError: false,
 		},
 		{
@@ -403,8 +403,8 @@ func TestArchiveClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clientStore := NewClientStore(db)
-			err := clientStore.ArchiveClient(tt.id)
+			entityStore := NewEntityStore(db)
+			err := entityStore.ArchiveEntity(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -415,7 +415,7 @@ func TestArchiveClient(t *testing.T) {
 
 			if !tt.expectError {
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = $1", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM entities WHERE id = $1", tt.id).Scan(&archivedAt)
 				if err != nil {
 					t.Errorf("Failed to query archived client: %v", err)
 				}
@@ -427,19 +427,19 @@ func TestArchiveClient(t *testing.T) {
 	}
 }
 
-func TestUnarchiveClient(t *testing.T) {
+func TestUnarchiveEntity(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "22.222.222/0002-22")
+	entityID, err := InsertTestEntity(db, "Test Entity", "22.222.222/0002-22")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id = $2", time.Now(), clientID)
+	_, err = db.Exec("UPDATE entities SET archived_at = $1 WHERE id = $2", time.Now(), entityID)
 	if err != nil {
 		t.Fatalf("Failed to archive test client: %v", err)
 	}
@@ -451,7 +451,7 @@ func TestUnarchiveClient(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - desarquivamento normal",
-			id:          clientID,
+			id:          entityID,
 			expectError: false,
 		},
 		{
@@ -468,8 +468,8 @@ func TestUnarchiveClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clientStore := NewClientStore(db)
-			err := clientStore.UnarchiveClient(tt.id)
+			entityStore := NewEntityStore(db)
+			err := entityStore.UnarchiveEntity(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -480,7 +480,7 @@ func TestUnarchiveClient(t *testing.T) {
 
 			if !tt.expectError {
 				var archivedAt *time.Time
-				err = db.QueryRow("SELECT archived_at FROM clients WHERE id = $1", tt.id).Scan(&archivedAt)
+				err = db.QueryRow("SELECT archived_at FROM entities WHERE id = $1", tt.id).Scan(&archivedAt)
 				if err != nil {
 					t.Errorf("Failed to query unarchived client: %v", err)
 				}
@@ -492,14 +492,14 @@ func TestUnarchiveClient(t *testing.T) {
 	}
 }
 
-func TestDeleteClientPermanently(t *testing.T) {
+func TestDeleteEntityPermanently(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "33.333.333/0003-33")
+	entityID, err := InsertTestEntity(db, "Test Entity", "33.333.333/0003-33")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -511,7 +511,7 @@ func TestDeleteClientPermanently(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          clientID,
+			id:          entityID,
 			expectError: false,
 		},
 		{
@@ -528,8 +528,8 @@ func TestDeleteClientPermanently(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clientStore := NewClientStore(db)
-			err := clientStore.DeleteClientPermanently(tt.id)
+			entityStore := NewEntityStore(db)
+			err := entityStore.DeleteEntityPermanently(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -540,7 +540,7 @@ func TestDeleteClientPermanently(t *testing.T) {
 
 			if !tt.expectError {
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM entities WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted client: %v", err)
 				}
@@ -556,7 +556,7 @@ func TestDeleteClientPermanently(t *testing.T) {
 // COMPLEX SCENARIOS
 // ============================================================================
 
-func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
+func TestArchiveAndDeleteEntityWithPermanentContract(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
@@ -568,42 +568,42 @@ func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Linha Permanente", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Linha Permanente", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Empresa Permanente", "99.999.999/0001-99")
+	entityID, err := InsertTestEntity(db, "Empresa Permanente", "99.999.999/0001-99")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
 	startDate := timePtr(time.Now())
 	endDate := timePtr(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
-	contractID, err := InsertTestContract(db, "Licença Permanente", "KEY-PERM", startDate, endDate, lineID, clientID, nil)
+	contractID, err := InsertTestAgreement(db, "Licença Permanente", "KEY-PERM", startDate, endDate, subcategoryID, entityID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert permanent contract: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	err = clientStore.DeleteClientPermanently(clientID)
+	err = entityStore.DeleteEntityPermanently(entityID)
 	if err == nil {
 		t.Error("Expected error when deleting client with permanent contract, got none")
 	}
 
-	err = clientStore.ArchiveClient(clientID)
+	err = entityStore.ArchiveEntity(entityID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
 
-	err = clientStore.DeleteClientPermanently(clientID)
+	err = entityStore.DeleteEntityPermanently(entityID)
 	if err != nil {
 		t.Fatalf("Failed to delete client with archived permanent contract: %v", err)
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", contractID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM agreements WHERE id = $1", contractID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query contract after client deletion: %v", err)
 	}
@@ -612,11 +612,11 @@ func TestArchiveAndDeleteClientWithPermanentContract(t *testing.T) {
 	}
 }
 
-func TestDeleteClientWithActiveContracts(t *testing.T) {
+func TestDeleteEntityWithActiveAgreements(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 
-	clientID, err := InsertTestClient(db, "Empresa Ativa", "12.345.678/0001-90")
+	entityID, err := InsertTestEntity(db, "Empresa Ativa", "12.345.678/0001-90")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -625,51 +625,51 @@ func TestDeleteClientWithActiveContracts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
-	lineID, err := InsertTestLine(db, "Linha Teste", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Linha Teste", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
-	contractStore := NewContractStore(db)
+	agreementStore := NewAgreementStore(db)
 	startDate := timePtr(time.Now())
 	endDate := timePtr(time.Now().AddDate(1, 0, 0))
-	contract := domain.Contract{
-		Model:      "Test Contract",
-		ProductKey: "TEST-KEY-001",
+	contract := domain.Agreement{
+		Model:      "Test Agreement",
+		ItemKey: "TEST-KEY-001",
 		StartDate:  startDate,
 		EndDate:    endDate,
-		LineID:     lineID,
-		ClientID:   clientID,
+		SubcategoryID:     subcategoryID,
+		EntityID:   entityID,
 	}
-	_, err = contractStore.CreateContract(contract)
+	_, err = agreementStore.CreateAgreement(contract)
 	if err != nil {
 		t.Fatalf("Failed to create active contract: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
-	err = clientStore.DeleteClientPermanently(clientID)
+	entityStore := NewEntityStore(db)
+	err = entityStore.DeleteEntityPermanently(entityID)
 	if err == nil {
-		t.Error("Expected error when deleting client with active contracts, got none")
+		t.Error("Expected error when deleting client with active agreements, got none")
 	}
 }
 
 // ============================================================================
-// CRITICAL TESTS: GetClientNameByID, UpdateClient, GetAllClients, GetArchivedClients
+// CRITICAL TESTS: GetEntityNameByID, UpdateEntity, GetAllEntities, GetArchivedEntities
 // ============================================================================
 
-func TestGetClientNameByID(t *testing.T) {
+func TestGetEntityNameByID(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	tests := []struct {
 		name         string
@@ -679,9 +679,9 @@ func TestGetClientNameByID(t *testing.T) {
 	}{
 		{
 			name:         "success - get client name",
-			id:           clientID,
+			id:           entityID,
 			expectError:  false,
-			expectedName: "Test Client",
+			expectedName: "Test Entity",
 		},
 		{
 			name:        "error - non-existent client",
@@ -697,7 +697,7 @@ func TestGetClientNameByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			name, err := clientStore.GetClientNameByID(tt.id)
+			name, err := entityStore.GetEntityNameByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -712,30 +712,30 @@ func TestGetClientNameByID(t *testing.T) {
 	}
 }
 
-func TestUpdateClientCritical(t *testing.T) {
+func TestUpdateEntityCritical(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientID, err := InsertTestClient(db, "Original Client", "55.555.555/0005-55")
+	entityID, err := InsertTestEntity(db, "Original Entity", "55.555.555/0005-55")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	tests := []struct {
 		name        string
-		client      domain.Client
+		client      domain.Entity
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "success - update client",
-			client: domain.Client{
-				ID:             clientID,
+			client: domain.Entity{
+				ID:             entityID,
 				Name:           "Updated Name",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -744,7 +744,7 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "error - empty id",
-			client: domain.Client{
+			client: domain.Entity{
 				ID:             "",
 				Name:           "Test",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
@@ -755,8 +755,8 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "error - empty name",
-			client: domain.Client{
-				ID:             clientID,
+			client: domain.Entity{
+				ID:             entityID,
 				Name:           "",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -766,8 +766,8 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "error - name too long",
-			client: domain.Client{
-				ID:             clientID,
+			client: domain.Entity{
+				ID:             entityID,
 				Name:           string(make([]byte, 256)),
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -777,8 +777,8 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "success - empty registration ID (opcional)",
-			client: domain.Client{
-				ID:             clientID,
+			client: domain.Entity{
+				ID:             entityID,
 				Name:           "Test Without Reg",
 				RegistrationID: nil,
 				Status:         "ativo",
@@ -787,8 +787,8 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "error - invalid registration ID",
-			client: domain.Client{
-				ID:             clientID,
+			client: domain.Entity{
+				ID:             entityID,
 				Name:           "Test",
 				RegistrationID: stringPtr("invalid"),
 				Status:         "ativo",
@@ -798,7 +798,7 @@ func TestUpdateClientCritical(t *testing.T) {
 		},
 		{
 			name: "error - non-existent client",
-			client: domain.Client{
+			client: domain.Entity{
 				ID:             "non-existent-id",
 				Name:           "Test",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
@@ -811,7 +811,7 @@ func TestUpdateClientCritical(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := clientStore.UpdateClient(tt.client)
+			err := entityStore.UpdateEntity(tt.client)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -823,97 +823,97 @@ func TestUpdateClientCritical(t *testing.T) {
 	}
 }
 
-func TestGetAllClientsCritical(t *testing.T) {
+func TestGetAllEntitiesCritical(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	client1ID, err := InsertTestClient(db, "Client 1", "66.666.666/0006-66")
+	client1ID, err := InsertTestEntity(db, "Entity 1", "66.666.666/0006-66")
 	if err != nil {
 		t.Fatalf("Failed to insert client 1: %v", err)
 	}
 
-	client2ID, err := InsertTestClient(db, "Client 2", "99.999.999/0009-99")
+	client2ID, err := InsertTestEntity(db, "Entity 2", "99.999.999/0009-99")
 	if err != nil {
 		t.Fatalf("Failed to insert client 2: %v", err)
 	}
 
 	now := time.Now()
-	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id = $2", now, client2ID)
+	_, err = db.Exec("UPDATE entities SET archived_at = $1 WHERE id = $2", now, client2ID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
 
-	clients, err := clientStore.GetAllClients()
+	entities, err := entityStore.GetAllEntities()
 	if err != nil {
-		t.Fatalf("Failed to get all clients: %v", err)
+		t.Fatalf("Failed to get all entities: %v", err)
 	}
 
-	if len(clients) != 1 {
-		t.Errorf("Expected 1 non-archived client, got %d", len(clients))
+	if len(entities) != 1 {
+		t.Errorf("Expected 1 non-archived client, got %d", len(entities))
 	}
 
-	if len(clients) > 0 && clients[0].ID != client1ID {
-		t.Errorf("Expected client ID '%s', got '%s'", client1ID, clients[0].ID)
+	if len(entities) > 0 && entities[0].ID != client1ID {
+		t.Errorf("Expected entity ID '%s', got '%s'", client1ID, entities[0].ID)
 	}
 
-	if len(clients) > 0 && clients[0].ArchivedAt != nil {
+	if len(entities) > 0 && entities[0].ArchivedAt != nil {
 		t.Error("Expected archived_at to be nil for non-archived client")
 	}
 }
 
-func TestGetArchivedClientsCritical(t *testing.T) {
+func TestGetArchivedEntitiesCritical(t *testing.T) {
 	db := setupClientTest(t)
 	defer CloseDB(db)
 	if err := ClearTables(db); err != nil {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	client1ID, err := InsertTestClient(db, "Client 1", "88.888.888/0008-88")
+	client1ID, err := InsertTestEntity(db, "Entity 1", "88.888.888/0008-88")
 	if err != nil {
 		t.Fatalf("Failed to insert client 1: %v", err)
 	}
 
-	client2ID, err := InsertTestClient(db, "Client 2", "11.222.333/0001-81")
+	client2ID, err := InsertTestEntity(db, "Entity 2", "11.222.333/0001-81")
 	if err != nil {
 		t.Fatalf("Failed to insert client 2: %v", err)
 	}
 
 	now := time.Now()
-	_, err = db.Exec("UPDATE clients SET archived_at = $1 WHERE id IN ($2, $3)", now, client1ID, client2ID)
+	_, err = db.Exec("UPDATE entities SET archived_at = $1 WHERE id IN ($2, $3)", now, client1ID, client2ID)
 	if err != nil {
-		t.Fatalf("Failed to archive clients: %v", err)
+		t.Fatalf("Failed to archive entities: %v", err)
 	}
 
-	clients, err := clientStore.GetArchivedClients()
+	entities, err := entityStore.GetArchivedEntities()
 	if err != nil {
-		t.Fatalf("Failed to get archived clients: %v", err)
+		t.Fatalf("Failed to get archived entities: %v", err)
 	}
 
-	if len(clients) != 2 {
-		t.Errorf("Expected 2 archived clients, got %d", len(clients))
+	if len(entities) != 2 {
+		t.Errorf("Expected 2 archived entities, got %d", len(entities))
 	}
 
-	for _, client := range clients {
-		if client.ArchivedAt == nil {
+	for _, entity := range entities {
+		if entity.ArchivedAt == nil {
 			t.Error("Expected archived_at to be set for archived client")
 		}
 	}
 }
 
-func TestDeleteClientPermanentlyWithActiveContracts(t *testing.T) {
+func TestDeleteEntityPermanentlyWithActiveAgreements(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -923,24 +923,24 @@ func TestDeleteClientPermanentlyWithActiveContracts(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	now := time.Now()
-	_, err = InsertTestContract(db, "Expiring Contract", "KEY-EXP-001", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), lineID, clientID, nil)
+	_, err = InsertTestAgreement(db, "Expiring Agreement", "KEY-EXP-001", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), subcategoryID, entityID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test contract: %v", err)
 	}
 
-	err = clientStore.DeleteClientPermanently(clientID)
+	err = entityStore.DeleteEntityPermanently(entityID)
 	if err == nil {
-		t.Error("Expected error deleting client with active contracts")
+		t.Error("Expected error deleting client with active agreements")
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", clientID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM entities WHERE id = $1", entityID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query client: %v", err)
 	}
@@ -949,13 +949,13 @@ func TestDeleteClientPermanentlyWithActiveContracts(t *testing.T) {
 	}
 }
 
-func TestDeleteClientPermanentlyWithExpiredContracts(t *testing.T) {
+func TestDeleteEntityPermanentlyWithExpiredAgreements(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -965,24 +965,24 @@ func TestDeleteClientPermanentlyWithExpiredContracts(t *testing.T) {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
 
-	lineID, err := InsertTestLine(db, "Test Line", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Test Subcategory", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	now := time.Now()
-	_, err = InsertTestContract(db, "Expired Contract", "KEY-EXPIRED-001", timePtr(now.AddDate(0, 0, -30)), timePtr(now.AddDate(0, 0, -5)), lineID, clientID, nil)
+	_, err = InsertTestAgreement(db, "Expired Agreement", "KEY-EXPIRED-001", timePtr(now.AddDate(0, 0, -30)), timePtr(now.AddDate(0, 0, -5)), subcategoryID, entityID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test contract: %v", err)
 	}
 
-	err = clientStore.DeleteClientPermanently(clientID)
+	err = entityStore.DeleteEntityPermanently(entityID)
 	if err != nil {
-		t.Errorf("Expected no error deleting client with expired contracts, got: %v", err)
+		t.Errorf("Expected no error deleting client with expired agreements, got: %v", err)
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE id = $1", clientID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM entities WHERE id = $1", entityID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query client: %v", err)
 	}
@@ -995,14 +995,14 @@ func TestDeleteClientPermanentlyWithExpiredContracts(t *testing.T) {
 // EDGE CASES: VALIDATION
 // ============================================================================
 
-func TestCreateClientWithInvalidCPFCNPJ(t *testing.T) {
+func TestCreateEntityWithInvalidCPFCNPJ(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	tests := []struct {
 		name           string
@@ -1060,7 +1060,7 @@ func TestCreateClientWithInvalidCPFCNPJ(t *testing.T) {
 		},
 		{
 			name:           "invalid - SQL injection attempt",
-			registrationID: "'; DROP TABLE clients; --",
+			registrationID: "'; DROP TABLE entities; --",
 			expectError:    true,
 			description:    "SQL injection should be rejected",
 		},
@@ -1074,13 +1074,13 @@ func TestCreateClientWithInvalidCPFCNPJ(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := domain.Client{
-				Name:           "Test Client - " + tt.name,
+			client := domain.Entity{
+				Name:           "Test Entity - " + tt.name,
 				RegistrationID: &tt.registrationID,
 				Status:         "ativo",
 			}
 
-			_, err := clientStore.CreateClient(client)
+			_, err := entityStore.CreateEntity(client)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1092,14 +1092,14 @@ func TestCreateClientWithInvalidCPFCNPJ(t *testing.T) {
 	}
 }
 
-func TestCreateClientWithInvalidNames(t *testing.T) {
+func TestCreateEntityWithInvalidNames(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	validCNPJs := []string{
 		"45.723.174/0001-10",
@@ -1181,13 +1181,13 @@ func TestCreateClientWithInvalidNames(t *testing.T) {
 
 			cnpj := validCNPJs[tt.cnpjIndex]
 
-			client := domain.Client{
+			client := domain.Entity{
 				Name:           tt.clientName,
 				RegistrationID: &cnpj,
 				Status:         "ativo",
 			}
 
-			_, err := clientStore.CreateClient(client)
+			_, err := entityStore.CreateEntity(client)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1199,7 +1199,7 @@ func TestCreateClientWithInvalidNames(t *testing.T) {
 	}
 }
 
-func TestUpdateClientWithInvalidData(t *testing.T) {
+func TestUpdateEntityWithInvalidData(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -1209,23 +1209,23 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	clientID, err := InsertTestClient(db, "Original Client", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Original Entity", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		updateData  domain.Client
+		updateData  domain.Entity
 		expectError bool
 		description string
 	}{
 		{
 			name: "invalid - update with invalid CPF",
-			updateData: domain.Client{
-				ID:             clientID,
+			updateData: domain.Entity{
+				ID:             entityID,
 				Name:           "Updated Name",
 				RegistrationID: stringPtr("111.ABC.777-35"),
 				Status:         "ativo",
@@ -1235,8 +1235,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with invalid CNPJ",
-			updateData: domain.Client{
-				ID:             clientID,
+			updateData: domain.Entity{
+				ID:             entityID,
 				Name:           "Updated Name",
 				RegistrationID: stringPtr("invalid-cnpj"),
 				Status:         "ativo",
@@ -1246,8 +1246,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with name too long",
-			updateData: domain.Client{
-				ID:             clientID,
+			updateData: domain.Entity{
+				ID:             entityID,
 				Name:           strings.Repeat("a", 256),
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -1257,8 +1257,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with only whitespace name",
-			updateData: domain.Client{
-				ID:             clientID,
+			updateData: domain.Entity{
+				ID:             entityID,
 				Name:           "    ",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -1268,8 +1268,8 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "valid - update with valid data",
-			updateData: domain.Client{
-				ID:             clientID,
+			updateData: domain.Entity{
+				ID:             entityID,
 				Name:           "Valid Updated Name",
 				RegistrationID: stringPtr("45.723.174/0001-10"),
 				Status:         "ativo",
@@ -1281,7 +1281,7 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := clientStore.UpdateClient(tt.updateData)
+			err := entityStore.UpdateEntity(tt.updateData)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1293,7 +1293,7 @@ func TestUpdateClientWithInvalidData(t *testing.T) {
 	}
 }
 
-func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
+func TestCreateEntityWithDuplicateCPFCNPJVariations(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -1303,10 +1303,10 @@ func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	_, err = clientStore.CreateClient(domain.Client{
-		Name:           "First Client",
+	_, err = entityStore.CreateEntity(domain.Entity{
+		Name:           "First Entity",
 		RegistrationID: stringPtr("45.723.174/0001-10"),
 		Status:         "ativo",
 	})
@@ -1342,13 +1342,13 @@ func TestCreateClientWithDuplicateCPFCNPJVariations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := domain.Client{
-				Name:           "Test Client - " + tt.name,
+			client := domain.Entity{
+				Name:           "Test Entity - " + tt.name,
 				RegistrationID: &tt.registrationID,
 				Status:         "ativo",
 			}
 
-			_, err := clientStore.CreateClient(client)
+			_, err := entityStore.CreateEntity(client)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1367,7 +1367,7 @@ func TestClientNameTrimming(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	tests := []struct {
 		name         string
@@ -1429,13 +1429,13 @@ func TestClientNameTrimming(t *testing.T) {
 			cnpj := validCNPJs[counter%len(validCNPJs)]
 			counter++
 
-			client := domain.Client{
+			client := domain.Entity{
 				Name:           tt.inputName,
 				RegistrationID: &cnpj,
 				Status:         "ativo",
 			}
 
-			id, err := clientStore.CreateClient(client)
+			id, err := entityStore.CreateEntity(client)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -1445,7 +1445,7 @@ func TestClientNameTrimming(t *testing.T) {
 			}
 
 			if !tt.expectError && err == nil {
-				retrievedClient, err := clientStore.GetClientByID(id)
+				retrievedClient, err := entityStore.GetEntityByID(id)
 				if err != nil {
 					t.Errorf("Failed to retrieve client: %v", err)
 				}
@@ -1462,11 +1462,11 @@ func TestGetClientsByName(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
-	// Create test clients
+	// Create test entities
 	regID1 := "45.723.174/0001-10"
-	_, err := clientStore.CreateClient(domain.Client{
+	_, err := entityStore.CreateEntity(domain.Entity{
 		Name:           "Acme Corporation",
 		RegistrationID: &regID1,
 		Status:         "ativo",
@@ -1476,7 +1476,7 @@ func TestGetClientsByName(t *testing.T) {
 	}
 
 	regID2 := "11.222.333/0001-81"
-	_, err = clientStore.CreateClient(domain.Client{
+	_, err = entityStore.CreateEntity(domain.Entity{
 		Name:           "Acme Industries",
 		RegistrationID: &regID2,
 		Status:         "ativo",
@@ -1486,7 +1486,7 @@ func TestGetClientsByName(t *testing.T) {
 	}
 
 	regID3 := "33.444.555/0001-81"
-	_, err = clientStore.CreateClient(domain.Client{
+	_, err = entityStore.CreateEntity(domain.Entity{
 		Name:           "Global Tech",
 		RegistrationID: &regID3,
 		Status:         "ativo",
@@ -1497,7 +1497,7 @@ func TestGetClientsByName(t *testing.T) {
 
 	// Archive one client
 	archivedRegID := "55.666.777/0001-81"
-	archivedID, err := clientStore.CreateClient(domain.Client{
+	archivedID, err := entityStore.CreateEntity(domain.Entity{
 		Name:           "Acme Archived",
 		RegistrationID: &archivedRegID,
 		Status:         "ativo",
@@ -1505,7 +1505,7 @@ func TestGetClientsByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create archived client: %v", err)
 	}
-	err = clientStore.ArchiveClient(archivedID)
+	err = entityStore.ArchiveEntity(archivedID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
@@ -1517,7 +1517,7 @@ func TestGetClientsByName(t *testing.T) {
 		expectError   bool
 	}{
 		{
-			name:          "search 'Acme' - should find 2 active clients",
+			name:          "search 'Acme' - should find 2 active entities",
 			searchName:    "Acme",
 			expectedCount: 2,
 			expectError:   false,
@@ -1560,7 +1560,7 @@ func TestGetClientsByName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clients, err := clientStore.GetClientsByName(tt.searchName)
+			entities, err := entityStore.GetEntitiesByName(tt.searchName)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -1568,8 +1568,8 @@ func TestGetClientsByName(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if !tt.expectError && len(clients) != tt.expectedCount {
-				t.Errorf("Expected %d clients, got %d", tt.expectedCount, len(clients))
+			if !tt.expectError && len(entities) != tt.expectedCount {
+				t.Errorf("Expected %d entities, got %d", tt.expectedCount, len(entities))
 			}
 		})
 	}

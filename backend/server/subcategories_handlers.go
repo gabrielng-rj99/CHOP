@@ -30,30 +30,30 @@ import (
 
 // ============= LINE HANDLERS =============
 
-func (s *Server) handleLines(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleSubcategories(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		s.handleListLines(w, r)
 	case http.MethodPost:
-		s.handleCreateLine(w, r)
+		s.handleCreateSubcategory(w, r)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
 func (s *Server) handleListLines(w http.ResponseWriter, r *http.Request) {
-	lines, err := s.lineStore.GetAllLines()
+	subcategories, err := s.subcategoryStore.GetAllSubcategories()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: lines})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: subcategories})
 }
 
-func (s *Server) handleCreateLine(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Line       string `json:"line"`
+		Name string `json:"name"`
 		CategoryID string `json:"category_id"`
 	}
 
@@ -64,12 +64,12 @@ func (s *Server) handleCreateLine(w http.ResponseWriter, r *http.Request) {
 
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	line := domain.Line{
-		Line:       req.Line,
+	line := domain.Subcategory{
+		Name: req.Name,
 		CategoryID: req.CategoryID,
 	}
 
-	id, err := s.lineStore.CreateLine(line)
+	id, err := s.subcategoryStore.CreateSubcategory(line)
 	if err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
@@ -77,7 +77,7 @@ func (s *Server) handleCreateLine(w http.ResponseWriter, r *http.Request) {
 			newValueJSON, _ := json.Marshal(line)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "line",
+				Entity:        "subcategory",
 				EntityID:      "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
@@ -101,7 +101,7 @@ func (s *Server) handleCreateLine(w http.ResponseWriter, r *http.Request) {
 		newValueJSON, _ := json.Marshal(line)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "line",
+			Entity:        "subcategory",
 			EntityID:      id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
@@ -116,23 +116,23 @@ func (s *Server) handleCreateLine(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, SuccessResponse{
-		Message: "Line created successfully",
+		Message: "Subcategory created successfully",
 		Data:    map[string]string{"id": id},
 	})
 }
 
-func (s *Server) handleLineByID(w http.ResponseWriter, r *http.Request) {
-	lineID := getIDFromPath(r, "/api/lines/")
+func (s *Server) handleSubcategoryByID(w http.ResponseWriter, r *http.Request) {
+	subcategoryID := getIDFromPath(r, "/api/subcategories/")
 
-	if lineID == "" {
-		respondError(w, http.StatusBadRequest, "Line ID required")
+	if subcategoryID == "" {
+		respondError(w, http.StatusBadRequest, "Subcategory ID required")
 		return
 	}
 
 	// Check for archive/unarchive endpoints
 	if strings.HasSuffix(r.URL.Path, "/archive") {
 		if r.Method == http.MethodPost {
-			s.handleArchiveLine(w, r, lineID)
+			s.handleArchiveSubcategory(w, r, subcategoryID)
 			return
 		}
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -141,7 +141,7 @@ func (s *Server) handleLineByID(w http.ResponseWriter, r *http.Request) {
 
 	if strings.HasSuffix(r.URL.Path, "/unarchive") {
 		if r.Method == http.MethodPost {
-			s.handleUnarchiveLine(w, r, lineID)
+			s.handleUnarchiveSubcategory(w, r, subcategoryID)
 			return
 		}
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -150,21 +150,21 @@ func (s *Server) handleLineByID(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		s.handleGetLine(w, r, lineID)
+		s.handleGetLine(w, r, subcategoryID)
 	case http.MethodPut:
-		s.handleUpdateLine(w, r, lineID)
+		s.handleUpdateSubcategory(w, r, subcategoryID)
 	case http.MethodDelete:
-		s.handleDeleteLine(w, r, lineID)
+		s.handleDeleteSubcategory(w, r, subcategoryID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
 
-func (s *Server) handleGetLine(w http.ResponseWriter, r *http.Request, lineID string) {
-	line, err := s.lineStore.GetLineByID(lineID)
+func (s *Server) handleGetLine(w http.ResponseWriter, r *http.Request, subcategoryID string) {
+	line, err := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			respondError(w, http.StatusNotFound, "Line not found")
+			respondError(w, http.StatusNotFound, "Subcategory not found")
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
@@ -174,9 +174,9 @@ func (s *Server) handleGetLine(w http.ResponseWriter, r *http.Request, lineID st
 	respondJSON(w, http.StatusOK, SuccessResponse{Data: line})
 }
 
-func (s *Server) handleUpdateLine(w http.ResponseWriter, r *http.Request, lineID string) {
+func (s *Server) handleUpdateSubcategory(w http.ResponseWriter, r *http.Request, subcategoryID string) {
 	var req struct {
-		Line string `json:"line"`
+		Name string `json:"name"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -187,29 +187,29 @@ func (s *Server) handleUpdateLine(w http.ResponseWriter, r *http.Request, lineID
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get existing line to preserve category_id and for audit
-	existingLine, err := s.lineStore.GetLineByID(lineID)
+	existingLine, err := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "Line not found")
+		respondError(w, http.StatusNotFound, "Subcategory not found")
 		return
 	}
 
 	oldValueJSON, _ := json.Marshal(existingLine)
 
-	line := domain.Line{
-		ID:         lineID,
-		Line:       req.Line,
+	line := domain.Subcategory{
+		ID:         subcategoryID,
+		Name: req.Name,
 		CategoryID: existingLine.CategoryID,
 	}
 
-	if err := s.lineStore.UpdateLine(line); err != nil {
+	if err := s.subcategoryStore.UpdateSubcategory(line); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			newValueJSON, _ := json.Marshal(line)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "line",
-				EntityID:      lineID,
+				Entity:        "subcategory",
+				EntityID:      subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -231,8 +231,8 @@ func (s *Server) handleUpdateLine(w http.ResponseWriter, r *http.Request, lineID
 		newValueJSON, _ := json.Marshal(line)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "line",
-			EntityID:      lineID,
+			Entity:        "subcategory",
+			EntityID:      subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -245,24 +245,24 @@ func (s *Server) handleUpdateLine(w http.ResponseWriter, r *http.Request, lineID
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line updated successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Subcategory updated successfully"})
 }
 
-func (s *Server) handleDeleteLine(w http.ResponseWriter, r *http.Request, lineID string) {
+func (s *Server) handleDeleteSubcategory(w http.ResponseWriter, r *http.Request, subcategoryID string) {
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldLine, _ := s.lineStore.GetLineByID(lineID)
+	oldLine, _ := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	oldValueJSON, _ := json.Marshal(oldLine)
 
-	if err := s.lineStore.DeleteLine(lineID); err != nil {
+	if err := s.subcategoryStore.DeleteSubcategory(subcategoryID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Entity:        "line",
-				EntityID:      lineID,
+				Entity:        "subcategory",
+				EntityID:      subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -283,8 +283,8 @@ func (s *Server) handleDeleteLine(w http.ResponseWriter, r *http.Request, lineID
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "line",
-			EntityID:      lineID,
+			Entity:        "subcategory",
+			EntityID:      subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -297,24 +297,24 @@ func (s *Server) handleDeleteLine(w http.ResponseWriter, r *http.Request, lineID
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line deleted successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Subcategory deleted successfully"})
 }
 
-func (s *Server) handleArchiveLine(w http.ResponseWriter, r *http.Request, lineID string) {
+func (s *Server) handleArchiveSubcategory(w http.ResponseWriter, r *http.Request, subcategoryID string) {
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldLine, _ := s.lineStore.GetLineByID(lineID)
+	oldLine, _ := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	oldValueJSON, _ := json.Marshal(oldLine)
 
-	if err := s.lineStore.ArchiveLine(lineID); err != nil {
+	if err := s.subcategoryStore.ArchiveSubcategory(subcategoryID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "archive",
-				Entity:        "line",
-				EntityID:      lineID,
+				Entity:        "subcategory",
+				EntityID:      subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -335,8 +335,8 @@ func (s *Server) handleArchiveLine(w http.ResponseWriter, r *http.Request, lineI
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "archive",
-			Entity:        "line",
-			EntityID:      lineID,
+			Entity:        "subcategory",
+			EntityID:      subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -349,24 +349,24 @@ func (s *Server) handleArchiveLine(w http.ResponseWriter, r *http.Request, lineI
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line archived successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Subcategory archived successfully"})
 }
 
-func (s *Server) handleUnarchiveLine(w http.ResponseWriter, r *http.Request, lineID string) {
+func (s *Server) handleUnarchiveSubcategory(w http.ResponseWriter, r *http.Request, subcategoryID string) {
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldLine, _ := s.lineStore.GetLineByID(lineID)
+	oldLine, _ := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	oldValueJSON, _ := json.Marshal(oldLine)
 
-	if err := s.lineStore.UnarchiveLine(lineID); err != nil {
+	if err := s.subcategoryStore.UnarchiveSubcategory(subcategoryID); err != nil {
 		// Log failed attempt
 		errMsg := err.Error()
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "unarchive",
-				Entity:        "line",
-				EntityID:      lineID,
+				Entity:        "subcategory",
+				EntityID:      subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -387,8 +387,8 @@ func (s *Server) handleUnarchiveLine(w http.ResponseWriter, r *http.Request, lin
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "unarchive",
-			Entity:        "line",
-			EntityID:      lineID,
+			Entity:        "subcategory",
+			EntityID:      subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -401,5 +401,5 @@ func (s *Server) handleUnarchiveLine(w http.ResponseWriter, r *http.Request, lin
 		})
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Line unarchived successfully"})
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Subcategory unarchived successfully"})
 }

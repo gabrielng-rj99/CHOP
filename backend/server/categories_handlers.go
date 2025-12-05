@@ -297,7 +297,7 @@ func (s *Server) handleDeleteCategory(w http.ResponseWriter, r *http.Request, ca
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Category deleted successfully"})
 }
 
-func (s *Server) handleCategoryLines(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCategorySubcategories(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/categories/"), "/")
 	if len(parts) < 2 || parts[0] == "" {
 		respondError(w, http.StatusBadRequest, "Category ID required")
@@ -313,33 +313,33 @@ func (s *Server) handleCategoryLines(w http.ResponseWriter, r *http.Request) {
 
 	includeArchived := r.URL.Query().Get("include_archived") == "true"
 
-	var lines []domain.Line
+	var subcategories []domain.Subcategory
 	var err error
 
 	if includeArchived {
-		// Get all lines for this category including archived
-		allLines, err := s.lineStore.GetAllLinesIncludingArchived()
+		// Get all subcategories for this category including archived
+		allLines, err := s.subcategoryStore.GetAllSubcategoriesIncludingArchived()
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		// Filter by category ID
-		lines = make([]domain.Line, 0)
+		subcategories = make([]domain.Subcategory, 0)
 		for _, line := range allLines {
 			if line.CategoryID == categoryID {
-				lines = append(lines, line)
+				subcategories = append(subcategories, line)
 			}
 		}
 	} else {
-		lines, err = s.lineStore.GetLinesByCategoryID(categoryID)
+		subcategories, err = s.subcategoryStore.GetSubcategoriesByCategoryID(categoryID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: lines})
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: subcategories})
 }
 
 func (s *Server) handleArchiveCategory(w http.ResponseWriter, r *http.Request, categoryID string) {

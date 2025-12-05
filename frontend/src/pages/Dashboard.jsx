@@ -20,8 +20,8 @@ import React, { useState, useEffect } from "react";
 import "./Dashboard.css";
 
 export default function Dashboard({ token, apiUrl, onTokenExpired }) {
-    const [contracts, setContracts] = useState([]);
-    const [clients, setClients] = useState([]);
+    const [contracts, setAgreements] = useState([]);
+    const [clients, setEntities] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,8 +45,8 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
             const [contractsRes, clientsRes, categoriesRes] = await Promise.all(
                 [
-                    fetch(`${apiUrl}/contracts`, { headers }),
-                    fetch(`${apiUrl}/clients`, { headers }),
+                    fetch(`${apiUrl}/agreements`, { headers }),
+                    fetch(`${apiUrl}/entities`, { headers }),
                     fetch(`${apiUrl}/categories`, { headers }),
                 ],
             );
@@ -65,14 +65,14 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             const clientsData = await clientsRes.json();
             const categoriesData = await categoriesRes.json();
 
-            setContracts(contractsData.data || []);
-            setClients(clientsData.data || []);
+            setAgreements(contractsData.data || []);
+            setEntities(clientsData.data || []);
             setCategories(categoriesData.data || []);
 
             // Load all lines for all categories
             const allLinesPromises = (categoriesData.data || []).map(
                 (category) =>
-                    fetch(`${apiUrl}/categories/${category.id}/lines`, {
+                    fetch(`${apiUrl}/categories/${category.id}/subcategories`, {
                         headers,
                     })
                         .then((res) => {
@@ -436,7 +436,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                             {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.product_key ||
+                                            {contract.item_key ||
                                                 "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expiring">
@@ -475,7 +475,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                             {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.product_key ||
+                                            {contract.item_key ||
                                                 "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expired">

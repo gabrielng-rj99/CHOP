@@ -60,8 +60,8 @@ func (ve ValidationErrors) IsValid() bool {
 // Padrão regex para validação de email
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-// ValidateClientEmail valida o formato do email e verifica MX do domínio
-func ValidateClientEmail(email *string) error {
+// ValidateEntityEmail valida o formato do email e verifica MX do domínio
+func ValidateEntityEmail(email *string) error {
 	if email == nil || *email == "" {
 		return nil
 	}
@@ -129,8 +129,8 @@ func ValidateClientEmail(email *string) error {
 	return nil
 }
 
-// ValidateClientPhone valida o telefone usando padrão internacional E.164
-func ValidateClientPhone(phone *string) error {
+// ValidateEntityPhone valida o telefone usando padrão internacional E.164
+func ValidateEntityPhone(phone *string) error {
 	if phone == nil || *phone == "" {
 		return nil
 	}
@@ -172,10 +172,10 @@ func ValidateClientPhone(phone *string) error {
 }
 
 // ValidateClient valida todos os campos obrigatórios e opcionais de um cliente
-func ValidateClient(client *Client) ValidationErrors {
+func ValidateEntity(entity *Entity) ValidationErrors {
 	var errors ValidationErrors
 
-	if client == nil {
+	if entity == nil {
 		errors = append(errors, ValidationError{
 			Field:   "client",
 			Message: "cliente não pode ser nulo",
@@ -184,39 +184,39 @@ func ValidateClient(client *Client) ValidationErrors {
 	}
 
 	// Validações de campos obrigatórios
-	if strings.TrimSpace(client.Name) == "" {
+	if strings.TrimSpace(entity.Name) == "" {
 		errors = append(errors, ValidationError{
 			Field:   "name",
 			Message: "nome do cliente é obrigatório",
 		})
 	}
 
-	if len(client.Name) > 255 {
+	if len(entity.Name) > 255 {
 		errors = append(errors, ValidationError{
 			Field:   "name",
 			Message: "nome do cliente não pode ter mais de 255 caracteres",
 		})
 	}
 
-	// Status is auto-managed by the backend based on active contracts
+	// Status is auto-managed by the backend based on active agreements
 	// No validation needed
 
 	// Validações de campos opcionais
-	if client.RegistrationID != nil && len(*client.RegistrationID) > 20 {
+	if entity.RegistrationID != nil && len(*entity.RegistrationID) > 20 {
 		errors = append(errors, ValidationError{
 			Field:   "registration_id",
 			Message: "ID de registro não pode ter mais de 20 caracteres",
 		})
 	}
 
-	if client.Nickname != nil && len(*client.Nickname) > 255 {
+	if entity.Nickname != nil && len(*entity.Nickname) > 255 {
 		errors = append(errors, ValidationError{
 			Field:   "nickname",
 			Message: "apelido não pode ter mais de 255 caracteres",
 		})
 	}
 
-	if client.Address != nil && len(*client.Address) > 1000 {
+	if entity.Address != nil && len(*entity.Address) > 1000 {
 		errors = append(errors, ValidationError{
 			Field:   "address",
 			Message: "endereço não pode ter mais de 1000 caracteres",
@@ -224,7 +224,7 @@ func ValidateClient(client *Client) ValidationErrors {
 	}
 
 	// Validação de Notes - limite de 50.000 caracteres
-	if client.Notes != nil && len(*client.Notes) > 50000 {
+	if entity.Notes != nil && len(*entity.Notes) > 50000 {
 		errors = append(errors, ValidationError{
 			Field:   "notes",
 			Message: "notas não podem ter mais de 50.000 caracteres",
@@ -232,7 +232,7 @@ func ValidateClient(client *Client) ValidationErrors {
 	}
 
 	// Validação de Documents - limite de 10.000 caracteres
-	if client.Documents != nil && len(*client.Documents) > 10000 {
+	if entity.Documents != nil && len(*entity.Documents) > 10000 {
 		errors = append(errors, ValidationError{
 			Field:   "documents",
 			Message: "documentos não podem ter mais de 10.000 caracteres",
@@ -240,11 +240,11 @@ func ValidateClient(client *Client) ValidationErrors {
 	}
 
 	// Validação de BirthDate
-	if client.BirthDate != nil {
+	if entity.BirthDate != nil {
 		now := time.Now()
 
 		// Data não pode estar no futuro
-		if client.BirthDate.After(now) {
+		if entity.BirthDate.After(now) {
 			errors = append(errors, ValidationError{
 				Field:   "birth_date",
 				Message: "data de nascimento não pode estar no futuro",
@@ -253,7 +253,7 @@ func ValidateClient(client *Client) ValidationErrors {
 
 		// Data não pode ser anterior a 1900
 		minDate := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		if client.BirthDate.Before(minDate) {
+		if entity.BirthDate.Before(minDate) {
 			errors = append(errors, ValidationError{
 				Field:   "birth_date",
 				Message: "data de nascimento não pode ser anterior a 1900",
@@ -262,12 +262,12 @@ func ValidateClient(client *Client) ValidationErrors {
 	}
 
 	// Validação de NextActionDate
-	if client.NextActionDate != nil {
+	if entity.NextActionDate != nil {
 		now := time.Now()
 
 		// Data não pode estar muito no passado (mais de 1 ano)
 		oneYearAgo := now.AddDate(-1, 0, 0)
-		if client.NextActionDate.Before(oneYearAgo) {
+		if entity.NextActionDate.Before(oneYearAgo) {
 			errors = append(errors, ValidationError{
 				Field:   "next_action_date",
 				Message: "próxima ação não pode estar mais de 1 ano no passado",
@@ -276,7 +276,7 @@ func ValidateClient(client *Client) ValidationErrors {
 
 		// Data não pode estar muito no futuro (mais de 10 anos)
 		tenYearsFromNow := now.AddDate(10, 0, 0)
-		if client.NextActionDate.After(tenYearsFromNow) {
+		if entity.NextActionDate.After(tenYearsFromNow) {
 			errors = append(errors, ValidationError{
 				Field:   "next_action_date",
 				Message: "próxima ação não pode estar mais de 10 anos no futuro",
@@ -284,7 +284,7 @@ func ValidateClient(client *Client) ValidationErrors {
 		}
 	}
 
-	if client.ContactPreference != nil {
+	if entity.ContactPreference != nil {
 		validPreferences := map[string]bool{
 			"whatsapp": true,
 			"email":    true,
@@ -292,7 +292,7 @@ func ValidateClient(client *Client) ValidationErrors {
 			"sms":      true,
 			"outros":   true,
 		}
-		pref := strings.ToLower(strings.TrimSpace(*client.ContactPreference))
+		pref := strings.ToLower(strings.TrimSpace(*entity.ContactPreference))
 		if pref != "" && !validPreferences[pref] {
 			errors = append(errors, ValidationError{
 				Field:   "contact_preference",
@@ -301,13 +301,13 @@ func ValidateClient(client *Client) ValidationErrors {
 		}
 	}
 
-	if emailErr := ValidateClientEmail(client.Email); emailErr != nil {
+	if emailErr := ValidateEntityEmail(entity.Email); emailErr != nil {
 		if valErr, ok := emailErr.(ValidationError); ok {
 			errors = append(errors, valErr)
 		}
 	}
 
-	if phoneErr := ValidateClientPhone(client.Phone); phoneErr != nil {
+	if phoneErr := ValidateEntityPhone(entity.Phone); phoneErr != nil {
 		if valErr, ok := phoneErr.(ValidationError); ok {
 			errors = append(errors, valErr)
 		}
@@ -359,10 +359,10 @@ func NormalizePhone(phone *string) *string {
 }
 
 // ValidateDependent valida todos os campos obrigatórios e opcionais de um dependente
-func ValidateDependent(dependent *Dependent) ValidationErrors {
+func ValidateSubEntity(subEntity *SubEntity) ValidationErrors {
 	var errors ValidationErrors
 
-	if dependent == nil {
+	if subEntity == nil {
 		errors = append(errors, ValidationError{
 			Field:   "dependent",
 			Message: "dependente não pode ser nulo",
@@ -371,29 +371,29 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 	}
 
 	// Validações de campos obrigatórios
-	if strings.TrimSpace(dependent.Name) == "" {
+	if strings.TrimSpace(subEntity.Name) == "" {
 		errors = append(errors, ValidationError{
 			Field:   "name",
 			Message: "nome do dependente é obrigatório",
 		})
 	}
 
-	if len(dependent.Name) > 255 {
+	if len(subEntity.Name) > 255 {
 		errors = append(errors, ValidationError{
 			Field:   "name",
 			Message: "nome do dependente não pode ter mais de 255 caracteres",
 		})
 	}
 
-	if strings.TrimSpace(dependent.ClientID) == "" {
+	if strings.TrimSpace(subEntity.EntityID) == "" {
 		errors = append(errors, ValidationError{
-			Field:   "client_id",
+			Field:   "entity_id",
 			Message: "ID do cliente é obrigatório",
 		})
 	}
 
 	// Status é obrigatório
-	if strings.TrimSpace(dependent.Status) == "" {
+	if strings.TrimSpace(subEntity.Status) == "" {
 		errors = append(errors, ValidationError{
 			Field:   "status",
 			Message: "status do dependente é obrigatório",
@@ -401,14 +401,14 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 	}
 
 	// Validações de campos opcionais
-	if dependent.Description != nil && len(*dependent.Description) > 1000 {
+	if subEntity.Description != nil && len(*subEntity.Description) > 1000 {
 		errors = append(errors, ValidationError{
 			Field:   "description",
 			Message: "descrição não pode ter mais de 1000 caracteres",
 		})
 	}
 
-	if dependent.Address != nil && len(*dependent.Address) > 1000 {
+	if subEntity.Address != nil && len(*subEntity.Address) > 1000 {
 		errors = append(errors, ValidationError{
 			Field:   "address",
 			Message: "endereço não pode ter mais de 1000 caracteres",
@@ -416,7 +416,7 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 	}
 
 	// Validação de Notes - limite de 50.000 caracteres
-	if dependent.Notes != nil && len(*dependent.Notes) > 50000 {
+	if subEntity.Notes != nil && len(*subEntity.Notes) > 50000 {
 		errors = append(errors, ValidationError{
 			Field:   "notes",
 			Message: "notas não podem ter mais de 50.000 caracteres",
@@ -424,7 +424,7 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 	}
 
 	// Validação de Documents - limite de 10.000 caracteres
-	if dependent.Documents != nil && len(*dependent.Documents) > 10000 {
+	if subEntity.Documents != nil && len(*subEntity.Documents) > 10000 {
 		errors = append(errors, ValidationError{
 			Field:   "documents",
 			Message: "documentos não podem ter mais de 10.000 caracteres",
@@ -432,11 +432,11 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 	}
 
 	// Validação de BirthDate
-	if dependent.BirthDate != nil {
+	if subEntity.BirthDate != nil {
 		now := time.Now()
 
 		// Data não pode estar no futuro
-		if dependent.BirthDate.After(now) {
+		if subEntity.BirthDate.After(now) {
 			errors = append(errors, ValidationError{
 				Field:   "birth_date",
 				Message: "data de nascimento não pode estar no futuro",
@@ -445,7 +445,7 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 
 		// Data não pode ser anterior a 1900
 		minDate := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		if dependent.BirthDate.Before(minDate) {
+		if subEntity.BirthDate.Before(minDate) {
 			errors = append(errors, ValidationError{
 				Field:   "birth_date",
 				Message: "data de nascimento não pode ser anterior a 1900",
@@ -453,7 +453,7 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 		}
 	}
 
-	if dependent.ContactPreference != nil {
+	if subEntity.ContactPreference != nil {
 		validPreferences := map[string]bool{
 			"whatsapp": true,
 			"email":    true,
@@ -461,7 +461,7 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 			"sms":      true,
 			"outros":   true,
 		}
-		pref := strings.ToLower(strings.TrimSpace(*dependent.ContactPreference))
+		pref := strings.ToLower(strings.TrimSpace(*subEntity.ContactPreference))
 		if pref != "" && !validPreferences[pref] {
 			errors = append(errors, ValidationError{
 				Field:   "contact_preference",
@@ -470,13 +470,13 @@ func ValidateDependent(dependent *Dependent) ValidationErrors {
 		}
 	}
 
-	if emailErr := ValidateClientEmail(dependent.Email); emailErr != nil {
+	if emailErr := ValidateEntityEmail(subEntity.Email); emailErr != nil {
 		if valErr, ok := emailErr.(ValidationError); ok {
 			errors = append(errors, valErr)
 		}
 	}
 
-	if phoneErr := ValidateClientPhone(dependent.Phone); phoneErr != nil {
+	if phoneErr := ValidateEntityPhone(subEntity.Phone); phoneErr != nil {
 		if valErr, ok := phoneErr.(ValidationError); ok {
 			errors = append(errors, valErr)
 		}

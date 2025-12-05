@@ -33,27 +33,27 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
-	dependentStore := NewDependentStore(db)
+	entityStore := NewEntityStore(db)
+	subEntityStore := NewSubEntityStore(db)
 	categoryStore := NewCategoryStore(db)
-	lineStore := NewLineStore(db)
-	contractStore := NewContractStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
+	agreementStore := NewAgreementStore(db)
 
 	t.Run("dependent referenciando cliente inexistente", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		fakeClientID := uuid.New().String()
-		dependent := domain.Dependent{
-			Name:     "Test Dependent",
-			ClientID: fakeClientID,
+		fakeEntityID := uuid.New().String()
+		dependent := domain.SubEntity{
+			Name:     "Test SubEntity",
+			EntityID: fakeEntityID,
 			Status:   "ativo",
 		}
 
-		_, err := dependentStore.CreateDependent(dependent)
+		_, err := subEntityStore.CreateSubEntity(dependent)
 		if err == nil {
-			t.Error("Esperava erro ao criar dependente com client_id inexistente")
+			t.Error("Esperava erro ao criar dependente com entity_id inexistente")
 		}
 
 		if err != nil && !strings.Contains(err.Error(), "foreign key") && !strings.Contains(err.Error(), "violates") && !strings.Contains(err.Error(), "not found") {
@@ -66,69 +66,69 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		client := domain.Client{
-			Name:   "Client To Delete",
+		client := domain.Entity{
+			Name:   "Entity To Delete",
 			Status: "ativo",
 		}
 
-		clientID, err := clientStore.CreateClient(client)
+		entityID, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		dependent := domain.Dependent{
-			Name:     "Dependent Of Client",
-			ClientID: clientID,
+		dependent := domain.SubEntity{
+			Name:     "SubEntity Of Entity",
+			EntityID: entityID,
 			Status:   "ativo",
 		}
 
-		depID, err := dependentStore.CreateDependent(dependent)
+		depID, err := subEntityStore.CreateSubEntity(dependent)
 		if err != nil {
 			t.Fatalf("Failed to create dependent: %v", err)
 		}
 
-		err = clientStore.ArchiveClient(clientID)
+		err = entityStore.ArchiveEntity(entityID)
 		if err != nil {
 			t.Logf("Archive client result: %v", err)
 		}
 
-		fetchedDep, err := dependentStore.GetDependentByID(depID)
+		fetchedDep, err := subEntityStore.GetSubEntityByID(depID)
 		if err != nil {
 			t.Fatalf("Failed to fetch dependent: %v", err)
 		}
 
-		if fetchedDep.ClientID != clientID {
-			t.Error("Dependent deveria ainda referenciar o cliente")
+		if fetchedDep.EntityID != entityID {
+			t.Error("SubEntity deveria ainda referenciar o cliente")
 		}
 	})
 
-	t.Run("contrato com line_id inválido", func(t *testing.T) {
+	t.Run("contrato com subcategory_id inválido", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		client := domain.Client{
-			Name:   "Test Client",
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 		}
-		clientID, err := clientStore.CreateClient(client)
+		entityID, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		fakeLineID := uuid.New().String()
-		contract := domain.Contract{
+		fakeSubcategoryID := uuid.New().String()
+		contract := domain.Agreement{
 			Model:      "Test Model",
-			ProductKey: "KEY-123",
+			ItemKey: "KEY-123",
 			StartDate:  timePtr(time.Now()),
 			EndDate:    timePtr(time.Now().AddDate(1, 0, 0)),
-			LineID:     fakeLineID,
-			ClientID:   clientID,
+			SubcategoryID:     fakeSubcategoryID,
+			EntityID:   entityID,
 		}
 
-		_, err = contractStore.CreateContract(contract)
+		_, err = agreementStore.CreateAgreement(contract)
 		if err == nil {
-			t.Error("Esperava erro ao criar contrato com line_id inexistente")
+			t.Error("Esperava erro ao criar contrato com subcategory_id inexistente")
 		}
 	})
 
@@ -137,11 +137,11 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		client := domain.Client{
-			Name:   "Client To Archive",
+		client := domain.Entity{
+			Name:   "Entity To Archive",
 			Status: "ativo",
 		}
-		clientID, err := clientStore.CreateClient(client)
+		entityID, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -152,40 +152,40 @@ func TestClientRelationshipIntegrity(t *testing.T) {
 			t.Fatalf("Failed to create category: %v", err)
 		}
 
-		line := domain.Line{
-			Line:       "Test Line",
+		line := domain.Subcategory{
+			Name:       "Test Subcategory",
 			CategoryID: catID,
 		}
-		lineID, err := lineStore.CreateLine(line)
+		subcategoryID, err := subcategoryStore.CreateSubcategory(line)
 		if err != nil {
 			t.Fatalf("Failed to create line: %v", err)
 		}
 
-		contract := domain.Contract{
+		contract := domain.Agreement{
 			Model:      "Test Model",
-			ProductKey: "KEY-123",
+			ItemKey: "KEY-123",
 			StartDate:  timePtr(time.Now()),
 			EndDate:    timePtr(time.Now().AddDate(1, 0, 0)),
-			LineID:     lineID,
-			ClientID:   clientID,
+			SubcategoryID:     subcategoryID,
+			EntityID:   entityID,
 		}
-		contractID, err := contractStore.CreateContract(contract)
+		contractID, err := agreementStore.CreateAgreement(contract)
 		if err != nil {
 			t.Fatalf("Failed to create contract: %v", err)
 		}
 
-		err = clientStore.ArchiveClient(clientID)
+		err = entityStore.ArchiveEntity(entityID)
 		if err != nil {
 			t.Logf("Archive client result: %v", err)
 		}
 
-		fetchedContract, err := contractStore.GetContractByID(contractID)
+		fetchedContract, err := agreementStore.GetAgreementByID(contractID)
 		if err != nil {
 			t.Fatalf("Failed to fetch contract: %v", err)
 		}
 
-		if fetchedContract.ClientID != clientID {
-			t.Error("Contract deveria ainda referenciar o cliente arquivado")
+		if fetchedContract.EntityID != entityID {
+			t.Error("Agreement deveria ainda referenciar o cliente arquivado")
 		}
 	})
 }
@@ -195,7 +195,7 @@ func TestConcurrentClientCreation(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	t.Run("dois clientes com mesmo nome simultaneamente", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
@@ -211,12 +211,12 @@ func TestConcurrentClientCreation(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				client := domain.Client{
-					Name:   "Concurrent Test Client",
+				client := domain.Entity{
+					Name:   "Concurrent Test Entity",
 					Status: "ativo",
 				}
 
-				id, err := clientStore.CreateClient(client)
+				id, err := entityStore.CreateEntity(client)
 				if err != nil {
 					errors <- err
 				} else {
@@ -261,13 +261,13 @@ func TestConcurrentClientCreation(t *testing.T) {
 			go func(index int) {
 				defer wg.Done()
 
-				client := domain.Client{
+				client := domain.Entity{
 					Name:           "Concurrent CNPJ Test",
 					Status:         "ativo",
 					RegistrationID: &cnpj,
 				}
 
-				id, err := clientStore.CreateClient(client)
+				id, err := entityStore.CreateEntity(client)
 				if err != nil {
 					errors <- err
 				} else {
@@ -305,7 +305,7 @@ func TestEmailEdgeCases(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	t.Run("email com 254 caracteres", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
@@ -320,13 +320,13 @@ func TestEmailEdgeCases(t *testing.T) {
 			t.Fatalf("Email deveria ter 254 chars, tem %d", len(email))
 		}
 
-		client := domain.Client{
-			Name:   "Test Client",
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 			Email:  &email,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err != nil && strings.Contains(err.Error(), "254") {
 			t.Errorf("Não deveria falhar para email com 254 caracteres: %v", err)
 		}
@@ -339,13 +339,13 @@ func TestEmailEdgeCases(t *testing.T) {
 
 		email := strings.Repeat("a", 255) + "@example.com"
 
-		client := domain.Client{
-			Name:   "Test Client",
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 			Email:  &email,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro para email com 255+ caracteres")
 		}
@@ -357,7 +357,7 @@ func TestUnicodeAndEmojisInDatabase(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	t.Run("cliente com nome contendo emojis", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
@@ -365,17 +365,17 @@ func TestUnicodeAndEmojisInDatabase(t *testing.T) {
 		}
 
 		name := "Empresa Tecnologia 🚀💻"
-		client := domain.Client{
+		client := domain.Entity{
 			Name:   name,
 			Status: "ativo",
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client with emojis: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -391,18 +391,18 @@ func TestUnicodeAndEmojisInDatabase(t *testing.T) {
 		}
 
 		notes := "Cliente Internacional 🌍\n日本語対応 - Japanese Support\nРусский - Russian\nالعربية - Arabic\n中文 - Chinese"
-		client := domain.Client{
-			Name:   "International Client",
+		client := domain.Entity{
+			Name:   "International Entity",
 			Status: "ativo",
 			Notes:  &notes,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client with multilingual notes: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -418,18 +418,18 @@ func TestUnicodeAndEmojisInDatabase(t *testing.T) {
 		}
 
 		address := "Rua José de Alencar, 123 - Apto 45-B (Edifício São João) - Bairro Açúcar"
-		client := domain.Client{
-			Name:    "Test Client",
+		client := domain.Entity{
+			Name:    "Test Entity",
 			Status:  "ativo",
 			Address: &address,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client with special characters: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -445,18 +445,18 @@ func TestUnicodeAndEmojisInDatabase(t *testing.T) {
 		}
 
 		tags := "vip,prioritário,ação-urgente,follow-up"
-		client := domain.Client{
-			Name:   "Test Client",
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 			Tags:   &tags,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client with tags: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -472,10 +472,10 @@ func TestDateValidationEdgeCases(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 	categoryStore := NewCategoryStore(db)
-	lineStore := NewLineStore(db)
-	contractStore := NewContractStore(db)
+	subcategoryStore := NewSubcategoryStore(db)
+	agreementStore := NewAgreementStore(db)
 
 	t.Run("birthdate no futuro deve falhar", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
@@ -483,13 +483,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		futureDate := time.Now().AddDate(1, 0, 0)
-		client := domain.Client{
-			Name:      "Test Client",
+		client := domain.Entity{
+			Name:      "Test Entity",
 			Status:    "ativo",
 			BirthDate: &futureDate,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro ao criar cliente com BirthDate no futuro")
 		}
@@ -505,13 +505,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		ancientDate := time.Date(1000, 1, 1, 0, 0, 0, 0, time.UTC)
-		client := domain.Client{
-			Name:      "Test Client",
+		client := domain.Entity{
+			Name:      "Test Entity",
 			Status:    "ativo",
 			BirthDate: &ancientDate,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro ao criar cliente com BirthDate anterior a 1900")
 		}
@@ -527,13 +527,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		validDate := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		client := domain.Client{
-			Name:      "Test Client Valid 1900",
+		client := domain.Entity{
+			Name:      "Test Entity Valid 1900",
 			Status:    "ativo",
 			BirthDate: &validDate,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Errorf("Não esperava erro para BirthDate em 1900: %v", err)
 		}
@@ -549,13 +549,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		pastDate := time.Now().AddDate(0, -6, 0) // 6 meses atrás
-		client := domain.Client{
-			Name:           "Test Client Recent Past",
+		client := domain.Entity{
+			Name:           "Test Entity Recent Past",
 			Status:         "ativo",
 			NextActionDate: &pastDate,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Errorf("Não esperava erro para NextActionDate 6 meses no passado: %v", err)
 		}
@@ -571,13 +571,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		pastDate := time.Now().AddDate(-2, 0, 0) // 2 anos atrás
-		client := domain.Client{
-			Name:           "Test Client Far Past",
+		client := domain.Entity{
+			Name:           "Test Entity Far Past",
 			Status:         "ativo",
 			NextActionDate: &pastDate,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro para NextActionDate mais de 1 ano no passado")
 		}
@@ -593,13 +593,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		futureDate := time.Now().AddDate(20, 0, 0) // 20 anos no futuro
-		client := domain.Client{
-			Name:           "Test Client Far Future",
+		client := domain.Entity{
+			Name:           "Test Entity Far Future",
 			Status:         "ativo",
 			NextActionDate: &futureDate,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro para NextActionDate mais de 10 anos no futuro")
 		}
@@ -615,13 +615,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		futureDate := time.Now().AddDate(5, 0, 0) // 5 anos no futuro
-		client := domain.Client{
-			Name:           "Test Client Valid Future",
+		client := domain.Entity{
+			Name:           "Test Entity Valid Future",
 			Status:         "ativo",
 			NextActionDate: &futureDate,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Errorf("Não esperava erro para NextActionDate 5 anos no futuro: %v", err)
 		}
@@ -636,11 +636,11 @@ func TestDateValidationEdgeCases(t *testing.T) {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		client := domain.Client{
-			Name:   "Test Client",
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 		}
-		clientID, err := clientStore.CreateClient(client)
+		entityID, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -651,29 +651,29 @@ func TestDateValidationEdgeCases(t *testing.T) {
 			t.Fatalf("Failed to create category: %v", err)
 		}
 
-		line := domain.Line{
-			Line:       "Test Line",
+		line := domain.Subcategory{
+			Name:       "Test Subcategory",
 			CategoryID: catID,
 		}
-		lineID, err := lineStore.CreateLine(line)
+		subcategoryID, err := subcategoryStore.CreateSubcategory(line)
 		if err != nil {
 			t.Fatalf("Failed to create line: %v", err)
 		}
 
-		contract := domain.Contract{
-			Model:      "Invalid Date Contract",
-			ProductKey: "KEY-123",
+		contract := domain.Agreement{
+			Model:      "Invalid Date Agreement",
+			ItemKey: "KEY-123",
 			StartDate:  timePtr(time.Now().AddDate(1, 0, 0)),
 			EndDate:    timePtr(time.Now()),
-			LineID:     lineID,
-			ClientID:   clientID,
+			SubcategoryID:     subcategoryID,
+			EntityID:   entityID,
 		}
 
-		_, err = contractStore.CreateContract(contract)
+		_, err = agreementStore.CreateAgreement(contract)
 		if err != nil {
 			t.Logf("Create failed with invalid dates (good): %v", err)
 		} else {
-			t.Log("Contract com StartDate > EndDate foi aceito (pode precisar validação)")
+			t.Log("Agreement com StartDate > EndDate foi aceito (pode precisar validação)")
 		}
 	})
 
@@ -683,13 +683,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		longNotes := strings.Repeat("a", 50001)
-		client := domain.Client{
-			Name:   "Test Client Long Notes",
+		client := domain.Entity{
+			Name:   "Test Entity Long Notes",
 			Status: "ativo",
 			Notes:  &longNotes,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro para notes com mais de 50000 caracteres")
 		}
@@ -705,13 +705,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		validNotes := strings.Repeat("a", 50000)
-		client := domain.Client{
-			Name:   "Test Client Valid Notes",
+		client := domain.Entity{
+			Name:   "Test Entity Valid Notes",
 			Status: "ativo",
 			Notes:  &validNotes,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Errorf("Não esperava erro para notes com 50000 caracteres: %v", err)
 		}
@@ -727,13 +727,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		longDocs := strings.Repeat("a", 10001)
-		client := domain.Client{
-			Name:      "Test Client Long Docs",
+		client := domain.Entity{
+			Name:      "Test Entity Long Docs",
 			Status:    "ativo",
 			Documents: &longDocs,
 		}
 
-		_, err := clientStore.CreateClient(client)
+		_, err := entityStore.CreateEntity(client)
 		if err == nil {
 			t.Error("Esperava erro para documents com mais de 10000 caracteres")
 		}
@@ -749,13 +749,13 @@ func TestDateValidationEdgeCases(t *testing.T) {
 		}
 
 		validDocs := strings.Repeat("a", 10000)
-		client := domain.Client{
-			Name:      "Test Client Valid Docs",
+		client := domain.Entity{
+			Name:      "Test Entity Valid Docs",
 			Status:    "ativo",
 			Documents: &validDocs,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Errorf("Não esperava erro para documents com 10000 caracteres: %v", err)
 		}
@@ -771,7 +771,7 @@ func TestNullVsEmptyStringPersistence(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	t.Run("email NULL vs vazio", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
@@ -782,36 +782,36 @@ func TestNullVsEmptyStringPersistence(t *testing.T) {
 		regID1 := "45.723.174/0001-10"
 		regID2 := "07.526.557/0001-00"
 
-		client1 := domain.Client{
-			Name:           "Client with NULL email",
+		client1 := domain.Entity{
+			Name:           "Entity with NULL email",
 			Status:         "ativo",
 			Email:          nil,
 			RegistrationID: &regID1,
 		}
 
-		client2 := domain.Client{
-			Name:           "Client with empty email",
+		client2 := domain.Entity{
+			Name:           "Entity with empty email",
 			Status:         "ativo",
 			Email:          &empty,
 			RegistrationID: &regID2,
 		}
 
-		id1, err := clientStore.CreateClient(client1)
+		id1, err := entityStore.CreateEntity(client1)
 		if err != nil {
 			t.Fatalf("Failed to create client1: %v", err)
 		}
 
-		id2, err := clientStore.CreateClient(client2)
+		id2, err := entityStore.CreateEntity(client2)
 		if err != nil {
 			t.Fatalf("Failed to create client2: %v", err)
 		}
 
-		fetched1, err := clientStore.GetClientByID(id1)
+		fetched1, err := entityStore.GetEntityByID(id1)
 		if err != nil {
 			t.Fatalf("Failed to fetch client1: %v", err)
 		}
 
-		fetched2, err := clientStore.GetClientByID(id2)
+		fetched2, err := entityStore.GetEntityByID(id2)
 		if err != nil {
 			t.Fatalf("Failed to fetch client2: %v", err)
 		}
@@ -833,19 +833,19 @@ func TestNullVsEmptyStringPersistence(t *testing.T) {
 		}
 
 		spaces := "   "
-		client := domain.Client{
-			Name:     "Test Client",
+		client := domain.Entity{
+			Name:     "Test Entity",
 			Status:   "ativo",
 			Nickname: &spaces,
 			Address:  &spaces,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -865,25 +865,25 @@ func TestSQLInjectionProtection(t *testing.T) {
 	db := setupClientTestDB(t)
 	defer CloseDB(db)
 
-	clientStore := NewClientStore(db)
+	entityStore := NewEntityStore(db)
 
 	t.Run("SQL injection no nome", func(t *testing.T) {
 		if err := ClearTables(db); err != nil {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		maliciousName := "'; DROP TABLE clients; --"
-		client := domain.Client{
+		maliciousName := "'; DROP TABLE entities; --"
+		client := domain.Entity{
 			Name:   maliciousName,
 			Status: "ativo",
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}
@@ -893,13 +893,13 @@ func TestSQLInjectionProtection(t *testing.T) {
 		}
 
 		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM clients WHERE archived_at IS NULL").Scan(&count)
+		err = db.QueryRow("SELECT COUNT(*) FROM entities WHERE archived_at IS NULL").Scan(&count)
 		if err != nil {
-			t.Fatalf("Tabela clients foi comprometida: %v", err)
+			t.Fatalf("Tabela entities foi comprometida: %v", err)
 		}
 
 		if count == 0 {
-			t.Error("Tabela clients está vazia - possível SQL injection")
+			t.Error("Tabela entities está vazia - possível SQL injection")
 		}
 	})
 
@@ -908,19 +908,19 @@ func TestSQLInjectionProtection(t *testing.T) {
 			t.Fatalf("Failed to clear tables: %v", err)
 		}
 
-		maliciousTags := "vip'; DELETE FROM clients WHERE '1'='1"
-		client := domain.Client{
-			Name:   "Test Client",
+		maliciousTags := "vip'; DELETE FROM entities WHERE '1'='1"
+		client := domain.Entity{
+			Name:   "Test Entity",
 			Status: "ativo",
 			Tags:   &maliciousTags,
 		}
 
-		id, err := clientStore.CreateClient(client)
+		id, err := entityStore.CreateEntity(client)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		fetched, err := clientStore.GetClientByID(id)
+		fetched, err := entityStore.GetEntityByID(id)
 		if err != nil {
 			t.Fatalf("Failed to fetch client: %v", err)
 		}

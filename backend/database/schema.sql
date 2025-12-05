@@ -2,12 +2,12 @@
 --
 -- ATENÇÃO: Este arquivo foi atualizado para incluir:
 -- 1. CITEXT para campos case-insensitive (exceto senhas)
--- 2. Datas opcionais em contratos (start_date e end_date podem ser NULL)
--- 3. Constraint unique para nome de linha por categoria
+-- 2. Datas opcionais em agreements (start_date e end_date podem ser NULL)
+-- 3. Constraint unique para nome de subcategory por categoria
 --
 -- Para aplicar estas mudanças em um banco existente, você deve:
--- DROP DATABASE contracts_manager;
--- CREATE DATABASE contracts_manager;
+-- DROP DATABASE entity_hub;
+-- CREATE DATABASE entity_hub;
 -- E então executar este script novamente.
 
 -- Extensão para case-insensitive (se necessário)
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     auth_secret VARCHAR(64)
 );
 
-CREATE TABLE IF NOT EXISTS clients (
+CREATE TABLE IF NOT EXISTS entities (
     id UUID PRIMARY KEY,
     name CITEXT NOT NULL,
     registration_id CITEXT,
@@ -49,12 +49,12 @@ CREATE TABLE IF NOT EXISTS clients (
     CONSTRAINT unique_registration_id_when_not_null UNIQUE (registration_id)
 );
 
-CREATE UNIQUE INDEX unique_name_when_no_registration ON clients(name) WHERE registration_id IS NULL;
+CREATE UNIQUE INDEX unique_name_when_no_registration ON entities(name) WHERE registration_id IS NULL;
 
-CREATE TABLE IF NOT EXISTS dependents (
+CREATE TABLE IF NOT EXISTS sub_entities (
     id UUID PRIMARY KEY,
     name CITEXT NOT NULL,
-    client_id UUID NOT NULL,
+    entity_id UUID NOT NULL,
     description TEXT,
     birth_date DATE,
     email CITEXT,
@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS dependents (
     tags TEXT,
     contact_preference VARCHAR(50),
     documents TEXT,
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-    CONSTRAINT unique_dependent_name_per_client UNIQUE (client_id, name)
+    FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+    CONSTRAINT unique_sub_entity_name_per_entity UNIQUE (entity_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -76,29 +76,29 @@ CREATE TABLE IF NOT EXISTS categories (
     archived_at TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS lines (
+CREATE TABLE IF NOT EXISTS subcategories (
     id UUID PRIMARY KEY,
     name CITEXT NOT NULL,
     category_id UUID NOT NULL,
     deleted_at TIMESTAMP,
     archived_at TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-    CONSTRAINT unique_line_name_per_category UNIQUE (category_id, name)
+    CONSTRAINT unique_subcategory_name_per_category UNIQUE (category_id, name)
 );
 
-CREATE TABLE IF NOT EXISTS contracts (
+CREATE TABLE IF NOT EXISTS agreements (
     id UUID PRIMARY KEY,
     model CITEXT,
-    product_key CITEXT UNIQUE,
+    item_key CITEXT UNIQUE,
     start_date TIMESTAMP,
     end_date TIMESTAMP,
-    line_id UUID NOT NULL,
-    client_id UUID NOT NULL,
-    dependent_id UUID,
+    subcategory_id UUID NOT NULL,
+    entity_id UUID NOT NULL,
+    sub_entity_id UUID,
     archived_at TIMESTAMP,
-    FOREIGN KEY (line_id) REFERENCES lines(id),
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-    FOREIGN KEY (dependent_id) REFERENCES dependents(id) ON DELETE SET NULL
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id),
+    FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+    FOREIGN KEY (sub_entity_id) REFERENCES sub_entities(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (

@@ -30,10 +30,10 @@ API_URL = f"{BASE_URL}/api" if not BASE_URL.endswith("/api") else BASE_URL
 test_data = {
     "tokens": {},
     "users": {},
-    "clients": [],
-    "contracts": [],
+    "entities": [],
+    "agreements": [],
     "categories": [],
-    "lines": []
+    "subcategories": []
 }
 
 # Senhas padrão para testes

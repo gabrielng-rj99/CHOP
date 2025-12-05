@@ -19,8 +19,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Contracts from "./pages/Contracts";
-import Clients from "./pages/Clients";
+import Contracts from "./pages/Agreements";
+import Clients from "./pages/Entities";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";

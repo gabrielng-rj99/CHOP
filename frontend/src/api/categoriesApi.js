@@ -41,9 +41,9 @@ const categoriesApi = {
         return data.data || [];
     },
 
-    loadLines: async (apiUrl, token, categoryId, onTokenExpired) => {
+    loadSubcategories: async (apiUrl, token, categoryId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/categories/${categoryId}/lines?include_archived=true`,
+            `${apiUrl}/categories/${categoryId}/subcategories?include_archived=true`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -180,8 +180,8 @@ const categoriesApi = {
         return await response.json();
     },
 
-    createLine: async (apiUrl, token, lineData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/lines`, {
+    createSubcategory: async (apiUrl, token, lineData, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/subcategories`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -203,8 +203,8 @@ const categoriesApi = {
         return await response.json();
     },
 
-    updateLine: async (apiUrl, token, lineId, lineData, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/lines/${lineId}`, {
+    updateSubcategory: async (apiUrl, token, lineId, lineData, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/subcategories/${lineId}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -226,8 +226,8 @@ const categoriesApi = {
         return await response.json();
     },
 
-    deleteLine: async (apiUrl, token, lineId, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/lines/${lineId}`, {
+    deleteSubcategory: async (apiUrl, token, lineId, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/subcategories/${lineId}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -247,8 +247,8 @@ const categoriesApi = {
         return await response.json();
     },
 
-    archiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/lines/${lineId}/archive`, {
+    archiveSubcategory: async (apiUrl, token, lineId, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/subcategories/${lineId}/archive`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -268,9 +268,9 @@ const categoriesApi = {
         return await response.json();
     },
 
-    unarchiveLine: async (apiUrl, token, lineId, onTokenExpired) => {
+    unarchiveSubcategory: async (apiUrl, token, lineId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/lines/${lineId}/unarchive`,
+            `${apiUrl}/subcategories/${lineId}/unarchive`,
             {
                 method: "POST",
                 headers: {

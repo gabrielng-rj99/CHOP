@@ -39,13 +39,13 @@ func main() {
 	defer db.Close()
 
 	userStore := store.NewUserStore(db)
-	clientStore := store.NewClientStore(db)
-	contractStore := store.NewContractStore(db)
-	dependentStore := store.NewDependentStore(db)
+	entityStore := store.NewEntityStore(db)
+	agreementStore := store.NewAgreementStore(db)
+	subEntityStore := store.NewSubEntityStore(db)
 	categoryStore := store.NewCategoryStore(db)
-	lineStore := store.NewLineStore(db)
+	subcategoryStore := store.NewSubcategoryStore(db)
 
-	fmt.Println("=== contracts Manager CLI ===")
+	fmt.Println("=== agreements Manager CLI ===")
 	fmt.Println("Lista de usuários no banco:")
 	rows, err := db.Query("SELECT id, username, display_name FROM users")
 	if err != nil {
@@ -77,11 +77,11 @@ func main() {
 		clearTerminal()
 		switch mainMenu() {
 		case "1":
-			ClientsFlow(clientStore, dependentStore, contractStore, lineStore, categoryStore)
+			ClientsFlow(entityStore, subEntityStore, agreementStore, subcategoryStore, categoryStore)
 		case "2":
-			ContractsFlow(contractStore, clientStore, dependentStore, lineStore, categoryStore)
+			ContractsFlow(agreementStore, entityStore, subEntityStore, subcategoryStore, categoryStore)
 		case "3":
-			AdministrationFlow(categoryStore, lineStore, userStore, user)
+			AdministrationFlow(categoryStore, subcategoryStore, userStore, user)
 		case "0":
 			fmt.Println("Exiting...")
 			return
@@ -108,7 +108,7 @@ func mainMenu() string {
 	fmt.Println("0 - Exit")
 	fmt.Println("1 - Clients")
 	fmt.Println("2 - Contracts (Overview)")
-	fmt.Println("3 - Administration (categories, lines, users)")
+	fmt.Println("3 - Administration (categories, subcategories, users)")
 	fmt.Print("Option: ")
 	reader := bufio.NewReader(os.Stdin)
 	opt, _ := reader.ReadString('\n')

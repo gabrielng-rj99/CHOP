@@ -38,24 +38,24 @@ func setupDependentTest(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestCreateDependent(t *testing.T) {
+func TestCreateSubEntity(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	tests := []struct {
 		name        string
 		dependName  string
-		clientID    string
+		entityID    string
 		setup       func() (string, error)
 		expectError bool
 	}{
 		{
 			name:       "sucesso - criação normal",
-			dependName: "Test Dependent",
+			dependName: "Test SubEntity",
 			setup: func() (string, error) {
-				return InsertTestClient(db, "TestClient1-"+uuid.New().String()[:8], generateUniqueCNPJ())
+				return InsertTestEntity(db, "TestClient1-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: false,
 		},
@@ -63,28 +63,28 @@ func TestCreateDependent(t *testing.T) {
 			name:       "erro - nome vazio",
 			dependName: "",
 			setup: func() (string, error) {
-				return InsertTestClient(db, "TestClient2-"+uuid.New().String()[:8], generateUniqueCNPJ())
+				return InsertTestEntity(db, "TestClient2-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: true,
 		},
 		{
 			name:       "erro - nome duplicado para mesma empresa",
-			dependName: "Duplicate Dependent",
+			dependName: "Duplicate SubEntity",
 			setup: func() (string, error) {
-				return InsertTestClient(db, "TestClient3-"+uuid.New().String()[:8], generateUniqueCNPJ())
+				return InsertTestEntity(db, "TestClient3-"+uuid.New().String()[:8], generateUniqueCNPJ())
 			},
 			expectError: true,
 		},
 		{
 			name:        "erro - empresa não existe",
-			dependName:  "Test Dependent",
-			clientID:    uuid.New().String(),
+			dependName:  "Test SubEntity",
+			entityID:    uuid.New().String(),
 			expectError: true,
 		},
 		{
-			name:        "erro - sem client_id",
-			dependName:  "Test Dependent",
-			clientID:    "",
+			name:        "erro - sem entity_id",
+			dependName:  "Test SubEntity",
+			entityID:    "",
 			expectError: true,
 		},
 	}
@@ -95,26 +95,26 @@ func TestCreateDependent(t *testing.T) {
 				t.Fatalf("Failed to clear tables: %v", err)
 			}
 
-			clientID := tt.clientID
+			entityID := tt.entityID
 			if tt.setup != nil {
 				id, err := tt.setup()
 				if err != nil {
 					t.Fatalf("Failed to setup test: %v", err)
 				}
-				clientID = id
+				entityID = id
 			}
 
-			dependent := domain.Dependent{
+			dependent := domain.SubEntity{
 				Name:     tt.dependName,
-				ClientID: clientID,
+				EntityID: entityID,
 				Status:   "ativo",
 			}
 
 			// Para o teste de nome duplicado, insere a primeira entidade antes
 			if tt.name == "erro - nome duplicado para mesma empresa" {
-				_, err := dependentStore.CreateDependent(domain.Dependent{
-					Name:     "Duplicate Dependent",
-					ClientID: clientID,
+				_, err := subEntityStore.CreateSubEntity(domain.SubEntity{
+					Name:     "Duplicate SubEntity",
+					EntityID: entityID,
 					Status:   "ativo",
 				})
 				if err != nil {
@@ -122,7 +122,7 @@ func TestCreateDependent(t *testing.T) {
 				}
 			}
 
-			id, err := dependentStore.CreateDependent(dependent)
+			id, err := subEntityStore.CreateSubEntity(dependent)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -137,16 +137,16 @@ func TestCreateDependent(t *testing.T) {
 	}
 }
 
-func TestDeleteDependentDisassociatesContracts(t *testing.T) {
+func TestDeleteSubEntityDisassociatesContracts(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
-	dependentID, err := InsertTestDependent(db, "Dependent Delete", clientID)
+	subEntityID, err := InsertTestSubEntity(db, "SubEntity Delete", entityID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
 	}
@@ -156,57 +156,57 @@ func TestDeleteDependentDisassociatesContracts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to insert test category: %v", err)
 	}
-	lineID, err := InsertTestLine(db, "Linha Teste", categoryID)
+	subcategoryID, err := InsertTestSubcategory(db, "Linha Teste", categoryID)
 	if err != nil {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
 	// Insert license associated to dependent
-	contractStore := NewContractStore(db)
+	agreementStore := NewAgreementStore(db)
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
-	contract := domain.Contract{
+	contract := domain.Agreement{
 		Model:       "Licença Teste",
-		ProductKey:  "ENTITY-DEL-KEY-001",
+		ItemKey:  "ENTITY-DEL-KEY-001",
 		StartDate:   timePtr(startDate),
 		EndDate:     timePtr(endDate),
-		LineID:      lineID,
-		ClientID:    clientID,
-		DependentID: &dependentID,
+		SubcategoryID:      subcategoryID,
+		EntityID:    entityID,
+		SubEntityID: &subEntityID,
 	}
-	contractID, err := contractStore.CreateContract(contract)
+	contractID, err := agreementStore.CreateAgreement(contract)
 	if err != nil {
 		t.Fatalf("Failed to create contract: %v", err)
 	}
 
 	// Delete dependent
-	dependentStore := NewDependentStore(db)
-	err = dependentStore.DeleteDependent(dependentID)
+	subEntityStore := NewSubEntityStore(db)
+	err = subEntityStore.DeleteSubEntity(subEntityID)
 	if err != nil {
 		t.Fatalf("Failed to delete dependent: %v", err)
 	}
 
-	// Check contract dependent_id is NULL
-	updatedContract, err := contractStore.GetContractByID(contractID)
+	// Check contract sub_entity_id is NULL
+	updatedContract, err := agreementStore.GetAgreementByID(contractID)
 	if err != nil {
 		t.Fatalf("Failed to get contract after dependent deletion: %v", err)
 	}
-	if updatedContract == nil || updatedContract.DependentID != nil {
-		t.Error("Expected contract dependent_id to be NULL after dependent deletion")
+	if updatedContract == nil || updatedContract.SubEntityID != nil {
+		t.Error("Expected contract sub_entity_id to be NULL after dependent deletion")
 	}
 }
 
-func TestGetDependentByID(t *testing.T) {
+func TestGetSubEntityByID(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentID, err := InsertTestDependent(db, "Test Dependent", clientID)
+	subEntityID, err := InsertTestSubEntity(db, "Test SubEntity", entityID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestGetDependentByID(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - unidade encontrada",
-			id:          dependentID,
+			id:          subEntityID,
 			expectError: false,
 			expectFound: true,
 		},
@@ -239,8 +239,8 @@ func TestGetDependentByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependentStore := NewDependentStore(db)
-			dependent, err := dependentStore.GetDependentByID(tt.id)
+			subEntityStore := NewSubEntityStore(db)
+			dependent, err := subEntityStore.GetSubEntityByID(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -263,15 +263,15 @@ func TestGetDependentsByClient(t *testing.T) {
 	defer CloseDB(db)
 
 	// Create test client
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	// Insert test dependents
-	testDependents := []string{"Dependent 1", "Dependent 2", "Dependent 3"}
+	// Insert test sub_entities
+	testDependents := []string{"SubEntity 1", "SubEntity 2", "SubEntity 3"}
 	for _, name := range testDependents {
-		_, err := InsertTestDependent(db, name, clientID)
+		_, err := InsertTestSubEntity(db, name, entityID)
 		if err != nil {
 			t.Fatalf("Failed to insert test dependent: %v", err)
 		}
@@ -279,25 +279,25 @@ func TestGetDependentsByClient(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		clientID    string
+		entityID    string
 		expectError bool
 		expectCount int
 	}{
 		{
 			name:        "sucesso - dependentes encontrados",
-			clientID:    clientID,
+			entityID:    entityID,
 			expectError: false,
 			expectCount: len(testDependents),
 		},
 		{
 			name:        "erro - empresa vazia",
-			clientID:    "",
+			entityID:    "",
 			expectError: true,
 			expectCount: 0,
 		},
 		{
 			name:        "sucesso - empresa sem unidades",
-			clientID:    uuid.New().String(),
+			entityID:    uuid.New().String(),
 			expectError: false,
 			expectCount: 0,
 		},
@@ -305,8 +305,8 @@ func TestGetDependentsByClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependentStore := NewDependentStore(db)
-			dependents, err := dependentStore.GetDependentsByClientID(tt.clientID)
+			subEntityStore := NewSubEntityStore(db)
+			sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(tt.entityID)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -314,69 +314,69 @@ func TestGetDependentsByClient(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if !tt.expectError && len(dependents) != tt.expectCount {
-				t.Errorf("Expected %d dependents but got %d", tt.expectCount, len(dependents))
+			if !tt.expectError && len(sub_entities) != tt.expectCount {
+				t.Errorf("Expected %d sub_entities but got %d", tt.expectCount, len(sub_entities))
 			}
 		})
 	}
 }
 
-func TestUpdateDependent(t *testing.T) {
+func TestUpdateSubEntity(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	_, err = InsertTestDependent(db, "Test Dependent", clientID)
+	_, err = InsertTestSubEntity(db, "Test SubEntity", entityID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		dependent   domain.Dependent
+		subEntity   domain.SubEntity
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
-			dependent: domain.Dependent{
+			subEntity: domain.SubEntity{
 				ID:       "",
-				Name:     "Updated Dependent",
-				ClientID: "",
+				Name:     "Updated SubEntity",
+				EntityID: "",
 				Status:   "ativo",
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - id vazio",
-			dependent: domain.Dependent{
+			subEntity: domain.SubEntity{
 				ID:       "",
-				Name:     "Updated Dependent",
-				ClientID: "client-id-1",
+				Name:     "Updated SubEntity",
+				EntityID: "client-id-1",
 				Status:   "ativo",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
-			dependent: domain.Dependent{
+			subEntity: domain.SubEntity{
 				ID:       "dependent-id-1",
 				Name:     "",
-				ClientID: "client-id-1",
+				EntityID: "client-id-1",
 				Status:   "ativo",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa não existe",
-			dependent: domain.Dependent{
+			subEntity: domain.SubEntity{
 				ID:       "dependent-id-1",
-				Name:     "Updated Dependent",
-				ClientID: uuid.New().String(),
+				Name:     "Updated SubEntity",
+				EntityID: uuid.New().String(),
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -385,26 +385,26 @@ func TestUpdateDependent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependentStore := NewDependentStore(db)
+			subEntityStore := NewSubEntityStore(db)
 			// For the success case, ensure the dependent exists before update
 			if tt.name == "sucesso - atualização normal" {
 				// Create test client first
-				clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+				entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 				if err != nil {
 					t.Fatalf("Failed to insert test client: %v", err)
 				}
-				createdID, err := dependentStore.CreateDependent(domain.Dependent{
-					Name:     "Original Dependent",
-					ClientID: clientID,
+				createdID, err := subEntityStore.CreateSubEntity(domain.SubEntity{
+					Name:     "Original SubEntity",
+					EntityID: entityID,
 					Status:   "ativo",
 				})
 				if err != nil {
 					t.Fatalf("Failed to create dependent before update: %v", err)
 				}
-				tt.dependent.ID = createdID
-				tt.dependent.ClientID = clientID
+				tt.subEntity.ID = createdID
+				tt.subEntity.EntityID = entityID
 			}
-			err := dependentStore.UpdateDependent(tt.dependent)
+			err := subEntityStore.UpdateSubEntity(tt.subEntity)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -415,17 +415,17 @@ func TestUpdateDependent(t *testing.T) {
 
 			if !tt.expectError {
 				// Verify update
-				var name, clientID string
-				err = db.QueryRow("SELECT name, client_id FROM dependents WHERE id = $1", tt.dependent.ID).
-					Scan(&name, &clientID)
+				var name, entityID string
+				err = db.QueryRow("SELECT name, entity_id FROM sub_entities WHERE id = $1", tt.subEntity.ID).
+					Scan(&name, &entityID)
 				if err != nil {
 					t.Errorf("Failed to query updated dependent: %v", err)
 				}
-				if name != tt.dependent.Name {
-					t.Errorf("Expected name %q but got %q", tt.dependent.Name, name)
+				if name != tt.subEntity.Name {
+					t.Errorf("Expected name %q but got %q", tt.subEntity.Name, name)
 				}
-				if clientID != tt.dependent.ClientID {
-					t.Errorf("Expected client_id %q but got %q", tt.dependent.ClientID, clientID)
+				if entityID != tt.subEntity.EntityID {
+					t.Errorf("Expected entity_id %q but got %q", tt.subEntity.EntityID, entityID)
 				}
 			}
 		})
@@ -444,36 +444,36 @@ func TestGetDependentsByName(t *testing.T) {
 		t.Fatalf("Failed to clear tables: %v", err)
 	}
 
-	dependentStore := NewDependentStore(db)
+	subEntityStore := NewSubEntityStore(db)
 
 	// Create test client
-	clientID, err := InsertTestClient(db, "Test Company", "45.723.174/0001-10")
+	entityID, err := InsertTestEntity(db, "Test Company", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to create test client: %v", err)
 	}
 
-	// Create test dependents
-	_, err = dependentStore.CreateDependent(domain.Dependent{
+	// Create test sub_entities
+	_, err = subEntityStore.CreateSubEntity(domain.SubEntity{
 		Name:     "Branch Office Alpha",
-		ClientID: clientID,
+		EntityID: entityID,
 		Status:   "ativo",
 	})
 	if err != nil {
 		t.Fatalf("Failed to create dependent 1: %v", err)
 	}
 
-	_, err = dependentStore.CreateDependent(domain.Dependent{
+	_, err = subEntityStore.CreateSubEntity(domain.SubEntity{
 		Name:     "Branch Office Beta",
-		ClientID: clientID,
+		EntityID: entityID,
 		Status:   "ativo",
 	})
 	if err != nil {
 		t.Fatalf("Failed to create dependent 2: %v", err)
 	}
 
-	_, err = dependentStore.CreateDependent(domain.Dependent{
+	_, err = subEntityStore.CreateSubEntity(domain.SubEntity{
 		Name:     "Warehouse Unit",
-		ClientID: clientID,
+		EntityID: entityID,
 		Status:   "ativo",
 	})
 	if err != nil {
@@ -482,68 +482,68 @@ func TestGetDependentsByName(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		clientID      string
+		entityID      string
 		searchName    string
 		expectedCount int
 		expectError   bool
 	}{
 		{
 			name:          "search 'Branch' - should find 2",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "Branch",
 			expectedCount: 2,
 			expectError:   false,
 		},
 		{
 			name:          "search 'branch' (case-insensitive) - should find 2",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "branch",
 			expectedCount: 2,
 			expectError:   false,
 		},
 		{
 			name:          "search 'Office' - should find 2",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "Office",
 			expectedCount: 2,
 			expectError:   false,
 		},
 		{
 			name:          "search 'Alpha' - should find 1",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "Alpha",
 			expectedCount: 1,
 			expectError:   false,
 		},
 		{
 			name:          "search 'Warehouse' - should find 1",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "Warehouse",
 			expectedCount: 1,
 			expectError:   false,
 		},
 		{
 			name:          "search 'NonExistent' - should find 0",
-			clientID:      clientID,
+			entityID:      entityID,
 			searchName:    "NonExistent",
 			expectedCount: 0,
 			expectError:   false,
 		},
 		{
-			name:        "empty client ID - should error",
-			clientID:    "",
+			name:        "empty entity ID - should error",
+			entityID:    "",
 			searchName:  "Branch",
 			expectError: true,
 		},
 		{
 			name:        "empty search name - should error",
-			clientID:    clientID,
+			entityID:    entityID,
 			searchName:  "",
 			expectError: true,
 		},
 		{
 			name:        "only spaces - should error",
-			clientID:    clientID,
+			entityID:    entityID,
 			searchName:  "   ",
 			expectError: true,
 		},
@@ -551,7 +551,7 @@ func TestGetDependentsByName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependents, err := dependentStore.GetDependentsByName(tt.clientID, tt.searchName)
+			sub_entities, err := subEntityStore.GetDependentsByName(tt.entityID, tt.searchName)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -559,24 +559,24 @@ func TestGetDependentsByName(t *testing.T) {
 			if !tt.expectError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
-			if !tt.expectError && len(dependents) != tt.expectedCount {
-				t.Errorf("Expected %d dependents, got %d", tt.expectedCount, len(dependents))
+			if !tt.expectError && len(sub_entities) != tt.expectedCount {
+				t.Errorf("Expected %d sub_entities, got %d", tt.expectedCount, len(sub_entities))
 			}
 		})
 	}
 }
 
-func TestDeleteDependent(t *testing.T) {
+func TestDeleteSubEntity(t *testing.T) {
 	db := setupDependentTest(t)
 	defer CloseDB(db)
 
 	// Create test client and dependent
-	clientID, err := InsertTestClient(db, "Test Client", generateUniqueCNPJ())
+	entityID, err := InsertTestEntity(db, "Test Entity", generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	dependentID, err := InsertTestDependent(db, "Test Dependent", clientID)
+	subEntityID, err := InsertTestSubEntity(db, "Test SubEntity", entityID)
 	if err != nil {
 		t.Fatalf("Failed to insert test dependent: %v", err)
 	}
@@ -588,7 +588,7 @@ func TestDeleteDependent(t *testing.T) {
 	}{
 		{
 			name:        "sucesso - deleção normal",
-			id:          dependentID,
+			id:          subEntityID,
 			expectError: false,
 		},
 		{
@@ -605,8 +605,8 @@ func TestDeleteDependent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependentStore := NewDependentStore(db)
-			err := dependentStore.DeleteDependent(tt.id)
+			subEntityStore := NewSubEntityStore(db)
+			err := subEntityStore.DeleteSubEntity(tt.id)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -618,7 +618,7 @@ func TestDeleteDependent(t *testing.T) {
 			if !tt.expectError {
 				// Verify deletion
 				var count int
-				err = db.QueryRow("SELECT COUNT(*) FROM dependents WHERE id = $1", tt.id).Scan(&count)
+				err = db.QueryRow("SELECT COUNT(*) FROM sub_entities WHERE id = $1", tt.id).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to query deleted dependent: %v", err)
 				}

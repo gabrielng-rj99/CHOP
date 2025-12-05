@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { contractsApi } from "../api/contractsApi";
+import { agreementsApi } from "../api/agreementsApi";
 import {
     getInitialFormData,
     formatContractForEdit,
@@ -28,13 +28,13 @@ import {
     getCategoryName,
     prepareContractDataForAPI,
 } from "../utils/contractHelpers";
-import ContractsTable from "../components/contracts/ContractsTable";
-import ContractModal from "../components/contracts/ContractModal";
-import "./Contracts.css";
+import AgreementsTable from "../components/agreements/AgreementsTable";
+import AgreementModal from "../components/agreements/AgreementModal";
+import "./Agreements.css";
 
 export default function Contracts({ token, apiUrl, onTokenExpired }) {
-    const [contracts, setContracts] = useState([]);
-    const [clients, setClients] = useState([]);
+    const [contracts, setAgreements] = useState([]);
+    const [clients, setEntities] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [dependents, setDependents] = useState([]);
@@ -56,8 +56,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setLoading(true);
         try {
             await Promise.all([
-                loadContracts(),
-                loadClients(),
+                loadAgreements(),
+                loadEntities(),
                 loadCategories(),
             ]);
         } finally {
@@ -65,20 +65,20 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const loadContracts = async () => {
+    const loadAgreements = async () => {
         setError("");
         try {
-            const data = await contractsApi.loadContracts(apiUrl, token, onTokenExpired);
-            setContracts(data);
+            const data = await agreementsApi.loadAgreements(apiUrl, token, onTokenExpired);
+            setAgreements(data);
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const loadClients = async () => {
+    const loadEntities = async () => {
         try {
-            const data = await contractsApi.loadClients(apiUrl, token, onTokenExpired);
-            setClients(data);
+            const data = await agreementsApi.loadEntities(apiUrl, token, onTokenExpired);
+            setEntities(data);
         } catch (err) {
             console.error("Erro ao carregar clientes:", err);
         }
@@ -86,16 +86,16 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const loadCategories = async () => {
         try {
-            const data = await contractsApi.loadCategories(apiUrl, token, onTokenExpired);
+            const data = await agreementsApi.loadCategories(apiUrl, token, onTokenExpired);
             setCategories(data);
         } catch (err) {
             console.error("Erro ao carregar categorias:", err);
         }
     };
 
-    const loadLines = async (categoryId) => {
+    const loadSubcategories = async (categoryId) => {
         try {
-            const data = await contractsApi.loadLines(
+            const data = await agreementsApi.loadSubcategories(
                 apiUrl,
                 token,
                 categoryId,
@@ -107,9 +107,9 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const loadDependents = async (clientId) => {
+    const loadSubEntities = async (clientId) => {
         try {
-            const data = await contractsApi.loadDependents(
+            const data = await agreementsApi.loadSubEntities(
                 apiUrl,
                 token,
                 clientId,
@@ -124,8 +124,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const handleCreateContract = async () => {
         try {
             const apiData = prepareContractDataForAPI(formData);
-            await contractsApi.createContract(apiUrl, token, apiData, onTokenExpired);
-            await loadContracts();
+            await agreementsApi.createAgreement(apiUrl, token, apiData, onTokenExpired);
+            await loadAgreements();
             closeModal();
         } catch (err) {
             setError(err.message);
@@ -135,14 +135,14 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const handleUpdateContract = async () => {
         setError("");
         try {
-            const apiData = await contractsApi.updateContract(
+            const apiData = await agreementsApi.updateAgreement(
                 apiUrl,
                 token,
                 selectedContract.id,
                 prepareContractDataForAPI(formData),
                 onTokenExpired,
             );
-            await loadContracts();
+            await loadAgreements();
             closeModal();
         } catch (err) {
             setError(err.message);
@@ -154,17 +154,17 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await contractsApi.archiveContract(apiUrl, token, contractId, onTokenExpired);
-            await loadContracts();
+            await agreementsApi.archiveAgreement(apiUrl, token, contractId, onTokenExpired);
+            await loadAgreements();
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const handleUnarchiveContract = async (contractId) => {
+    const handleUnarchiveAgreement = async (contractId) => {
         try {
-            await contractsApi.unarchiveContract(apiUrl, token, contractId, onTokenExpired);
-            await loadContracts();
+            await agreementsApi.unarchiveAgreement(apiUrl, token, contractId, onTokenExpired);
+            await loadAgreements();
         } catch (err) {
             setError(err.message);
         }
@@ -184,11 +184,11 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setFormData(formatContractForEdit(contract));
         setShowModal(true);
 
-        if (contract.client_id) {
-            loadDependents(contract.client_id);
+        if (contract.entity_id) {
+            loadSubEntities(contract.entity_id);
         }
         if (contract.line?.category_id) {
-            loadLines(contract.line.category_id);
+            loadSubcategories(contract.line.category_id);
         }
     };
 
@@ -222,7 +222,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const handleCategoryChange = (categoryId) => {
         if (categoryId) {
-            loadLines(categoryId);
+            loadSubcategories(categoryId);
         } else {
             setLines([]);
         }
@@ -230,7 +230,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const handleClientChange = (clientId) => {
         if (clientId) {
-            loadDependents(clientId);
+            loadSubEntities(clientId);
         } else {
             setDependents([]);
         }
@@ -277,7 +277,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 <h1 className="contracts-title">Contratos</h1>
                 <div className="contracts-button-group">
                     <button
-                        onClick={loadContracts}
+                        onClick={loadAgreements}
                         className="contracts-button-secondary"
                     >
                         Atualizar
@@ -344,18 +344,18 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 {/* <div className="contracts-table-header">
                     <h2 className="contracts-table-header-title">Contratos</h2>
                 </div>*/}
-                <ContractsTable
+                <AgreementsTable
                     filteredContracts={filteredContracts}
                     clients={clients}
                     categories={categories}
                     onViewDetails={openDetailsModal}
                     onEdit={openEditModal}
                     onArchive={handleArchiveContract}
-                    onUnarchive={handleUnarchiveContract}
+                    onUnarchive={handleUnarchiveAgreement}
                 />
             </div>
 
-            <ContractModal
+            <AgreementModal
                 showModal={showModal}
                 modalMode={modalMode}
                 formData={formData}
@@ -418,12 +418,12 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                             />
                             <DetailRow
                                 label="Chave do Produto"
-                                value={selectedContract.product_key || "-"}
+                                value={selectedContract.item_key || "-"}
                             />
                             <DetailRow
                                 label="Cliente"
                                 value={getClientName(
-                                    selectedContract.client_id,
+                                    selectedContract.entity_id,
                                     clients,
                                 )}
                             />
@@ -436,7 +436,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                             <DetailRow
                                 label="Categoria"
                                 value={getCategoryName(
-                                    selectedContract.line_id,
+                                    selectedContract.subcategory_id,
                                     categories,
                                 )}
                             />

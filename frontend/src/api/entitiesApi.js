@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const clientsApi = {
-    loadClients: async (apiUrl, token, setClients, setError, onTokenExpired) => {
+export const entitiesApi = {
+    loadEntities: async (apiUrl, token, setEntities, setError, onTokenExpired) => {
         try {
             const response = await fetch(
-                `${apiUrl}/clients?include_stats=true`,
+                `${apiUrl}/entities?include_stats=true`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -39,13 +39,13 @@ export const clientsApi = {
             }
 
             const data = await response.json();
-            setClients(data.data || []);
+            setEntities(data.data || []);
         } catch (err) {
             setError(err.message);
         }
     },
 
-    createClient: async (apiUrl, token, formData, onTokenExpired) => {
+    createEntity: async (apiUrl, token, formData, onTokenExpired) => {
         const formatDateForAPI = (dateString) => {
             if (!dateString || dateString.trim() === "") return null;
             // If already has timestamp, return as is
@@ -70,7 +70,7 @@ export const clientsApi = {
             tags: formData.tags || null,
         };
 
-        const response = await fetch(`${apiUrl}/clients`, {
+        const response = await fetch(`${apiUrl}/entities`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -92,7 +92,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    updateClient: async (apiUrl, token, clientId, formData, onTokenExpired) => {
+    updateEntity: async (apiUrl, token, clientId, formData, onTokenExpired) => {
         const formatDateForAPI = (dateString) => {
             if (!dateString || dateString.trim() === "") return null;
             // If already has timestamp, return as is
@@ -117,7 +117,7 @@ export const clientsApi = {
             tags: formData.tags || null,
         };
 
-        const response = await fetch(`${apiUrl}/clients/${clientId}`, {
+        const response = await fetch(`${apiUrl}/entities/${clientId}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -139,9 +139,9 @@ export const clientsApi = {
         return response.json();
     },
 
-    archiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
+    archiveEntity: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/clients/${clientId}/archive`,
+            `${apiUrl}/entities/${clientId}/archive`,
             {
                 method: "PUT",
                 headers: {
@@ -163,9 +163,9 @@ export const clientsApi = {
         return response.json();
     },
 
-    unarchiveClient: async (apiUrl, token, clientId, onTokenExpired) => {
+    unarchiveEntity: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/clients/${clientId}/unarchive`,
+            `${apiUrl}/entities/${clientId}/unarchive`,
             {
                 method: "PUT",
                 headers: {
@@ -187,9 +187,9 @@ export const clientsApi = {
         return response.json();
     },
 
-    loadDependents: async (apiUrl, token, clientId, onTokenExpired) => {
+    loadSubEntities: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/clients/${clientId}/dependents`,
+            `${apiUrl}/entities/${clientId}/sub_entities`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -211,7 +211,7 @@ export const clientsApi = {
         return data.data || [];
     },
 
-    createDependent: async (apiUrl, token, clientId, dependentForm, onTokenExpired) => {
+    createSubEntity: async (apiUrl, token, clientId, dependentForm, onTokenExpired) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -224,7 +224,7 @@ export const clientsApi = {
         };
 
         const response = await fetch(
-            `${apiUrl}/clients/${clientId}/dependents`,
+            `${apiUrl}/entities/${clientId}/sub_entities`,
             {
                 method: "POST",
                 headers: {
@@ -248,7 +248,7 @@ export const clientsApi = {
         return response.json();
     },
 
-    updateDependent: async (apiUrl, token, dependentId, dependentForm, onTokenExpired) => {
+    updateSubEntity: async (apiUrl, token, dependentId, dependentForm, onTokenExpired) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -261,7 +261,7 @@ export const clientsApi = {
         };
 
         const response = await fetch(
-            `${apiUrl}/dependents/${dependentId}`,
+            `${apiUrl}/sub_entities/${dependentId}`,
             {
                 method: "PUT",
                 headers: {
@@ -285,9 +285,9 @@ export const clientsApi = {
         return response.json();
     },
 
-    deleteDependent: async (apiUrl, token, dependentId, onTokenExpired) => {
+    deleteSubEntity: async (apiUrl, token, dependentId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/dependents/${dependentId}`,
+            `${apiUrl}/sub_entities/${dependentId}`,
             {
                 method: "DELETE",
                 headers: {

@@ -172,64 +172,64 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	}))))
 
 	// Clients
-	mux.HandleFunc("/api/clients/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/entities/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
-			s.handleClientArchive(w, r)
+			s.handleEntityArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-			s.handleClientUnarchive(w, r)
-		} else if strings.Contains(r.URL.Path, "/dependents") {
-			s.handleClientDependents(w, r)
+			s.handleEntityUnarchive(w, r)
+		} else if strings.Contains(r.URL.Path, "/sub_entities") {
+			s.handleEntitySubEntities(w, r)
 		} else {
-			s.handleClientByID(w, r)
+			s.handleEntityByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/clients", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/clients" {
-			s.handleClients(w, r)
+	mux.HandleFunc("/api/entities", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/entities" {
+			s.handleEntities(w, r)
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/archive") {
-				s.handleClientArchive(w, r)
+				s.handleEntityArchive(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-				s.handleClientUnarchive(w, r)
-			} else if strings.Contains(r.URL.Path, "/dependents") {
-				s.handleClientDependents(w, r)
+				s.handleEntityUnarchive(w, r)
+			} else if strings.Contains(r.URL.Path, "/sub_entities") {
+				s.handleEntitySubEntities(w, r)
 			} else {
-				s.handleClientByID(w, r)
+				s.handleEntityByID(w, r)
 			}
 		}
 	})))
 
 	// Dependents
-	mux.HandleFunc("/api/dependents/", s.corsMiddleware(s.authMiddleware(s.handleDependentByID)))
+	mux.HandleFunc("/api/sub-entities/", s.corsMiddleware(s.authMiddleware(s.handleSubEntityByID)))
 
 	// Contracts
-	mux.HandleFunc("/api/contracts/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/agreements/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
-			s.handleContractArchive(w, r)
+			s.handleAgreementArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-			s.handleContractUnarchive(w, r)
+			s.handleAgreementUnarchive(w, r)
 		} else {
-			s.handleContractByID(w, r)
+			s.handleAgreementByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/contracts", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/contracts" {
-			s.handleContracts(w, r)
+	mux.HandleFunc("/api/agreements", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/agreements" {
+			s.handleAgreements(w, r)
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/archive") {
-				s.handleContractArchive(w, r)
+				s.handleAgreementArchive(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-				s.handleContractUnarchive(w, r)
+				s.handleAgreementUnarchive(w, r)
 			} else {
-				s.handleContractByID(w, r)
+				s.handleAgreementByID(w, r)
 			}
 		}
 	})))
 
 	// Categories
 	mux.HandleFunc("/api/categories/", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/lines") {
-			s.handleCategoryLines(w, r)
+		if strings.Contains(r.URL.Path, "/subcategories") {
+			s.handleCategorySubcategories(w, r)
 		} else {
 			s.handleCategoryByID(w, r)
 		}
@@ -238,8 +238,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		if r.URL.Path == "/api/categories" {
 			s.handleCategories(w, r)
 		} else {
-			if strings.Contains(r.URL.Path, "/lines") {
-				s.handleCategoryLines(w, r)
+			if strings.Contains(r.URL.Path, "/subcategories") {
+				s.handleCategorySubcategories(w, r)
 			} else {
 				s.handleCategoryByID(w, r)
 			}
@@ -247,12 +247,12 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})))
 
 	// Lines
-	mux.HandleFunc("/api/lines/", s.corsMiddleware(s.authMiddleware(s.handleLineByID)))
-	mux.HandleFunc("/api/lines", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/lines" {
-			s.handleLines(w, r)
+	mux.HandleFunc("/api/subcategories/", s.corsMiddleware(s.authMiddleware(s.handleSubcategoryByID)))
+	mux.HandleFunc("/api/subcategories", s.corsMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/subcategories" {
+			s.handleSubcategories(w, r)
 		} else {
-			s.handleLineByID(w, r)
+			s.handleSubcategoryByID(w, r)
 		}
 	})))
 

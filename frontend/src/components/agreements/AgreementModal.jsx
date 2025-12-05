@@ -18,7 +18,7 @@
 
 import React from "react";
 
-export default function ContractModal({
+export default function AgreementModal({
     showModal,
     modalMode,
     formData,
@@ -164,12 +164,12 @@ export default function ContractModal({
                                 Cliente *
                             </label>
                             <select
-                                value={formData.client_id}
+                                value={formData.entity_id}
                                 onChange={(e) => {
                                     setFormData({
                                         ...formData,
-                                        client_id: e.target.value,
-                                        dependent_id: "",
+                                        entity_id: e.target.value,
+                                        sub_entity_id: "",
                                     });
                                     onClientChange(e.target.value);
                                 }}
@@ -208,15 +208,15 @@ export default function ContractModal({
                                 Dependente (Opcional)
                             </label>
                             <select
-                                value={formData.dependent_id}
+                                value={formData.sub_entity_id}
                                 onChange={(e) =>
                                     setFormData({
                                         ...formData,
-                                        dependent_id: e.target.value,
+                                        sub_entity_id: e.target.value,
                                     })
                                 }
                                 disabled={
-                                    !formData.client_id ||
+                                    !formData.entity_id ||
                                     dependents.length === 0
                                 }
                                 style={{
@@ -227,7 +227,7 @@ export default function ContractModal({
                                     fontSize: "14px",
                                     boxSizing: "border-box",
                                     opacity:
-                                        !formData.client_id ||
+                                        !formData.entity_id ||
                                         dependents.length === 0
                                             ? 0.6
                                             : 1,
@@ -261,7 +261,7 @@ export default function ContractModal({
                                     setFormData({
                                         ...formData,
                                         category_id: e.target.value,
-                                        line_id: "",
+                                        subcategory_id: "",
                                     });
                                     onCategoryChange(e.target.value);
                                 }}
@@ -300,11 +300,11 @@ export default function ContractModal({
                                 Linha *
                             </label>
                             <select
-                                value={formData.line_id}
+                                value={formData.subcategory_id}
                                 onChange={(e) =>
                                     setFormData({
                                         ...formData,
-                                        line_id: e.target.value,
+                                        subcategory_id: e.target.value,
                                     })
                                 }
                                 disabled={
@@ -383,11 +383,11 @@ export default function ContractModal({
                             </label>
                             <input
                                 type="text"
-                                value={formData.product_key}
+                                value={formData.item_key}
                                 onChange={(e) =>
                                     setFormData({
                                         ...formData,
-                                        product_key: e.target.value,
+                                        item_key: e.target.value,
                                     })
                                 }
                                 placeholder="Ex: KEY-12345"

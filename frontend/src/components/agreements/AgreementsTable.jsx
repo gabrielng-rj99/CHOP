@@ -23,13 +23,13 @@ import {
     getClientName,
     getCategoryName,
 } from "../../utils/contractHelpers";
-import "./ContractsTable.css";
+import "./AgreementsTable.css";
 import InfoIcon from "../../assets/icons/info.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
 
-export default function ContractsTable({
+export default function AgreementsTable({
     filteredContracts,
     clients,
     categories,
@@ -72,14 +72,14 @@ export default function ContractsTable({
                                 <div className="contracts-table-model">
                                     {contract.model || "-"}
                                 </div>
-                                {contract.product_key && (
+                                {contract.item_key && (
                                     <div className="contracts-table-product-key">
-                                        {contract.product_key}
+                                        {contract.item_key}
                                     </div>
                                 )}
                             </td>
                             <td>
-                                {getClientName(contract.client_id, clients)}
+                                {getClientName(contract.entity_id, clients)}
                                 {contract.dependent && (
                                     <div className="contracts-table-dependent">
                                         Dep: {contract.dependent.name}
@@ -87,7 +87,7 @@ export default function ContractsTable({
                                 )}
                             </td>
                             <td>
-                                {getCategoryName(contract.line_id, categories)}
+                                {getCategoryName(contract.subcategory_id, categories)}
                                 {contract.line && (
                                     <div className="contracts-table-line">
                                         {contract.line.line}

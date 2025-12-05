@@ -76,11 +76,11 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 	// Validar entity
 	validEntities := map[string]bool{
 		"user":      true,
-		"client":    true,
-		"contract":  true,
-		"line":      true,
+		"entity":    true,
+		"agreement":  true,
+		"subcategory":      true,
 		"category":  true,
-		"dependent": true,
+		"sub_entity": true,
 		"audit_log": true,
 		"auth":      true,
 	}

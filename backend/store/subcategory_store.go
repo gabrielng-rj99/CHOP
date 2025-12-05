@@ -31,30 +31,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// LineStore é a nossa "caixa de ferramentas" para operações com a tabela lines.
-type LineStore struct {
+// SubcategoryStore é a nossa "caixa de ferramentas" para operações com a tabela subcategories.
+type SubcategoryStore struct {
 	db DBInterface
 }
 
-// NewLineStore cria uma nova instância de LineStore.
-func NewLineStore(db DBInterface) *LineStore {
-	return &LineStore{
+// NewSubcategoryStore cria uma nova instância de SubcategoryStore.
+func NewSubcategoryStore(db DBInterface) *SubcategoryStore {
+	return &SubcategoryStore{
 		db: db,
 	}
 }
 
-// CreateLine insere um novo tipo de licença no banco, associado a uma categoria.
-func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
-	trimmedName, err := ValidateName(licenseline.Line, 255)
+// CreateSubcategory insere um novo tipo de licença no banco, associado a uma categoria.
+func (s *SubcategoryStore) CreateSubcategory(subcategory domain.Subcategory) (string, error) {
+	trimmedName, err := ValidateName(subcategory.Name, 255)
 	if err != nil {
 		return "", err
 	}
-	if licenseline.CategoryID == "" {
+	if subcategory.CategoryID == "" {
 		return "", sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", subcategory.CategoryID).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
 	// NOVA REGRA: Nome único por categoria (case-insensitive via CITEXT)
-	err = s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE category_id = $1 AND name = $2", licenseline.CategoryID, trimmedName).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE category_id = $1 AND name = $2", subcategory.CategoryID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -70,9 +70,9 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 		return "", errors.New("line name must be unique per category")
 	}
 	newID := uuid.New().String()
-	sqlStatement := `INSERT INTO lines (id, name, category_id) VALUES ($1, $2, $3)`
+	sqlStatement := `INSERT INTO subcategories (id, name, category_id) VALUES ($1, $2, $3)`
 
-	_, err = s.db.Exec(sqlStatement, newID, trimmedName, licenseline.CategoryID)
+	_, err = s.db.Exec(sqlStatement, newID, trimmedName, subcategory.CategoryID)
 	if err != nil {
 		return "", err
 	}
@@ -80,8 +80,8 @@ func (s *LineStore) CreateLine(licenseline domain.Line) (string, error) {
 	return newID, nil
 }
 
-// GetLinesByCategoryID busca TODOS os tipos de uma categoria específica (não arquivados).
-func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line, err error) {
+// GetSubcategoriesByCategoryID busca TODOS os tipos de uma categoria específica (não arquivados).
+func (s *SubcategoryStore) GetSubcategoriesByCategoryID(categoryID string) (subcategories []domain.Subcategory, err error) {
 	if categoryID == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
@@ -92,10 +92,10 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 		return nil, err
 	}
 	if count == 0 {
-		return nil, nil // No lines for non-existent category
+		return nil, nil // No subcategories for non-existent category
 	}
 
-	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE category_id = $1 AND archived_at IS NULL`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM subcategories WHERE category_id = $1 AND archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement, categoryID)
 	if err != nil {
@@ -108,33 +108,33 @@ func (s *LineStore) GetLinesByCategoryID(categoryID string) (lines []domain.Line
 		}
 	}()
 
-	lines = []domain.Line{}
+	subcategories = []domain.Subcategory{}
 	for rows.Next() {
-		var t domain.Line // 'line' é uma palavra reservada, então usamos 't'
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
+		var t domain.Subcategory // 'line' é uma palavra reservada, então usamos 't'
+		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
-		lines = append(lines, t)
+		subcategories = append(subcategories, t)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return lines, nil
+	return subcategories, nil
 }
 
-// GetLineByID busca um tipo específico pelo seu ID
-func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
+// GetSubcategoryByID busca um tipo específico pelo seu ID
+func (s *SubcategoryStore) GetSubcategoryByID(id string) (*domain.Subcategory, error) {
 	if id == "" {
 		return nil, sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE id = $1`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM subcategories WHERE id = $1`
 
-	var t domain.Line
+	var t domain.Subcategory
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&t.ID,
-		&t.Line,
+		&t.Name,
 		&t.CategoryID,
 		&t.ArchivedAt,
 	)
@@ -149,9 +149,9 @@ func (s *LineStore) GetLineByID(id string) (*domain.Line, error) {
 	return &t, nil
 }
 
-// GetAllLines busca todos os tipos de licença (não arquivados)
-func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
-	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE archived_at IS NULL`
+// GetAllSubcategories busca todos os tipos de licença (não arquivados)
+func (s *SubcategoryStore) GetAllSubcategories() (subcategories []domain.Subcategory, err error) {
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM subcategories WHERE archived_at IS NULL`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -164,25 +164,25 @@ func (s *LineStore) GetAllLines() (lines []domain.Line, err error) {
 		}
 	}()
 
-	lines = []domain.Line{}
+	subcategories = []domain.Subcategory{}
 	for rows.Next() {
-		var t domain.Line
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
+		var t domain.Subcategory
+		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
-		lines = append(lines, t)
+		subcategories = append(subcategories, t)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return lines, nil
+	return subcategories, nil
 }
 
-// GetAllLinesIncludingArchived busca todos os tipos de licença, incluindo arquivados
-func (s *LineStore) GetAllLinesIncludingArchived() (lines []domain.Line, err error) {
-	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines`
+// GetAllSubcategoriesIncludingArchived busca todos os tipos de licença, incluindo arquivados
+func (s *SubcategoryStore) GetAllSubcategoriesIncludingArchived() (subcategories []domain.Subcategory, err error) {
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM subcategories`
 
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
@@ -195,29 +195,29 @@ func (s *LineStore) GetAllLinesIncludingArchived() (lines []domain.Line, err err
 		}
 	}()
 
-	lines = []domain.Line{}
+	subcategories = []domain.Subcategory{}
 	for rows.Next() {
-		var t domain.Line
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
+		var t domain.Subcategory
+		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
-		lines = append(lines, t)
+		subcategories = append(subcategories, t)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return lines, nil
+	return subcategories, nil
 }
 
-// GetLinesByName busca linhas por nome (case-insensitive, parcial, não arquivados)
-func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
+// GetSubcategoriesByName busca linhas por nome (case-insensitive, parcial, não arquivados)
+func (s *SubcategoryStore) GetSubcategoriesByName(name string) ([]domain.Subcategory, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	sqlStatement := `SELECT id, name, category_id, archived_at FROM lines WHERE name LIKE $1 AND archived_at IS NULL`
+	sqlStatement := `SELECT id, name, category_id, archived_at FROM subcategories WHERE name LIKE $1 AND archived_at IS NULL`
 	likePattern := "%" + name + "%"
 	rows, err := s.db.Query(sqlStatement, likePattern)
 	if err != nil {
@@ -229,34 +229,34 @@ func (s *LineStore) GetLinesByName(name string) ([]domain.Line, error) {
 			err = closeErr
 		}
 	}()
-	var lines []domain.Line
+	var subcategories []domain.Subcategory
 	for rows.Next() {
-		var t domain.Line
-		if err = rows.Scan(&t.ID, &t.Line, &t.CategoryID, &t.ArchivedAt); err != nil {
+		var t domain.Subcategory
+		if err = rows.Scan(&t.ID, &t.Name, &t.CategoryID, &t.ArchivedAt); err != nil {
 			return nil, err
 		}
-		lines = append(lines, t)
+		subcategories = append(subcategories, t)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return lines, nil
+	return subcategories, nil
 }
 
-func (s *LineStore) UpdateLine(licenseline domain.Line) error {
-	if licenseline.ID == "" {
+func (s *SubcategoryStore) UpdateSubcategory(subcategory domain.Subcategory) error {
+	if subcategory.ID == "" {
 		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
-	trimmedName, err := ValidateName(licenseline.Line, 255)
+	trimmedName, err := ValidateName(subcategory.Name, 255)
 	if err != nil {
 		return err
 	}
-	if licenseline.CategoryID == "" {
+	if subcategory.CategoryID == "" {
 		return sql.ErrNoRows // Or use errors.New("category ID cannot be empty")
 	}
 	// Check if category exists
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", licenseline.CategoryID).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = $1", subcategory.CategoryID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -265,15 +265,15 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	}
 	// NOVA REGRA: Não permitir mover linha entre categorias
 	var currentCategoryID string
-	err = s.db.QueryRow("SELECT category_id FROM lines WHERE id = $1", licenseline.ID).Scan(&currentCategoryID)
+	err = s.db.QueryRow("SELECT category_id FROM subcategories WHERE id = $1", subcategory.ID).Scan(&currentCategoryID)
 	if err != nil {
 		return err
 	}
-	if currentCategoryID != licenseline.CategoryID {
+	if currentCategoryID != subcategory.CategoryID {
 		return errors.New("cannot move line between categories")
 	}
-	sqlStatement := `UPDATE lines SET name = $1 WHERE id = $2`
-	result, err := s.db.Exec(sqlStatement, trimmedName, licenseline.ID)
+	sqlStatement := `UPDATE subcategories SET name = $1 WHERE id = $2`
+	result, err := s.db.Exec(sqlStatement, trimmedName, subcategory.ID)
 	if err != nil {
 		return err
 	}
@@ -287,14 +287,14 @@ func (s *LineStore) UpdateLine(licenseline domain.Line) error {
 	return nil
 }
 
-// ArchiveLine arquiva uma linha
-func (s *LineStore) ArchiveLine(id string) error {
+// ArchiveSubcategory arquiva uma linha
+func (s *SubcategoryStore) ArchiveSubcategory(id string) error {
 	if id == "" {
 		return sql.ErrNoRows
 	}
 
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -302,7 +302,7 @@ func (s *LineStore) ArchiveLine(id string) error {
 		return errors.New("line does not exist")
 	}
 
-	sqlStatement := `UPDATE lines SET archived_at = $1 WHERE id = $2`
+	sqlStatement := `UPDATE subcategories SET archived_at = $1 WHERE id = $2`
 	result, err := s.db.Exec(sqlStatement, time.Now(), id)
 	if err != nil {
 		return err
@@ -319,14 +319,14 @@ func (s *LineStore) ArchiveLine(id string) error {
 	return nil
 }
 
-// UnarchiveLine desarquiva uma linha
-func (s *LineStore) UnarchiveLine(id string) error {
+// UnarchiveSubcategory desarquiva uma linha
+func (s *SubcategoryStore) UnarchiveSubcategory(id string) error {
 	if id == "" {
 		return sql.ErrNoRows
 	}
 
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (s *LineStore) UnarchiveLine(id string) error {
 		return errors.New("line does not exist")
 	}
 
-	sqlStatement := `UPDATE lines SET archived_at = NULL WHERE id = $1`
+	sqlStatement := `UPDATE subcategories SET archived_at = NULL WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -351,13 +351,13 @@ func (s *LineStore) UnarchiveLine(id string) error {
 	return nil
 }
 
-func (s *LineStore) DeleteLine(id string) error {
+func (s *SubcategoryStore) DeleteSubcategory(id string) error {
 	if id == "" {
 		return sql.ErrNoRows // Or use errors.New("type ID cannot be empty")
 	}
 	// Check if type exists
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM lines WHERE id = $1", id).Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -366,14 +366,14 @@ func (s *LineStore) DeleteLine(id string) error {
 	}
 	// NOVA REGRA: Não permitir deletar linha com contratos associados
 	var contractCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE line_id = $1", id).Scan(&contractCount)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM agreements WHERE subcategory_id = $1", id).Scan(&contractCount)
 	if err != nil {
 		return err
 	}
 	if contractCount > 0 {
-		return errors.New("cannot delete line with associated contracts")
+		return errors.New("cannot delete line with associated agreements")
 	}
-	sqlStatement := `DELETE FROM lines WHERE id = $1`
+	sqlStatement := `DELETE FROM subcategories WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
