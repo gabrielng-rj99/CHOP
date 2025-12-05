@@ -29,7 +29,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -140,7 +139,7 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 // GetUserByID busca um usuário pelo ID
 func (s *UserStore) GetUserByID(userID string) (*domain.User, error) {
 	var user domain.User
-	var username, displayName, role sql.NullString
+	var username, displayName, role, passwordHash sql.NullString
 	var deletedAt, lockedUntil sql.NullTime
 
 	query := `SELECT id, username, display_name, password_hash, created_at, updated_at, deleted_at, role, failed_attempts, lock_level, locked_until, auth_secret FROM users WHERE id = $1`
@@ -148,7 +147,7 @@ func (s *UserStore) GetUserByID(userID string) (*domain.User, error) {
 		&user.ID,
 		&username,
 		&displayName,
-		&user.PasswordHash,
+		&passwordHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&deletedAt,

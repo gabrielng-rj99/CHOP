@@ -33,7 +33,7 @@ import (
 
 // AgreementStats representa estatísticas de contratos por cliente
 type AgreementStats struct {
-	EntityID          string `json:"entity_id"`
+	EntityID           string `json:"entity_id"`
 	ActiveAgreements   int    `json:"active_agreements"`
 	ExpiredAgreements  int    `json:"expired_agreements"`
 	ArchivedAgreements int    `json:"archived_agreements"`
@@ -53,20 +53,21 @@ func NewAgreementStore(db DBInterface) *AgreementStore {
 
 // CreateAgreement insere um novo contrato no banco de dados.
 func (s *AgreementStore) CreateAgreement(agreement domain.Agreement) (string, error) {
-	// Model and ItemKey are now optional
 	var trimmedModel, trimmedItemKey string
 	var err error
-	if agreement.Model != "" {
-		trimmedModel, err = ValidateName(agreement.Model, 255)
-		if err != nil {
-			return "", err
-		}
+	if agreement.Model == "" {
+		return "", errors.New("model name cannot be empty")
 	}
-	if agreement.ItemKey != "" {
-		trimmedItemKey, err = ValidateName(agreement.ItemKey, 255)
-		if err != nil {
-			return "", err
-		}
+	trimmedModel, err = ValidateName(agreement.Model, 255)
+	if err != nil {
+		return "", err
+	}
+	if agreement.ItemKey == "" {
+		return "", errors.New("product key cannot be empty")
+	}
+	trimmedItemKey, err = ValidateName(agreement.ItemKey, 255)
+	if err != nil {
+		return "", err
 	}
 
 	// Start and End dates are now optional - only validate if both are provided
@@ -331,20 +332,21 @@ func (s *AgreementStore) UpdateAgreement(agreement domain.Agreement) error {
 		return errors.New("contract ID cannot be empty")
 	}
 
-	// Model and ItemKey are now optional
 	var trimmedModel, trimmedItemKey string
 	var err error
-	if agreement.Model != "" {
-		trimmedModel, err = ValidateName(agreement.Model, 255)
-		if err != nil {
-			return err
-		}
+	if agreement.Model == "" {
+		return errors.New("model name cannot be empty")
 	}
-	if agreement.ItemKey != "" {
-		trimmedItemKey, err = ValidateName(agreement.ItemKey, 255)
-		if err != nil {
-			return err
-		}
+	trimmedModel, err = ValidateName(agreement.Model, 255)
+	if err != nil {
+		return err
+	}
+	if agreement.ItemKey == "" {
+		return errors.New("product key cannot be empty")
+	}
+	trimmedItemKey, err = ValidateName(agreement.ItemKey, 255)
+	if err != nil {
+		return err
 	}
 
 	// Datas são opcionais, mas se ambas forem fornecidas, end_date deve ser maior que start_date

@@ -86,12 +86,12 @@ func TestClientContractIntegration(t *testing.T) {
 	// Criar contrato para a empresa
 	now := time.Now()
 	contract := domain.Agreement{
-		Model:      "Test License",
-		ItemKey: "TEST-KEY-123",
-		StartDate:  timePtr(now),
-		EndDate:    timePtr(now.AddDate(1, 0, 0)),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Test License",
+		ItemKey:       "TEST-KEY-123",
+		StartDate:     timePtr(now),
+		EndDate:       timePtr(now.AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	_, err = agreementStore.CreateAgreement(contract)
@@ -141,7 +141,7 @@ func TestClientContractIntegration(t *testing.T) {
 
 	// Remover todas as contratos associadas antes de deletar o cliente
 	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
-	if err != nil && err.Error() != "entity not found or archived" {
+	if err != nil && err.Error() != "client not found or archived" {
 		t.Fatalf("Failed to get agreements for client: %v", err)
 	}
 	for _, agreement := range agreements {
@@ -220,13 +220,13 @@ func TestClientDependentContractIntegration(t *testing.T) {
 		entityIDPtr = &subEntityID
 	}
 	contract := domain.Agreement{
-		Model:       "SubEntity License",
-		ItemKey:  "ENTITY-KEY-123",
-		StartDate:   timePtr(now),
-		EndDate:     timePtr(now.AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID, // Use o ID realmente inserido
-		EntityID:    entityID,
-		SubEntityID: entityIDPtr,
+		Model:         "SubEntity License",
+		ItemKey:       "ENTITY-KEY-123",
+		StartDate:     timePtr(now),
+		EndDate:       timePtr(now.AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID, // Use o ID realmente inserido
+		EntityID:      entityID,
+		SubEntityID:   entityIDPtr,
 	}
 
 	_, err = agreementStore.CreateAgreement(contract)
@@ -259,7 +259,7 @@ func TestClientDependentContractIntegration(t *testing.T) {
 	// Deletar empresa e verificar se tudo é limpo
 	// Remover todas as contratos associadas antes de deletar o cliente
 	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
-	if err != nil && err.Error() != "entity not found or archived" {
+	if err != nil && err.Error() != "client not found or archived" {
 		t.Fatalf("Failed to get agreements for client: %v", err)
 	}
 	for _, agreement := range agreements {

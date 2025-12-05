@@ -62,7 +62,7 @@ func (s *SubcategoryStore) CreateSubcategory(subcategory domain.Subcategory) (st
 		return "", sql.ErrNoRows // Or use errors.New("category does not exist")
 	}
 	// NOVA REGRA: Nome único por categoria (case-insensitive via CITEXT)
-	err = s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE category_id = $1 AND name = $2", subcategory.CategoryID, trimmedName).Scan(&count)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE category_id = $1 AND LOWER(name) = LOWER($2)", subcategory.CategoryID, trimmedName).Scan(&count)
 	if err != nil {
 		return "", err
 	}
@@ -272,6 +272,19 @@ func (s *SubcategoryStore) UpdateSubcategory(subcategory domain.Subcategory) err
 	if currentCategoryID != subcategory.CategoryID {
 		return errors.New("cannot move line between categories")
 	}
+
+	// NOVA REGRA: Nome único por categoria (case-insensitive via CITEXT)
+	// Check if another subcategory in the same category has the same name
+	var duplicateCount int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM subcategories WHERE category_id = $1 AND LOWER(name) = LOWER($2) AND id != $3",
+		subcategory.CategoryID, trimmedName, subcategory.ID).Scan(&duplicateCount)
+	if err != nil {
+		return err
+	}
+	if duplicateCount > 0 {
+		return errors.New("line name must be unique per category")
+	}
+
 	sqlStatement := `UPDATE subcategories SET name = $1 WHERE id = $2`
 	result, err := s.db.Exec(sqlStatement, trimmedName, subcategory.ID)
 	if err != nil {

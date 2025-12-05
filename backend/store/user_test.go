@@ -415,6 +415,7 @@ func TestCreateAdminUser(t *testing.T) {
 
 	userStore := NewUserStore(db)
 
+	// Test 1: Auto-generated username
 	id, username, displayName, password, err := userStore.CreateAdminUser("", "Test Admin", "root")
 	if err != nil {
 		t.Errorf("CreateAdminUser() error = %v", err)
@@ -428,7 +429,10 @@ func TestCreateAdminUser(t *testing.T) {
 		t.Error("CreateAdminUser() returned empty username")
 	}
 	if displayName != "Test Admin" {
-		t.Errorf("CreateAdminUser() returned displayName %s, want %s", displayName, "Test Admin")
+		t.Errorf("CreateAdminUser() returned wrong display name")
+	}
+	if !strings.HasPrefix(username, "admin") {
+		t.Errorf("Expected username to start with 'admin', got '%s'", username)
 	}
 	if password == "" {
 		t.Error("CreateAdminUser() returned empty password")
@@ -442,6 +446,22 @@ func TestCreateAdminUser(t *testing.T) {
 	}
 	if user.Role == nil || *user.Role != "root" {
 		t.Errorf("Created admin user has role %v, want root", user.Role)
+	}
+
+	// Test 2: Custom username
+	customName := "mycustomadmin"
+	id2, user2, _, pass2, err := userStore.CreateAdminUser(customName, "Custom Admin", "admin")
+	if err != nil {
+		t.Fatalf("Failed to create custom admin: %v", err)
+	}
+	if id2 == "" || user2 != customName || pass2 == "" {
+		t.Error("Expected correct custom admin data")
+	}
+
+	// Test 3: Duplicate custom username
+	_, _, _, _, err = userStore.CreateAdminUser(customName, "Audit Log", "auditor")
+	if err == nil {
+		t.Error("Expected error for duplicate admin username")
 	}
 }
 
@@ -692,5 +712,215 @@ func TestEditUserDisplayNameWithInvalidData(t *testing.T) {
 		if err == nil {
 			t.Errorf("EditUserDisplayName() should reject invalid display name %q", invalidName)
 		}
+	}
+}
+
+// TestGetUserByID tests fetching a user by ID
+func TestGetUserByID(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	username := "testuser"
+	displayName := "Test User"
+	password := "TestPass123!@#abcdef" // 20 chars
+	role := "user"
+
+	id, err := userStore.CreateUser(username, displayName, password, role)
+	if err != nil {
+		t.Fatalf("Failed to create test user: %v", err)
+	}
+
+	// Fetch user by ID
+	user, err := userStore.GetUserByID(id)
+	if err != nil {
+		t.Fatalf("GetUserByID failed: %v", err)
+	}
+	if user == nil {
+		t.Fatal("GetUserByID returned nil user")
+	}
+	if *user.Username != username {
+		t.Errorf("Expected username %s, got %s", username, *user.Username)
+	}
+	if *user.DisplayName != displayName {
+		t.Errorf("Expected display name %s, got %s", displayName, *user.DisplayName)
+	}
+
+	// Test non-existent ID
+	randomID := "00000000-0000-0000-0000-000000000000"
+	nonExistentUser, err := userStore.GetUserByID(randomID)
+	// We expect an error because 0000... doesn't exist.
+	if err == nil {
+		t.Error("Expected error for non-existent user")
+	}
+	if nonExistentUser != nil {
+		t.Error("Expected nil user for non-existent ID")
+	}
+}
+
+// TestUpdateUsername tests updating a user's username
+func TestUpdateUsername(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	// Create a user
+	username := "oldname"
+	password := "TestPass123!@#abcdef"
+	_, err = userStore.CreateUser(username, "Display Name", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	// Update username
+	err = userStore.UpdateUsername(username, "newname")
+	if err != nil {
+		t.Fatalf("UpdateUsername failed: %v", err)
+	}
+
+	// Verify update
+	user, err := userStore.AuthenticateUser("newname", password)
+	if err != nil {
+		t.Fatalf("Failed to authenticate with new username: %v", err)
+	}
+	if *user.Username != "newname" {
+		t.Errorf("Expected username newname, got %s", *user.Username)
+	}
+
+	// Test constraint violation (duplicate username)
+	_, err = userStore.CreateUser("another", "Another User", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create second user: %v", err)
+	}
+
+	err = userStore.UpdateUsername("newname", "another")
+	if err == nil {
+		t.Error("Expected error when updating to existing username")
+	}
+}
+
+// TestDeleteUser tests deleting a user
+func TestDeleteUser(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	username := "todelete"
+	password := "TestPass123!@#abcdef"
+	id, err := userStore.CreateUser(username, "Delete Me", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	// Delete user
+	err = userStore.DeleteUser("admin-id", "admin-user", username)
+	if err != nil {
+		t.Fatalf("DeleteUser failed: %v", err)
+	}
+
+	// Verify deletion
+	user, err := userStore.GetUserByID(id)
+	if err != nil {
+		t.Fatalf("Failed to get user: %v", err)
+	}
+	if user.DeletedAt == nil {
+		t.Error("User should have deleted_at set")
+	}
+}
+
+// TestBlockUser tests blocking a user
+func TestBlockUser(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	_, username, _, _, err := userStore.CreateAdminUser("", "Admin", "root")
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	// Block user
+	err = userStore.BlockUser(username)
+	if err != nil {
+		t.Fatalf("BlockUser failed: %v", err)
+	}
+
+	// Verify block
+	var level int
+	err = db.QueryRow("SELECT lock_level FROM users WHERE username = $1", username).Scan(&level)
+	if err != nil {
+		t.Fatalf("Failed to query lock level: %v", err)
+	}
+	if level <= 0 {
+		t.Error("User should be blocked (lock_level > 0)")
+	}
+}
+
+// TestGetUsersByName tests searching users by name
+func TestGetUsersByName(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	password := "TestPass123!@#abcdef"
+	_, err = userStore.CreateUser("user1", "Alpha User", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create u1: %v", err)
+	}
+	_, err = userStore.CreateUser("user2", "Beta User", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create u2: %v", err)
+	}
+	_, err = userStore.CreateUser("user3", "Alpha Two", password, "user")
+	if err != nil {
+		t.Fatalf("Failed to create u3: %v", err)
+	}
+
+	// Search "Alpha"
+	users, err := userStore.GetUsersByName("Alpha")
+	if err != nil {
+		t.Fatalf("GetUsersByName failed: %v", err)
+	}
+	if len(users) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(users))
+	}
+
+	// Search "Beta"
+	users, err = userStore.GetUsersByName("Beta")
+	if err != nil {
+		t.Fatalf("GetUsersByName failed: %v", err)
+	}
+	if len(users) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(users))
 	}
 }

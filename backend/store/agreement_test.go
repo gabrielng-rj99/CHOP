@@ -141,12 +141,12 @@ func TestDeleteSubcategoryWithContractsAssociated(t *testing.T) {
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
 	agreement := domain.Agreement{
-		Model:      "Licença Teste",
-		ItemKey: "LINE-DEL-KEY-001",
-		StartDate:  timePtr(startDate),
-		EndDate:    timePtr(endDate),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Licença Teste",
+		ItemKey:       "LINE-DEL-KEY-001",
+		StartDate:     timePtr(startDate),
+		EndDate:       timePtr(endDate),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 	_, err = agreementStore.CreateAgreement(agreement)
 	if err != nil {
@@ -180,139 +180,139 @@ func TestCreateAgreement(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		agreement    domain.Agreement
+		agreement   domain.Agreement
 		expectError bool
 	}{
 		{
 			name: "sucesso - criação normal com unidade",
 			agreement: domain.Agreement{
-				Model:       "Test Agreement",
-				ItemKey:  "TEST-KEY-125",
-				StartDate:   startDate,
-				EndDate:     endDate,
-				SubcategoryID:      subcategoryID,
-				EntityID:    entityID,
-				SubEntityID: &subEntityID,
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-125",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
+				SubEntityID:   &subEntityID,
 			},
 			expectError: false,
 		},
 		{
 			name: "sucesso - criação sem unidade",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-124",
-				StartDate:  startDate,
-				EndDate:    endDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-124",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - nome vazio",
 			agreement: domain.Agreement{
-				ItemKey: "TEST-KEY-125",
-				StartDate:  startDate,
-				EndDate:    endDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ItemKey:       "TEST-KEY-125",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - chave do produto vazia",
 			agreement: domain.Agreement{
-				Model:     "Test Agreement",
-				StartDate: startDate,
-				EndDate:   endDate,
-				SubcategoryID:    subcategoryID,
-				EntityID:  entityID,
+				Model:         "Test Agreement",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-126",
-				StartDate:  endDate,
-				EndDate:    startDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-126",
+				StartDate:     endDate,
+				EndDate:       startDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - sobreposição de datas para mesma empresa/unidade/tipo",
 			agreement: domain.Agreement{
-				Model:       "Test Agreement",
-				ItemKey:  "TEST-KEY-OVERLAP",
-				StartDate:   startDate,
-				EndDate:     endDate,
-				SubcategoryID:      subcategoryID,
-				EntityID:    entityID,
-				SubEntityID: &subEntityID,
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-OVERLAP",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
+				SubEntityID:   &subEntityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - atualização com StartDate após EndDate",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement Update",
-				ItemKey: "TEST-KEY-UPDATE",
-				StartDate:  timePtr(endDate.AddDate(2, 0, 0)),
-				EndDate:    endDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Test Agreement Update",
+				ItemKey:       "TEST-KEY-UPDATE",
+				StartDate:     timePtr(endDate.AddDate(2, 0, 0)),
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - tipo inválido",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-127",
-				StartDate:  startDate,
-				EndDate:    endDate,
-				SubcategoryID:     "invalid-line",
-				EntityID:   entityID,
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-127",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: "invalid-line",
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa inválida",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-128",
-				StartDate:  startDate,
-				EndDate:    endDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   "invalid-client",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-128",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      "invalid-client",
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - empresa arquivada",
 			agreement: domain.Agreement{
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-ARCHIVED",
-				StartDate:  startDate,
-				EndDate:    endDate,
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID, // Usar entityID válido
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-ARCHIVED",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID, // Usar entityID válido
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - unidade inválida",
 			agreement: domain.Agreement{
-				Model:       "Test Agreement",
-				ItemKey:  "TEST-KEY-129",
-				StartDate:   startDate,
-				EndDate:     endDate,
-				SubcategoryID:      subcategoryID,
-				EntityID:    entityID,
-				SubEntityID: func() *string { s := "invalid-dependent"; return &s }(),
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-129",
+				StartDate:     startDate,
+				EndDate:       endDate,
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
+				SubEntityID:   func() *string { s := "invalid-dependent"; return &s }(),
 			},
 			expectError: true,
 		},
@@ -383,13 +383,13 @@ func TestUpdateAgreementEdgeCases(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 	agreementStore := NewAgreementStore(db)
 	agreement := domain.Agreement{
-		Model:       "Edge Agreement",
-		ItemKey:  "EDGE-KEY-1",
-		StartDate:   timePtr(startDate),
-		EndDate:     timePtr(endDate),
-		SubcategoryID:      subcategoryID,
-		EntityID:    entityID,
-		SubEntityID: &subEntityID,
+		Model:         "Edge Agreement",
+		ItemKey:       "EDGE-KEY-1",
+		StartDate:     timePtr(startDate),
+		EndDate:       timePtr(endDate),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+		SubEntityID:   &subEntityID,
 	}
 	contractID, err := agreementStore.CreateAgreement(agreement)
 	if err != nil {
@@ -660,57 +660,57 @@ func TestUpdateAgreement(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		agreement    domain.Agreement
+		agreement   domain.Agreement
 		expectError bool
 	}{
 		{
 			name: "sucesso - atualização normal",
 			agreement: domain.Agreement{
-				ID:          contractID,
-				Model:       "Updated Agreement",
-				ItemKey:  "TEST-KEY-123",
-				StartDate:   timePtr(startDate),
-				EndDate:     timePtr(endDate.AddDate(1, 0, 0)),
-				SubcategoryID:      subcategoryID,
-				EntityID:    entityID,
-				SubEntityID: &subEntityID,
+				ID:            contractID,
+				Model:         "Updated Agreement",
+				ItemKey:       "TEST-KEY-123",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate.AddDate(1, 0, 0)),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
+				SubEntityID:   &subEntityID,
 			},
 			expectError: false,
 		},
 		{
 			name: "erro - id vazio",
 			agreement: domain.Agreement{
-				Model:      "Updated Agreement",
-				ItemKey: "TEST-KEY-123",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(endDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Updated Agreement",
+				ItemKey:       "TEST-KEY-123",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - nome vazio",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				ItemKey: "TEST-KEY-123",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(endDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				ItemKey:       "TEST-KEY-123",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				Model:      "Updated Agreement",
-				ItemKey: "TEST-KEY-123",
-				StartDate:  timePtr(endDate),
-				EndDate:    timePtr(startDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				Model:         "Updated Agreement",
+				ItemKey:       "TEST-KEY-123",
+				StartDate:     timePtr(endDate),
+				EndDate:       timePtr(startDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 		},
@@ -1076,12 +1076,12 @@ func TestCreateAgreementWithOverlap(t *testing.T) {
 
 	// Create first contract
 	firstContract := domain.Agreement{
-		Model:      "First Agreement",
-		ItemKey: "KEY-1",
-		StartDate:  timePtr(now.AddDate(0, 0, -10)),
-		EndDate:    timePtr(now.AddDate(0, 0, 30)),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "First Agreement",
+		ItemKey:       "KEY-1",
+		StartDate:     timePtr(now.AddDate(0, 0, -10)),
+		EndDate:       timePtr(now.AddDate(0, 0, 30)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	id, err := agreementStore.CreateAgreement(firstContract)
@@ -1094,12 +1094,12 @@ func TestCreateAgreementWithOverlap(t *testing.T) {
 
 	// Try to create overlapping contract
 	overlappingContract := domain.Agreement{
-		Model:      "Overlapping Agreement",
-		ItemKey: "KEY-2",
-		StartDate:  timePtr(now.AddDate(0, 0, 5)),  // Within first contract period
-		EndDate:    timePtr(now.AddDate(0, 0, 20)), // Within first contract period
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Overlapping Agreement",
+		ItemKey:       "KEY-2",
+		StartDate:     timePtr(now.AddDate(0, 0, 5)),  // Within first contract period
+		EndDate:       timePtr(now.AddDate(0, 0, 20)), // Within first contract period
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	_, err = agreementStore.CreateAgreement(overlappingContract)
@@ -1135,12 +1135,12 @@ func TestCreateAgreementNonOverlappingValid(t *testing.T) {
 
 	// Create first contract
 	firstContract := domain.Agreement{
-		Model:      "First Agreement",
-		ItemKey: "KEY-1",
-		StartDate:  timePtr(now.AddDate(0, 0, -30)),
-		EndDate:    timePtr(now.AddDate(0, 0, -5)),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "First Agreement",
+		ItemKey:       "KEY-1",
+		StartDate:     timePtr(now.AddDate(0, 0, -30)),
+		EndDate:       timePtr(now.AddDate(0, 0, -5)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	id, err := agreementStore.CreateAgreement(firstContract)
@@ -1153,12 +1153,12 @@ func TestCreateAgreementNonOverlappingValid(t *testing.T) {
 
 	// Create non-overlapping contract (starts after first ends)
 	secondContract := domain.Agreement{
-		Model:      "Second Agreement",
-		ItemKey: "KEY-2",
-		StartDate:  timePtr(now.AddDate(0, 0, -4)),
-		EndDate:    timePtr(now.AddDate(0, 0, 30)),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Second Agreement",
+		ItemKey:       "KEY-2",
+		StartDate:     timePtr(now.AddDate(0, 0, -4)),
+		EndDate:       timePtr(now.AddDate(0, 0, 30)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	id2, err := agreementStore.CreateAgreement(secondContract)
@@ -1263,12 +1263,12 @@ func TestCreateAgreementWithInvalidNames(t *testing.T) {
 			contractEnd := contractStart.AddDate(1, 0, 0)
 
 			agreement := domain.Agreement{
-				Model:      tt.model,
-				ItemKey: "TEST-KEY-" + string(rune('A'+idx)),
-				StartDate:  timePtr(contractStart),
-				EndDate:    timePtr(contractEnd),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         tt.model,
+				ItemKey:       "TEST-KEY-" + string(rune('A'+idx)),
+				StartDate:     timePtr(contractStart),
+				EndDate:       timePtr(contractEnd),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			}
 
 			_, errCreate := agreementStore.CreateAgreement(agreement)
@@ -1300,43 +1300,43 @@ func TestCreateAgreementWithInvalidItemKeys(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		itemKey  string
+		itemKey     string
 		expectError bool
 		description string
 	}{
 		{
 			name:        "invalid - product key too long (256 chars)",
-			itemKey:  longKey,
+			itemKey:     longKey,
 			expectError: true,
 			description: "Product key with 256 characters should be rejected",
 		},
 		{
 			name:        "invalid - product key way too long (1000 chars)",
-			itemKey:  veryLongKey,
+			itemKey:     veryLongKey,
 			expectError: true,
 			description: "Product key with 1000 characters should be rejected",
 		},
 		{
 			name:        "invalid - product key with only spaces",
-			itemKey:  "     ",
+			itemKey:     "     ",
 			expectError: true,
 			description: "Product key with only whitespace should be rejected",
 		},
 		{
 			name:        "valid - product key at max length (255 chars)",
-			itemKey:  strings.Repeat("K", 255),
+			itemKey:     strings.Repeat("K", 255),
 			expectError: false,
 			description: "Product key with exactly 255 characters should be allowed",
 		},
 		{
 			name:        "valid - product key with special characters",
-			itemKey:  "ABCD-1234-EFGH-5678",
+			itemKey:     "ABCD-1234-EFGH-5678",
 			expectError: false,
 			description: "Product key with dashes should be allowed",
 		},
 		{
 			name:        "valid - product key with mixed case",
-			itemKey:  "AbCd-1234-EfGh-5678",
+			itemKey:     "AbCd-1234-EfGh-5678",
 			expectError: false,
 			description: "Product key with mixed case should be allowed",
 		},
@@ -1371,12 +1371,12 @@ func TestCreateAgreementWithInvalidItemKeys(t *testing.T) {
 			contractEnd := contractStart.AddDate(1, 0, 0)
 
 			agreement := domain.Agreement{
-				Model:      "Test Model " + string(rune('A'+idx)),
-				ItemKey: tt.itemKey,
-				StartDate:  timePtr(contractStart),
-				EndDate:    timePtr(contractEnd),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Test Model " + string(rune('A'+idx)),
+				ItemKey:       tt.itemKey,
+				StartDate:     timePtr(contractStart),
+				EndDate:       timePtr(contractEnd),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			}
 
 			_, errCreate := agreementStore.CreateAgreement(agreement)
@@ -1404,17 +1404,17 @@ func TestCreateAgreementWithDuplicateItemKey(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		agreement    domain.Agreement
+		agreement   domain.Agreement
 		expectError bool
 		description string
 	}{
 		{
 			name: "duplicate - same product key for same client/dependent",
 			agreement: domain.Agreement{
-				Model:      "Duplicate Agreement",
-				ItemKey: "DUPLICATE-KEY-TEST",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(startDate.AddDate(1, 0, 0)),
+				Model:     "Duplicate Agreement",
+				ItemKey:   "DUPLICATE-KEY-TEST",
+				StartDate: timePtr(startDate),
+				EndDate:   timePtr(startDate.AddDate(1, 0, 0)),
 			},
 			expectError: true,
 			description: "Same product key for same client/dependent should be rejected",
@@ -1422,10 +1422,10 @@ func TestCreateAgreementWithDuplicateItemKey(t *testing.T) {
 		{
 			name: "valid - same product key for different client",
 			agreement: domain.Agreement{
-				Model:      "Different Entity Agreement",
-				ItemKey: "DUPLICATE-KEY-TEST",
-				StartDate:  timePtr(startDate.AddDate(0, 0, 60)),
-				EndDate:    timePtr(startDate.AddDate(1, 0, 60)),
+				Model:     "Different Entity Agreement",
+				ItemKey:   "DUPLICATE-KEY-TEST",
+				StartDate: timePtr(startDate.AddDate(0, 0, 60)),
+				EndDate:   timePtr(startDate.AddDate(1, 0, 60)),
 			},
 			expectError: false,
 			description: "Same product key for different client should be allowed",
@@ -1433,10 +1433,10 @@ func TestCreateAgreementWithDuplicateItemKey(t *testing.T) {
 		{
 			name: "valid - same product key for same client but different dependent",
 			agreement: domain.Agreement{
-				Model:      "Different SubEntity Agreement",
-				ItemKey: "DUPLICATE-KEY-TEST",
-				StartDate:  timePtr(startDate.AddDate(0, 0, 120)),
-				EndDate:    timePtr(startDate.AddDate(1, 0, 120)),
+				Model:     "Different SubEntity Agreement",
+				ItemKey:   "DUPLICATE-KEY-TEST",
+				StartDate: timePtr(startDate.AddDate(0, 0, 120)),
+				EndDate:   timePtr(startDate.AddDate(1, 0, 120)),
 			},
 			expectError: true,
 			description: "Same product key with mismatched client/dependent should be rejected",
@@ -1490,13 +1490,13 @@ func TestCreateAgreementWithDuplicateItemKey(t *testing.T) {
 			// For test 0 (duplicate), create first contract and set up the contract to test
 			if idx == 0 {
 				_, errSetup = agreementStore.CreateAgreement(domain.Agreement{
-					Model:       "First Agreement",
-					ItemKey:  "DUPLICATE-KEY-TEST",
-					StartDate:   tt.agreement.StartDate,
-					EndDate:     tt.agreement.EndDate,
-					SubcategoryID:      subcategoryID,
-					EntityID:    client1ID,
-					SubEntityID: &dependent1ID,
+					Model:         "First Agreement",
+					ItemKey:       "DUPLICATE-KEY-TEST",
+					StartDate:     tt.agreement.StartDate,
+					EndDate:       tt.agreement.EndDate,
+					SubcategoryID: subcategoryID,
+					EntityID:      client1ID,
+					SubEntityID:   &dependent1ID,
 				})
 				if errSetup != nil {
 					t.Fatalf("Failed to create first contract: %v", errSetup)
@@ -1639,12 +1639,12 @@ func TestCreateAgreementWithInvalidDates(t *testing.T) {
 			contractEnd := tt.endDate.AddDate(0, 0, idx*60)
 
 			agreement := domain.Agreement{
-				Model:      "Test Agreement " + string(rune('A'+idx)),
-				ItemKey: "KEY-" + string(rune('A'+idx)) + "-TEST",
-				StartDate:  timePtr(contractStart),
-				EndDate:    timePtr(contractEnd),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				Model:         "Test Agreement " + string(rune('A'+idx)),
+				ItemKey:       "KEY-" + string(rune('A'+idx)) + "-TEST",
+				StartDate:     timePtr(contractStart),
+				EndDate:       timePtr(contractEnd),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			}
 
 			_, err := agreementStore.CreateAgreement(agreement)
@@ -1694,12 +1694,12 @@ func TestCreateAgreementWithArchivedClient(t *testing.T) {
 	endDate := startDate.AddDate(1, 0, 0)
 
 	agreement := domain.Agreement{
-		Model:      "Test Agreement",
-		ItemKey: "ARCHIVED-CLIENT-KEY",
-		StartDate:  timePtr(startDate),
-		EndDate:    timePtr(endDate),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Test Agreement",
+		ItemKey:       "ARCHIVED-CLIENT-KEY",
+		StartDate:     timePtr(startDate),
+		EndDate:       timePtr(endDate),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 
 	_, err = agreementStore.CreateAgreement(agreement)
@@ -1738,12 +1738,12 @@ func TestUpdateAgreementWithInvalidData(t *testing.T) {
 
 	// Create initial contract
 	contractID, err := agreementStore.CreateAgreement(domain.Agreement{
-		Model:      "Original Agreement",
-		ItemKey: "ORIGINAL-KEY",
-		StartDate:  timePtr(startDate),
-		EndDate:    timePtr(endDate),
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Original Agreement",
+		ItemKey:       "ORIGINAL-KEY",
+		StartDate:     timePtr(startDate),
+		EndDate:       timePtr(endDate),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create initial contract: %v", err)
@@ -1751,20 +1751,20 @@ func TestUpdateAgreementWithInvalidData(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		agreement    domain.Agreement
+		agreement   domain.Agreement
 		expectError bool
 		description string
 	}{
 		{
 			name: "invalid - update with name too long",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				Model:      strings.Repeat("a", 256),
-				ItemKey: "ORIGINAL-KEY",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(endDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				Model:         strings.Repeat("a", 256),
+				ItemKey:       "ORIGINAL-KEY",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 			description: "Update with name too long should fail",
@@ -1772,13 +1772,13 @@ func TestUpdateAgreementWithInvalidData(t *testing.T) {
 		{
 			name: "invalid - update with empty product key",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				Model:      "Updated Agreement",
-				ItemKey: "",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(endDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				Model:         "Updated Agreement",
+				ItemKey:       "",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 			description: "Update with empty product key should fail",
@@ -1786,13 +1786,13 @@ func TestUpdateAgreementWithInvalidData(t *testing.T) {
 		{
 			name: "invalid - update with end date before start date",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				Model:      "Updated Agreement",
-				ItemKey: "ORIGINAL-KEY",
-				StartDate:  timePtr(endDate),
-				EndDate:    timePtr(startDate),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				Model:         "Updated Agreement",
+				ItemKey:       "ORIGINAL-KEY",
+				StartDate:     timePtr(endDate),
+				EndDate:       timePtr(startDate),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: true,
 			description: "Update with invalid dates should fail",
@@ -1800,13 +1800,13 @@ func TestUpdateAgreementWithInvalidData(t *testing.T) {
 		{
 			name: "valid - update with valid data",
 			agreement: domain.Agreement{
-				ID:         contractID,
-				Model:      "Updated Agreement Name",
-				ItemKey: "ORIGINAL-KEY",
-				StartDate:  timePtr(startDate),
-				EndDate:    timePtr(endDate.AddDate(0, 1, 0)),
-				SubcategoryID:     subcategoryID,
-				EntityID:   entityID,
+				ID:            contractID,
+				Model:         "Updated Agreement Name",
+				ItemKey:       "ORIGINAL-KEY",
+				StartDate:     timePtr(startDate),
+				EndDate:       timePtr(endDate.AddDate(0, 1, 0)),
+				SubcategoryID: subcategoryID,
+				EntityID:      entityID,
 			},
 			expectError: false,
 			description: "Update with valid data should succeed",
@@ -1856,24 +1856,24 @@ func TestGetAllAgreements(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
+		name            string
 		agreementsToAdd int
-		expectedCount  int
+		expectedCount   int
 	}{
 		{
-			name:           "empty database",
+			name:            "empty database",
 			agreementsToAdd: 0,
-			expectedCount:  0,
+			expectedCount:   0,
 		},
 		{
-			name:           "single contract",
+			name:            "single contract",
 			agreementsToAdd: 1,
-			expectedCount:  1,
+			expectedCount:   1,
 		},
 		{
-			name:           "multiple agreements",
+			name:            "multiple agreements",
 			agreementsToAdd: 5,
-			expectedCount:  5,
+			expectedCount:   5,
 		},
 	}
 
@@ -1887,13 +1887,13 @@ func TestGetAllAgreements(t *testing.T) {
 			// Add agreements
 			for i := 0; i < tt.agreementsToAdd; i++ {
 				agreement := domain.Agreement{
-					Model:       "Test Agreement",
-					ItemKey:  "KEY-" + string(rune(48+i)),
-					StartDate:   timePtr(time.Now().AddDate(0, 0, i*30)),
-					EndDate:     timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
-					SubcategoryID:      subcategoryID,
-					EntityID:    entityID,
-					SubEntityID: &subEntityID,
+					Model:         "Test Agreement",
+					ItemKey:       "KEY-" + string(rune(48+i)),
+					StartDate:     timePtr(time.Now().AddDate(0, 0, i*30)),
+					EndDate:       timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
+					SubcategoryID: subcategoryID,
+					EntityID:      entityID,
+					SubEntityID:   &subEntityID,
 				}
 				_, err := agreementStore.CreateAgreement(agreement)
 				if err != nil {
@@ -1959,13 +1959,13 @@ func TestGetAgreementsBySubcategoryID(t *testing.T) {
 
 	// Create agreements for both subcategories
 	contract1 := domain.Agreement{
-		Model:       "Agreement Subcategory 1",
-		ItemKey:  "KEY-LINE1-001",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID,
-		EntityID:    entityID,
-		SubEntityID: &subEntityID,
+		Model:         "Agreement Subcategory 1",
+		ItemKey:       "KEY-LINE1-001",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+		SubEntityID:   &subEntityID,
 	}
 	_, err = agreementStore.CreateAgreement(contract1)
 	if err != nil {
@@ -1973,13 +1973,13 @@ func TestGetAgreementsBySubcategoryID(t *testing.T) {
 	}
 
 	contract2 := domain.Agreement{
-		Model:       "Agreement Subcategory 2",
-		ItemKey:  "KEY-LINE2-001",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID2,
-		EntityID:    entityID,
-		SubEntityID: &subEntityID,
+		Model:         "Agreement Subcategory 2",
+		ItemKey:       "KEY-LINE2-001",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID2,
+		EntityID:      entityID,
+		SubEntityID:   &subEntityID,
 	}
 	_, err = agreementStore.CreateAgreement(contract2)
 	if err != nil {
@@ -1987,34 +1987,34 @@ func TestGetAgreementsBySubcategoryID(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		querySubcategoryID   string
-		expectedCount int
-		shouldError   bool
+		name               string
+		querySubcategoryID string
+		expectedCount      int
+		shouldError        bool
 	}{
 		{
-			name:          "valid line with agreements",
-			querySubcategoryID:   subcategoryID,
-			expectedCount: 1,
-			shouldError:   false,
+			name:               "valid line with agreements",
+			querySubcategoryID: subcategoryID,
+			expectedCount:      1,
+			shouldError:        false,
 		},
 		{
-			name:          "valid line with different agreements",
-			querySubcategoryID:   subcategoryID2,
-			expectedCount: 1,
-			shouldError:   false,
+			name:               "valid line with different agreements",
+			querySubcategoryID: subcategoryID2,
+			expectedCount:      1,
+			shouldError:        false,
 		},
 		{
-			name:          "empty line ID",
-			querySubcategoryID:   "",
-			expectedCount: 0,
-			shouldError:   true,
+			name:               "empty line ID",
+			querySubcategoryID: "",
+			expectedCount:      0,
+			shouldError:        true,
 		},
 		{
-			name:          "non-existent line ID",
-			querySubcategoryID:   uuid.New().String(),
-			expectedCount: 0,
-			shouldError:   true,
+			name:               "non-existent line ID",
+			querySubcategoryID: uuid.New().String(),
+			expectedCount:      0,
+			shouldError:        true,
 		},
 	}
 
@@ -2077,13 +2077,13 @@ func TestGetAgreementsByCategoryID(t *testing.T) {
 
 	// Create agreements in both categories
 	contract1 := domain.Agreement{
-		Model:       "Agreement Category 1",
-		ItemKey:  "KEY-CAT1-001",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID,
-		EntityID:    entityID,
-		SubEntityID: &subEntityID,
+		Model:         "Agreement Category 1",
+		ItemKey:       "KEY-CAT1-001",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+		SubEntityID:   &subEntityID,
 	}
 	_, err = agreementStore.CreateAgreement(contract1)
 	if err != nil {
@@ -2091,13 +2091,13 @@ func TestGetAgreementsByCategoryID(t *testing.T) {
 	}
 
 	contract2 := domain.Agreement{
-		Model:       "Agreement Category 2",
-		ItemKey:  "KEY-CAT2-001",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID2,
-		EntityID:    entityID,
-		SubEntityID: &subEntityID,
+		Model:         "Agreement Category 2",
+		ItemKey:       "KEY-CAT2-001",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID2,
+		EntityID:      entityID,
+		SubEntityID:   &subEntityID,
 	}
 	_, err = agreementStore.CreateAgreement(contract2)
 	if err != nil {
@@ -2207,13 +2207,13 @@ func TestGetAllAgreementsWithMultipleClients(t *testing.T) {
 	// Create agreements for both entities
 	for i := 0; i < 3; i++ {
 		agreement := domain.Agreement{
-			Model:       "Agreement Entity 1",
-			ItemKey:  "KEY-C1-" + string(rune(48+i)),
-			StartDate:   timePtr(time.Now().AddDate(0, 0, i*30)),
-			EndDate:     timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
-			SubcategoryID:      line1ID,
-			EntityID:    client1ID,
-			SubEntityID: &entity1ID,
+			Model:         "Agreement Entity 1",
+			ItemKey:       "KEY-C1-" + string(rune(48+i)),
+			StartDate:     timePtr(time.Now().AddDate(0, 0, i*30)),
+			EndDate:       timePtr(time.Now().AddDate(0, 0, (i+1)*30)),
+			SubcategoryID: line1ID,
+			EntityID:      client1ID,
+			SubEntityID:   &entity1ID,
 		}
 		_, err := agreementStore.CreateAgreement(agreement)
 		if err != nil {
@@ -2223,13 +2223,13 @@ func TestGetAllAgreementsWithMultipleClients(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		agreement := domain.Agreement{
-			Model:       "Agreement Entity 2",
-			ItemKey:  "KEY-C2-" + string(rune(48+i)),
-			StartDate:   timePtr(time.Now().AddDate(0, 1, i*30)),
-			EndDate:     timePtr(time.Now().AddDate(0, 1, (i+1)*30)),
-			SubcategoryID:      line2ID,
-			EntityID:    client2ID,
-			SubEntityID: &entity2ID,
+			Model:         "Agreement Entity 2",
+			ItemKey:       "KEY-C2-" + string(rune(48+i)),
+			StartDate:     timePtr(time.Now().AddDate(0, 1, i*30)),
+			EndDate:       timePtr(time.Now().AddDate(0, 1, (i+1)*30)),
+			SubcategoryID: line2ID,
+			EntityID:      client2ID,
+			SubEntityID:   &entity2ID,
 		}
 		_, err := agreementStore.CreateAgreement(agreement)
 		if err != nil {
@@ -2302,13 +2302,13 @@ func TestGetAgreementsBySubcategoryIDWithMultipleClients(t *testing.T) {
 
 	// Create agreements for the same line but different entities
 	contract1 := domain.Agreement{
-		Model:       "Agreement Entity 1",
-		ItemKey:  "KEY-SAME-001",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID,
-		EntityID:    client1ID,
-		SubEntityID: &entity1ID,
+		Model:         "Agreement Entity 1",
+		ItemKey:       "KEY-SAME-001",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      client1ID,
+		SubEntityID:   &entity1ID,
 	}
 	_, err = agreementStore.CreateAgreement(contract1)
 	if err != nil {
@@ -2316,13 +2316,13 @@ func TestGetAgreementsBySubcategoryIDWithMultipleClients(t *testing.T) {
 	}
 
 	contract2 := domain.Agreement{
-		Model:       "Agreement Entity 2",
-		ItemKey:  "KEY-SAME-002",
-		StartDate:   timePtr(time.Now()),
-		EndDate:     timePtr(time.Now().AddDate(1, 0, 0)),
-		SubcategoryID:      subcategoryID,
-		EntityID:    client2ID,
-		SubEntityID: &entity2ID,
+		Model:         "Agreement Entity 2",
+		ItemKey:       "KEY-SAME-002",
+		StartDate:     timePtr(time.Now()),
+		EndDate:       timePtr(time.Now().AddDate(1, 0, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      client2ID,
+		SubEntityID:   &entity2ID,
 	}
 	_, err = agreementStore.CreateAgreement(contract2)
 	if err != nil {
@@ -2356,5 +2356,163 @@ func TestGetAgreementsBySubcategoryIDWithMultipleClients(t *testing.T) {
 	}
 	if !client2Found {
 		t.Error("Agreement from client 2 not found")
+	}
+}
+
+func TestGetAgreementsNotStarted(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test DB: %v", err)
+	}
+	defer CloseDB(db)
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	entityID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert dependencies: %v", err)
+	}
+
+	agreementStore := NewAgreementStore(db)
+
+	// Create future agreement
+	futureStart := timePtr(time.Now().AddDate(0, 1, 0))
+	agreement := domain.Agreement{
+		Model:         "Future Agreement",
+		ItemKey:       "FUTURE-1",
+		StartDate:     futureStart,
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+	}
+	_, err = agreementStore.CreateAgreement(agreement)
+	if err != nil {
+		t.Fatalf("Failed to create agreement: %v", err)
+	}
+
+	// Create started agreement
+	storeAgreement := domain.Agreement{
+		Model:         "Started Agreement",
+		ItemKey:       "STARTED-1",
+		StartDate:     timePtr(time.Now().AddDate(0, -1, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+	}
+	_, err = agreementStore.CreateAgreement(storeAgreement)
+	if err != nil {
+		t.Fatalf("Failed to create agreement 2: %v", err)
+	}
+
+	agreements, err := agreementStore.GetAgreementsNotStarted()
+	if err != nil {
+		t.Fatalf("Failed to get agreements not started: %v", err)
+	}
+	if len(agreements) != 1 {
+		t.Errorf("Expected 1 agreement not started, got %d", len(agreements))
+	}
+}
+
+func TestGetAgreementStatsByEntityID(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test DB: %v", err)
+	}
+	defer CloseDB(db)
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	entityID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert dependencies: %v", err)
+	}
+	agreementStore := NewAgreementStore(db)
+
+	// Active
+	_, err = agreementStore.CreateAgreement(domain.Agreement{
+		Model:         "Active",
+		ItemKey:       "ACTIVE-1",
+		StartDate:     timePtr(time.Now().AddDate(0, -1, 0)),
+		EndDate:       timePtr(time.Now().AddDate(0, 1, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create active agreement: %v", err)
+	}
+
+	// Expired
+	_, err = agreementStore.CreateAgreement(domain.Agreement{
+		Model:         "Expired",
+		ItemKey:       "EXPIRED-1",
+		StartDate:     timePtr(time.Now().AddDate(0, -3, 0)),
+		EndDate:       timePtr(time.Now().AddDate(0, -2, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create expired agreement: %v", err)
+	}
+
+	stats, err := agreementStore.GetAgreementStatsByEntityID(entityID)
+	if err != nil {
+		t.Fatalf("Failed to get stats: %v", err)
+	}
+	if stats.ActiveAgreements != 1 {
+		t.Errorf("Expected 1 active agreement, got %d", stats.ActiveAgreements)
+	}
+	if stats.ExpiredAgreements != 1 {
+		t.Errorf("Expected 1 expired agreement, got %d", stats.ExpiredAgreements)
+	}
+}
+
+func TestGetAgreementStatsForAllEntities(t *testing.T) {
+	db, err := SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to setup test DB: %v", err)
+	}
+	defer CloseDB(db)
+
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	entityID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert dependencies: %v", err)
+	}
+	agreementStore := NewAgreementStore(db)
+
+	// Active
+	agreementStore.CreateAgreement(domain.Agreement{
+		Model:         "Active Global",
+		ItemKey:       "ACTIVE-GLOBAL-1",
+		StartDate:     timePtr(time.Now().AddDate(0, -1, 0)),
+		EndDate:       timePtr(time.Now().AddDate(0, 1, 0)),
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
+	})
+
+	statsList, err := agreementStore.GetAgreementStatsForAllEntities()
+	if err != nil {
+		t.Fatalf("Failed to get global stats: %v", err)
+	}
+	if len(statsList) == 0 {
+		t.Error("Expected stats, got empty list")
+	}
+
+	found := false
+	for _, s := range statsList {
+		if s.EntityID == entityID {
+			found = true
+			if s.ActiveAgreements != 1 {
+				t.Errorf("Expected 1 active agreement in global stats, got %d", s.ActiveAgreements)
+			}
+		}
+	}
+	if !found {
+		t.Error("Entity stats not found in global list")
 	}
 }

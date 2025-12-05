@@ -634,12 +634,12 @@ func TestDeleteEntityWithActiveAgreements(t *testing.T) {
 	startDate := timePtr(time.Now())
 	endDate := timePtr(time.Now().AddDate(1, 0, 0))
 	contract := domain.Agreement{
-		Model:      "Test Agreement",
-		ItemKey: "TEST-KEY-001",
-		StartDate:  startDate,
-		EndDate:    endDate,
-		SubcategoryID:     subcategoryID,
-		EntityID:   entityID,
+		Model:         "Test Agreement",
+		ItemKey:       "TEST-KEY-001",
+		StartDate:     startDate,
+		EndDate:       endDate,
+		SubcategoryID: subcategoryID,
+		EntityID:      entityID,
 	}
 	_, err = agreementStore.CreateAgreement(contract)
 	if err != nil {
@@ -1572,5 +1572,73 @@ func TestGetClientsByName(t *testing.T) {
 				t.Errorf("Expected %d entities, got %d", tt.expectedCount, len(entities))
 			}
 		})
+	}
+}
+
+func TestGetAllEntitiesIncludingArchived(t *testing.T) {
+	db := setupClientTest(t)
+	defer CloseDB(db)
+	if err := ClearTables(db); err != nil {
+		t.Fatalf("Failed to clear tables: %v", err)
+	}
+
+	entityStore := NewEntityStore(db)
+
+	// Create one active entity
+	reg1 := "45.723.174/0001-10"
+	_, err := entityStore.CreateEntity(domain.Entity{
+		Name:           "Active Entity",
+		RegistrationID: &reg1,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create active entity: %v", err)
+	}
+
+	// Create one archived entity
+	reg2 := "11.222.333/0001-81"
+	id2, err := entityStore.CreateEntity(domain.Entity{
+		Name:           "Archived Entity",
+		RegistrationID: &reg2,
+		Status:         "ativo",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create entity to archive: %v", err)
+	}
+	err = entityStore.ArchiveEntity(id2)
+	if err != nil {
+		t.Fatalf("Failed to archive entity: %v", err)
+	}
+
+	// Verify GetAllEntities (should return 1)
+	activeEntities, err := entityStore.GetAllEntities()
+	if err != nil {
+		t.Fatalf("GetAllEntities failed: %v", err)
+	}
+	if len(activeEntities) != 1 {
+		t.Errorf("Expected 1 active entity, got %d", len(activeEntities))
+	}
+
+	// Verify GetAllEntitiesIncludingArchived (should return 2)
+	allEntities, err := entityStore.GetAllEntitiesIncludingArchived()
+	if err != nil {
+		t.Fatalf("GetAllEntitiesIncludingArchived failed: %v", err)
+	}
+	if len(allEntities) != 2 {
+		t.Errorf("Expected 2 total entities, got %d", len(allEntities))
+	}
+
+	// Check if archived one has ArchivedAt set
+	foundArchived := false
+	for _, e := range allEntities {
+		if e.ID == id2 {
+			foundArchived = true
+			if e.ArchivedAt == nil {
+				t.Error("Archived entity should have ArchivedAt set")
+			}
+		}
+	}
+	if !foundArchived {
+		t.Error("Archived entity not found in all entities list")
 	}
 }

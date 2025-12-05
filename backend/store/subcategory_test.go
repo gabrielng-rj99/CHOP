@@ -898,7 +898,7 @@ func TestLineNameUniquePerCategoryAdvanced(t *testing.T) {
 		},
 		{
 			name:        "duplicate - case sensitivity check (lowercase)",
-			lineName:    "shared line name",
+			lineName:    "shared subcategory name",
 			categoryID:  category1ID,
 			expectError: true, // Depends on DB collation - may need to adjust
 			description: "Subcategory name with different case in same category",
@@ -1329,5 +1329,109 @@ func TestDependentNameTrimming(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestArchiveSubcategory(t *testing.T) {
+	db := setupLineTestDB(t)
+	defer CloseDB(db)
+
+	subcategoryStore := NewSubcategoryStore(db)
+
+	// Insert test data
+	categoryID, err := InsertTestCategory(db, "Software")
+	if err != nil {
+		t.Fatalf("Failed to insert test category: %v", err)
+	}
+
+	id, err := InsertTestSubcategory(db, "Archivable Line", categoryID)
+	if err != nil {
+		t.Fatalf("Failed to insert test line: %v", err)
+	}
+
+	// Archive
+	err = subcategoryStore.ArchiveSubcategory(id)
+	if err != nil {
+		t.Fatalf("Failed to archive line: %v", err)
+	}
+
+	// Verify not in standard list
+	lines, err := subcategoryStore.GetAllSubcategories()
+	if err != nil {
+		t.Fatalf("GetAllSubcategories failed: %v", err)
+	}
+	for _, l := range lines {
+		if l.ID == id {
+			t.Error("Archived line should not appear in GetAllSubcategories")
+		}
+	}
+
+	// Verify in including archived
+	linesArch, err := subcategoryStore.GetAllSubcategoriesIncludingArchived()
+	if err != nil {
+		t.Fatalf("GetAllSubcategoriesIncludingArchived failed: %v", err)
+	}
+	found := false
+	for _, l := range linesArch {
+		if l.ID == id {
+			found = true
+			if l.ArchivedAt == nil {
+				t.Error("Archived line should have ArchivedAt set")
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("Archived line should appear in GetAllSubcategoriesIncludingArchived")
+	}
+
+	// Unarchive
+	err = subcategoryStore.UnarchiveSubcategory(id)
+	if err != nil {
+		t.Fatalf("Failed to unarchive line: %v", err)
+	}
+
+	// Verify back in standard list
+	lines, err = subcategoryStore.GetAllSubcategories()
+	if err != nil {
+		t.Fatalf("GetAllSubcategories failed: %v", err)
+	}
+	found = false
+	for _, l := range lines {
+		if l.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Unarchived line should appear in GetAllSubcategories")
+	}
+}
+
+func TestGetSubcategoriesByName(t *testing.T) {
+	db := setupLineTestDB(t)
+	defer CloseDB(db)
+
+	subcategoryStore := NewSubcategoryStore(db)
+	categoryID, _ := InsertTestCategory(db, "Software")
+
+	InsertTestSubcategory(db, "Alpha Line", categoryID)
+	InsertTestSubcategory(db, "Beta Line", categoryID)
+	InsertTestSubcategory(db, "Alpha Two", categoryID)
+
+	lines, err := subcategoryStore.GetSubcategoriesByName("Alpha")
+	if err != nil {
+		t.Fatalf("GetSubcategoriesByName failed: %v", err)
+	}
+	if len(lines) != 2 {
+		t.Errorf("Expected 2 lines, got %d", len(lines))
+	}
+
+	lines, err = subcategoryStore.GetSubcategoriesByName("Beta")
+	if err != nil {
+		t.Fatalf("GetSubcategoriesByName failed: %v", err)
+	}
+	if len(lines) != 1 {
+		t.Errorf("Expected 1 line, got %d", len(lines))
 	}
 }
