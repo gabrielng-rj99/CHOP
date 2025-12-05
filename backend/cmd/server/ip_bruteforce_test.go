@@ -72,9 +72,10 @@ func SetupTestDBIP(t *testing.T) (*sql.DB, func()) {
 		t.Fatalf("failed to open database: %v", err)
 	}
 
-	// Testa conexão
+	// Testa conexão - skip test if database is not available
 	if err := db.Ping(); err != nil {
-		t.Fatalf("failed to ping database: %v", err)
+		db.Close()
+		t.Skipf("Skipping test: database not available: %v", err)
 	}
 
 	// Cria tabela de tentativas por IP

@@ -31,6 +31,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.6.6
 	golang.org/x/crypto v0.43.0
 	golang.org/x/text v0.31.0
+	golang.org/x/time v0.14.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 

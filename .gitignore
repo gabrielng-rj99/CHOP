@@ -98,8 +98,7 @@ pip-delete-this-directory.txt
 # =========================
 # Test Reports
 # =========================
-tests/test_reports/*.html
-tests/test_reports/*.json
+tests/test_reports/
 tests/report.html
 tests/*.html
 junit.xml

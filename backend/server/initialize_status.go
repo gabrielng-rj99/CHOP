@@ -21,6 +21,7 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"Open-Generic-Hub/backend/database"
@@ -56,15 +57,18 @@ func checkDatabaseEmpty(db *sql.DB) (bool, []string, error) {
 		query := "SELECT COUNT(*) FROM " + table
 		err := db.QueryRow(query).Scan(&count)
 		if err != nil {
+			log.Printf("Error checking table '%s': %v", table, err)
 			return false, nil, err
 		}
 
+		log.Printf("Table '%s' has %d rows", table, count)
 		if count > 0 {
 			tablesWithData = append(tablesWithData, table)
 		}
 	}
 
 	isEmpty := len(tablesWithData) == 0
+	log.Printf("Database empty check: isEmpty=%v, tablesWithData=%v", isEmpty, tablesWithData)
 	return isEmpty, tablesWithData, nil
 }
 
