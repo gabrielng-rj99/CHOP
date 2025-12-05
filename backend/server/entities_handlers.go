@@ -24,6 +24,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
+
 	domain "Open-Generic-Hub/backend/domain"
 	"Open-Generic-Hub/backend/store"
 )
@@ -155,6 +157,12 @@ func (s *Server) handleEntityByID(w http.ResponseWriter, r *http.Request) {
 
 	if entityID == "" {
 		respondError(w, http.StatusBadRequest, "Entity ID required")
+		return
+	}
+
+	// Validate UUID format
+	if _, err := uuid.Parse(entityID); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid Entity ID format")
 		return
 	}
 

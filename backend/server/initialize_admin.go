@@ -23,10 +23,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
 
 	"Open-Generic-Hub/backend/database"
 	"Open-Generic-Hub/backend/store"
 )
+
+// Mutex to prevent race conditions during initialization
+var initMutex sync.Mutex
 
 // InitializeAdminRequest represents the request to create root admin
 type InitializeAdminRequest struct {
@@ -55,7 +59,6 @@ func isDatabaseEmpty(db *sql.DB) (bool, error) {
 		"categories",
 		"subcategories",
 		"agreements",
-		"audit_logs",
 	}
 
 	for _, table := range tables {
@@ -84,9 +87,14 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 🔒 RACE CONDITION PROTECTION: Only one initialization can happen at a time
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
 	// 🔒 STEP 1: Connect to database to verify it's empty
 	db, err := database.ConnectDB()
 	if err != nil {
+		log.Printf("❌ InitializeAdmin: Failed to connect to database: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(InitializeAdminResponse{
@@ -96,11 +104,20 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer db.Close()
+
+	// Only close DB if we return early (error or blocked)
+	// If successful, we pass it to the stores, so we must keep it open
+	shouldCloseDB := true
+	defer func() {
+		if shouldCloseDB {
+			db.Close()
+		}
+	}()
 
 	// 🔒 STEP 2: CRITICAL SECURITY CHECK - Verify database is COMPLETELY EMPTY
 	isEmpty, err := isDatabaseEmpty(db)
 	if err != nil {
+		log.Printf("❌ InitializeAdmin: Failed to verify database status: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(InitializeAdminResponse{
@@ -139,17 +156,28 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
+	// Validate input using the same strong validation as regular user creation
 	var errors []string
 
 	if req.DisplayName == "" {
 		errors = append(errors, "Display name is required")
 	}
 
+	// 🔒 SECURITY: Use the same strong password validation as regular users
 	if req.Password == "" {
 		errors = append(errors, "Password is required")
-	} else if len(req.Password) < 8 {
-		errors = append(errors, "Password must be at least 8 characters")
+	} else {
+		// Use store validation for consistent password policy
+		if err := store.ValidateStrongPassword(req.Password); err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
+
+	// Validate username if provided
+	if req.Username != "" {
+		if err := store.ValidateUsername(req.Username); err != nil {
+			errors = append(errors, err.Error())
+		}
 	}
 
 	if len(errors) > 0 {
@@ -197,6 +225,8 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Server stores reinitialized with database connection")
 
+	// 🔒 SECURITY: Do NOT return the password in the response
+	// The client already knows the password they sent
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(InitializeAdminResponse{
@@ -204,6 +234,9 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 		Message:       "Root admin user created successfully",
 		AdminID:       adminID,
 		AdminUsername: username,
-		AdminPassword: req.Password,
+		// AdminPassword intentionally omitted for security
 	})
+
+	// Keep DB connection open for the stores
+	shouldCloseDB = false
 }
