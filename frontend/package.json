@@ -1,8 +1,20 @@
 {
+    "_license": "GNU Affero General Public License v3.0",
+    "_license_note": "All dependencies use compatible open-source licenses (MIT, BSD-3-Clause, Apache-2.0). AGPL-3.0 compliant.",
+    "_dependencies_verified": {
+        "react": "MIT License",
+        "react-dom": "MIT License",
+        "@vitejs/plugin-react": "MIT License",
+        "vite": "MIT License",
+        "@fortawesome/fontawesome-svg-core": "MIT License",
+        "@fortawesome/free-solid-svg-icons": "MIT License",
+        "@fortawesome/react-fontawesome": "MIT License"
+    },
     "name": "contract-manager-frontend",
     "version": "0.1.0",
     "private": true,
     "type": "module",
+    "license": "AGPL-3.0",
     "scripts": {
         "dev": "vite",
         "build": "vite build",

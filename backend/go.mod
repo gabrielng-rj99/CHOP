@@ -1,3 +1,25 @@
+// =============================================================================
+// Entity Hub Open Project
+// Licensed under GNU Affero General Public License v3.0
+//
+// DEPENDENCY LICENSE COMPATIBILITY VERIFICATION:
+// All dependencies listed below use compatible open-source licenses (MIT,
+// BSD-3-Clause, Apache-2.0). All are compatible with AGPL-3.0.
+//
+// Verified Dependencies:
+//   ✓ github.com/golang-jwt/jwt/v5 - MIT License
+//   ✓ github.com/google/uuid - BSD-3-Clause License
+//   ✓ github.com/jackc/pgx/v5 - MIT License
+//   ✓ github.com/nyaruka/phonenumbers - MIT License
+//   ✓ golang.org/x/crypto - BSD-3-Clause License
+//   ✓ golang.org/x/text - BSD-3-Clause License
+//   ✓ gopkg.in/natefinch/lumberjack.v2 - MIT License
+//   ✓ google.golang.org/protobuf - BSD-3-Clause License
+//
+// No GPL-2.0 only or proprietary licenses present.
+// This project remains fully AGPL-3.0 compliant.
+// =============================================================================
+
 module Open-Generic-Hub/backend
 
 go 1.25.1

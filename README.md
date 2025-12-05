@@ -228,7 +228,19 @@ npm run dev
 
 ## License
 
-This project is open source. See LICENSE for details.
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+
+This means:
+- ✅ You can use, modify, and distribute this software
+- ✅ You can use it commercially (SaaS, support, implementation, etc.)
+- ✅ You can charge for services around this software
+- ⚠️ You must keep the source code open and available
+- ⚠️ Any modifications must also be licensed under AGPL-3.0
+- ⚠️ If you provide this software as a network service (SaaS), you must make the source code available to users
+
+See the [LICENSE](LICENSE) file for the full license text.
+
+For more information about AGPL-3.0, visit: https://www.gnu.org/licenses/agpl-3.0.html
 
 ## Contributing
 
