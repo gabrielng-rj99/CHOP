@@ -23,8 +23,13 @@ import os
 from typing import Dict, Optional
 
 # Configuração base - usando portas de teste
-BASE_URL = os.getenv("TEST_API_URL", "http://localhost:63000")
-API_URL = f"{BASE_URL}/api" if not BASE_URL.endswith("/api") else BASE_URL
+# Configuração base - usando portas de teste
+raw_url = os.getenv("TEST_API_URL", "http://localhost:63000")
+BASE_URL = raw_url.rstrip("/")
+if BASE_URL.endswith("/api"):
+    BASE_URL = BASE_URL[:-4]
+
+API_URL = f"{BASE_URL}/api"
 
 # Armazenamento de tokens e usuários criados
 test_data = {

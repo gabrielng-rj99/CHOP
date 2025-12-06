@@ -255,8 +255,9 @@ class TestPasswordValidation:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar usuário para teste
+        test_username = f"changepwuser_{int(time.time())}"
         create_response = http_client.post(f"{api_url}/users", json={
-            "username": f"changepwuser_{int(time.time())}",
+            "username": test_username,
             "display_name": "Change Password User",
             "password": "ValidPass123!@#abc",
             "role": "user"
@@ -272,7 +273,8 @@ class TestPasswordValidation:
             pytest.skip("ID do usuário não retornado")
 
         # Tentar alterar para senha fraca
-        update_response = http_client.put(f"{api_url}/users/{user_id}", json={
+        # A rota espera username, não ID
+        update_response = http_client.put(f"{api_url}/users/{test_username}", json={
             "password": "weak123"
         }, headers=headers)
 

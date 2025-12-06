@@ -246,9 +246,30 @@ class TestEntitiesAPI:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
+        # Helper to generate valid CPF
+        def generate_valid_cpf():
+            import random
+            digits = [random.randint(0, 9) for _ in range(9)]
+            
+            # First digit
+            sum1 = sum(d * (10 - i) for i, d in enumerate(digits))
+            rem1 = sum1 % 11
+            d1 = 0 if rem1 < 2 else 11 - rem1
+            digits.append(d1)
+            
+            # Second digit
+            sum2 = sum(d * (11 - i) for i, d in enumerate(digits))
+            rem2 = sum2 % 11
+            d2 = 0 if rem2 < 2 else 11 - rem2
+            digits.append(d2)
+            
+            return "".join(map(str, digits))
+
+        cpf = generate_valid_cpf()
+
         response = http_client.post(f"{api_url}/entities", json={
             "name": f"Full Client {int(time.time())}",
-            "registration_id": f"CPF{int(time.time())}",
+            "registration_id": cpf,
             "nickname": "Nickname",
             "birth_date": "1990-01-15",
             "email": f"full_{int(time.time())}@test.com",
