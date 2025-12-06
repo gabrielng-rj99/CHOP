@@ -102,6 +102,8 @@ type SecurityConfig struct {
 	LockLevel3Attempts    int
 	LockLevel3Duration    time.Duration
 	LockLevelManualAtmpts int
+	RateLimit             int
+	RateBurst             int
 }
 
 type AppConfig struct {
@@ -176,6 +178,8 @@ func LoadConfig() (*Config, error) {
 			LockLevel3Attempts:    getEnvInt("LOCK_LEVEL_3_ATTEMPTS", 10),
 			LockLevel3Duration:    getEnvDuration("LOCK_LEVEL_3_DURATION", 60*time.Minute),
 			LockLevelManualAtmpts: getEnvInt("LOCK_LEVEL_MANUAL_ATTEMPTS", 15),
+			RateLimit:             getEnvInt("RATE_LIMIT", 5),
+			RateBurst:             getEnvInt("RATE_BURST", 10),
 		},
 		App: AppConfig{
 			Env:     getEnv("APP_ENV", "development"),

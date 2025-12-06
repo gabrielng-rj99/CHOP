@@ -1,3 +1,21 @@
+/*
+ * Entity Hub Open Project
+ * Copyright (C) 2025 Entity Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package server
 
 import (
@@ -69,9 +87,6 @@ func (i *IPRateLimiter) cleanup() {
 	i.mu.Unlock()
 }
 
-// Global limiter instance (5 requests per second, burst of 10)
-var limiter = NewIPRateLimiter(5, 10)
-
 // RateLimitMiddleware enforces rate limiting per IP
 func (s *Server) rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +96,7 @@ func (s *Server) rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			ip = *ipPtr
 		}
 
-		limiter := limiter.GetLimiter(ip)
+		limiter := s.rateLimiter.GetLimiter(ip)
 		if !limiter.Allow() {
 			respondError(w, http.StatusTooManyRequests, "Rate limit exceeded")
 			return

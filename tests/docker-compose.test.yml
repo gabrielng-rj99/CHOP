@@ -55,8 +55,12 @@ services:
             LOCK_LEVEL_3_DURATION: 60m
             GIN_MODE: release
             LOG_LEVEL: info
+            RATE_LIMIT: 100
+            RATE_BURST: 200
         ports:
             - "63000:3000"
+        volumes:
+            - ../logs:/app/logs
         depends_on:
             postgres_test:
                 condition: service_healthy

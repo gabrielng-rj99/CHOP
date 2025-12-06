@@ -59,7 +59,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // standardMiddleware applies all standard security middlewares
 func (s *Server) standardMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return s.corsMiddleware(s.securityHeadersMiddleware(s.rateLimitMiddleware(next)))
+	// Logging should be the outermost to capture everything including CORS/RateLimit effects if possible,
+	// but usually CORS is outermost for browser preflight.
+	// Order: Logging -> CORS -> SecurityHeaders -> RateLimit -> Handler
+	return s.loggingMiddleware(s.corsMiddleware(s.securityHeadersMiddleware(s.rateLimitMiddleware(next))))
 }
 
 // ============= ROUTER SETUP =============
@@ -79,6 +82,9 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			respondError(w, http.StatusUnauthorized, "Token inválido ou expirado. Faça login novamente.")
 			return
 		}
+
+		// Inject user info for logging
+		setRequestUser(r, claims)
 
 		log.Printf("Requisição autenticada: username=%s, role=%s, method=%s, path=%s", claims.Username, claims.Role, r.Method, r.URL.Path)
 		next(w, r)

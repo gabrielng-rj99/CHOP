@@ -29,6 +29,8 @@ import (
 
 	"Open-Generic-Hub/backend/config"
 	"Open-Generic-Hub/backend/store"
+
+	"golang.org/x/time/rate"
 )
 
 // Global database connection (used for health checks and initialization)
@@ -45,14 +47,15 @@ func GetGlobalDB() *sql.DB {
 }
 
 type Server struct {
-	userStore      *store.UserStore
-	agreementStore  *store.AgreementStore
-	entityStore    *store.EntityStore
-	subEntityStore *store.SubEntityStore
-	categoryStore  *store.CategoryStore
-	subcategoryStore      *store.SubcategoryStore
-	auditStore     *store.AuditStore
-	config         *config.Config
+	userStore        *store.UserStore
+	agreementStore   *store.AgreementStore
+	entityStore      *store.EntityStore
+	subEntityStore   *store.SubEntityStore
+	categoryStore    *store.CategoryStore
+	subcategoryStore *store.SubcategoryStore
+	auditStore       *store.AuditStore
+	config           *config.Config
+	rateLimiter      *IPRateLimiter
 }
 
 // NewServer creates a new Server instance with all stores
@@ -80,14 +83,15 @@ func NewServer(db *sql.DB) *Server {
 	}
 
 	return &Server{
-		userStore:      userStore,
-		agreementStore:  agreementStore,
-		entityStore:    entityStore,
-		subEntityStore: subEntityStore,
-		categoryStore:  categoryStore,
-		subcategoryStore:      subcategoryStore,
-		auditStore:     auditStore,
-		config:         cfg,
+		userStore:        userStore,
+		agreementStore:   agreementStore,
+		entityStore:      entityStore,
+		subEntityStore:   subEntityStore,
+		categoryStore:    categoryStore,
+		subcategoryStore: subcategoryStore,
+		auditStore:       auditStore,
+		config:           cfg,
+		rateLimiter:      NewIPRateLimiter(rate.Limit(cfg.Security.RateLimit), cfg.Security.RateBurst),
 	}
 }
 
