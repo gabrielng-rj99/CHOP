@@ -147,6 +147,8 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
+	case http.MethodGet:
+		s.handleGetUser(w, r, username)
 	case http.MethodPut:
 		s.handleUpdateUser(w, r, username)
 	case http.MethodDelete:
@@ -560,4 +562,23 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("User %s desbloqueado por %s", username, claims.Username)
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User unlocked successfully"})
+}
+
+func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request, username string) {
+	// Middleware already ensures Admin/Root or verified Auth, but routes.go wraps this in AdminOnlyMiddleware.
+	// So only Admin/Root can call this.
+
+	users, err := s.userStore.GetUsersByName(username)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if len(users) == 0 {
+		respondError(w, http.StatusNotFound, "Usuário não encontrado")
+		return
+	}
+
+	// Return the first match (username is unique)
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: users[0]})
 }

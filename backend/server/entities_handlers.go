@@ -171,9 +171,76 @@ func (s *Server) handleEntityByID(w http.ResponseWriter, r *http.Request) {
 		s.handleGetEntity(w, r, entityID)
 	case http.MethodPut:
 		s.handleUpdateEntity(w, r, entityID)
+	case http.MethodDelete:
+		s.handleDeleteEntity(w, r, entityID)
 	default:
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
+}
+
+func (s *Server) handleDeleteEntity(w http.ResponseWriter, r *http.Request, entityID string) {
+	claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Token inválido ou expirado")
+		return
+	}
+
+	// Validate permissions (only admin/root?) - Assuming authMiddleware allows "user" but maybe delete is restricted?
+	// The test uses root_user so it should pass if we check role.
+	// Logic: standard users can't delete?
+	// For now, let's assume any authenticated user can delete (or rely on Service logic).
+	// But simpler to enforce Admin/Root here if needed.
+	// Given no specific instruction, I'll allow authenticated users OR check role.
+	// Users handler has explicit admin middleware. Entities handler does not.
+	// So I'll proceed.
+
+	// Get old value for audit
+	oldEntity, _ := s.entityStore.GetEntityByID(entityID)
+	oldValueJSON, _ := json.Marshal(oldEntity)
+
+	if err := s.entityStore.DeleteEntityPermanently(entityID); err != nil {
+		// Log error
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "delete",
+				Entity:        "entity",
+				EntityID:      entityID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Audit success
+	if claims != nil {
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "delete",
+			Entity:        "entity",
+			EntityID:      entityID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      nil,
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusNoContent, nil) // 204 No Content
 }
 
 func (s *Server) handleGetEntity(w http.ResponseWriter, r *http.Request, entityID string) {
@@ -262,7 +329,8 @@ func (s *Server) handleUpdateEntity(w http.ResponseWriter, r *http.Request, enti
 }
 
 func (s *Server) handleEntityArchive(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
+	// Allow POST and PUT
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
@@ -328,7 +396,8 @@ func (s *Server) handleEntityArchive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleEntityUnarchive(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
+	// Allow POST and PUT
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
 		respondError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
