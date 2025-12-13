@@ -305,6 +305,70 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	})))
 
+	// Settings routes - Root Only
+	mux.HandleFunc("/api/settings", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.handleSettingsRoute))))
+
+	// User Theme routes - Authenticated users (permission checked in handler)
+	mux.HandleFunc("/api/user/theme", s.standardMiddleware(s.authMiddleware(s.HandleUserThemeRoute)))
+
+	// Theme Permissions routes - Root Only
+	mux.HandleFunc("/api/settings/theme-permissions", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleThemePermissionsRoute))))
+
+	// Global Theme routes - Root Only
+	mux.HandleFunc("/api/settings/global-theme", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleGlobalThemeRoute))))
+
+	// Allowed Themes routes - Authenticated users can read, Root Only can write
+	mux.HandleFunc("/api/settings/allowed-themes", s.standardMiddleware(s.authMiddleware(s.HandleAllowedThemesRoute)))
+
+	// System Config routes - Root Only
+	mux.HandleFunc("/api/settings/system-config", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleSystemConfigRoute))))
+
+	// Dashboard Config routes - Admin+ (dashboard display settings)
+	mux.HandleFunc("/api/system-config/dashboard", s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(s.HandleDashboardConfigRoute))))
+
+	// Security Config routes - Root Only (expanded security settings)
+	mux.HandleFunc("/api/settings/security", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleSecurityConfigRoute))))
+
+	// Password Policy route - Authenticated users can read (to show requirements)
+	mux.HandleFunc("/api/settings/password-policy", s.standardMiddleware(s.authMiddleware(s.HandlePasswordPolicyRoute)))
+
+	// Roles routes - Root Only for create/update/delete, Admin+ for read
+	mux.HandleFunc("/api/roles", s.standardMiddleware(s.authMiddleware(s.HandleRolesRoute)))
+
+	// Permissions routes - Admin+ for read
+	mux.HandleFunc("/api/permissions", s.standardMiddleware(s.authMiddleware(s.HandlePermissionsRoute)))
+
+	// User Permissions routes - Authenticated users can get their own permissions
+	mux.HandleFunc("/api/user/permissions", s.standardMiddleware(s.authMiddleware(s.HandleUserPermissionsRoute)))
+	mux.HandleFunc("/api/user/check-permission", s.standardMiddleware(s.authMiddleware(s.HandleCheckPermission)))
+
+	// Role Session Policies routes - Root Only
+	mux.HandleFunc("/api/roles/session-policies", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleRoleSessionPoliciesRoute))))
+
+	// Role Password Policies routes - Root Only
+	mux.HandleFunc("/api/roles/password-policies", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleRolePasswordPoliciesRoute))))
+
+	// Role by ID with sub-routes (must be last for /api/roles/*)
+	mux.HandleFunc("/api/roles/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/session-policy") {
+			s.rootOnlyMiddleware(s.HandleRoleSessionPolicyByIDRoute)(w, r)
+		} else if strings.HasSuffix(path, "/password-policy") {
+			s.rootOnlyMiddleware(s.HandleRolePasswordPolicyByIDRoute)(w, r)
+		} else {
+			s.HandleRoleByIDRoute(w, r)
+		}
+	})))
+
+	// Upload route - Root Only
+	mux.HandleFunc("/api/upload", s.standardMiddleware(s.authMiddleware(s.rootOnlyMiddleware(s.HandleUpload))))
+
+	// Static files for uploads
+	// CAUTION: This exposes the directory. Validate security if needed.
+	// http.StripPrefix strips the "/uploads/" part so we serve from current dir "./uploads"
+	fileServer := http.FileServer(http.Dir("./uploads"))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", fileServer))
+
 	// Deploy Configuration (accessible without auth in development, with token in production)
 	mux.HandleFunc("/api/deploy/config", s.standardMiddleware(s.HandleDeployConfig))
 	mux.HandleFunc("/api/deploy/config/defaults", s.standardMiddleware(s.HandleDeployConfigDefaults))
@@ -314,4 +378,14 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Initialize Admin (accessible only when database is completely empty)
 	mux.HandleFunc("/api/initialize/admin", s.corsMiddleware(s.HandleInitializeAdmin))
 	mux.HandleFunc("/api/initialize/status", s.corsMiddleware(s.HandleInitializeStatus))
+}
+
+func (s *Server) handleSettingsRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		s.HandleGetSettings(w, r)
+	} else if r.Method == http.MethodPut {
+		s.HandleUpdateSettings(w, r)
+	} else {
+		respondError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
 }

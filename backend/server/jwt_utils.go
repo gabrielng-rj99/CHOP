@@ -68,7 +68,7 @@ func GenerateJWT(user *domain.User) (string, error) {
 		Username: derefString(user.Username),
 		Role:     derefString(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWT.ExpirationTime) * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.ExpirationTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},
@@ -96,7 +96,7 @@ func GenerateRefreshToken(user *domain.User) (string, error) {
 	claims := RefreshTokenClaims{
 		UserID: user.ID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWT.RefreshExpirationTime) * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.RefreshExpirationTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},

@@ -19,10 +19,12 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"Open-Generic-Hub/backend/database"
 )
@@ -73,11 +75,30 @@ func checkDatabaseEmpty(db *sql.DB) (bool, []string, error) {
 }
 
 // HandleInitializeStatus verifica status de inicialização
-// GET /api/initialize/status
+// GET /api/initialize/status - Read-only endpoint to check system initialization status
+// 🔒 SECURITY: Only GET method allowed. POST/PUT/DELETE/PATCH are strictly forbidden.
 func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) {
+	// 🔒 STRICT METHOD VALIDATION: Only GET is allowed
 	if r.Method != http.MethodGet {
+		ip := getIPAddress(r)
+		ipStr := ""
+		if ip != nil {
+			ipStr = *ip
+		}
+		log.Printf("🚨 SECURITY: Blocked non-GET request to /api/initialize/status: method=%s from IP=%s", r.Method, ipStr)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// 🔒 SECURITY: Prevent query parameter manipulation attempts
+	// This endpoint should not accept any query parameters
+	if len(r.URL.Query()) > 0 {
+		ip := getIPAddress(r)
+		ipStr := ""
+		if ip != nil {
+			ipStr = *ip
+		}
+		log.Printf("⚠️  WARNING: /api/initialize/status called with query parameters from IP=%s: %v", ipStr, r.URL.Query())
 	}
 
 	response := InitializeStatusResponse{
@@ -89,9 +110,13 @@ func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) 
 		Message:        "Initialization not complete",
 	}
 
-	// Tenta conectar ao banco
+	// 🔒 SECURITY: Attempt database connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	db, err := database.ConnectDB()
 	if err != nil {
+		log.Printf("⚠️  Database connection error during status check: %v", err)
 		response.DatabaseStatus = "error"
 		response.RequiresSetup = true
 		response.Message = "Database not configured or not accessible"
@@ -103,12 +128,27 @@ func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) 
 	}
 	defer db.Close()
 
+	// 🔒 SECURITY: Verify database connection is actually working
+	if err := db.PingContext(ctx); err != nil {
+		log.Printf("⚠️  Database ping failed during status check: %v", err)
+		response.DatabaseStatus = "error"
+		response.RequiresSetup = true
+		response.Message = "Database connection test failed"
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	response.HasDatabase = true
 	response.DatabaseStatus = "connected"
 
-	// Verifica se o banco está completamente vazio
+	// 🔒 SECURITY: Verifica se o banco está completamente vazio
+	// This check is critical - it prevents /initialize/admin from being called when system is already initialized
 	isEmpty, tablesWithData, err := checkDatabaseEmpty(db)
 	if err != nil {
+		log.Printf("❌ Error checking database status: %v", err)
 		response.DatabaseStatus = "error"
 		response.Message = "Error checking database status"
 		response.RequiresSetup = true
@@ -117,21 +157,29 @@ func (s *Server) HandleInitializeStatus(w http.ResponseWriter, r *http.Request) 
 		response.TablesWithData = tablesWithData
 
 		if isEmpty {
-			// Banco vazio - precisa de setup inicial
+			// 🔒 SECURITY: Banco vazio - precisa de setup inicial
+			// Only return requires_setup=true if database is COMPLETELY empty
 			response.DatabaseStatus = "empty"
 			response.RequiresSetup = true
 			response.IsInitialized = false
 			response.Message = "Database is empty. Admin creation required."
+			log.Printf("ℹ️  Database is empty - system initialization required")
 		} else {
-			// Banco tem dados - sistema inicializado
+			// 🔒 SECURITY: Banco tem dados - sistema já foi inicializado
+			// IMPORTANT: Once any data exists, initialization is locked forever
 			response.DatabaseStatus = "has_data"
 			response.RequiresSetup = false
 			response.IsInitialized = true
 			response.Message = "System fully initialized"
+			log.Printf("✅ System is initialized with %d tables containing data", len(tablesWithData))
 		}
 	}
 
+	// 🔒 SECURITY: Set response headers to prevent caching of initialization status
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }

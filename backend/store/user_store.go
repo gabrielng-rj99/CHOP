@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -224,27 +225,36 @@ func (s *UserStore) UpdateUsername(currentUsername, newUsername string) error {
 }
 
 // AuthenticateUser verifica se o usuário e senha estão corretos
-var bruteForceLevels = []struct {
-	attempts int
-	duration time.Duration
-}{
-	{5, time.Minute},
-	{3, 5 * time.Minute},
-	{3, 15 * time.Minute},
-	{3, 30 * time.Minute},
-	{3, 60 * time.Minute},
-	{3, 120 * time.Minute},
-	{3, 240 * time.Minute},
-	{3, 480 * time.Minute},
-	{3, 1440 * time.Minute}, // 24h
-}
+// Removed progressive brute force levels - now using configurable single level
 
 func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("usuário e senha são obrigatórios")
 	}
 
-	// Busca todos os campos necessários para brute-force (ignorando usuários deletados)
+	// Load configurable login attempts and block time from system settings
+	loginAttempts := 5
+	loginBlockTime := 300 // seconds
+	rows, err := s.db.Query("SELECT key, value FROM system_settings WHERE key IN ('system.login_attempts', 'system.login_block_time')")
+	if err == nil && rows != nil {
+		defer rows.Close()
+		for rows.Next() {
+			var key, value string
+			if err := rows.Scan(&key, &value); err == nil {
+				if key == "system.login_attempts" {
+					if v, e := strconv.Atoi(value); e == nil && v >= 3 && v <= 10 {
+						loginAttempts = v
+					}
+				} else if key == "system.login_block_time" {
+					if v, e := strconv.Atoi(value); e == nil && v >= 60 && v <= 3600 {
+						loginBlockTime = v
+					}
+				}
+			}
+		}
+	}
+
+	// Busca todos os campos necessários (ignorando usuários deletados)
 	sqlStatement := `SELECT id, username, display_name, password_hash, created_at, updated_at, role, failed_attempts, lock_level, locked_until, auth_secret FROM users WHERE username = $1 AND deleted_at IS NULL`
 	row := s.db.QueryRow(sqlStatement, username)
 
@@ -255,7 +265,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	var displayName sql.NullString
 	var role sql.NullString
 
-	err := row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &user.AuthSecret)
+	err = row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &user.AuthSecret)
 	if err != nil {
 		fmt.Println("Erro no Scan da autenticação:", err)
 		return nil, errors.New("usuário não encontrado")
@@ -274,9 +284,6 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 
 	now := time.Now()
 	if lockedUntil.Valid && now.Before(lockedUntil.Time) {
-		if lockLevel >= len(bruteForceLevels) {
-			return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
-		}
 		return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockedUntil.Time.Format(time.RFC1123))
 	}
 
@@ -284,29 +291,13 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
 		// Falha: incrementa tentativas
 		failedAttempts++
-		// Limite do nível atual
-		level := lockLevel
-		if level >= len(bruteForceLevels) {
-			// Bloqueio manual
-			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1, locked_until = $2, lock_level = $3 WHERE username = $4`, failedAttempts, now.Add(365*24*time.Hour), level, username)
-			return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
-		}
-		limit := bruteForceLevels[level].attempts
-		if failedAttempts >= limit {
-			// Sobe de nível e bloqueia
-			lockLevel++
-			if lockLevel >= len(bruteForceLevels) {
-				// Bloqueio manual (define locked_until para 1 ano no futuro)
-				_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, locked_until = $1, lock_level = $2 WHERE username = $3`, now.Add(365*24*time.Hour), lockLevel, username)
-				return nil, errors.New("Conta bloqueada. Só pode ser desbloqueada manualmente por um admin.")
-			} else {
-				dur := bruteForceLevels[lockLevel].duration
-				t := now.Add(dur)
-				_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, locked_until = $1, lock_level = $2 WHERE username = $3`, t, lockLevel, username)
-				return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", t.Format(time.RFC1123))
-			}
+		if failedAttempts >= loginAttempts {
+			// Bloqueia por tempo configurado
+			lockUntil := now.Add(time.Duration(loginBlockTime) * time.Second)
+			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1, locked_until = $2, lock_level = 1 WHERE username = $3`, failedAttempts, lockUntil, username)
+			return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockUntil.Format(time.RFC1123))
 		} else {
-			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1, lock_level = $2 WHERE username = $3`, failedAttempts, lockLevel, username)
+			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1 WHERE username = $2`, failedAttempts, username)
 		}
 		return nil, errors.New("usuário ou senha inválidos")
 	}

@@ -54,6 +54,9 @@ type Server struct {
 	categoryStore    *store.CategoryStore
 	subcategoryStore *store.SubcategoryStore
 	auditStore       *store.AuditStore
+	settingsStore    *store.SettingsStore
+	userThemeStore   *store.UserThemeStore
+	roleStore        *store.RoleStore
 	config           *config.Config
 	rateLimiter      *IPRateLimiter
 }
@@ -71,6 +74,9 @@ func NewServer(db *sql.DB) *Server {
 	var categoryStore *store.CategoryStore
 	var subcategoryStore *store.SubcategoryStore
 	var auditStore *store.AuditStore
+	var settingsStore *store.SettingsStore
+	var userThemeStore *store.UserThemeStore
+	var roleStore *store.RoleStore
 
 	if db != nil {
 		userStore = store.NewUserStore(db)
@@ -80,6 +86,9 @@ func NewServer(db *sql.DB) *Server {
 		categoryStore = store.NewCategoryStore(db)
 		subcategoryStore = store.NewSubcategoryStore(db)
 		auditStore = store.NewAuditStore(db)
+		settingsStore = store.NewSettingsStore(db)
+		userThemeStore = store.NewUserThemeStore(db)
+		roleStore = store.NewRoleStore(db)
 	}
 
 	return &Server{
@@ -90,6 +99,9 @@ func NewServer(db *sql.DB) *Server {
 		categoryStore:    categoryStore,
 		subcategoryStore: subcategoryStore,
 		auditStore:       auditStore,
+		settingsStore:    settingsStore,
+		userThemeStore:   userThemeStore,
+		roleStore:        roleStore,
 		config:           cfg,
 		rateLimiter:      NewIPRateLimiter(rate.Limit(cfg.Security.RateLimit), cfg.Security.RateBurst),
 	}
@@ -105,6 +117,9 @@ func (s *Server) InitializeStores(db *sql.DB) {
 		s.categoryStore = store.NewCategoryStore(db)
 		s.subcategoryStore = store.NewSubcategoryStore(db)
 		s.auditStore = store.NewAuditStore(db)
+		s.settingsStore = store.NewSettingsStore(db)
+		s.userThemeStore = store.NewUserThemeStore(db)
+		s.roleStore = store.NewRoleStore(db)
 	}
 }
 

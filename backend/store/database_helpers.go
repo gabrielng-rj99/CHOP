@@ -118,7 +118,7 @@ func ClearTables(db *sql.DB) error {
 	defer db.Exec("SET session_replication_role = 'origin'")
 
 	// Limpar todas as tabelas
-	tables := []string{"agreements", "sub_entities", "subcategories", "categories", "entities", "users"}
+	tables := []string{"agreements", "sub_entities", "subcategories", "categories", "entities", "users", "system_settings"}
 	for _, table := range tables {
 		// Deletar em vez de truncate para evitar problemas com sequences
 		_, err := db.Exec("DELETE FROM " + table)

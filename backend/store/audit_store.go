@@ -75,14 +75,29 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 
 	// Validar entity
 	validEntities := map[string]bool{
-		"user":      true,
-		"entity":    true,
-		"agreement":  true,
-		"subcategory":      true,
-		"category":  true,
-		"sub_entity": true,
-		"audit_log": true,
-		"auth":      true,
+		"user":                 true,
+		"entity":               true,
+		"agreement":            true,
+		"subcategory":          true,
+		"category":             true,
+		"sub_entity":           true,
+		"audit_log":            true,
+		"auth":                 true,
+		"global_theme":         true,
+		"allowed_themes":       true,
+		"role":                 true,
+		"role_permissions":     true,
+		"role_session_policy":  true,
+		"role_password_policy": true,
+		"dashboard_config":     true,
+		"settings_branding":    true,
+		"settings_labels":      true,
+		"settings_system":      true,
+		"upload":               true,
+		"security_config":      true,
+		"password_policy":      true,
+		"theme_permissions":    true,
+		"system_config":        true,
 	}
 	if !validEntities[req.Entity] {
 		return "", fmt.Errorf("entidade inválida: %s", req.Entity)
