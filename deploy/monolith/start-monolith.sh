@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Contract Manager - Monolith Mode Startup Script
+# Entity Hub - Monolith Mode Startup Script
 # This script reads monolith.ini, generates secure passwords if needed,
-# and starts all services for monolith deployment.
+# builds the application (Backend & Frontend), and starts all services.
 
 set -e
 
@@ -14,8 +14,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-# Configuration file
-CONFIG_FILE="monolith.ini"
+# Resolve Paths
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+CONFIG_FILE="$SCRIPT_DIR/monolith.ini"
 
 # Function to generate secure 64-character password
 generate_password() {
@@ -29,201 +31,378 @@ print_highlight() {
     echo -e "${BOLD}${YELLOW}================================================================================${NC}"
 }
 
-# Check if config file exists
+# Function to update ini file with generated password
+update_ini_value() {
+    local key=$1
+    local value=$2
+    local file=$3
+
+    # Escape special characters in value for sed
+    local escaped_value=$(echo "$value" | sed 's/[&/\]/\\&/g')
+
+    # Update the line with the key
+    sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$file"
+}
+
+echo -e "${BLUE}🚀 Starting Entity Hub (Monolith Mode)${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# Check Config
 if [ ! -f "$CONFIG_FILE" ]; then
     echo -e "${RED}❌ Error: $CONFIG_FILE not found!${NC}"
     echo "Copy from docker/.env.example and adjust for monolith mode."
     exit 1
 fi
 
-echo -e "${BLUE}🚀 Starting Contract Manager (Monolith Mode)${NC}"
-echo -e "${BLUE}================================================${NC}"
-echo ""
-
 # Load configuration from monolith.ini
 echo "📄 Loading configuration from $CONFIG_FILE..."
-if [ -f "$CONFIG_FILE" ]; then
-    # Read and export variables, but handle passwords specially
-    while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        [[ $key =~ ^[[:space:]]*# ]] && continue
-        [[ -z "$key" ]] && continue
 
-        # Remove spaces
-        key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+# First pass: read all variables into associative array
+declare -A CONFIG
+while IFS= read -r line; do
+    # Skip comments and empty lines
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "$line" ]] && continue
 
-        # Generate passwords if empty
-        if [[ "$key" == "DB_PASSWORD" && -z "$value" ]]; then
-            value=$(generate_password)
-            GENERATED_DB_PASSWORD="$value"
-            echo -e "${GREEN}✓ Generated secure DB_PASSWORD${NC}"
-        elif [[ "$key" == "JWT_SECRET" && -z "$value" ]]; then
-            value=$(generate_password)
-            GENERATED_JWT_SECRET="$value"
-            echo -e "${GREEN}✓ Generated secure JWT_SECRET${NC}"
-        fi
+    # Extract key=value
+    if [[ "$line" =~ ^[[:space:]]*([A-Z_][A-Z0-9_]*)=(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
 
-        # Export the variable
-        export "$key=$value"
-    done < "$CONFIG_FILE"
-fi
+        # Remove quotes if present
+        value="${value%\"}"
+        value="${value#\"}"
 
+        # Store in array
+        CONFIG[$key]="$value"
+    fi
+done < "$CONFIG_FILE"
+
+# Second pass: handle password generation and expand variables
+GENERATED_DB_PASSWORD=""
+GENERATED_JWT_SECRET=""
+
+for key in "${!CONFIG[@]}"; do
+    value="${CONFIG[$key]}"
+
+    # Generate passwords if empty
+    if [[ "$key" == "DB_PASSWORD" && -z "$value" ]]; then
+        value=$(generate_password)
+        GENERATED_DB_PASSWORD="$value"
+        CONFIG[$key]="$value"
+        update_ini_value "$key" "$value" "$CONFIG_FILE"
+        echo -e "${GREEN}✓ Generated secure DB_PASSWORD${NC}"
+    elif [[ "$key" == "JWT_SECRET" && -z "$value" ]]; then
+        value=$(generate_password)
+        GENERATED_JWT_SECRET="$value"
+        CONFIG[$key]="$value"
+        update_ini_value "$key" "$value" "$CONFIG_FILE"
+        echo -e "${GREEN}✓ Generated secure JWT_SECRET${NC}"
+    fi
+
+    # Expand variables in value (e.g., ${API_PORT})
+    while [[ "$value" =~ \$\{([A-Z_][A-Z0-9_]*)\} ]]; do
+        var_name="${BASH_REMATCH[1]}"
+        var_value="${CONFIG[$var_name]}"
+        value="${value//\$\{$var_name\}/$var_value}"
+    done
+
+    # Update in array and export
+    CONFIG[$key]="$value"
+    export "$key=$value"
+done
+
+echo -e "${GREEN}✓ Configuration loaded${NC}"
 echo ""
+
+# Set defaults if not in config
+export DB_HOST="${DB_HOST:-localhost}"
+export DB_PORT="${DB_PORT:-5432}"
+export DB_USER="${DB_USER:-ehopuser}"
+export DB_NAME="${DB_NAME:-ehopdb}"
+export API_PORT="${API_PORT:-3000}"
+export FRONTEND_PORT="${FRONTEND_PORT:-80}"
+export FRONTEND_HTTPS_PORT="${FRONTEND_HTTPS_PORT:-443}"
 
 # Check if PostgreSQL is running
 echo "🔍 Checking PostgreSQL..."
-if ! pg_isready -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} > /dev/null 2>&1; then
-    echo -e "${RED}❌ PostgreSQL is not running on ${DB_HOST:-localhost}:${DB_PORT:-5432}!${NC}"
+if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" > /dev/null 2>&1; then
+    echo -e "${RED}❌ PostgreSQL is not running on ${DB_HOST}:${DB_PORT}!${NC}"
     echo ""
     echo "Start PostgreSQL:"
     echo "  Linux:   sudo systemctl start postgresql"
     echo "  macOS:   brew services start postgresql"
-    echo "  Docker:  docker run -d --name postgres -e POSTGRES_PASSWORD=yourpass -p 5432:5432 postgres:16"
     exit 1
 fi
 echo -e "${GREEN}✓ PostgreSQL is running${NC}"
 
-# Check/create database
+# Check/create database user and database
 echo "🗄️  Checking database..."
-if ! psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER:-postgres} -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw ${DB_NAME}; then
-    echo "Creating database ${DB_NAME}..."
-    createdb -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER:-postgres} ${DB_NAME} 2>/dev/null || {
-        echo -e "${YELLOW}⚠️  Could not create database. Make sure user ${DB_USER:-postgres} has permissions.${NC}"
-    }
 
-    # Run schema if exists
-    if [ -f "../backend/database/schema.sql" ]; then
-        echo "Running database schema..."
-        PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f ../backend/database/schema.sql >/dev/null 2>&1 || {
-            echo -e "${YELLOW}⚠️  Could not run schema. Check database permissions.${NC}"
-        }
-    fi
+# Check if user exists, if not create it
+USER_EXISTS=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null || echo "")
+if [[ "$USER_EXISTS" != "1" ]]; then
+    echo "Creating database user ${DB_USER}..."
+    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" || {
+         echo -e "${RED}❌ Failed to create database user.${NC}"
+         exit 1
+    }
+    echo -e "${GREEN}✓ Database user created${NC}"
+else
+    echo -e "${GREEN}✓ Database user exists${NC}"
+    # Update password in case it changed
+    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" >/dev/null 2>&1 || true
 fi
+
+# Check if database exists
+DB_EXISTS=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null || echo "")
+if [[ "$DB_EXISTS" != "1" ]]; then
+    echo "Creating database ${DB_NAME}..."
+    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" || {
+        echo -e "${RED}❌ Failed to create database.${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Database created${NC}"
+else
+    echo -e "${GREEN}✓ Database exists${NC}"
+fi
+
+# Grant privileges
+sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" >/dev/null 2>&1 || true
+
 echo -e "${GREEN}✓ Database ready${NC}"
 echo ""
+
+# Build Backend
+echo "🔧 Building Backend..."
+cd "$PROJECT_ROOT/backend"
+if go build -o ehop-backend ./cmd/server/main.go; then
+    echo -e "${GREEN}✓ Backend built successfully${NC}"
+else
+    echo -e "${RED}❌ Backend build failed!${NC}"
+    exit 1
+fi
+
+# Build Frontend
+echo "🎨 Building Frontend..."
+cd "$PROJECT_ROOT/frontend"
+
+# Clean dist directory to avoid permission issues
+if [ -d "dist" ]; then
+    echo "Cleaning old build..."
+    rm -rf dist 2>/dev/null || {
+        echo -e "${YELLOW}⚠️  Need sudo to clean old build (created by previous run)${NC}"
+        sudo rm -rf dist || {
+            echo -e "${RED}❌ Could not clean dist directory${NC}"
+            exit 1
+        }
+    }
+fi
+
+# Set VITE_API_URL to /api for relative path
+export VITE_API_URL="/api"
+
+if npm run build >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Frontend built successfully${NC}"
+else
+    echo -e "${RED}❌ Frontend build failed! Check errors:${NC}"
+    npm run build
+    exit 1
+fi
 
 # Setup nginx
 echo "🌐 Setting up nginx..."
 if ! command -v nginx >/dev/null 2>&1; then
     echo -e "${RED}❌ nginx is not installed!${NC}"
-    echo "Install nginx:"
-    echo "  Ubuntu/Debian: sudo apt install nginx"
-    echo "  CentOS/RHEL:   sudo yum install nginx"
-    echo "  macOS:         brew install nginx"
     exit 1
 fi
-echo -e "${GREEN}✓ nginx is installed${NC}"
-
-# Create nginx config
-NGINX_CONF="/tmp/entity-hub-monolith.conf"
-cat > "$NGINX_CONF" << EOF
-# Entity Hub Monolith Nginx Config
-server {
-    listen ${FRONTEND_PORT:-80};
-    server_name localhost;
-
-    # Frontend proxy
-    location / {
-        proxy_pass http://localhost:5173;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-    # API proxy
-    location /api {
-        proxy_pass http://localhost:${API_PORT:-3000};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-
-server {
-    listen ${FRONTEND_HTTPS_PORT:-443} ssl;
-    server_name localhost;
-
-    ssl_certificate ${SSL_CERTS_PATH:-./certs/ssl}/server.crt;
-    ssl_certificate_key ${SSL_CERTS_PATH:-./certs/ssl}/server.key;
-
-    # Frontend proxy
-    location / {
-        proxy_pass http://localhost:5173;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-    # API proxy
-    location /api {
-        proxy_pass http://localhost:${API_PORT:-3000};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF
 
 # Generate SSL certificates using centralized script
 echo "🔐 Generating SSL certificates..."
-SSL_DIR="${SSL_CERTS_PATH:-./certs/ssl}"
+SSL_DIR="$PROJECT_ROOT/deploy/certs/ssl"
 mkdir -p "$SSL_DIR"
 
-# Call centralized generate-ssl.sh script
-if [ -f "../generate-ssl.sh" ]; then
-    ../generate-ssl.sh "$SSL_DIR" || {
-        echo -e "${YELLOW}⚠️  Could not generate certificates using generate-ssl.sh${NC}"
+if [ -f "$PROJECT_ROOT/deploy/generate-ssl.sh" ]; then
+    bash "$PROJECT_ROOT/deploy/generate-ssl.sh" "$SSL_DIR" >/dev/null 2>&1 || {
+         echo -e "${YELLOW}⚠️  Could not generate certificates using generate-ssl.sh, using fallback${NC}"
+         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+             -keyout "$SSL_DIR/server.key" \
+             -out "$SSL_DIR/server.crt" \
+             -subj "/C=US/ST=State/L=City/O=EntityHub/CN=localhost" 2>/dev/null
     }
 else
-    echo -e "${RED}❌ Error: generate-ssl.sh not found at ../generate-ssl.sh${NC}"
-    exit 1
+    echo "Generating self-signed certificate..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/server.key" \
+        -out "$SSL_DIR/server.crt" \
+        -subj "/C=US/ST=State/L=City/O=EntityHub/CN=localhost" 2>/dev/null
 fi
 echo -e "${GREEN}✓ SSL certificates ready${NC}"
 
-# Start nginx with custom config
-sudo nginx -c "$NGINX_CONF" -p /tmp &
-NGINX_PID=$!
-echo -e "${GREEN}✓ nginx started (PID: $NGINX_PID)${NC}"
+# Create nginx config in project directory
+NGINX_CONF="$PROJECT_ROOT/deploy/monolith/nginx-runtime.conf"
+cat > "$NGINX_CONF" << 'NGINX_EOF'
+# Entity Hub Monolith Nginx Config
+events {
+    worker_connections 1024;
+}
 
-# Start backend
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Logs
+    access_log /tmp/ehop_access.log;
+    error_log /tmp/ehop_error.log;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml+rss;
+
+    server {
+        listen FRONTEND_PORT_PLACEHOLDER;
+        server_name localhost;
+
+        # Frontend Static Files
+        root "PROJECT_ROOT_PLACEHOLDER/frontend/dist";
+        index index.html;
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # API proxy
+        location /api {
+            proxy_pass http://127.0.0.1:API_PORT_PLACEHOLDER;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+
+    server {
+        listen FRONTEND_HTTPS_PORT_PLACEHOLDER ssl;
+        server_name localhost;
+
+        ssl_certificate SSL_DIR_PLACEHOLDER/server.crt;
+        ssl_certificate_key SSL_DIR_PLACEHOLDER/server.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+
+        root "PROJECT_ROOT_PLACEHOLDER/frontend/dist";
+        index index.html;
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        location /api {
+            proxy_pass http://127.0.0.1:API_PORT_PLACEHOLDER;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+}
+NGINX_EOF
+
+# Replace placeholders
+sed -i "s|FRONTEND_PORT_PLACEHOLDER|${FRONTEND_PORT}|g" "$NGINX_CONF"
+sed -i "s|FRONTEND_HTTPS_PORT_PLACEHOLDER|${FRONTEND_HTTPS_PORT}|g" "$NGINX_CONF"
+sed -i "s|API_PORT_PLACEHOLDER|${API_PORT}|g" "$NGINX_CONF"
+sed -i "s|PROJECT_ROOT_PLACEHOLDER|${PROJECT_ROOT}|g" "$NGINX_CONF"
+sed -i "s|SSL_DIR_PLACEHOLDER|${SSL_DIR}|g" "$NGINX_CONF"
+
+# Stop any existing nginx
+echo "Stopping any existing nginx..."
+sudo nginx -s stop 2>/dev/null || true
+sudo pkill -9 nginx 2>/dev/null || true
+sleep 2
+
+# Test nginx config
+echo "Testing nginx configuration..."
+if ! sudo nginx -t -c "$NGINX_CONF" 2>/dev/null; then
+    echo -e "${RED}❌ Nginx configuration test failed!${NC}"
+    sudo nginx -t -c "$NGINX_CONF"
+    exit 1
+fi
+
+# Start nginx with custom config
+echo "Starting Nginx..."
+sudo nginx -c "$NGINX_CONF"
+echo -e "${GREEN}✓ nginx started${NC}"
+
+# Prepare backend environment
 echo "🔧 Starting backend service..."
-cd ../backend
-go run cmd/server/main.go &
+cd "$PROJECT_ROOT/backend"
+
+# Ensure logs directory exists
+LOG_DIR="$PROJECT_ROOT/logs/backend"
+mkdir -p "$LOG_DIR"
+
+# Create a PID file location
+PID_FILE="/tmp/ehop-backend.pid"
+
+# Export all necessary environment variables for the backend
+export DB_HOST="$DB_HOST"
+export DB_PORT="$DB_PORT"
+export DB_USER="$DB_USER"
+export DB_PASSWORD="$DB_PASSWORD"
+export DB_NAME="$DB_NAME"
+export JWT_SECRET="$JWT_SECRET"
+export API_PORT="$API_PORT"
+
+# Start backend in background
+nohup ./ehop-backend > "$LOG_DIR/server.log" 2>&1 &
 BACKEND_PID=$!
+echo $BACKEND_PID > "$PID_FILE"
+
 echo -e "${GREEN}✓ Backend started (PID: $BACKEND_PID)${NC}"
 
 # Wait for backend to initialize
-sleep 3
-
-# Check if backend is responding
-if curl -s http://localhost:${API_PORT:-3000}/health >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Backend health check passed${NC}"
-else
-    echo -e "${YELLOW}⚠️  Backend may not be fully ready yet${NC}"
-fi
-
-# Start frontend
-echo "🌐 Starting frontend service..."
-cd ../frontend
-npm run dev &
-FRONTEND_PID=$!
-echo -e "${GREEN}✓ Frontend started (PID: $FRONTEND_PID)${NC}"
+echo "Waiting for backend to be ready..."
+for i in {1..30}; do
+    if curl -s http://localhost:${API_PORT}/health >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Backend health check passed${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${YELLOW}⚠️  Backend may not be fully ready yet. Check logs: $LOG_DIR/server.log${NC}"
+        echo ""
+        echo "Last 20 lines of backend log:"
+        tail -20 "$LOG_DIR/server.log"
+    fi
+    sleep 1
+done
 
 echo ""
 echo -e "${GREEN}🎉 All services started successfully!${NC}"
 echo ""
 echo -e "${BOLD}Services running:${NC}"
-echo "  Application: https://localhost:${FRONTEND_HTTPS_PORT:-443} (nginx proxy with SSL)"
-echo "  HTTP Fallback: http://localhost:${FRONTEND_PORT:-80}"
-echo "  Direct Backend: http://localhost:${API_PORT:-3000}"
-echo "  Direct Frontend: http://localhost:5173"
+echo "  Application (HTTPS): https://localhost:${FRONTEND_HTTPS_PORT}"
+echo "  Application (HTTP):  http://localhost:${FRONTEND_PORT}"
+echo "  Backend API:         http://localhost:${API_PORT}"
 echo ""
-echo "Press Ctrl+C to stop all services"
+echo -e "${BOLD}Logs:${NC}"
+echo "  Backend:  $LOG_DIR/server.log"
+echo "  Nginx:    /tmp/ehop_access.log, /tmp/ehop_error.log"
+echo ""
+echo -e "${BOLD}Process IDs:${NC}"
+echo "  Backend PID: $BACKEND_PID (saved to $PID_FILE)"
+echo "  Nginx: running via sudo"
 echo ""
 
 # Print generated passwords with highlight
@@ -235,20 +414,22 @@ if [ -n "$GENERATED_DB_PASSWORD" ] || [ -n "$GENERATED_JWT_SECRET" ]; then
         echo -e "${BOLD}${RED}Database Password (DB_PASSWORD):${NC}"
         echo -e "${BOLD}${GREEN}$GENERATED_DB_PASSWORD${NC}"
         echo ""
+        echo "Saved to: $CONFIG_FILE"
+        echo ""
     fi
 
     if [ -n "$GENERATED_JWT_SECRET" ]; then
         echo -e "${BOLD}${RED}JWT Secret (JWT_SECRET):${NC}"
         echo -e "${BOLD}${GREEN}$GENERATED_JWT_SECRET${NC}"
         echo ""
+        echo "Saved to: $CONFIG_FILE"
+        echo ""
     fi
 
-    print_highlight "💾 Copy and save these passwords securely!"
-    echo -e "${YELLOW}They are required to run the application and cannot be recovered.${NC}"
+    print_highlight "Passwords have been saved to $CONFIG_FILE"
     echo ""
 fi
 
-# Wait for Ctrl+C
-trap "echo ''; echo 'Stopping services...'; sudo nginx -s stop 2>/dev/null; kill $BACKEND_PID $FRONTEND_PID $NGINX_PID 2>/dev/null; exit" INT TERM
-
-wait
+echo -e "${YELLOW}To stop services, run: ./deploy/monolith/stop-monolith.sh${NC}"
+echo ""
+echo "Press Ctrl+C to view this message again, or check logs for status."

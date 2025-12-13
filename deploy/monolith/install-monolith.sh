@@ -9,12 +9,12 @@
 set -e
 
 # Colors
-RED='[0;31m'
-GREEN='[0;32m'
-YELLOW='[1;33m'
-BLUE='[0;34m'
-NC='[0m'
-BOLD='[1m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+BOLD='\033[1m'
 
 # Function to check if command exists
 command_exists() {
@@ -39,13 +39,76 @@ print_error() {
 # Function to get version from versions.ini
 get_version() {
     local key=$1
-    local versions_file="$(dirname "$0")/../versions.ini"
+    local versions_file="$(dirname "$0")/versions.ini"
     grep "^$key=" "$versions_file" | cut -d'=' -f2
 }
 
+# Detect Package Manager
+detect_package_manager() {
+    if command_exists apt-get; then
+        PM="apt"
+    elif command_exists dnf; then
+        PM="dnf"
+    elif command_exists yum; then
+        PM="yum"
+    elif command_exists pacman; then
+        PM="pacman"
+    else
+        print_error "Unsupported package manager. Please install dependencies manually."
+        exit 1
+    fi
+    echo "$PM"
+}
+
+# Install Package
+install_package() {
+    local PACKAGE_NAME=$1
+    local ARCH_PACKAGE_NAME=$2  # Optional alternate name for Arch/Pacman
+    local RHEL_PACKAGE_NAME=$3  # Optional alternate name for RHEL/Fedora
+
+    if [ -z "$ARCH_PACKAGE_NAME" ]; then ARCH_PACKAGE_NAME=$PACKAGE_NAME; fi
+    if [ -z "$RHEL_PACKAGE_NAME" ]; then RHEL_PACKAGE_NAME=$PACKAGE_NAME; fi
+
+    echo "Blocking until lock is released..."
+    
+    case $PM in
+        apt)
+            $SUDO apt-get install -y -qq $PACKAGE_NAME
+            ;;
+        dnf)
+            $SUDO dnf install -y -q $RHEL_PACKAGE_NAME
+            ;;
+        yum)
+            $SUDO yum install -y -q $RHEL_PACKAGE_NAME
+            ;;
+        pacman)
+            $SUDO pacman -S --noconfirm --needed $ARCH_PACKAGE_NAME
+            ;;
+    esac
+}
+
+# Update System
+update_system() {
+    case $PM in
+        apt)
+            $SUDO apt-get update -qq
+            ;;
+        dnf)
+            $SUDO dnf check-update || true
+            ;;
+        yum)
+            $SUDO yum check-update || true
+            ;;
+        pacman)
+            $SUDO pacman -Sy
+            ;;
+    esac
+}
+
 # Check if versions.ini exists
-if [ ! -f "$(dirname "$0")/../versions.ini" ]; then
-    print_error "versions.ini not found in deploy/"
+SCRIPT_DIR="$(dirname "$0")"
+if [ ! -f "$SCRIPT_DIR/versions.ini" ]; then
+    print_error "versions.ini not found in $SCRIPT_DIR"
     exit 1
 fi
 
@@ -67,41 +130,69 @@ else
     print_step "Will use sudo for system installations"
 fi
 
-# Update package list
-print_step "Updating package list..."
-$SUDO apt update -qq
+# Detect Package Manager
+PM=$(detect_package_manager)
+print_step "Detected package manager: $PM"
 
-# Install curl if not present
+# Update package list
+print_step "Updating system..."
+update_system
+
+# Install curl
 if ! command_exists curl; then
     print_step "Installing curl..."
-    $SUDO apt install -y -qq curl
+    install_package curl curl curl
     print_success "curl installed"
 fi
 
-# Install wget if not present
+# Install wget
 if ! command_exists wget; then
     print_step "Installing wget..."
-    $SUDO apt install -y -qq wget
+    install_package wget wget wget
     print_success "wget installed"
 fi
 
-# Install Git if not present
+# Install Git
 if ! command_exists git; then
     print_step "Installing Git..."
-    $SUDO apt install -y -qq git
+    install_package git git git
     print_success "Git installed"
+fi
+
+# Install Build Essentials
+if ! command_exists gcc; then
+    print_step "Installing Build Essentials..."
+    case $PM in
+        apt)
+            install_package build-essential
+            ;;
+        dnf|yum)
+            $SUDO $PM groupinstall -y "Development Tools"
+            ;;
+        pacman)
+            install_package base-devel
+            ;;
+    esac
+    print_success "Build Essentials installed"
 fi
 
 # Install Go
 if ! command_exists go; then
     print_step "Installing Go..."
-    GO_VERSION=$(get_version go)
-    wget -q https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
-    $SUDO rm -rf /usr/local/go && $SUDO tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
-    rm go${GO_VERSION}.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    print_success "Go installed ($GO_VERSION)"
+    # Try package manager first for specific distros (like Arch), else binary
+    if [[ "$PM" == "pacman" ]] || [[ "$PM" == "dnf" ]]; then
+        install_package go go golang
+        print_success "Go installed from package manager"
+    else
+        GO_VERSION=$(get_version go)
+        wget -q https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
+        $SUDO rm -rf /usr/local/go && $SUDO tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+        rm go${GO_VERSION}.linux-amd64.tar.gz
+        export PATH=$PATH:/usr/local/go/bin
+        # Assuming bash/zsh
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        print_success "Go installed (${GO_VERSION})"
+    fi
 else
     print_success "Go already installed"
 fi
@@ -110,9 +201,16 @@ fi
 if ! command_exists node; then
     print_step "Installing Node.js..."
     NODE_VERSION=$(get_version node)
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | $SUDO -E bash -
-    $SUDO apt-get install -y -qq nodejs
-    print_success "Node.js installed ($NODE_VERSION)"
+    
+    if [[ "$PM" == "pacman" ]]; then
+        install_package nodejs nodejs nodejs
+        install_package npm npm npm
+    else
+       # Use NodeSource for Debian/RHEL
+       curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | $SUDO -E bash -
+       install_package nodejs
+    fi
+    print_success "Node.js installed"
 else
     print_success "Node.js already installed"
 fi
@@ -121,10 +219,32 @@ fi
 if ! command_exists psql; then
     print_step "Installing PostgreSQL..."
     PG_VERSION=$(get_version postgres)
-    $SUDO apt install -y -qq postgresql-${PG_VERSION} postgresql-contrib
-    $SUDO systemctl enable postgresql
-    $SUDO systemctl start postgresql
-    print_success "PostgreSQL installed and started ($PG_VERSION)"
+    
+    case $PM in
+        apt)
+            install_package postgresql postgresql postgresql
+            install_package postgresql-contrib
+            SERVICE_NAME="postgresql"
+            ;;
+        dnf|yum)
+            install_package postgresql-server postgresql-server postgresql-server
+            install_package postgresql-contrib
+            $SUDO postgresql-setup --initdb || true
+            SERVICE_NAME="postgresql"
+            ;;
+        pacman)
+            install_package postgresql postgresql postgresql
+            # Arch needs initdb
+            if [ ! -d "/var/lib/postgres/data" ]; then
+                 $SUDO su - postgres -c "initdb --locale en_US.UTF-8 -D /var/lib/postgres/data" || true
+            fi
+            SERVICE_NAME="postgresql"
+            ;;
+    esac
+
+    $SUDO systemctl enable $SERVICE_NAME
+    $SUDO systemctl start $SERVICE_NAME
+    print_success "PostgreSQL installed and started"
 else
     print_success "PostgreSQL already installed"
 fi
@@ -132,17 +252,17 @@ fi
 # Install nginx
 if ! command_exists nginx; then
     print_step "Installing nginx..."
-    $SUDO apt install -y -qq nginx
+    install_package nginx nginx nginx
     $SUDO systemctl enable nginx
     print_success "nginx installed"
 else
     print_success "nginx already installed"
 fi
 
-# Install OpenSSL if not present
+# Install OpenSSL
 if ! command_exists openssl; then
     print_step "Installing OpenSSL..."
-    $SUDO apt install -y -qq openssl
+    install_package openssl openssl openssl
     print_success "OpenSSL installed"
 fi
 

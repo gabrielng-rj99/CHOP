@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Contract Manager - Stop Monolith Services Script
+# Entity Hub - Stop Monolith Services Script
 # This script stops all running monolith services.
 
 set -e
@@ -13,33 +13,57 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-echo -e "${BLUE}🛑 Stopping Contract Manager (Monolith Mode)${NC}"
-echo -e "${BLUE}=============================================${NC}"
+echo -e "${BLUE}🛑 Stopping Entity Hub (Monolith Mode)${NC}"
+echo -e "${BLUE}======================================${NC}"
 echo ""
+
+# PID file location
+PID_FILE="/tmp/ehop-backend.pid"
+
+# Stop backend
+echo "Stopping backend..."
+if [ -f "$PID_FILE" ]; then
+    BACKEND_PID=$(cat "$PID_FILE")
+    if kill -0 "$BACKEND_PID" 2>/dev/null; then
+        kill "$BACKEND_PID" 2>/dev/null || true
+        sleep 2
+        # Force kill if still running
+        if kill -0 "$BACKEND_PID" 2>/dev/null; then
+            kill -9 "$BACKEND_PID" 2>/dev/null || true
+        fi
+        rm -f "$PID_FILE"
+        echo -e "${GREEN}✓ Backend stopped (PID: $BACKEND_PID)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Backend PID file exists but process not running${NC}"
+        rm -f "$PID_FILE"
+    fi
+else
+    # Fallback: try to kill by process name
+    if pkill -f "ehop-backend" 2>/dev/null; then
+        echo -e "${GREEN}✓ Backend stopped (by process name)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Backend was not running${NC}"
+    fi
+fi
 
 # Stop nginx
 echo "Stopping nginx..."
 if sudo nginx -s stop 2>/dev/null; then
-    echo -e "${GREEN}✓ nginx stopped${NC}"
+    echo -e "${GREEN}✓ Nginx stopped gracefully${NC}"
 else
-    echo -e "${YELLOW}⚠️  nginx was not running or could not be stopped${NC}"
+    # Force kill if graceful stop failed
+    if sudo pkill -9 nginx 2>/dev/null; then
+        echo -e "${GREEN}✓ Nginx killed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Nginx was not running${NC}"
+    fi
 fi
 
-# Find and stop backend process
-echo "Stopping backend..."
-if pkill -f "go run cmd/server/main.go" 2>/dev/null; then
-    echo -e "${GREEN}✓ backend stopped${NC}"
-else
-    echo -e "${YELLOW}⚠️  backend was not running${NC}"
-fi
-
-# Find and stop frontend process
-echo "Stopping frontend..."
-if pkill -f "npm run dev" 2>/dev/null; then
-    echo -e "${GREEN}✓ frontend stopped${NC}"
-else
-    echo -e "${YELLOW}⚠️  frontend was not running${NC}"
-fi
+# Clean up any orphaned processes
+echo "Cleaning up..."
+pkill -f "go run.*main.go" 2>/dev/null || true
+pkill -f "npm run dev" 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}✅ All services stopped successfully!${NC}"
+echo ""
