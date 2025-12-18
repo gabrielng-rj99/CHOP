@@ -1,0 +1,173 @@
+/*
+ * Entity Hub Open Project
+ * Copyright (C) 2025 Entity Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.audit-logs-container {
+    padding: 0;
+}
+
+.audit-logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.audit-logs-title {
+    font-size: 32px;
+    color: var(--text-color, #2c3e50);
+    margin: 0;
+}
+
+.audit-logs-button-group {
+    display: flex;
+    gap: 12px;
+}
+
+/* Deprecated: Use button-group class instead */
+
+.audit-logs-button {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.audit-logs-button:hover {
+    background: #2980b9;
+}
+
+/* Deprecated: Use .refresh-button or .primary-button instead */
+.audit-logs-button-secondary {
+    background-color: var(--secondary-color, #2c3e50);
+    color: var(--primary-text-color, white);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 185px;
+    white-space: nowrap;
+    justify-content: center;
+}
+
+.audit-logs-button-secondary:hover {
+    filter: brightness(0.9);
+}
+
+.audit-logs-button-secondary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.audit-logs-error {
+    background: #fee;
+    color: #c33;
+    padding: 16px;
+    border-radius: 4px;
+    border: 1px solid #fcc;
+    margin-bottom: 20px;
+}
+
+.audit-logs-table-wrapper {
+    background: var(--content-bg, white);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color, #ecf0f1);
+    overflow: hidden;
+}
+
+.audit-logs-table-header {
+    padding: 20px;
+    background: var(--content-bg, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.audit-logs-table-header-title {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color, #2c3e50);
+}
+
+.audit-logs-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.audit-logs-search-input {
+    flex: 1;
+    min-width: 300px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--content-bg, white);
+    color: var(--text-color, #333);
+}
+
+.audit-logs-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #3498db);
+}
+
+.audit-logs-search-input::placeholder {
+    color: var(--text-secondary-color, #999);
+}
+
+.audit-logs-loading {
+    text-align: center;
+    padding: 60px;
+}
+
+.audit-logs-loading-text {
+    font-size: 18px;
+    color: var(--text-color, #7f8c8d);
+}
+
+.audit-logs-access-denied {
+    text-align: center;
+    padding: 60px;
+}
+
+.audit-logs-access-denied-text {
+    font-size: 18px;
+    color: #e74c3c;
+}
+
+/* Dark mode specific styles */
+.dark-mode .audit-logs-button-secondary {
+    background-color: var(--secondary-color, #2c3e50);
+    color: var(--primary-text-color, white);
+}
+
+.dark-mode .audit-logs-button-secondary:hover {
+    filter: brightness(0.9);
+}
