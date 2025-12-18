@@ -1,0 +1,44 @@
+/*
+ * Entity Hub Open Project
+ * Copyright (C) 2025 Entity Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.theme-toggle-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--nav-text-color, var(--content-bg));
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--secondary-color, #333);
+    transition: all 0.2s;
+}
+.theme-toggle-pill:hover {
+    background: var(--primary-color, var(--content-bg));
+    border-color: var(--app-bg-color);
+    color: var(--nav-text-color, #fff);
+}
+
+.toggle-icon {
+    font-size: 1.1rem;
+}
+
+.toggle-label {
+    font-weight: 500;
+}

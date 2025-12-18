@@ -1,0 +1,1720 @@
+/*
+ * Entity Hub Open Project
+ * Copyright (C) 2025 Entity Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useConfig, THEME_PRESETS } from "../contexts/ConfigContext";
+import { themeApi } from "../api/themeApi";
+import "./styles/Appearance.css";
+
+// Helper function to darken a color
+function darkenColor(hex, percent) {
+    if (!hex) return hex;
+    const c = hex.replace("#", "");
+    if (c.length !== 6) return hex;
+    const num = parseInt(c, 16);
+    const amt = Math.round(2.55 * percent);
+    let r = (num >> 16) - amt;
+    let g = ((num >> 8) & 0x00ff) - amt;
+    let b = (num & 0x0000ff) - amt;
+    r = Math.max(0, r);
+    g = Math.max(0, g);
+    b = Math.max(0, b);
+    return (
+        "#" +
+        (
+            0x1000000 +
+            (r < 255 ? (r < 1 ? 0 : r) : 255) * 0x10000 +
+            (g < 255 ? (g < 1 ? 0 : g) : 255) * 0x100 +
+            (b < 255 ? (b < 1 ? 0 : b) : 255)
+        )
+            .toString(16)
+            .slice(1)
+    );
+}
+
+export default function Appearance({ token, apiUrl }) {
+    const config = useConfig();
+    const canEditTheme = config?.canEditTheme || false;
+    const themePermissions = config?.themePermissions || {};
+    const themeSaving = config?.themeSaving || false;
+    const saveThemeSettings = config?.saveThemeSettings || (() => {});
+    const themeMode = config?.themeMode || "system";
+    const setThemeMode = config?.setThemeMode || (() => {});
+    const accessibility = config?.accessibility || {};
+    const setAccessibility = config?.setAccessibility || (() => {});
+    const userThemeSettings = config?.userThemeSettings || null;
+    const fetchUserTheme = config?.fetchUserTheme || (() => {});
+
+    // Debounce timeout ref
+    const debounceTimeout = useRef(null);
+
+    // Get the best available theme data - prioritize userThemeSettings from API
+    const getInitialTheme = () => {
+        if (userThemeSettings && userThemeSettings.preset) {
+            return userThemeSettings;
+        }
+        return config.config?.theme || config.theme || {};
+    };
+
+    // State for saved theme to identify current saved theme
+    const [savedTheme, setSavedTheme] = useState(getInitialTheme);
+
+    // Form data for theme selection
+    const [formData, setFormData] = useState({
+        theme: getInitialTheme(),
+    });
+
+    // Global theme (default for new users)
+    const [globalTheme, setGlobalTheme] = useState(null);
+
+    // Form data for permissions
+    const [permissionsFormData, setPermissionsFormData] = useState({
+        usersCanEditTheme: themePermissions?.usersCanEditTheme || false,
+        adminsCanEditTheme: themePermissions?.adminsCanEditTheme || true,
+    });
+
+    // Initialize with all valid themes from THEME_PRESETS (all allowed by default)
+    const allValidThemes = Object.keys(THEME_PRESETS).concat(["custom"]);
+    const [allowedThemes, setAllowedThemes] = useState(allValidThemes);
+    const [blockedThemes, setBlockedThemes] = useState([]);
+
+    // Multi-select and drag-drop state
+    const [selectedThemes, setSelectedThemes] = useState(new Set());
+    const [selectionStart, setSelectionStart] = useState(null);
+    const [draggedThemes, setDraggedThemes] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isLassoSelecting, setIsLassoSelecting] = useState(false);
+    const [lassoStart, setLassoStart] = useState(null);
+    const [lassoRect, setLassoRect] = useState(null);
+    const [currentZone, setCurrentZone] = useState(null);
+
+    // Get user role from localStorage
+    const userRole = localStorage.getItem("userRole") || "user";
+    const isRoot = userRole === "root";
+
+    // Fetch user theme on mount to ensure we have the latest from backend
+    useEffect(() => {
+        fetchUserTheme();
+    }, [fetchUserTheme]);
+
+    // Sync form data and saved theme when userThemeSettings or config loads
+    useEffect(() => {
+        // Prioritize userThemeSettings (from API) over config.config.theme
+        let themeData;
+        if (userThemeSettings && userThemeSettings.preset) {
+            themeData = userThemeSettings;
+        } else {
+            themeData = config.config?.theme || config.theme || {};
+        }
+
+        setFormData({
+            theme: themeData,
+        });
+        setSavedTheme(themeData);
+    }, [userThemeSettings, config.config?.theme, config.theme]);
+
+    // Load global theme from backend
+    useEffect(() => {
+        const loadGlobalTheme = async () => {
+            if (!isRoot) return;
+            try {
+                const response = await fetch(
+                    `${apiUrl}/settings/global-theme`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    },
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    // Backend returns 'preset' (not 'theme_preset') after stripping 'global_theme.' prefix
+                    const globalPreset =
+                        data.preset || data.theme_preset || "default";
+                    setGlobalTheme(globalPreset);
+                }
+            } catch (err) {
+                console.error("Error loading global theme:", err);
+            }
+        };
+        loadGlobalTheme();
+    }, [isRoot, apiUrl, token]);
+
+    // Sync permissions form data
+    useEffect(() => {
+        setPermissionsFormData({
+            usersCanEditTheme: themePermissions?.usersCanEditTheme || false,
+            adminsCanEditTheme: themePermissions?.adminsCanEditTheme || true,
+        });
+    }, [themePermissions]);
+
+    // Load allowed themes from API (for all users to filter presets)
+    useEffect(() => {
+        loadAllowedThemes();
+    }, []);
+
+    const loadAllowedThemes = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/settings/allowed-themes`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.allowed_themes && data.allowed_themes.length > 0) {
+                    // Filter to only valid themes from THEME_PRESETS
+                    const validAllowedThemes = data.allowed_themes.filter((t) =>
+                        allValidThemes.includes(t),
+                    );
+
+                    // If filtering removed some themes, use only valid ones
+                    if (validAllowedThemes.length > 0) {
+                        setAllowedThemes(validAllowedThemes);
+                        setBlockedThemes(
+                            allValidThemes.filter(
+                                (t) => !validAllowedThemes.includes(t),
+                            ),
+                        );
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error loading allowed themes:", err);
+        }
+    };
+
+    // Apply theme preview when user selects a theme
+    useEffect(() => {
+        applyThemePreview(formData.theme);
+    }, [formData.theme]);
+
+    const applyThemePreview = (themeData) => {
+        const root = document.documentElement;
+        let themeColors;
+
+        if (themeData.preset === "custom") {
+            themeColors = {
+                buttonPrimary: themeData.primaryColor || "#0284c7",
+                buttonSecondary: themeData.secondaryColor || "#0369a1",
+                bgPage: themeData.backgroundColor || "#f0f9ff",
+                bgCard: themeData.surfaceColor || "#ffffff",
+                textPrimary: themeData.textColor || "#0c4a6e",
+                textSecondary: themeData.textSecondaryColor || "#475569",
+                borderDefault: themeData.borderColor || "#7dd3fc",
+            };
+        } else if (THEME_PRESETS[themeData.preset]) {
+            const currentThemeMode =
+                localStorage.getItem("themeMode") || "system";
+            const prefersDark = window.matchMedia(
+                "(prefers-color-scheme: dark)",
+            ).matches;
+            const isDark =
+                currentThemeMode === "dark" ||
+                (currentThemeMode === "system" && prefersDark);
+
+            themeColors = isDark
+                ? THEME_PRESETS[themeData.preset].dark
+                : THEME_PRESETS[themeData.preset].light;
+        } else {
+            return;
+        }
+
+        // Helper to get brightness
+        const getBrightness = (hex) => {
+            if (!hex) return 0;
+            const c = hex.replace("#", "");
+            if (c.length !== 6) return 0;
+            const rgb = parseInt(c, 16);
+            const r = (rgb >> 16) & 0xff;
+            const g = (rgb >> 8) & 0xff;
+            const b = (rgb >> 0) & 0xff;
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+
+        let primaryTextColor = "#ffffff";
+        if (
+            themeColors.buttonPrimary &&
+            getBrightness(themeColors.buttonPrimary) > 150
+        ) {
+            primaryTextColor = "#000000";
+        }
+
+        let secondaryTextColor = "#ffffff";
+        if (
+            themeColors.buttonSecondary &&
+            getBrightness(themeColors.buttonSecondary) > 150
+        ) {
+            secondaryTextColor = "#000000";
+        }
+
+        // Apply CSS variables for instant preview
+        root.style.setProperty("--primary-color", themeColors.buttonPrimary);
+        root.style.setProperty(
+            "--secondary-color",
+            themeColors.buttonSecondary,
+        );
+        root.style.setProperty("--bg-color", themeColors.bgPage);
+        root.style.setProperty("--content-bg", themeColors.bgCard);
+        root.style.setProperty("--text-color", themeColors.textPrimary);
+        root.style.setProperty(
+            "--text-secondary-color",
+            themeColors.textSecondary,
+        );
+        root.style.setProperty("--border-color", themeColors.borderDefault);
+        root.style.setProperty("--primary-text-color", primaryTextColor);
+        root.style.setProperty("--secondary-text-color", secondaryTextColor);
+        root.style.setProperty(
+            "--nav-text-color",
+            themeColors.textNav || secondaryTextColor,
+        );
+        root.style.setProperty(
+            "--app-bg-color",
+            themeColors.bgNavbar || themeColors.buttonSecondary,
+        );
+        root.style.setProperty(
+            "--page-title-color",
+            themeColors.textTitle || themeColors.textPrimary,
+        );
+        root.style.setProperty(
+            "--active-nav-text-color",
+            themeColors.textNavActive || primaryTextColor,
+        );
+        root.style.setProperty(
+            "--primary-dark",
+            darkenColor(themeColors.buttonPrimary, 10),
+        );
+        root.style.setProperty(
+            "--secondary-light",
+            darkenColor(themeColors.buttonSecondary, 10),
+        );
+    };
+
+    const saveThemeImmediate = useCallback(
+        async (themeData) => {
+            try {
+                await saveThemeSettings(themeData);
+                setSavedTheme(themeData); // Update saved theme
+            } catch (err) {
+                console.error("Error saving theme:", err);
+            }
+        },
+        [saveThemeSettings],
+    );
+
+    const debouncedSaveTheme = useCallback(
+        (themeData) => {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            debounceTimeout.current = setTimeout(() => {
+                saveThemeSettings(themeData);
+                setSavedTheme(themeData); // Update saved theme
+            }, 1000);
+        },
+        [saveThemeSettings],
+    );
+
+    const handleThemeChange = (key, value) => {
+        // Validate that the preset is allowed (if changing preset)
+        if (key === "preset" && !allowedThemes.includes(value)) {
+            setError(`O tema "${value}" não está disponível no momento.`);
+            return;
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            theme: {
+                ...prev.theme,
+                [key]: value,
+            },
+        }));
+        debouncedSaveTheme({
+            ...formData.theme,
+            [key]: value,
+        });
+    };
+
+    const debouncedSavePermissions = useCallback(async () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(async () => {
+            if (!isRoot) return;
+            try {
+                const response = await fetch(
+                    `${apiUrl}/settings/theme-permissions`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            users_can_edit_theme:
+                                permissionsFormData.usersCanEditTheme,
+                            admins_can_edit_theme:
+                                permissionsFormData.adminsCanEditTheme,
+                        }),
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error("Erro ao salvar permissões");
+                }
+            } catch (err) {
+                console.error("Error saving permissions:", err);
+            }
+        }, 1000);
+    }, [permissionsFormData, token, isRoot, apiUrl]);
+
+    const handlePermissionsChange = (key, value) => {
+        setPermissionsFormData((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+        debouncedSavePermissions();
+    };
+
+    const handleSaveGlobalTheme = useCallback(async () => {
+        if (!isRoot) {
+            console.error("Only root can set global theme");
+            return;
+        }
+
+        // Use preview theme (formData) which reflects what user is currently seeing
+        const themeToSave =
+            formData.theme ||
+            config.config?.theme ||
+            config.theme ||
+            savedTheme ||
+            {};
+        const preset = themeToSave.preset || "default";
+
+        try {
+            // First save the user's current theme to ensure it's persisted
+            if (formData.theme && formData.theme.preset) {
+                await saveThemeImmediate(formData.theme);
+            }
+
+            // Then save as global theme
+            const response = await fetch(`${apiUrl}/settings/global-theme`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    theme_preset: preset,
+                    primary_color: themeToSave.primaryColor || null,
+                    secondary_color: themeToSave.secondaryColor || null,
+                    background_color: themeToSave.backgroundColor || null,
+                    surface_color: themeToSave.surfaceColor || null,
+                    text_color: themeToSave.textColor || null,
+                    text_secondary_color:
+                        themeToSave.textSecondaryColor || null,
+                    border_color: themeToSave.borderColor || null,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.error || "Erro ao salvar tema global",
+                );
+            }
+
+            // Update global theme state
+            setGlobalTheme(preset);
+
+            // Get theme display name
+            const themeName =
+                preset === "custom"
+                    ? "Personalizado"
+                    : THEME_PRESETS[preset]?.name || preset;
+            alert(
+                `Tema "${themeName}" definido como padrão para novos usuários!`,
+            );
+        } catch (err) {
+            console.error("❌ Error saving global theme:", err);
+            alert(`Erro ao salvar tema global: ${err.message}`);
+        }
+    }, [
+        formData,
+        config,
+        savedTheme,
+        token,
+        isRoot,
+        apiUrl,
+        saveThemeImmediate,
+    ]);
+
+    const moveThemeToBlocked = (theme) => {
+        if (blockedThemes.includes(theme)) return;
+        setAllowedThemes((prev) => prev.filter((t) => t !== theme));
+        setBlockedThemes((prev) => [...prev, theme]);
+    };
+
+    const moveThemeToAllowed = (theme) => {
+        if (allowedThemes.includes(theme)) return;
+        setBlockedThemes((prev) => prev.filter((t) => t !== theme));
+        setAllowedThemes((prev) => [...prev, theme]);
+    };
+
+    const debouncedSaveAllowedThemes = useCallback(async () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(async () => {
+            if (!isRoot) return;
+            try {
+                const validThemesToSave = allowedThemes.filter((t) =>
+                    allValidThemes.includes(t),
+                );
+                if (validThemesToSave.length === 0) return;
+                const response = await fetch(
+                    `${apiUrl}/settings/allowed-themes`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            allowed_themes: validThemesToSave,
+                        }),
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error("Erro ao salvar temas permitidos");
+                }
+            } catch (err) {
+                console.error("Error saving allowed themes:", err);
+            }
+        }, 1000);
+    }, [allowedThemes, allValidThemes, token, isRoot, apiUrl]);
+
+    const saveAllowedThemesImmediate = useCallback(
+        async (themesToSave) => {
+            if (!isRoot) return;
+            try {
+                const validThemesToSave = themesToSave.filter((t) =>
+                    allValidThemes.includes(t),
+                );
+                if (validThemesToSave.length === 0) return;
+                const response = await fetch(
+                    `${apiUrl}/settings/allowed-themes`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            allowed_themes: validThemesToSave,
+                        }),
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error("Erro ao salvar temas permitidos");
+                }
+            } catch (err) {
+                console.error("Error saving allowed themes:", err);
+            }
+        },
+        [allValidThemes, token, isRoot, apiUrl],
+    );
+
+    const handleBlockAllExceptSelected = async () => {
+        // Get the current theme preset being used/previewed
+        const currentPreset =
+            formData.theme?.preset ||
+            config.config?.theme?.preset ||
+            config.theme?.preset ||
+            savedTheme?.preset ||
+            "default";
+
+        // Get all themes
+        const allThemes = Object.keys(THEME_PRESETS).concat(["custom"]);
+
+        // Build list of themes to keep allowed (current + global if different)
+        const themesToKeep = new Set([currentPreset]);
+
+        // Also keep the global theme (default for new users) if it exists and is different
+        if (globalTheme && globalTheme !== currentPreset) {
+            themesToKeep.add(globalTheme);
+        }
+
+        const newAllowedThemes = Array.from(themesToKeep);
+        const newBlockedThemes = allThemes.filter((t) => !themesToKeep.has(t));
+
+        // Update state
+        setAllowedThemes(newAllowedThemes);
+        setBlockedThemes(newBlockedThemes);
+
+        // Save to backend with the new values directly
+        await saveAllowedThemesImmediate(newAllowedThemes);
+    };
+
+    const handleUnlockAllThemes = async () => {
+        const allThemes = Object.keys(THEME_PRESETS).concat(["custom"]);
+        setAllowedThemes(allThemes);
+        setBlockedThemes([]);
+        await saveAllowedThemesImmediate(allThemes);
+    };
+
+    // Multi-select functions
+    const toggleThemeSelection = (theme) => {
+        setSelectedThemes((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(theme)) {
+                newSet.delete(theme);
+            } else {
+                newSet.add(theme);
+            }
+            return newSet;
+        });
+    };
+
+    const selectThemeRange = (endTheme, list) => {
+        if (!selectionStart) return;
+
+        const startIdx = list.indexOf(selectionStart);
+        const endIdx = list.indexOf(endTheme);
+
+        if (startIdx === -1 || endIdx === -1) return;
+
+        const [minIdx, maxIdx] =
+            startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+
+        const newSet = new Set(selectedThemes);
+        for (let i = minIdx; i <= maxIdx; i++) {
+            newSet.add(list[i]);
+        }
+        setSelectedThemes(newSet);
+    };
+
+    // Drag and drop functions
+    const handleThemeDragStart = (theme, event) => {
+        let themesToDrag = [theme];
+
+        if (selectedThemes.has(theme)) {
+            themesToDrag = Array.from(selectedThemes);
+        } else {
+            setSelectedThemes(new Set([theme]));
+            themesToDrag = [theme];
+        }
+
+        setDraggedThemes(themesToDrag);
+        setIsDragging(true);
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("themes", JSON.stringify(themesToDrag));
+    };
+
+    const handleContainerDragOver = (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        event.currentTarget.classList.add("drag-over");
+    };
+
+    const handleContainerDragLeave = (event) => {
+        if (event.currentTarget === event.target) {
+            event.currentTarget.classList.remove("drag-over");
+        }
+    };
+
+    const handleDropToBlocked = (event) => {
+        event.preventDefault();
+        event.currentTarget.classList.remove("drag-over");
+        if (!draggedThemes) return;
+
+        const currentPreset = savedTheme.preset;
+        let themesToMove = draggedThemes.filter(
+            (t) => !blockedThemes.includes(t),
+        );
+
+        if (themesToMove.length === 0) return;
+
+        // Prevent root from blocking their current theme
+        if (isRoot && themesToMove.includes(currentPreset)) {
+            themesToMove = themesToMove.filter((t) => t !== currentPreset);
+            if (themesToMove.length === 0) return;
+        }
+
+        // Calculate new allowed themes (maintaining order of remaining themes)
+        const newAllowed = allowedThemes.filter(
+            (t) => !themesToMove.includes(t),
+        );
+
+        setAllowedThemes(newAllowed);
+        setBlockedThemes((prev) => [...prev, ...themesToMove]);
+
+        // If current theme is being blocked and not root, switch to default
+        if (themesToMove.includes(currentPreset)) {
+            if (isRoot) {
+                // Root can't block their theme, so no change
+            } else {
+                handleThemeChange("preset", "default");
+            }
+        }
+
+        setSelectedThemes(new Set());
+        setDraggedThemes(null);
+        setIsDragging(false);
+        saveAllowedThemesImmediate(newAllowed);
+    };
+
+    const handleDropToAllowed = (event) => {
+        event.preventDefault();
+        event.currentTarget.classList.remove("drag-over");
+        if (!draggedThemes) return;
+
+        const themesToMove = draggedThemes.filter(
+            (t) => !allowedThemes.includes(t),
+        );
+
+        if (themesToMove.length === 0) return;
+
+        // Maintain order: remove from blocked and insert at beginning to preserve sequence
+        const newBlocked = blockedThemes.filter(
+            (t) => !themesToMove.includes(t),
+        );
+
+        setBlockedThemes(newBlocked);
+        setAllowedThemes((prev) => [...themesToMove, ...prev]);
+
+        setSelectedThemes(new Set());
+        setDraggedThemes(null);
+        setIsDragging(false);
+        saveAllowedThemesImmediate([
+            ...themesToMove,
+            ...allowedThemes.filter((t) => !themesToMove.includes(t)),
+        ]);
+    };
+
+    // Lasso selection handlers
+    const handleLassoStart = (event, zone) => {
+        // Only start if clicking on empty space
+        if (event.target.closest(".preset-card") || event.button !== 0) {
+            return;
+        }
+
+        const container = event.currentTarget;
+        const rect = container.getBoundingClientRect();
+        const startX = event.clientX - rect.left;
+        const startY = event.clientY - rect.top;
+
+        setCurrentZone(zone);
+        setLassoStart({ x: startX, y: startY });
+        setIsLassoSelecting(true);
+    };
+
+    const handleLassoMove = (event) => {
+        if (!isLassoSelecting || !lassoStart || !currentZone) return;
+
+        const container = event.currentTarget;
+        const rect = container.getBoundingClientRect();
+        const currentX = event.clientX - rect.left;
+        const currentY = event.clientY - rect.top;
+
+        const newRect = {
+            left: Math.min(lassoStart.x, currentX),
+            top: Math.min(lassoStart.y, currentY),
+            right: Math.max(lassoStart.x, currentX),
+            bottom: Math.max(lassoStart.y, currentY),
+        };
+
+        setLassoRect(newRect);
+
+        // Select items in rect
+        const cards = container.querySelectorAll(".preset-card");
+        const selected = new Set();
+
+        cards.forEach((card) => {
+            const cardRect = card.getBoundingClientRect();
+            const cardLeft = cardRect.left - rect.left;
+            const cardTop = cardRect.top - rect.top;
+            const cardRight = cardLeft + cardRect.width;
+            const cardBottom = cardTop + cardRect.height;
+
+            // Check if card intersects with lasso rect
+            if (
+                cardLeft < newRect.right &&
+                cardRight > newRect.left &&
+                cardTop < newRect.bottom &&
+                cardBottom > newRect.top
+            ) {
+                const theme = card.getAttribute("data-theme");
+                if (theme) {
+                    selected.add(theme);
+                }
+            }
+        });
+
+        setSelectedThemes(selected);
+    };
+
+    const handleLassoEnd = () => {
+        setIsLassoSelecting(false);
+        setLassoStart(null);
+        setLassoRect(null);
+        setCurrentZone(null);
+    };
+
+    // handleSaveAllowedThemes is now debounced via debouncedSaveAllowedThemes
+
+    const handleThemeModeChange = (mode) => {
+        setThemeMode(mode);
+        localStorage.setItem("themeMode", mode);
+    };
+
+    const handleAccessibilityChange = (key, value) => {
+        setAccessibility({ [key]: value });
+    };
+
+    const saveAccessibility = async (newAccessibility) => {
+        setAccessibility(newAccessibility);
+        try {
+            await saveThemeSettings({
+                highContrast: newAccessibility.highContrast,
+                colorBlindMode: newAccessibility.colorBlindMode,
+            });
+        } catch (err) {
+            console.error("Error saving accessibility:", err);
+        }
+    };
+
+    const getThemeName = (themeKey) => {
+        if (themeKey === "custom") return "Personalizado";
+        return THEME_PRESETS[themeKey]?.name || themeKey;
+    };
+
+    return (
+        <div className="appearance-container">
+            <div className="appearance-header">
+                <h1 className="appearance-title">⚙️ Aparência</h1>
+            </div>
+
+            {/* Display Mode and Accessibility Section */}
+            <section className="appearance-section">
+                <h2>🎨 Modo de Exibição</h2>
+                <div className="display-mode-container">
+                    <div className="theme-mode-selector">
+                        <button
+                            className={`theme-mode-button ${themeMode === "light" ? "active" : ""}`}
+                            onClick={() => handleThemeModeChange("light")}
+                        >
+                            <span className="mode-icon">☀️</span>
+                            <span className="mode-label">Claro</span>
+                        </button>
+                        <button
+                            className={`theme-mode-button ${themeMode === "dark" ? "active" : ""}`}
+                            onClick={() => handleThemeModeChange("dark")}
+                        >
+                            <span className="mode-icon">🌙</span>
+                            <span className="mode-label">Escuro</span>
+                        </button>
+                        <button
+                            className={`theme-mode-button ${themeMode === "system" ? "active" : ""}`}
+                            onClick={() => handleThemeModeChange("system")}
+                        >
+                            <span className="mode-icon">💻</span>
+                            <span className="mode-label">Sistema</span>
+                        </button>
+                    </div>
+                </div>
+
+                <h2 style={{ marginTop: "2rem" }}>♿ Acessibilidade</h2>
+                <div className="accessibility-wrapper">
+                    <div className="accessibility-section">
+                        <h3>Contraste</h3>
+                        <div className="accessibility-mode-selector">
+                            <button
+                                className={`accessibility-mode-button ${!accessibility?.highContrast ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast: false,
+                                        colorBlindMode:
+                                            accessibility.colorBlindMode,
+                                    })
+                                }
+                                title="Configuração padrão"
+                            >
+                                <span className="a11y-mode-icon">👁️</span>
+                                <span className="a11y-mode-label">Padrão</span>
+                            </button>
+                            <button
+                                className={`accessibility-mode-button ${accessibility?.highContrast ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast: true,
+                                        colorBlindMode:
+                                            accessibility.colorBlindMode,
+                                    })
+                                }
+                                title="Aumenta o contraste das cores escuras e claras"
+                            >
+                                <span className="a11y-mode-icon">⚫⚪</span>
+                                <span className="a11y-mode-label">
+                                    Alto Contraste
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="accessibility-section">
+                        <h3>Modo Daltonismo</h3>
+                        <div className="accessibility-mode-selector">
+                            <button
+                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "none" ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast:
+                                            accessibility.highContrast,
+                                        colorBlindMode: "none",
+                                    })
+                                }
+                                title="Sem filtros de cor"
+                            >
+                                <span className="a11y-mode-icon">🌈</span>
+                                <span className="a11y-mode-label">
+                                    Desativado
+                                </span>
+                            </button>
+                            <button
+                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "protanopia" ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast:
+                                            accessibility.highContrast,
+                                        colorBlindMode: "protanopia",
+                                    })
+                                }
+                                title="Filtro para dificuldade em distinguir vermelho"
+                            >
+                                <span className="a11y-mode-icon">🔴</span>
+                                <span className="a11y-mode-label">
+                                    Protanopia
+                                </span>
+                            </button>
+                            <button
+                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "deuteranopia" ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast:
+                                            accessibility.highContrast,
+                                        colorBlindMode: "deuteranopia",
+                                    })
+                                }
+                                title="Filtro para dificuldade em distinguir verde"
+                            >
+                                <span className="a11y-mode-icon">🟢</span>
+                                <span className="a11y-mode-label">
+                                    Deuteranopia
+                                </span>
+                            </button>
+                            <button
+                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "tritanopia" ? "active" : ""}`}
+                                onClick={() =>
+                                    saveAccessibility({
+                                        highContrast:
+                                            accessibility.highContrast,
+                                        colorBlindMode: "tritanopia",
+                                    })
+                                }
+                                title="Filtro para dificuldade em distinguir azul"
+                            >
+                                <span className="a11y-mode-icon">🔵</span>
+                                <span className="a11y-mode-label">
+                                    Tritanopia
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Root Only Sections */}
+            {isRoot && (
+                <>
+                    {/* Theme Permissions Section */}
+                    <section className="appearance-section permissions-section">
+                        <h2>🔒 Permissões de Tema</h2>
+                        <p className="section-description">
+                            Controle quem pode personalizar as configurações de
+                            tema. Usuários root sempre podem editar.
+                        </p>
+
+                        <div className="permissions-grid">
+                            <div className="permission-item">
+                                <div className="permission-toggle">
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                permissionsFormData.adminsCanEditTheme
+                                            }
+                                            onChange={(e) =>
+                                                handlePermissionsChange(
+                                                    "adminsCanEditTheme",
+                                                    e.target.checked,
+                                                )
+                                            }
+                                        />
+                                        <span className="slider round"></span>
+                                    </label>
+                                    <div className="permission-info">
+                                        <span className="permission-label">
+                                            Administradores podem alterar tema
+                                        </span>
+                                        <span className="permission-description">
+                                            Permite que usuários com role
+                                            "admin" personalizem suas próprias
+                                            configurações de tema
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="permission-item">
+                                <div className="permission-toggle">
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                permissionsFormData.usersCanEditTheme
+                                            }
+                                            onChange={(e) =>
+                                                handlePermissionsChange(
+                                                    "usersCanEditTheme",
+                                                    e.target.checked,
+                                                )
+                                            }
+                                        />
+                                        <span className="slider round"></span>
+                                    </label>
+                                    <div className="permission-info">
+                                        <span className="permission-label">
+                                            Usuários podem alterar tema
+                                        </span>
+                                        <span className="permission-description">
+                                            Permite que usuários convencionais
+                                            personalizem suas próprias
+                                            configurações de tema
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Permissions are saved automatically */}
+                    </section>
+
+                    {/* Global Theme is now integrated in Theme and Colors */}
+                </>
+            )}
+
+            {/* Theme Selection Section */}
+            <section className="appearance-section">
+                <h2>🎨 Tema e Cores</h2>
+
+                {!canEditTheme && (
+                    <div className="permission-warning">
+                        <span className="warning-icon">⚠️</span>
+                        <span>
+                            Você não tem permissão para alterar configurações de
+                            tema. Entre em contato com um administrador se
+                            precisar de acesso.
+                        </span>
+                    </div>
+                )}
+
+                {canEditTheme && (
+                    <>
+                        <p className="section-description">
+                            Clique em um tema para visualizar as mudanças em
+                            tempo real. As alterações são salvas
+                            automaticamente.
+                        </p>
+
+                        {isRoot ? (
+                            <div className="theme-management-container">
+                                <div className="theme-block-actions">
+                                    <button
+                                        type="button"
+                                        className="theme-action-button apply-global-small"
+                                        onClick={handleSaveGlobalTheme}
+                                        title="Define o tema salvo como padrão para novos usuários"
+                                    >
+                                        Aplicar como Padrão para Novos Usuários
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="theme-action-button unlock-all-small"
+                                        onClick={handleUnlockAllThemes}
+                                        title="Libera todos os temas"
+                                    >
+                                        Liberar Todos
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="theme-action-button block-all-small"
+                                        onClick={handleBlockAllExceptSelected}
+                                        title="Bloqueia todos os temas exceto o selecionado"
+                                    >
+                                        Bloquear Todos Exceto Selecionado
+                                    </button>
+                                </div>
+
+                                {globalTheme && (
+                                    <div className="global-theme-info">
+                                        <p>
+                                            <strong>
+                                                Tema Global atualmente
+                                                selecionado:
+                                            </strong>{" "}
+                                            {getThemeName(globalTheme)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <p className="theme-selection-note">
+                                    Arraste os temas entre os blocos para
+                                    bloquear ou liberar. Use Ctrl+Clique ou
+                                    Shift+Clique para selecionar múltiplos. As
+                                    alterações são salvas automaticamente.
+                                </p>
+
+                                <div className="theme-blocks-wrapper">
+                                    <div className="theme-block">
+                                        <h4>✅ Temas Liberados</h4>
+                                        <div
+                                            className="preset-grid theme-drop-zone allowed-zone"
+                                            onDragOver={handleContainerDragOver}
+                                            onDragLeave={
+                                                handleContainerDragLeave
+                                            }
+                                            onDrop={handleDropToAllowed}
+                                            onMouseDown={(e) =>
+                                                handleLassoStart(e, "allowed")
+                                            }
+                                            onMouseMove={handleLassoMove}
+                                            onMouseUp={handleLassoEnd}
+                                            onMouseLeave={handleLassoEnd}
+                                        >
+                                            {allowedThemes.includes(
+                                                "custom",
+                                            ) && (
+                                                <button
+                                                    type="button"
+                                                    data-theme="custom"
+                                                    draggable
+                                                    className={`preset-card ${
+                                                        savedTheme.preset ===
+                                                        "custom"
+                                                            ? "active"
+                                                            : ""
+                                                    } ${
+                                                        selectedThemes.has(
+                                                            "custom",
+                                                        )
+                                                            ? "selected"
+                                                            : ""
+                                                    } ${
+                                                        isDragging &&
+                                                        draggedThemes?.includes(
+                                                            "custom",
+                                                        )
+                                                            ? "dragging"
+                                                            : ""
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        if (
+                                                            e.ctrlKey ||
+                                                            e.metaKey
+                                                        ) {
+                                                            e.stopPropagation();
+                                                            toggleThemeSelection(
+                                                                "custom",
+                                                            );
+                                                        } else if (e.shiftKey) {
+                                                            e.stopPropagation();
+                                                            setSelectionStart(
+                                                                "custom",
+                                                            );
+                                                            selectThemeRange(
+                                                                "custom",
+                                                                allowedThemes,
+                                                            );
+                                                        } else {
+                                                            handleThemeChange(
+                                                                "preset",
+                                                                "custom",
+                                                            );
+                                                        }
+                                                    }}
+                                                    onDragStart={(e) =>
+                                                        handleThemeDragStart(
+                                                            "custom",
+                                                            e,
+                                                        )
+                                                    }
+                                                    onDragEnd={() => {
+                                                        setIsDragging(false);
+                                                    }}
+                                                    title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                >
+                                                    <div
+                                                        className="preset-preview"
+                                                        style={{
+                                                            background: "#ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span>Personalizado</span>
+                                                </button>
+                                            )}
+                                            {Object.entries(THEME_PRESETS)
+                                                .filter(([key]) =>
+                                                    allowedThemes.includes(key),
+                                                )
+                                                .map(([key, preset]) => (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        data-theme={key}
+                                                        draggable
+                                                        className={`preset-card ${
+                                                            savedTheme.preset ===
+                                                            key
+                                                                ? "active"
+                                                                : ""
+                                                        } ${
+                                                            selectedThemes.has(
+                                                                key,
+                                                            )
+                                                                ? "selected"
+                                                                : ""
+                                                        } ${
+                                                            isDragging &&
+                                                            draggedThemes?.includes(
+                                                                key,
+                                                            )
+                                                                ? "dragging"
+                                                                : ""
+                                                        }`}
+                                                        onClick={(e) => {
+                                                            if (
+                                                                e.ctrlKey ||
+                                                                e.metaKey
+                                                            ) {
+                                                                e.stopPropagation();
+                                                                toggleThemeSelection(
+                                                                    key,
+                                                                );
+                                                            } else if (
+                                                                e.shiftKey
+                                                            ) {
+                                                                e.stopPropagation();
+                                                                setSelectionStart(
+                                                                    key,
+                                                                );
+                                                                selectThemeRange(
+                                                                    key,
+                                                                    allowedThemes,
+                                                                );
+                                                            } else {
+                                                                handleThemeChange(
+                                                                    "preset",
+                                                                    key,
+                                                                );
+                                                            }
+                                                        }}
+                                                        onDragStart={(e) =>
+                                                            handleThemeDragStart(
+                                                                key,
+                                                                e,
+                                                            )
+                                                        }
+                                                        onDragEnd={() => {
+                                                            setIsDragging(
+                                                                false,
+                                                            );
+                                                        }}
+                                                        style={{
+                                                            borderColor:
+                                                                savedTheme.preset ===
+                                                                key
+                                                                    ? preset
+                                                                          .light
+                                                                          .borderDefault
+                                                                    : "transparent",
+                                                        }}
+                                                        title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                    >
+                                                        <div
+                                                            className="preset-preview"
+                                                            style={{
+                                                                background: `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
+                                                            }}
+                                                        ></div>
+                                                        <span>
+                                                            {preset.name}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            {allowedThemes.length === 0 && (
+                                                <div className="preset-empty">
+                                                    Nenhum tema liberado
+                                                </div>
+                                            )}
+                                            {isLassoSelecting &&
+                                                lassoRect &&
+                                                currentZone === "allowed" && (
+                                                    <div
+                                                        className="lasso-selection-box"
+                                                        style={{
+                                                            left: `${lassoRect.left}px`,
+                                                            top: `${lassoRect.top}px`,
+                                                            width: `${lassoRect.right - lassoRect.left}px`,
+                                                            height: `${lassoRect.bottom - lassoRect.top}px`,
+                                                        }}
+                                                    />
+                                                )}
+                                        </div>
+                                    </div>
+
+                                    <div className="theme-block">
+                                        <h4>🚫 Temas Bloqueados</h4>
+                                        <div
+                                            className="preset-grid theme-drop-zone blocked-zone"
+                                            onDragOver={handleContainerDragOver}
+                                            onDragLeave={
+                                                handleContainerDragLeave
+                                            }
+                                            onDrop={handleDropToBlocked}
+                                            onMouseDown={(e) =>
+                                                handleLassoStart(e, "blocked")
+                                            }
+                                            onMouseMove={handleLassoMove}
+                                            onMouseUp={handleLassoEnd}
+                                            onMouseLeave={handleLassoEnd}
+                                        >
+                                            {blockedThemes.map((key) => {
+                                                const preset =
+                                                    key === "custom"
+                                                        ? null
+                                                        : THEME_PRESETS[key];
+                                                return (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        data-theme={key}
+                                                        draggable
+                                                        className={`preset-card ${
+                                                            selectedThemes.has(
+                                                                key,
+                                                            )
+                                                                ? "selected"
+                                                                : ""
+                                                        } ${
+                                                            isDragging &&
+                                                            draggedThemes?.includes(
+                                                                key,
+                                                            )
+                                                                ? "dragging"
+                                                                : ""
+                                                        }`}
+                                                        onClick={(e) => {
+                                                            if (
+                                                                e.ctrlKey ||
+                                                                e.metaKey
+                                                            ) {
+                                                                e.stopPropagation();
+                                                                toggleThemeSelection(
+                                                                    key,
+                                                                );
+                                                            } else if (
+                                                                e.shiftKey
+                                                            ) {
+                                                                e.stopPropagation();
+                                                                setSelectionStart(
+                                                                    key,
+                                                                );
+                                                                selectThemeRange(
+                                                                    key,
+                                                                    blockedThemes,
+                                                                );
+                                                            } else {
+                                                                setSelectionStart(
+                                                                    key,
+                                                                );
+                                                                setSelectedThemes(
+                                                                    new Set([
+                                                                        key,
+                                                                    ]),
+                                                                );
+                                                            }
+                                                        }}
+                                                        onDragStart={(e) =>
+                                                            handleThemeDragStart(
+                                                                key,
+                                                                e,
+                                                            )
+                                                        }
+                                                        onDragEnd={() => {
+                                                            setIsDragging(
+                                                                false,
+                                                            );
+                                                        }}
+                                                        title="Arraste para liberar, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                    >
+                                                        <div
+                                                            className="preset-preview"
+                                                            style={{
+                                                                background:
+                                                                    key ===
+                                                                    "custom"
+                                                                        ? "#ccc"
+                                                                        : `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
+                                                            }}
+                                                        ></div>
+                                                        <span>
+                                                            {key === "custom"
+                                                                ? "Personalizado"
+                                                                : preset?.name ||
+                                                                  key}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                            {blockedThemes.length === 0 && (
+                                                <div className="preset-empty">
+                                                    Nenhum tema bloqueado
+                                                </div>
+                                            )}
+                                            {isLassoSelecting &&
+                                                lassoRect &&
+                                                currentZone === "blocked" && (
+                                                    <div
+                                                        className="lasso-selection-box"
+                                                        style={{
+                                                            left: `${lassoRect.left}px`,
+                                                            top: `${lassoRect.top}px`,
+                                                            width: `${lassoRect.right - lassoRect.left}px`,
+                                                            height: `${lassoRect.bottom - lassoRect.top}px`,
+                                                        }}
+                                                    />
+                                                )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="form-group">
+                                <label>Predefinição de Tema</label>
+                                <div className="preset-grid">
+                                    {allowedThemes.includes("custom") && (
+                                        <button
+                                            type="button"
+                                            className={`preset-card ${savedTheme.preset === "custom" ? "active" : ""}`}
+                                            onClick={() =>
+                                                handleThemeChange(
+                                                    "preset",
+                                                    "custom",
+                                                )
+                                            }
+                                        >
+                                            <div
+                                                className="preset-preview"
+                                                style={{ background: "#ccc" }}
+                                            ></div>
+                                            <span>Personalizado</span>
+                                        </button>
+                                    )}
+                                    {Object.entries(THEME_PRESETS)
+                                        .filter(([key]) =>
+                                            allowedThemes.includes(key),
+                                        )
+                                        .map(([key, preset]) => (
+                                            <button
+                                                key={key}
+                                                type="button"
+                                                className={`preset-card ${savedTheme.preset === key ? "active" : ""}`}
+                                                onClick={() =>
+                                                    handleThemeChange(
+                                                        "preset",
+                                                        key,
+                                                    )
+                                                }
+                                                style={{
+                                                    borderColor:
+                                                        savedTheme.preset ===
+                                                        key
+                                                            ? preset.light
+                                                                  .borderDefault
+                                                            : "transparent",
+                                                }}
+                                            >
+                                                <div
+                                                    className="preset-preview"
+                                                    style={{
+                                                        background: `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
+                                                    }}
+                                                ></div>
+                                                <span>{preset.name}</span>
+                                            </button>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {formData.theme?.preset === "custom" && (
+                            <>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Cor Primária</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.primaryColor ||
+                                                    "#3498db"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "primaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.primaryColor || ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "primaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cor Secundária</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.secondaryColor ||
+                                                    "#2c3e50"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "secondaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.secondaryColor || ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "secondaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Cor de Fundo</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.backgroundColor ||
+                                                    "#f8f9fa"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "backgroundColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.backgroundColor || ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "backgroundColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cor de Superfície</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.surfaceColor ||
+                                                    "#ffffff"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "surfaceColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.surfaceColor || ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "surfaceColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Cor do Texto Principal</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme?.textColor ||
+                                                    "#333333"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "textColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme?.textColor ||
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "textColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cor do Texto Secundário</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.textSecondaryColor ||
+                                                    "#666666"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "textSecondaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.textSecondaryColor ||
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "textSecondaryColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Cor da Borda</label>
+                                        <div className="color-input-wrapper">
+                                            <input
+                                                type="color"
+                                                value={
+                                                    formData.theme
+                                                        ?.borderColor ||
+                                                    "#cbd5e0"
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "borderColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <input
+                                                type="text"
+                                                value={
+                                                    formData.theme
+                                                        ?.borderColor || ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleThemeChange(
+                                                        "borderColor",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </>
+                )}
+            </section>
+        </div>
+    );
+}

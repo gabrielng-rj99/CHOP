@@ -1,0 +1,119 @@
+/*
+ * Entity Hub Open Project
+ * Copyright (C) 2025 Entity Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.accessibility-menu-container {
+    position: relative;
+}
+.accessibility-toggle {
+    background: none;
+    border: none;
+    color: var(--nav-text-color, inherit);
+    opacity: 1;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.3rem;
+    transition: all 0.2s;
+    border-radius: 50%;
+    border-color: var(--border-color);
+}
+
+.accessibility-toggle:hover,
+.accessibility-toggle.active {
+    opacity: 1;
+    color: var(--primary-color, inherit);
+}
+.accessibility-popover {
+    background: var(--content-bg, white);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    padding: 1rem;
+    width: 240px;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    color: var(--text-color, #333);
+}
+.accessibility-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.accessibility-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.accessibility-item .label,
+.accessibility-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color, #333);
+}
+.accessibility-label {
+    margin-bottom: 0.25rem;
+}
+.pill-toggle {
+    border: 2px solid var(--border-color, #ddd);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-color, #333);
+    font-weight: bold;
+}
+.pill-toggle.on {
+    background: var(--primary-color, #3498db);
+    color: var(--primary-text-color, white);
+    border-color: var(--primary-color, #3498db);
+}
+.colorblind-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.colorblind-option {
+    background: transparent;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text-color, #333);
+    transition: all 0.2s;
+}
+.colorblind-option:hover {
+    background: transparent;
+    border-color: var(--primary-color);
+}
+.colorblind-option.active {
+    background: var(--primary-color, #3498db);
+    color: var(--primary-text-color, white);
+    border-color: var(--primary-color, #3498db);
+}
+/* High Contrast overrides */
+.high-contrast .pill-toggle {
+    border-width: 2px;
+    border-color: currentColor;
+}
+.high-contrast .colorblind-option {
+    border-width: 2px;
+}
