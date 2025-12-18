@@ -17,7 +17,10 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { categoriesApi } from "../api/categoriesApi";
+import { useConfig } from "../contexts/ConfigContext";
+import { useUrlState } from "../hooks/useUrlState";
 import {
     filterCategories,
     getInitialCategoryForm,
@@ -29,22 +32,42 @@ import CategoriesTable from "../components/categories/CategoriesTable";
 import CategoryModal from "../components/categories/CategoryModal";
 import LinesPanel from "../components/categories/LinesPanel";
 import LineModal from "../components/categories/LineModal";
-import "./Categories.css";
+import RefreshButton from "../components/common/RefreshButton";
+import PrimaryButton from "../components/common/PrimaryButton";
+import "./styles/Categories.css";
 
 export default function Categories({ token, apiUrl, onTokenExpired }) {
+    const { config, getGenderHelpers } = useConfig();
+    const { labels } = config;
+    const gCat = getGenderHelpers(labels.category_gender || "F");
+    // const gSub = getGenderHelpers(labels.subcategory_gender || 'F');
+
+    const CATEGORY_LABEL = labels.categories || "Categorias";
+    const SUBCATEGORY_LABEL = labels.subcategories || "Subcategorias";
+    const NEW_CATEGORY_LABEL = `+ ${gCat.new} ${labels.category || "Categoria"}`;
+
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [allLines, setAllLines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [lineModalError, setLineModalError] = useState("");
+
+    // State persistence
+    const { values, updateValue } = useUrlState(
+        { search: "", categoryId: "" },
+        { debounce: true, debounceTime: 300 },
+    );
+    const searchTerm = values.search;
+    const categoryId = values.categoryId;
+    const setSearchTerm = (val) => updateValue("search", val);
+
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [showLineModal, setShowLineModal] = useState(false);
     const [categoryMode, setCategoryMode] = useState("create");
     const [lineMode, setLineMode] = useState("create");
     const [selectedLine, setSelectedLine] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
     const [categoryForm, setCategoryForm] = useState(getInitialCategoryForm());
     const [lineForm, setLineForm] = useState(getInitialLineForm());
 
@@ -52,17 +75,47 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         loadCategories();
     }, []);
 
+    // Sync selectedCategory from URL
+    useEffect(() => {
+        if (categories.length > 0) {
+            if (categoryId) {
+                const cat = categories.find((c) => c.id == categoryId);
+                if (cat) {
+                    // Only update if different to avoid loops or unnecessary re-renders
+                    if (!selectedCategory || selectedCategory.id !== cat.id) {
+                        setSelectedCategory(cat);
+                        loadSubcategories(cat.id);
+                    }
+                }
+            } else {
+                if (selectedCategory) {
+                    setSelectedCategory(null);
+                    setLines([]);
+                }
+            }
+        }
+    }, [categoryId, categories]);
+
     const loadCategories = async () => {
         setLoading(true);
         setError("");
         try {
-            const data = await categoriesApi.loadCategories(apiUrl, token, onTokenExpired);
+            const data = await categoriesApi.loadCategories(
+                apiUrl,
+                token,
+                onTokenExpired,
+            );
             setCategories(data);
 
             // Load all lines for all categories for search functionality
             const allLinesPromises = data.map((category) =>
                 categoriesApi
-                    .loadSubcategories(apiUrl, token, category.id, onTokenExpired)
+                    .loadSubcategories(
+                        apiUrl,
+                        token,
+                        category.id,
+                        onTokenExpired,
+                    )
                     .catch(() => []),
             );
             const allLinesResults = await Promise.all(allLinesPromises);
@@ -91,7 +144,12 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const handleCreateCategory = async () => {
         try {
-            await categoriesApi.createCategory(apiUrl, token, categoryForm, onTokenExpired);
+            await categoriesApi.createCategory(
+                apiUrl,
+                token,
+                categoryForm,
+                onTokenExpired,
+            );
             await loadCategories();
             closeCategoryModal();
         } catch (err) {
@@ -119,17 +177,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             await loadCategories();
             closeCategoryModal();
 
-            if (selectedCategory) {
-                const updated = categories.find(
-                    (c) => c.id === selectedCategory.id,
-                );
-                if (updated) {
-                    setSelectedCategory({
-                        ...updated,
-                        name: categoryForm.name,
-                    });
-                }
-            }
+            // selectedCategory will be updated via effect if categories changed
         } catch (err) {
             if (
                 err.message &&
@@ -143,7 +191,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const handleDeleteCategory = async (categoryId, categoryName) => {
+    const handleDeleteCategory = async (catId, categoryName) => {
         if (
             !window.confirm(
                 `Tem certeza que deseja deletar a categoria "${categoryName}"?\n\nIsso pode afetar contratos vinculados a esta categoria.`,
@@ -152,19 +200,23 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.deleteCategory(apiUrl, token, categoryId, onTokenExpired);
+            await categoriesApi.deleteCategory(
+                apiUrl,
+                token,
+                catId,
+                onTokenExpired,
+            );
             await loadCategories();
 
-            if (selectedCategory?.id === categoryId) {
-                setSelectedCategory(null);
-                setLines([]);
+            if (selectedCategory?.id === catId) {
+                updateValue("categoryId", ""); // Close panel via URL
             }
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const handleArchiveCategory = async (categoryId, categoryName) => {
+    const handleArchiveCategory = async (catId, categoryName) => {
         if (
             !window.confirm(
                 `Tem certeza que deseja arquivar a categoria "${categoryName}"?`,
@@ -173,12 +225,16 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.archiveCategory(apiUrl, token, categoryId, onTokenExpired);
+            await categoriesApi.archiveCategory(
+                apiUrl,
+                token,
+                catId,
+                onTokenExpired,
+            );
             await loadCategories();
 
-            if (selectedCategory?.id === categoryId) {
-                setSelectedCategory(null);
-                setLines([]);
+            if (selectedCategory?.id === catId) {
+                updateValue("categoryId", "");
             }
         } catch (err) {
             setError(err.message);
@@ -194,7 +250,12 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.unarchiveCategory(apiUrl, token, categoryId, onTokenExpired);
+            await categoriesApi.unarchiveCategory(
+                apiUrl,
+                token,
+                categoryId,
+                onTokenExpired,
+            );
             await loadCategories();
         } catch (err) {
             setError(err.message);
@@ -203,12 +264,27 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const handleCreateLine = async () => {
         setLineModalError("");
+
+        // Validate whitespace-only names
+        const lineName = lineForm.line?.trim();
+        if (!lineName) {
+            setLineModalError(
+                "O nome da linha não pode ser vazio ou conter apenas espaços.",
+            );
+            return;
+        }
+
         try {
             const lineData = {
-                line: lineForm.line,
+                name: lineName,
                 category_id: selectedCategory.id,
             };
-            await categoriesApi.createSubcategory(apiUrl, token, lineData, onTokenExpired);
+            await categoriesApi.createSubcategory(
+                apiUrl,
+                token,
+                lineData,
+                onTokenExpired,
+            );
             await loadSubcategories(selectedCategory.id);
             closeLineModal();
         } catch (err) {
@@ -218,12 +294,25 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const handleUpdateLine = async () => {
         setLineModalError("");
+
+        // Validate whitespace-only names
+        const lineName = lineForm.line?.trim();
+        if (!lineName) {
+            setLineModalError(
+                "O nome da linha não pode ser vazio ou conter apenas espaços.",
+            );
+            return;
+        }
+
         try {
+            const lineData = {
+                name: lineName,
+            };
             await categoriesApi.updateSubcategory(
                 apiUrl,
                 token,
                 selectedLine.id,
-                lineForm,
+                lineData,
                 onTokenExpired,
             );
             await loadSubcategories(selectedCategory.id);
@@ -242,7 +331,12 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.deleteSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await categoriesApi.deleteSubcategory(
+                apiUrl,
+                token,
+                lineId,
+                onTokenExpired,
+            );
             await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -258,7 +352,12 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.archiveSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await categoriesApi.archiveSubcategory(
+                apiUrl,
+                token,
+                lineId,
+                onTokenExpired,
+            );
             await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -274,7 +373,12 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await categoriesApi.unarchiveSubcategory(apiUrl, token, lineId, onTokenExpired);
+            await categoriesApi.unarchiveSubcategory(
+                apiUrl,
+                token,
+                lineId,
+                onTokenExpired,
+            );
             await loadSubcategories(selectedCategory.id);
         } catch (err) {
             setError(err.message);
@@ -289,16 +393,19 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const openEditCategoryModal = (category) => {
         setCategoryMode("edit");
-        setSelectedCategory(category);
+        setSelectedCategory(category); // This is for the modal's internal use
         setCategoryForm(formatCategoryForEdit(category));
         setShowCategoryModal(true);
+        updateValue("categoryId", category.id); // Also update URL to reflect selection
     };
 
     const closeCategoryModal = () => {
         setShowCategoryModal(false);
         setCategoryForm(getInitialCategoryForm());
         setError("");
-        setSelectedCategory(null);
+        // Clear the categoryId from the URL when the modal is closed,
+        // which will then trigger the useEffect to clear selectedCategory.
+        updateValue("categoryId", "");
     };
 
     const openCreateLineModal = () => {
@@ -341,8 +448,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     };
 
     const selectCategory = async (category) => {
-        setSelectedCategory(category);
-        await loadSubcategories(category.id);
+        // Update URL to persist selection
+        updateValue("categoryId", category ? category.id : "");
     };
 
     function compareAlphaNum(a, b) {
@@ -378,21 +485,17 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         <div className="categories-container">
             <div className="categories-header">
                 <h1 className="categories-title">
-                    Categorias e Linhas dos Produtos
+                    {CATEGORY_LABEL} e {SUBCATEGORY_LABEL}
                 </h1>
-                <div className="categories-button-group">
-                    <button
+                <div className="button-group">
+                    <RefreshButton
                         onClick={loadCategories}
-                        className="categories-button-secondary"
-                    >
-                        Atualizar
-                    </button>
-                    <button
-                        onClick={openCreateCategoryModal}
-                        className="categories-button"
-                    >
-                        + Nova Categoria
-                    </button>
+                        isLoading={loading}
+                        icon="↻"
+                    />
+                    <PrimaryButton onClick={openCreateCategoryModal}>
+                        {NEW_CATEGORY_LABEL}
+                    </PrimaryButton>
                 </div>
             </div>
 
@@ -403,7 +506,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             <div className="categories-search-container">
                 <input
                     type="text"
-                    placeholder="Buscar categorias (ou linhas do produto)..."
+                    placeholder={`Buscar ${CATEGORY_LABEL.toLowerCase()} (ou ${SUBCATEGORY_LABEL.toLowerCase()})...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="categories-search-input"
@@ -411,23 +514,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             </div>
 
             <div className="categories-table-wrapper">
-                {/* <div className="categories-table-header">
-                    <h2 className="categories-table-header-title">
-                        Categorias
-                    </h2>
-                    <div className="categories-table-hint">
-                        Clique no ícone{" "}
-                        <i
-                            className="fa-light fa-box-open"
-                            style={{
-                                fontSize: "14px",
-                                color: "#9b59b6",
-                                verticalAlign: "middle",
-                            }}
-                        ></i>{" "}
-                        para visualizar as linhas
-                    </div>
-                </div>*/}
                 <CategoriesTable
                     filteredCategories={filteredCategories}
                     onSelectCategory={selectCategory}
@@ -448,7 +534,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                     onDeleteLine={handleDeleteLine}
                     onArchiveLine={handleArchiveLine}
                     onUnarchiveSubcategory={handleUnarchiveSubcategory}
-                    onClose={() => setSelectedCategory(null)}
+                    onClose={() => updateValue("categoryId", "")}
                 />
             )}
 

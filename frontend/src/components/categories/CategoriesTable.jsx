@@ -23,6 +23,7 @@ import EditIcon from "../../assets/icons/edit.svg";
 import TrashIcon from "../../assets/icons/trash.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
+import { useConfig } from "../../contexts/ConfigContext";
 
 export default function CategoriesTable({
     filteredCategories,
@@ -33,10 +34,16 @@ export default function CategoriesTable({
     onUnarchiveCategory,
     selectedCategory,
 }) {
+    const { config } = useConfig();
+    const { labels } = config;
+
     if (filteredCategories.length === 0) {
         return (
             <div className="categories-table-empty">
-                <p>Nenhuma categoria encontrada</p>
+                <p>
+                    Nenhuma {labels.category?.toLowerCase() || "categoria"}{" "}
+                    encontrada
+                </p>
             </div>
         );
     }
@@ -45,7 +52,7 @@ export default function CategoriesTable({
         <table className="categories-table">
             <thead>
                 <tr>
-                    <th>Nome da Categoria</th>
+                    <th>Nome da {labels.category || "Categoria"}</th>
                     <th>Status</th>
                     <th className="actions">Ações</th>
                 </tr>
@@ -62,7 +69,16 @@ export default function CategoriesTable({
                                     : ""
                             }
                         >
-                            <td>{category.name}</td>
+                            <td
+                                onClick={() => onSelectCategory(category)}
+                                style={{
+                                    cursor: "pointer",
+                                    fontWeight: "500",
+                                    color: "var(--primary-color)",
+                                }}
+                            >
+                                {category.name}
+                            </td>
                             <td>
                                 <span
                                     className={`categories-table-status ${isArchived ? "archived" : "active"}`}

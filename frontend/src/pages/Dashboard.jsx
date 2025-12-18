@@ -17,53 +17,60 @@
  */
 
 import React, { useState, useEffect } from "react";
-import "./Dashboard.css";
+import { useConfig } from "../contexts/ConfigContext";
+import { useData } from "../contexts/DataContext";
+import RefreshButton from "../components/common/RefreshButton";
+import "./styles/Dashboard.css";
 
 export default function Dashboard({ token, apiUrl, onTokenExpired }) {
+    const { config, getPersistentFilter, setPersistentFilter } = useConfig();
+    const {
+        fetchAgreements,
+        fetchEntities,
+        fetchCategories,
+        fetchSubcategories,
+    } = useData();
     const [contracts, setAgreements] = useState([]);
     const [clients, setEntities] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [showBirthdays, setShowBirthdays] = useState(false);
-    const [birthdayFilter, setBirthdayFilter] = useState("month"); // 'month' or 'day'
+    const [showBirthdays, setShowBirthdays] = useState(() =>
+        getPersistentFilter("dashboard_show_birthdays", false),
+    );
+    // Initialize with null to indicate "not set yet", will be set based on data or persistence
+    const [birthdayFilter, setBirthdayFilter] = useState(() =>
+        getPersistentFilter("dashboard_birthday_filter", null),
+    );
+
+    // Save persistent states
+    useEffect(() => {
+        setPersistentFilter("dashboard_show_birthdays", showBirthdays);
+    }, [showBirthdays, setPersistentFilter]);
+
+    useEffect(() => {
+        if (birthdayFilter) {
+            setPersistentFilter("dashboard_birthday_filter", birthdayFilter);
+        }
+    }, [birthdayFilter, setPersistentFilter]);
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = async () => {
+    const loadData = async (forceRefresh = false) => {
         setLoading(true);
         setError("");
 
         try {
-            const headers = {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            };
-
-            const [contractsRes, clientsRes, categoriesRes] = await Promise.all(
-                [
-                    fetch(`${apiUrl}/agreements`, { headers }),
-                    fetch(`${apiUrl}/entities`, { headers }),
-                    fetch(`${apiUrl}/categories`, { headers }),
-                ],
-            );
-
-            // Check for 401 (token expired) in any response
-            if (contractsRes.status === 401 || clientsRes.status === 401 || categoriesRes.status === 401) {
-                onTokenExpired?.();
-                throw new Error("Token inválido ou expirado. Faça login novamente.");
-            }
-
-            if (!contractsRes.ok || !clientsRes.ok || !categoriesRes.ok) {
-                throw new Error("Erro ao carregar dados");
-            }
-
-            const contractsData = await contractsRes.json();
-            const clientsData = await clientsRes.json();
-            const categoriesData = await categoriesRes.json();
+            // Fetch data using cache
+            const [contractsData, clientsData, categoriesData] =
+                await Promise.all([
+                    fetchAgreements({}, forceRefresh),
+                    fetchEntities({}, forceRefresh),
+                    fetchCategories(forceRefresh),
+                ]);
 
             setAgreements(contractsData.data || []);
             setEntities(clientsData.data || []);
@@ -72,22 +79,21 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             // Load all lines for all categories
             const allLinesPromises = (categoriesData.data || []).map(
                 (category) =>
-                    fetch(`${apiUrl}/categories/${category.id}/subcategories`, {
-                        headers,
-                    })
-                        .then((res) => {
-                            if (res.status === 401) {
-                                onTokenExpired?.();
-                                throw new Error("Token inválido ou expirado. Faça login novamente.");
-                            }
-                            return res.ok ? res.json() : { data: [] };
-                        })
+                    fetchSubcategories(category.id, forceRefresh)
                         .then((data) => data.data || [])
                         .catch(() => []),
             );
             const allLinesResults = await Promise.all(allLinesPromises);
             const flattenedLines = allLinesResults.flat();
             setLines(flattenedLines);
+
+            // Smart filter logic: If birthdayFilter is null (not loaded from session), determine based on count
+            if (!birthdayFilter) {
+                const activeCount = (clientsData.data || []).filter(
+                    (c) => !c.archived_at && c.status === "ativo",
+                ).length;
+                setBirthdayFilter(activeCount > 120 ? "day" : "month");
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -171,6 +177,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         if (birthdayFilter === "day") {
             return birthMonth === currentMonth && birthDay === currentDay;
         } else {
+            // Default to month if birthdayFilter is null or 'month'
             return birthMonth === currentMonth;
         }
     });
@@ -199,7 +206,24 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
     return (
         <div>
-            <h1 className="dashboard-title">Dashboard</h1>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "20px",
+                }}
+            >
+                <h1 className="dashboard-title" style={{ margin: 0 }}>
+                    Dashboard
+                </h1>
+                <RefreshButton
+                    onClick={() => loadData(true)}
+                    disabled={loading}
+                    isLoading={loading}
+                    icon="↻"
+                />
+            </div>
 
             <div className="dashboard-stats-grid">
                 <div className="dashboard-stat-card">
@@ -210,7 +234,9 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 </div>
 
                 <div className="dashboard-stat-card">
-                    <div className="dashboard-stat-label">Contratos Ativos</div>
+                    <div className="dashboard-stat-label">
+                        {config.labels.agreements || "Contratos"} Ativos
+                    </div>
                     <div className="dashboard-stat-value active">
                         {activeContracts.length}
                     </div>
@@ -227,7 +253,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                 <div className="dashboard-stat-card">
                     <div className="dashboard-stat-label">
-                        Contratos Expirados
+                        {config.labels.agreements || "Contratos"} Expirados
                     </div>
                     <div className="dashboard-stat-value expired">
                         {expiredContracts.length}
@@ -412,7 +438,8 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             >
                 <div className="dashboard-section-card">
                     <h2 className="dashboard-section-title">
-                        Contratos Expirando em Breve
+                        {config.labels.agreements || "Contratos"} Expirando em
+                        Breve
                     </h2>
                     {expiringContracts.length === 0 ? (
                         <p className="dashboard-section-empty">
@@ -436,8 +463,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                             {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.item_key ||
-                                                "Sem chave"}
+                                            {contract.item_key || "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expiring">
                                             {daysLeft} dias restantes
@@ -451,7 +477,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                 <div className="dashboard-section-card">
                     <h2 className="dashboard-section-title">
-                        Contratos Expirados
+                        {config.labels.agreements || "Contratos"} Expirados
                     </h2>
                     {expiredContracts.length === 0 ? (
                         <p className="dashboard-section-empty">
@@ -475,8 +501,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                             {contract.model || "Sem modelo"}
                                         </div>
                                         <div className="dashboard-contract-key">
-                                            {contract.item_key ||
-                                                "Sem chave"}
+                                            {contract.item_key || "Sem chave"}
                                         </div>
                                         <div className="dashboard-contract-days expired">
                                             Expirado há {daysExpired} dias

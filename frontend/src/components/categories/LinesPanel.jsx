@@ -18,6 +18,7 @@
 
 import React from "react";
 import "./LinesPanel.css";
+import { useConfig } from "../../contexts/ConfigContext";
 import EditIcon from "../../assets/icons/edit.svg";
 import TrashIcon from "../../assets/icons/trash.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
@@ -33,6 +34,12 @@ export default function LinesPanel({
     onUnarchiveSubcategory,
     onClose,
 }) {
+    const { config } = useConfig();
+    const { labels } = config;
+    const SUBCATEGORY_LABEL = labels.subcategories || "Linhas";
+    const SUBCATEGORY_SINGLE = labels.subcategory || "Linha";
+    const NEW_SUBCATEGORY_LABEL = "+ Nova " + (labels.subcategory || "Linha");
+
     if (!selectedCategory) {
         return null;
     }
@@ -44,11 +51,13 @@ export default function LinesPanel({
                 <div className="lines-panel-header">
                     <div>
                         <h2 className="lines-panel-title">
-                            Linhas de {selectedCategory.name}
+                            {SUBCATEGORY_LABEL} de {selectedCategory.name}
                         </h2>
                         <p className="lines-panel-subtitle">
                             {lines.length}{" "}
-                            {lines.length === 1 ? "linha" : "linhas"}
+                            {lines.length === 1
+                                ? SUBCATEGORY_SINGLE.toLowerCase()
+                                : SUBCATEGORY_LABEL.toLowerCase()}
                         </p>
                     </div>
                     <button onClick={onClose} className="lines-panel-close">
@@ -61,12 +70,15 @@ export default function LinesPanel({
                         onClick={onCreateLine}
                         className="lines-panel-button-new"
                     >
-                        + Nova Linha
+                        {NEW_SUBCATEGORY_LABEL}
                     </button>
 
                     {lines.length === 0 ? (
                         <div className="lines-panel-no-lines">
-                            <p>Nenhuma linha cadastrada para esta categoria</p>
+                            <p>
+                                Nenhuma {SUBCATEGORY_SINGLE.toLowerCase()}{" "}
+                                cadastrada para esta categoria
+                            </p>
                         </div>
                     ) : (
                         <div className="lines-panel-list">

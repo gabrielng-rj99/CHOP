@@ -17,6 +17,7 @@
  */
 
 import React, { useState } from "react";
+import "./AuditLogsTable.css";
 
 // Adiciona prop users para resolver nomes de usuários
 export default function AuditLogsTable({
@@ -40,7 +41,7 @@ export default function AuditLogsTable({
     if (!logs || logs.length === 0) {
         return (
             <div style={{ textAlign: "center", padding: "40px" }}>
-                <div style={{ fontSize: "16px", color: "#7f8c8d" }}>
+                <div className="audit-logs-table-empty">
                     Nenhum log de auditoria encontrado
                 </div>
             </div>

@@ -17,6 +17,13 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+    Navigate,
+    Outlet,
+} from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Contracts from "./pages/Agreements";
@@ -24,26 +31,19 @@ import Clients from "./pages/Entities";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
-
 import Initialize from "./pages/Initialize";
+import Settings from "./pages/Settings";
+import Appearance from "./pages/Appearance";
+import Sidebar from "./components/layout/Sidebar";
+import { ConfigProvider } from "./contexts/ConfigContext";
+import { DataProvider } from "./contexts/DataContext";
 import "./App.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faChartLine,
-    faFileContract,
-    faUserGroup,
-    faTags,
-    faUserGear,
-    faSearchPlus,
-    faRightFromBracket,
-} from "@fortawesome/free-solid-svg-icons";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 function App() {
     const [appReady, setAppReady] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
-    const [currentPage, setCurrentPage] = useState("login");
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [refreshToken, setRefreshToken] = useState(null);
@@ -63,7 +63,6 @@ function App() {
                     }
                 }
             } catch (error) {
-                // App not ready, show initialize screen
                 setIsInitializing(true);
             }
         };
@@ -77,13 +76,11 @@ function App() {
             const savedToken = localStorage.getItem("token");
             const savedRefreshToken = localStorage.getItem("refreshToken");
             const savedUser = localStorage.getItem("user");
-            const savedPage = localStorage.getItem("currentPage");
 
             if (savedToken && savedRefreshToken && savedUser) {
                 setToken(savedToken);
                 setRefreshToken(savedRefreshToken);
                 setUser(JSON.parse(savedUser));
-                setCurrentPage(savedPage || "dashboard");
             }
         } catch (error) {
             console.error("Error loading session:", error);
@@ -91,51 +88,36 @@ function App() {
         }
     }, []);
 
-    // Função para decodificar o JWT e pegar expiração
-    function getTokenExpiration(token) {
+    const getTokenExpiration = (token) => {
         try {
             const payload = JSON.parse(atob(token.split(".")[1]));
             return payload.exp ? payload.exp * 1000 : null;
         } catch {
             return null;
         }
-    }
+    };
 
-    // Função para agendar renovação automática do token
-    function scheduleTokenRefresh(token, refreshToken) {
+    const scheduleTokenRefresh = (token, refreshToken) => {
         if (!token || !refreshToken) return;
         const exp = getTokenExpiration(token);
         if (!exp) return;
         const now = Date.now();
 
-        // Se o token já expirou ou está muito próximo de expirar (menos de 30 segundos), não agende
-        if (exp - now < 30000) {
-            console.log(
-                "Token já expirado ou prestes a expirar, não agendando refresh",
-            );
-            return;
-        }
+        if (exp - now < 30000) return;
 
-        // Renova 2 minutos antes de expirar
-        const msUntilRefresh = Math.max(exp - now - 2 * 60 * 1000, 60000); // mínimo 1 minuto
+        const msUntilRefresh = Math.max(exp - now - 2 * 60 * 1000, 60000);
 
-        // Só agende se não houver refresh já agendado ou se o novo tempo for significativamente diferente
         if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
         }
 
-        console.log(
-            `Token refresh agendado para daqui ${Math.round(msUntilRefresh / 1000)}s`,
-        );
         refreshTimeoutRef.current = setTimeout(() => {
             renewAccessToken(refreshToken);
         }, msUntilRefresh);
-    }
+    };
 
-    // Função para renovar o access token usando o refresh token
-    async function renewAccessToken(refreshToken) {
+    const renewAccessToken = async (refreshToken) => {
         try {
-            console.log("Renovando access token...");
             const response = await fetch(`${API_URL}/refresh-token`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -147,24 +129,19 @@ function App() {
             const data = await response.json();
             const newToken = data.data.token;
 
-            // Verificar se o novo token é realmente diferente e válido antes de atualizar
             if (newToken && newToken !== token) {
                 setToken(newToken);
                 try {
                     localStorage.setItem("token", newToken);
-                    console.log("Token renovado com sucesso");
+                    localStorage.setItem("accessToken", newToken); // Sync for ConfigContext compatibility
                 } catch (e) {
                     console.error("Error saving token:", e);
                 }
-                // Não precisa chamar scheduleTokenRefresh aqui, o useEffect vai fazer isso
-            } else {
-                console.log("Token recebido é igual ao atual, não atualizando");
             }
         } catch (err) {
-            console.error("Error refreshing token:", err);
             logout();
         }
-    }
+    };
 
     const login = async (username, password) => {
         try {
@@ -189,21 +166,19 @@ function App() {
             setToken(data.data.token);
             setRefreshToken(data.data.refresh_token);
             setUser(userData);
-            setCurrentPage("dashboard");
 
-            // Save to localStorage
             try {
                 localStorage.setItem("token", data.data.token);
                 localStorage.setItem("refreshToken", data.data.refresh_token);
                 localStorage.setItem("user", JSON.stringify(userData));
-                localStorage.setItem("currentPage", "dashboard");
+                localStorage.setItem("userRole", data.data.role || "user");
+                localStorage.setItem("accessToken", data.data.token); // For ConfigContext compatibility
             } catch (e) {
                 console.error("Error saving to localStorage:", e);
             }
 
             scheduleTokenRefresh(data.data.token, data.data.refresh_token);
         } catch (error) {
-            // Melhor tratamento de erros de rede
             if (
                 error.message === "Failed to fetch" ||
                 error.name === "TypeError"
@@ -220,37 +195,31 @@ function App() {
         setToken(null);
         setUser(null);
         setRefreshToken(null);
-        setCurrentPage("login");
 
-        // Se for erro de token expirado, redirecionar com parâmetro
-        if (errorMessage && errorMessage.includes("Token inválido")) {
-            window.history.replaceState(
-                {},
-                document.title,
-                "/?session_expired=true",
-            );
+        if (
+            errorMessage &&
+            typeof errorMessage === "string" &&
+            errorMessage.includes("Token inválido")
+        ) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("session_expired", "true");
+            window.history.replaceState({}, "", url);
         }
 
-        // Clear localStorage
         try {
             localStorage.removeItem("token");
             localStorage.removeItem("refreshToken");
             localStorage.removeItem("user");
             localStorage.removeItem("currentPage");
+            localStorage.removeItem("userRole");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("themeMode");
+            localStorage.removeItem("accessibility");
         } catch (e) {
             console.error("Error clearing localStorage:", e);
         }
 
         if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-    };
-
-    const navigate = (page) => {
-        setCurrentPage(page);
-        try {
-            localStorage.setItem("currentPage", page);
-        } catch (e) {
-            console.error("Error saving page:", e);
-        }
     };
 
     const toggleSidebar = () => {
@@ -259,16 +228,12 @@ function App() {
 
     useEffect(() => {
         if (token && refreshToken) {
-            // Verificar se o token ainda é válido antes de agendar refresh
             const exp = getTokenExpiration(token);
             const now = Date.now();
 
-            // Só agendar se o token ainda tiver mais de 1 minuto de validade
             if (exp && exp - now > 60000) {
                 scheduleTokenRefresh(token, refreshToken);
             } else if (exp && exp - now <= 60000 && exp - now > 0) {
-                // Token está prestes a expirar, renovar imediatamente
-                console.log("Token prestes a expirar, renovando imediatamente");
                 renewAccessToken(refreshToken);
             }
         }
@@ -278,7 +243,6 @@ function App() {
         };
     }, [token, refreshToken]);
 
-    // Show initialization screen if app is not ready
     if (isInitializing) {
         return (
             <Initialize
@@ -290,205 +254,157 @@ function App() {
         );
     }
 
-    if (!token || !user) {
-        return <Login onLogin={login} />;
-    }
+    const ProtectedLayout = () => {
+        if (!token || !user) {
+            return <Navigate to="/login" replace />;
+        }
+
+        return (
+            <ConfigProvider apiUrl={API_URL} token={token}>
+                <DataProvider
+                    token={token}
+                    apiUrl={API_URL}
+                    onTokenExpired={() => logout("Token inválido")}
+                >
+                    <div className="app-container">
+                        <Sidebar
+                            sidebarCollapsed={sidebarCollapsed}
+                            toggleSidebar={toggleSidebar}
+                            user={user}
+                            logout={logout}
+                        />
+                        <main className="app-main">
+                            <Outlet />
+                        </main>
+                    </div>
+                </DataProvider>
+            </ConfigProvider>
+        );
+    };
 
     return (
-        <div className="app-container">
-            <nav className={`app-nav ${sidebarCollapsed ? "collapsed" : ""}`}>
-                <div className="app-nav-header">
-                    <h2
-                        className={`app-nav-title${sidebarCollapsed ? " hidden-title" : ""}`}
-                    >
-                        {sidebarCollapsed ? "CM" : "Entity Hub"}
-                    </h2>
-                    <button onClick={toggleSidebar} className="app-nav-toggle">
-                        {sidebarCollapsed ? "☰" : "←"}
-                    </button>
-                </div>
+        <BrowserRouter>
+            <Routes>
+                <Route
+                    path="/login"
+                    element={
+                        user ? (
+                            <Navigate to="/dashboard" replace />
+                        ) : (
+                            <Login onLogin={login} />
+                        )
+                    }
+                />
 
-                <div className="app-nav-items">
-                    <button
-                        onClick={() => navigate("dashboard")}
-                        className={`app-nav-button ${currentPage === "dashboard" ? "active" : ""}`}
-                        title="Dashboard"
-                    >
-                        <span className="app-nav-icon">
-                            <FontAwesomeIcon icon={faChartLine} />
-                        </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Dashboard</span>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={() => navigate("contracts")}
-                        className={`app-nav-button ${currentPage === "contracts" ? "active" : ""}`}
-                        title="Contratos"
-                    >
-                        <span className="app-nav-icon">
-                            <FontAwesomeIcon icon={faFileContract} />
-                        </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Contratos</span>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={() => navigate("clients")}
-                        className={`app-nav-button ${currentPage === "clients" ? "active" : ""}`}
-                        title="Clientes"
-                    >
-                        <span className="app-nav-icon">
-                            <FontAwesomeIcon icon={faUserGroup} />
-                        </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Clientes</span>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={() => navigate("categories")}
-                        className={`app-nav-button ${currentPage === "categories" ? "active" : ""}`}
-                        title="Categorias"
-                    >
-                        <span className="app-nav-icon">
-                            <FontAwesomeIcon icon={faTags} />
-                        </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Categorias</span>
-                        )}
-                    </button>
-
-                    {(user.role === "admin" || user.role === "root") && (
-                        <button
-                            onClick={() => navigate("users")}
-                            className={`app-nav-button ${currentPage === "users" ? "active" : ""}`}
-                            title="Usuários"
-                        >
-                            <span className="app-nav-icon">
-                                <FontAwesomeIcon icon={faUserGear} />
-                            </span>
-                            {!sidebarCollapsed && (
-                                <span className="app-nav-text">Usuários</span>
-                            )}
-                        </button>
-                    )}
-
-                    {user.role === "root" && (
-                        <button
-                            onClick={() => navigate("audit-logs")}
-                            className={`app-nav-button ${currentPage === "audit-logs" ? "active" : ""}`}
-                            title="Logs"
-                        >
-                            <span className="app-nav-icon">
-                                <FontAwesomeIcon icon={faSearchPlus} />
-                            </span>
-                            {!sidebarCollapsed && (
-                                <span className="app-nav-text">Logs</span>
-                            )}
-                        </button>
-                    )}
-                </div>
-
-                <div className="app-nav-footer">
-                    {!sidebarCollapsed && (
-                        <div className="app-nav-user-info">
-                            <div className="app-nav-user-label">Usuário:</div>
-                            <div className="app-nav-user-name">
-                                {user.username}
-                            </div>
-                            <div className="app-nav-user-role">{user.role}</div>
-                        </div>
-                    )}
-                    <button
-                        onClick={logout}
-                        className="app-nav-logout-button"
-                        title="Sair"
-                    >
-                        <span className="app-nav-icon">
-                            <FontAwesomeIcon icon={faRightFromBracket} />
-                        </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Sair</span>
-                        )}
-                    </button>
-                </div>
-            </nav>
-
-            <main className="app-main">
-                {currentPage === "dashboard" && (
-                    <Dashboard
-                        token={token}
-                        apiUrl={API_URL}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                <Route element={<ProtectedLayout />}>
+                    <Route
+                        path="/"
+                        element={<Navigate to="/dashboard" replace />}
+                    />
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <Dashboard
+                                token={token}
+                                apiUrl={API_URL}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-                {currentPage === "contracts" && (
-                    <Contracts
-                        token={token}
-                        apiUrl={API_URL}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                    <Route
+                        path="/contracts"
+                        element={
+                            <Contracts
+                                token={token}
+                                apiUrl={API_URL}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-                {currentPage === "clients" && (
-                    <Clients
-                        token={token}
-                        apiUrl={API_URL}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                    <Route
+                        path="/clients"
+                        element={
+                            <Clients
+                                token={token}
+                                apiUrl={API_URL}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-                {currentPage === "categories" && (
-                    <Categories
-                        token={token}
-                        apiUrl={API_URL}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                    <Route
+                        path="/categories"
+                        element={
+                            <Categories
+                                token={token}
+                                apiUrl={API_URL}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-                {currentPage === "users" && (
-                    <Users
-                        token={token}
-                        apiUrl={API_URL}
-                        user={user}
-                        onLogout={logout}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                    <Route
+                        path="/users"
+                        element={
+                            <Users
+                                token={token}
+                                apiUrl={API_URL}
+                                user={user}
+                                onLogout={logout}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-                {currentPage === "audit-logs" && (
-                    <AuditLogs
-                        token={token}
-                        apiUrl={API_URL}
-                        user={user}
-                        onTokenExpired={() =>
-                            logout(
-                                "Token inválido ou expirado. Faça login novamente.",
-                            )
+                    <Route
+                        path="/settings"
+                        element={<Settings token={token} apiUrl={API_URL} />}
+                    />
+                    <Route
+                        path="/appearance"
+                        element={<Appearance token={token} apiUrl={API_URL} />}
+                    />
+                    <Route
+                        path="/audit-logs"
+                        element={
+                            <AuditLogs
+                                token={token}
+                                apiUrl={API_URL}
+                                user={user}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
                         }
                     />
-                )}
-            </main>
-        </div>
+                </Route>
+            </Routes>
+
+            {/* SVG Filters for Color Blindness */}
+            <svg
+                className="colorblind-filters"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <defs>
+                    <filter id="protanopia-filter">
+                        <feColorMatrix
+                            in="SourceGraphic"
+                            type="matrix"
+                            values="0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0"
+                        />
+                    </filter>
+                    <filter id="deuteranopia-filter">
+                        <feColorMatrix
+                            in="SourceGraphic"
+                            type="matrix"
+                            values="0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0"
+                        />
+                    </filter>
+                    <filter id="tritanopia-filter">
+                        <feColorMatrix
+                            in="SourceGraphic"
+                            type="matrix"
+                            values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"
+                        />
+                    </filter>
+                </defs>
+            </svg>
+        </BrowserRouter>
     );
 }
 

@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import "./Initialize.css";
+import "./styles/Initialize.css";
 
 const Initialize = ({ onInitializationComplete }) => {
     const [step, setStep] = useState("check"); // check, create-admin, success

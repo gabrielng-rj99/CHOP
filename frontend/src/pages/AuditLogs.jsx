@@ -17,49 +17,68 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { auditApi } from "../api/auditApi";
 import { usersApi } from "../api/usersApi";
 import AuditFilters from "../components/audit/AuditFilters";
 import AuditLogsTable from "../components/audit/AuditLogsTable";
 import Pagination from "../components/common/Pagination";
-import "./AuditLogs.css";
+import RefreshButton from "../components/common/RefreshButton";
+import PrimaryButton from "../components/common/PrimaryButton";
+import "./styles/AuditLogs.css";
 
 export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [totalLogs, setTotalLogs] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [logsPerPage, setLogsPerPage] = useState(20);
 
-    const [filters, setFilters] = useState({
-        entity: "",
-        operation: "",
-        adminId: "",
-        adminSearch: "",
-        entitySearch: "",
-        changedData: "",
-        status: "",
-        ipAddress: "",
-        entityId: "",
-        startDate: "",
-        endDate: "",
+    // Derived values from URL
+    const currentPage = parseInt(searchParams.get("page") || "1", 10);
+    const logsPerPage = parseInt(searchParams.get("limit") || "20", 10);
+
+    // Helper to extract filters from URL
+    const getFiltersFromUrl = () => ({
+        entity: searchParams.get("entity") || "",
+        operation: searchParams.get("operation") || "",
+        adminId: searchParams.get("adminId") || "",
+        adminSearch: searchParams.get("adminSearch") || "",
+        entitySearch: searchParams.get("entitySearch") || "",
+        changedData: searchParams.get("changedData") || "",
+        status: searchParams.get("status") || "",
+        ipAddress: searchParams.get("ipAddress") || "",
+        entityId: searchParams.get("entityId") || "",
+        startDate: searchParams.get("startDate") || "",
+        endDate: searchParams.get("endDate") || "",
     });
+
+    // Local state for the filter inputs
+    const [filters, setFilters] = useState(getFiltersFromUrl());
+
+    // Sync local state when URL changes (e.g. Back button)
+    useEffect(() => {
+        setFilters(getFiltersFromUrl());
+    }, [searchParams]);
+
+    // Load logs whenever URL params change
+    useEffect(() => {
+        loadLogs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     useEffect(() => {
         loadUsers();
-        loadLogs();
     }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-        loadLogs();
-    }, [filters, logsPerPage]);
 
     const loadUsers = async () => {
         try {
-            const userData = await usersApi.loadUsers(apiUrl, token, onTokenExpired);
+            const userData = await usersApi.loadUsers(
+                apiUrl,
+                token,
+                onTokenExpired,
+            );
             setUsers(userData);
         } catch (err) {
             console.error("Erro ao carregar usuários:", err);
@@ -71,21 +90,25 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         setError("");
         try {
             const offset = (currentPage - 1) * logsPerPage;
+
+            // Use URL params for cleaning/loading, NOT local state
+            const currentUrlFilters = getFiltersFromUrl();
+
             const filterParams = {
-                entity: filters.entity || undefined,
-                operation: filters.operation || undefined,
-                admin_id: filters.adminId || undefined,
-                admin_search: filters.adminSearch || undefined,
-                entity_search: filters.entitySearch || undefined,
-                changed_data: filters.changedData || undefined,
-                status: filters.status || undefined,
-                ip_address: filters.ipAddress || undefined,
-                entity_id: filters.entityId || undefined,
-                start_date: filters.startDate
-                    ? new Date(filters.startDate).toISOString()
+                entity: currentUrlFilters.entity || undefined,
+                operation: currentUrlFilters.operation || undefined,
+                admin_id: currentUrlFilters.adminId || undefined,
+                admin_search: currentUrlFilters.adminSearch || undefined,
+                entity_search: currentUrlFilters.entitySearch || undefined,
+                changed_data: currentUrlFilters.changedData || undefined,
+                status: currentUrlFilters.status || undefined,
+                ip_address: currentUrlFilters.ipAddress || undefined,
+                entity_id: currentUrlFilters.entityId || undefined,
+                start_date: currentUrlFilters.startDate
+                    ? new Date(currentUrlFilters.startDate).toISOString()
                     : undefined,
-                end_date: filters.endDate
-                    ? new Date(filters.endDate).toISOString()
+                end_date: currentUrlFilters.endDate
+                    ? new Date(currentUrlFilters.endDate).toISOString()
                     : undefined,
                 limit: logsPerPage,
                 offset: offset,
@@ -106,13 +129,40 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         }
     };
 
-    const handleFilterChange = (newFilters) => {
-        setFilters(newFilters);
+    const handleApplyFilters = () => {
+        setSearchParams((prev) => {
+            const newParams = new URLSearchParams(prev);
+
+            // Update all filter keys
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) {
+                    newParams.set(key, value);
+                } else {
+                    newParams.delete(key);
+                }
+            });
+
+            // Reset to page 1 on filter apply
+            newParams.set("page", "1");
+            return newParams;
+        });
     };
 
-    const handleApplyFilters = () => {
-        setCurrentPage(1);
-        loadLogs();
+    const setCurrentPage = (page) => {
+        setSearchParams((prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set("page", page.toString());
+            return newParams;
+        });
+    };
+
+    const setLogsPerPage = (limit) => {
+        setSearchParams((prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set("limit", limit.toString());
+            newParams.set("page", "1");
+            return newParams;
+        });
     };
 
     const handleViewDetail = (log) => {
@@ -122,13 +172,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
 
     const handleExport = async () => {
         try {
+            // Use current URL filters for export too
+            const currentUrlFilters = getFiltersFromUrl();
             const filterParams = {
-                entity: filters.entity || undefined,
-                operation: filters.operation || undefined,
-                admin_id: filters.adminId || undefined,
-                admin_search: filters.adminSearch || undefined,
-                entity_search: filters.entitySearch || undefined,
-                changed_data: filters.changedData || undefined,
+                entity: currentUrlFilters.entity || undefined,
+                operation: currentUrlFilters.operation || undefined,
+                admin_id: currentUrlFilters.adminId || undefined,
+                admin_search: currentUrlFilters.adminSearch || undefined,
+                entity_search: currentUrlFilters.entitySearch || undefined,
+                changed_data: currentUrlFilters.changedData || undefined,
             };
 
             const data = await auditApi.exportAuditLogs(
@@ -154,8 +206,7 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         return (
             <div className="audit-logs-access-denied">
                 <div className="audit-logs-access-denied-text">
-                    Acesso negado. Apenas root pode acessar logs de
-                    auditoria.
+                    Acesso negado. Apenas root pode acessar logs de auditoria.
                 </div>
             </div>
         );
@@ -165,19 +216,21 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         <div className="audit-logs-container">
             <div className="audit-logs-header">
                 <h1 className="audit-logs-title">Logs</h1>
-                <div className="audit-logs-button-group">
-                    <button
+                <div className="button-group">
+                    <RefreshButton
                         onClick={loadLogs}
-                        className="audit-logs-button-secondary"
-                    >
-                        Atualizar
-                    </button>
-                    <button
+                        isLoading={loading}
+                        icon="↻"
+                    />
+                    <PrimaryButton
                         onClick={handleExport}
-                        className="audit-logs-button-secondary"
+                        style={{
+                            backgroundColor: "var(--secondary-color, #2c3e50)",
+                            minWidth: "160px",
+                        }}
                     >
-                        Exportar JSON
-                    </button>
+                        📥 Exportar JSON
+                    </PrimaryButton>
                 </div>
             </div>
 

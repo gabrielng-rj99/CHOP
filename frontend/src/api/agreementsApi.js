@@ -87,13 +87,15 @@ export const agreementsApi = {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
-                }
-            }
+                },
+            },
         );
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -112,12 +114,14 @@ export const agreementsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -150,7 +154,9 @@ export const agreementsApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -161,7 +167,13 @@ export const agreementsApi = {
         return response.json();
     },
 
-    updateAgreement: async (apiUrl, token, contractId, formData, onTokenExpired) => {
+    updateAgreement: async (
+        apiUrl,
+        token,
+        contractId,
+        formData,
+        onTokenExpired,
+    ) => {
         const payload = {
             model: formData.model || "",
             item_key: formData.item_key || "",
@@ -172,21 +184,20 @@ export const agreementsApi = {
             subcategory_id: formData.subcategory_id,
         };
 
-        const response = await fetch(
-            `${apiUrl}/agreements/${contractId}`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            }
-        );
+        const response = await fetch(`${apiUrl}/agreements/${contractId}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -206,12 +217,14 @@ export const agreementsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -230,12 +243,14 @@ export const agreementsApi = {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {

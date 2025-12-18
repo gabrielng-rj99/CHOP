@@ -31,6 +31,11 @@
     z-index: 10000;
 }
 
+/* Overlay específico para o modal de papel personalizado - fica acima do modal de usuário */
+.user-modal-overlay.custom-role-overlay {
+    z-index: 10100;
+}
+
 .user-modal-content {
     background: white;
     border-radius: 8px;
@@ -41,6 +46,11 @@
     position: relative;
     max-height: 90vh;
     overflow-y: auto;
+}
+
+/* Content específico para o modal de papel personalizado */
+.user-modal-overlay.custom-role-overlay .user-modal-content {
+    z-index: 10101;
 }
 
 .user-modal-title {
@@ -313,4 +323,287 @@
     color: #495057;
     min-width: 110px;
     text-align: right;
+}
+
+/* Loading state */
+.user-modal-loading {
+    padding: 12px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Hint warning */
+.user-modal-hint-warning {
+    color: #856404;
+    background: #fff3cd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+/* Password Policy Info */
+.user-modal-password-policy {
+    margin-top: 12px;
+    padding: 12px;
+    background: #e8f4fd;
+    border: 1px solid #b8daff;
+    border-radius: 4px;
+}
+
+.user-modal-password-policy .policy-title {
+    font-weight: 600;
+    color: #004085;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.user-modal-password-policy .policy-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: #004085;
+}
+
+.user-modal-password-policy .policy-list li {
+    margin-bottom: 2px;
+}
+
+/* Role Selection Styles */
+.role-badge-root {
+    background: linear-gradient(135deg, #c0392b, #e74c3c) !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.role-badge-admin {
+    background: #3498db !important;
+    color: white !important;
+}
+
+.role-badge-financeiro {
+    background: #27ae60 !important;
+    color: white !important;
+}
+
+.role-badge-viewer {
+    background: #95a5a6 !important;
+    color: white !important;
+}
+
+.role-badge-user {
+    background: #f4f4f4 !important;
+    color: #2c3e50 !important;
+}
+
+/* Role Info Box */
+.user-modal-role-info {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.user-modal-role-info .role-priority {
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+.user-modal-role-info .role-description {
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.user-modal-role-info .role-system-badge,
+.user-modal-role-info .role-single-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 8px;
+}
+
+.user-modal-role-info .role-system-badge {
+    background: #e8f4fd;
+    color: #004085;
+}
+
+.user-modal-role-info .role-single-badge {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Root Warning */
+.user-modal-root-warning {
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #fff5f5, #fee);
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    color: #721c24;
+    font-size: 13px;
+}
+
+/* Custom Role Option */
+.user-modal-option-custom {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+/* Custom Role Modal */
+.custom-role-modal {
+    max-width: 700px;
+    max-height: 85vh;
+    z-index: 10101;
+}
+
+.custom-role-notice {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea15, #764ba215);
+    border: 1px solid #667eea40;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.custom-role-notice .notice-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.custom-role-notice p {
+    margin: 0;
+    font-size: 13px;
+    color: #495057;
+    line-height: 1.5;
+}
+
+/* Textarea */
+.user-modal-textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+}
+
+/* Permissions Grid for Custom Role */
+.custom-role-permissions {
+    margin-top: 16px;
+}
+
+.permissions-grid-custom {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.permission-category {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.permission-category .category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.permission-category .category-icon {
+    font-size: 18px;
+}
+
+.permission-category .category-name {
+    font-weight: 600;
+    color: #2c3e50;
+    flex: 1;
+}
+
+.permission-category .select-all-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: #e9ecef;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #495057;
+    transition: all 0.2s;
+}
+
+.permission-category .select-all-btn:hover {
+    background: #dee2e6;
+}
+
+.permission-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.permission-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.permission-item:hover {
+    background: #e8f4fd;
+}
+
+.permission-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.permission-item .perm-icon {
+    font-size: 14px;
+}
+
+.permission-item .perm-name {
+    font-size: 13px;
+    color: #495057;
+}
+
+/* Scrollbar for permissions grid */
+.permissions-grid-custom::-webkit-scrollbar {
+    width: 8px;
+}
+
+.permissions-grid-custom::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.permissions-grid-custom::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.permissions-grid-custom::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }

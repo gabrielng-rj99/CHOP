@@ -81,7 +81,9 @@ export const entitiesApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -128,7 +130,9 @@ export const entitiesApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -140,20 +144,19 @@ export const entitiesApi = {
     },
 
     archiveEntity: async (apiUrl, token, clientId, onTokenExpired) => {
-        const response = await fetch(
-            `${apiUrl}/entities/${clientId}/archive`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+        const response = await fetch(`${apiUrl}/entities/${clientId}/archive`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-        );
+        });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -177,7 +180,9 @@ export const entitiesApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -211,7 +216,13 @@ export const entitiesApi = {
         return data.data || [];
     },
 
-    createSubEntity: async (apiUrl, token, clientId, dependentForm, onTokenExpired) => {
+    createSubEntity: async (
+        apiUrl,
+        token,
+        clientId,
+        dependentForm,
+        onTokenExpired,
+    ) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -237,7 +248,9 @@ export const entitiesApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -248,7 +261,13 @@ export const entitiesApi = {
         return response.json();
     },
 
-    updateSubEntity: async (apiUrl, token, dependentId, dependentForm, onTokenExpired) => {
+    updateSubEntity: async (
+        apiUrl,
+        token,
+        dependentId,
+        dependentForm,
+        onTokenExpired,
+    ) => {
         const payload = {
             name: dependentForm.name,
             relationship: dependentForm.relationship,
@@ -260,21 +279,20 @@ export const entitiesApi = {
             phone: dependentForm.phone || null,
         };
 
-        const response = await fetch(
-            `${apiUrl}/sub_entities/${dependentId}`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
+        const response = await fetch(`${apiUrl}/sub_entities/${dependentId}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-        );
+            body: JSON.stringify(payload),
+        });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -286,20 +304,19 @@ export const entitiesApi = {
     },
 
     deleteSubEntity: async (apiUrl, token, dependentId, onTokenExpired) => {
-        const response = await fetch(
-            `${apiUrl}/sub_entities/${dependentId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+        const response = await fetch(`${apiUrl}/sub_entities/${dependentId}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-        );
+        });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {

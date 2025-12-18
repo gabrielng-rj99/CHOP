@@ -16,8 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useConfig } from "../contexts/ConfigContext";
+import { useData } from "../contexts/DataContext";
 import { entitiesApi } from "../api/entitiesApi";
+import { useUrlState } from "../hooks/useUrlState";
 import {
     filterClients,
     formatClientForEdit,
@@ -29,16 +32,37 @@ import EntityModal from "../components/entities/EntityModal";
 import EntitiesTable from "../components/entities/EntitiesTable";
 import SubEntitiesPanel from "../components/entities/SubEntitiesPanel";
 import SubEntityModal from "../components/entities/SubEntityModal";
-import "./Entities.css";
+import RefreshButton from "../components/common/RefreshButton";
+import PrimaryButton from "../components/common/PrimaryButton";
+import "./styles/Entities.css";
 
 export default function Clients({ token, apiUrl, onTokenExpired }) {
+    const {
+        fetchEntities,
+        createEntity: createEntityAPI,
+        updateEntity: updateEntityAPI,
+        deleteEntity: deleteEntityAPI,
+        invalidateCache,
+    } = useData();
     const [clients, setEntities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [modalError, setModalError] = useState("");
     const [dependentModalError, setSubEntityModalError] = useState("");
-    const [filter, setFilter] = useState("active");
-    const [searchTerm, setSearchTerm] = useState("");
+    const { config, getGenderHelpers } = useConfig();
+    const g = getGenderHelpers(config.labels.entity_gender || "M");
+    const filtersContainerRef = useRef(null);
+
+    // State persistence
+    const { values, updateValue } = useUrlState(
+        { filter: "all", search: "" },
+        { debounce: true, debounceTime: 300 },
+    );
+    const filter = values.filter;
+    const searchTerm = values.search;
+    const setFilter = (val) => updateValue("filter", val);
+    const setSearchTerm = (val) => updateValue("search", val);
+
     const [selectedClient, setSelectedClient] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
@@ -56,11 +80,44 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         loadEntities();
     }, []);
 
-    const loadEntities = async () => {
+    // Equalize filter button widths
+    useEffect(() => {
+        if (filtersContainerRef.current) {
+            const buttons = filtersContainerRef.current.querySelectorAll(
+                ".clients-filter-button",
+            );
+            if (buttons.length > 0) {
+                // Reset min-width to measure natural width
+                buttons.forEach((btn) => (btn.style.minWidth = "auto"));
+
+                // Calculate max width
+                let maxWidth = 0;
+                buttons.forEach((btn) => {
+                    const width = btn.offsetWidth;
+                    if (width > maxWidth) {
+                        maxWidth = width;
+                    }
+                });
+
+                // Apply max width to all buttons
+                buttons.forEach((btn) => {
+                    btn.style.minWidth = maxWidth + "px";
+                });
+            }
+        }
+    }, [filter, clients]); // Re-calculate when filter or clients change
+
+    const loadEntities = async (forceRefresh = false) => {
         setLoading(true);
         setError("");
         try {
-            await entitiesApi.loadEntities(apiUrl, token, setEntities, setError, onTokenExpired);
+            const response = await fetchEntities(
+                { include_stats: true },
+                forceRefresh,
+            );
+            setEntities(response.data || []);
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -83,8 +140,9 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const createEntity = async () => {
         setModalError("");
         try {
-            await entitiesApi.createEntity(apiUrl, token, formData, onTokenExpired);
-            await loadEntities();
+            await createEntityAPI(formData);
+            invalidateCache("entities");
+            await loadEntities(true);
             closeModal();
         } catch (err) {
             setModalError(err.message);
@@ -94,14 +152,9 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const updateEntity = async () => {
         setModalError("");
         try {
-            await entitiesApi.updateEntity(
-                apiUrl,
-                token,
-                selectedClient.id,
-                formData,
-                onTokenExpired,
-            );
-            await loadEntities();
+            await updateEntityAPI(selectedClient.id, formData);
+            invalidateCache("entities");
+            await loadEntities(true);
             closeModal();
         } catch (err) {
             setModalError(err.message);
@@ -113,8 +166,9 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await entitiesApi.archiveEntity(apiUrl, token, clientId, onTokenExpired);
-            await loadEntities();
+            await deleteEntityAPI(clientId);
+            invalidateCache("entities");
+            await loadEntities(true);
         } catch (err) {
             setError(err.message);
         }
@@ -122,8 +176,16 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
 
     const unarchiveEntity = async (clientId) => {
         try {
-            await entitiesApi.unarchiveEntity(apiUrl, token, clientId, onTokenExpired);
-            await loadEntities();
+            // Note: We still need to use the API directly for unarchive
+            // as DataContext doesn't have an unarchive method
+            await entitiesApi.unarchiveEntity(
+                apiUrl,
+                token,
+                clientId,
+                onTokenExpired,
+            );
+            invalidateCache("entities");
+            await loadEntities(true);
         } catch (err) {
             setError(err.message);
         }
@@ -168,7 +230,12 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await entitiesApi.deleteSubEntity(apiUrl, token, dependentId, onTokenExpired);
+            await entitiesApi.deleteSubEntity(
+                apiUrl,
+                token,
+                dependentId,
+                onTokenExpired,
+            );
             await loadSubEntities(selectedClient.id);
         } catch (err) {
             setError(err.message);
@@ -268,7 +335,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         return (
             <div className="clients-loading">
                 <div className="clients-loading-text">
-                    Carregando clientes...
+                    Carregando {config.labels.entities.toLowerCase()}...
                 </div>
             </div>
         );
@@ -277,20 +344,19 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     return (
         <div className="clients-container">
             <div className="clients-header">
-                <h1 className="clients-title">Clientes</h1>
-                <div className="clients-button-group">
-                    <button
-                        onClick={loadEntities}
-                        className="clients-button-secondary"
-                    >
-                        Atualizar
-                    </button>
-                    <button
-                        onClick={openCreateModal}
-                        className="clients-button"
-                    >
-                        + Novo Cliente
-                    </button>
+                <h1 className="clients-title">
+                    {config.labels.entities || "Clientes"}
+                </h1>
+                <div className="button-group">
+                    <RefreshButton
+                        onClick={() => loadEntities(true)}
+                        disabled={loading}
+                        isLoading={loading}
+                        icon="↻"
+                    />
+                    <PrimaryButton onClick={openCreateModal}>
+                        + {g.new} {config.labels.entity}
+                    </PrimaryButton>
                 </div>
             </div>
 
@@ -298,30 +364,30 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 <div className="clients-error">{error}</div>
             )}
 
-            <div className="clients-filters">
+            <div className="clients-filters" ref={filtersContainerRef}>
+                <button
+                    onClick={() => setFilter("all")}
+                    className={`clients-filter-button ${filter === "all" ? "active-all" : ""}`}
+                >
+                    {g.all} ({clients.length})
+                </button>
                 <button
                     onClick={() => setFilter("active")}
                     className={`clients-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
-                    Ativos
+                    {g.active}
                 </button>
                 <button
                     onClick={() => setFilter("inactive")}
                     className={`clients-filter-button ${filter === "inactive" ? "active-inactive" : ""}`}
                 >
-                    Inativos
+                    {g.inactive}
                 </button>
                 <button
                     onClick={() => setFilter("archived")}
                     className={`clients-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
-                    Arquivados
-                </button>
-                <button
-                    onClick={() => setFilter("all")}
-                    className={`clients-filter-button ${filter === "all" ? "active-all" : ""}`}
-                >
-                    Todos ({clients.length})
+                    {g.archived}
                 </button>
 
                 <input

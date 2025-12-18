@@ -17,13 +17,19 @@
  */
 
 .contracts-table-empty {
-    padding: 40px;
     text-align: center;
+    color: #333 !important;
+    height: 100px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .contracts-table-empty p {
     font-size: 16px;
-    color: #7f8c8d;
+    color: #333 !important;
+    margin: 0;
 }
 
 .contracts-table {
@@ -32,8 +38,8 @@
 }
 
 .contracts-table thead tr {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background: var(--content-bg, #f8f9fa);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 .contracts-table th {
@@ -41,7 +47,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-color, #495057);
 }
 
 .contracts-table th.status,
@@ -54,7 +60,7 @@
 }
 
 .contracts-table tbody tr {
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--border-color, #ecf0f1);
 }
 
 .contracts-table tbody tr.archived {
@@ -64,7 +70,7 @@
 .contracts-table td {
     padding: 16px;
     font-size: 14px;
-    color: #2c3e50;
+    color: var(--text-color, #2c3e50);
 }
 
 .contracts-table td.status,
@@ -78,19 +84,19 @@
 
 .contracts-table-product-key {
     font-size: 12px;
-    color: #7f8c8d;
+    color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
 .contracts-table-dependent {
     font-size: 12px;
-    color: #7f8c8d;
+    color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
 .contracts-table-line {
     font-size: 12px;
-    color: #7f8c8d;
+    color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
@@ -130,7 +136,7 @@
 }
 
 .contracts-table-icon-button:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
 }
 
 .contracts-table-button-details {
@@ -147,4 +153,32 @@
 
 .contracts-table-button-unarchive {
     background: #27ae60;
+}
+
+/* Dark mode specific styles */
+.dark-mode .contracts-table-empty {
+    color: #333 !important;
+}
+
+.dark-mode .contracts-table thead tr {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .contracts-table th {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .contracts-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .contracts-table td {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .contracts-table-product-key,
+.dark-mode .contracts-table-dependent,
+.dark-mode .contracts-table-line {
+    color: var(--text-secondary-color, #a0aec0);
 }

@@ -19,15 +19,26 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Read from environment or use defaults
+const VITE_PORT = parseInt(process.env.VITE_PORT || "5173", 10);
+const API_PORT = parseInt(process.env.API_PORT || "3000", 10);
+
 export default defineConfig({
     plugins: [react()],
     server: {
-        port: 8080,
+        port: VITE_PORT,
+        host: "0.0.0.0", // Allow external connections
         proxy: {
             "/api": {
-                target: "http://localhost:3000",
+                target: `http://localhost:${API_PORT}`,
                 changeOrigin: true,
+                secure: false,
+                ws: true, // WebSocket support
             },
         },
+    },
+    build: {
+        outDir: "dist",
+        sourcemap: true,
     },
 });

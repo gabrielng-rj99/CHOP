@@ -16,6 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+:root {
+    --primary-color: #3498db;
+    --primary-dark: color-mix(in srgb, var(--primary-color), black 20%);
+    --secondary-color: #2c3e50;
+    --secondary-light: color-mix(in srgb, var(--secondary-color), white 20%);
+    --danger-color: #e74c3c;
+    --danger-dark: color-mix(in srgb, var(--danger-color), black 20%);
+
+    /* Global Backgrounds */
+    --bg-color: #f8f9fa;
+    /* App container bg */
+    --text-color: #333333;
+    --content-bg: #ffffff;
+    --border-color: #cbd5e0;
+    /* Default border color for light mode */
+    /* Card/Panel bg */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+}
+
 .app-container {
     display: flex;
     min-height: 100vh;
@@ -24,22 +48,42 @@
 
 .app-nav {
     width: 250px;
-    background: #2c3e50;
-    color: white;
+    background: var(--secondary-color);
+    color: var(--nav-text-color, white);
     display: flex;
     flex-direction: column;
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    transition: width 0.3s ease;
+    transition:
+        width 0.5s ease,
+        opacity 0.5s ease;
     z-index: 1000;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
+/* ... existing styles ... */
+
+/* Thicker borders for buttons and inputs in high contrast */
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast .app-nav-button,
+.high-contrast .card,
+.high-contrast .lines-panel,
+.high-contrast .accessibility-popover,
+.high-contrast .gender-select,
+.high-contrast .dataset-item {
+    border: 2px solid var(--text-color) !important;
+    /* Use text color for max contrast if border-color is low contrast */
+}
+
 .app-nav.collapsed {
     width: 70px;
+    transition: width 0.5s ease;
 }
 
 .app-nav-header {
@@ -47,7 +91,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #34495e;
+    border-bottom: 1px solid var(--secondary-light);
 }
 
 .app-nav-title {
@@ -55,6 +99,25 @@
     font-size: 20px;
     white-space: nowrap;
     overflow: hidden;
+    color: var(--nav-text-color, white);
+    /* Ensure high contrast against sidebar bg */
+}
+
+.app-nav-branding {
+    overflow: hidden;
+    transition: opacity 0.5s ease;
+}
+
+.app-nav-branding img {
+    transition:
+        opacity 0.5s ease,
+        transform 0.5s ease;
+    max-width: 100%;
+    height: auto;
+}
+
+.app-nav.collapsed .app-nav-branding img {
+    opacity: 0;
 }
 
 .hidden-title {
@@ -64,27 +127,34 @@
 .app-nav-toggle {
     background: transparent;
     border: none;
-    color: white;
+    color: var(--nav-text-color, white);
     font-size: 20px;
     cursor: pointer;
     padding: 5px;
     border-radius: 4px;
-    transition: background 0.2s;
+    transition:
+        background 0.5s ease,
+        transform 0.5s ease;
 }
 
 .app-nav-toggle:hover {
-    background: #34495e;
+    background: var(--secondary-light);
 }
 
 .app-nav-items {
     flex: 1;
     padding: 20px 10px;
     overflow-y: auto;
+    transition: padding 0.5s ease;
+}
+
+.app-nav.collapsed .app-nav-items {
+    padding: 20px 0;
 }
 
 .app-nav-button {
     background: transparent;
-    color: white;
+    color: var(--nav-text-color, white);
     border: none;
     padding: 12px 16px;
     margin-bottom: 8px;
@@ -95,25 +165,33 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    white-space: nowrap;
     width: 100%;
-    transition: background 0.2s;
+    transition:
+        padding 0.5s ease,
+        justify-content 0.5s ease;
 }
 
 .app-nav.collapsed .app-nav-button {
     justify-content: center;
     padding: 12px 8px;
+    transition:
+        padding 0.5s ease,
+        justify-content 0.5s ease;
 }
 
 .app-nav-button:hover {
-    background: #34495e;
+    background: var(--secondary-light);
 }
 
 .app-nav-button.active {
-    background: #3498db;
+    background: var(--primary-color);
+    color: var(--active-nav-text-color, var(--primary-text-color));
+    font-weight: bold;
 }
 
 .app-nav-button.active:hover {
-    background: #2980b9;
+    background: var(--primary-dark);
 }
 
 .app-nav-icon {
@@ -128,12 +206,26 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition:
+        opacity 0.5s ease,
+        width 0.5s ease;
+    max-width: 100%;
+}
+
+.app-nav.collapsed .app-nav-text {
+    opacity: 0;
+    width: 0;
 }
 
 .app-nav-footer {
     padding: 20px;
-    border-top: 1px solid #34495e;
+    border-top: 1px solid var(--secondary-light);
     margin-top: auto;
+    transition: padding 0.5s ease;
+}
+
+.app-nav.collapsed .app-nav-footer {
+    padding: 10px 5px;
 }
 
 .app-nav-user-info {
@@ -143,22 +235,38 @@
 
 .app-nav-user-label {
     opacity: 0.7;
+    transition: opacity 0.5s ease;
+}
+
+.app-nav.collapsed .app-nav-user-label,
+.app-nav.collapsed .app-nav-user-info {
+    opacity: 0;
 }
 
 .app-nav-user-name {
     font-weight: bold;
     word-break: break-word;
+    transition: opacity 0.5s ease;
+}
+
+.app-nav.collapsed .app-nav-user-name {
+    opacity: 0;
 }
 
 .app-nav-user-role {
     opacity: 0.7;
     text-transform: capitalize;
     font-size: 12px;
+    transition: opacity 0.5s ease;
+}
+
+.app-nav.collapsed .app-nav-user-role {
+    opacity: 0;
 }
 
 .app-nav-logout-button {
     width: 100%;
-    background: #e74c3c;
+    background: var(--danger-color);
     color: white;
     border: none;
     padding: 10px;
@@ -169,7 +277,9 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background 0.2s;
+    transition:
+        background 0.5s ease,
+        opacity 0.5s ease;
 }
 
 .app-nav.collapsed .app-nav-logout-button {
@@ -177,20 +287,21 @@
 }
 
 .app-nav-logout-button:hover {
-    background: #c0392b;
+    background: var(--danger-dark);
 }
 
 .app-main {
     flex: 1;
     margin-left: 250px;
     padding: 20px;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 0.5s ease;
     overflow-y: auto;
     height: 100vh;
 }
 
 .app-nav.collapsed ~ .app-main {
     margin-left: 70px;
+    transition: margin-left 0.5s ease;
 }
 
 /* Scrollbar customization */
@@ -200,11 +311,11 @@
 }
 
 .app-nav::-webkit-scrollbar-track {
-    background: #2c3e50;
+    background: var(--secondary-color);
 }
 
 .app-nav::-webkit-scrollbar-thumb {
-    background: #34495e;
+    background: var(--secondary-light);
     border-radius: 4px;
 }
 
@@ -250,6 +361,493 @@
     .app-main {
         margin-left: 70px;
     }
+}
 
+/* Empty States */
+.clients-table-empty,
+.categories-loading-text,
+.categories-error {
+    color: #333 !important;
+    text-align: center;
+    padding: 2rem;
+    opacity: 1;
+}
 
+/* Page Titles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-color);
+}
+
+/* High Contrast Mode - Reinforcement */
+.high-contrast {
+    --text-color: #000 !important;
+    --border-color: #000 !important;
+}
+
+.high-contrast.dark-mode {
+    --text-color: #fff !important;
+    --border-color: #fff !important;
+}
+
+/* Thicker borders for buttons and inputs in high contrast */
+/* Thicker borders for buttons and inputs in high contrast */
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast .app-nav-button,
+.high-contrast .card,
+.high-contrast .lines-panel,
+.high-contrast .accessibility-popover,
+.high-contrast .gender-select {
+    border: 2px solid var(--text-color) !important;
+}
+
+/* Text Shadow for better readability on colored backgrounds */
+.high-contrast .app-nav-button.active,
+.high-contrast .primary-button {
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/* High Contrast links */
+.high-contrast a {
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+/* Color Blindness Filters */
+.colorblind-protanopia {
+    filter: url(#protanopia-filter);
+}
+
+.colorblind-deuteranopia {
+    filter: url(#deuteranopia-filter);
+}
+
+.colorblind-tritanopia {
+    filter: url(#tritanopia-filter);
+}
+
+/* SVG Filters for Color Blindness Simulation */
+.colorblind-filters {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+/* Protanopia filter - difficulty distinguishing red */
+#protanopia-filter feColorMatrix {
+    values: "0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0";
+}
+
+/* Deuteranopia filter - difficulty distinguishing green */
+#deuteranopia-filter feColorMatrix {
+    values: "0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0";
+}
+
+/* Tritanopia filter - difficulty distinguishing blue */
+#tritanopia-filter feColorMatrix {
+    values: "0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0";
+}
+
+/* Accessibility: Underline Links */
+.underline-links a {
+    text-decoration: underline !important;
+}
+
+/* Accessibility: Font Sizes */
+[data-font-size="small"] {
+    font-size: 14px;
+}
+
+[data-font-size="small"] h1 {
+    font-size: 24px;
+}
+
+[data-font-size="small"] h2 {
+    font-size: 20px;
+}
+
+[data-font-size="small"] h3 {
+    font-size: 18px;
+}
+
+[data-font-size="normal"] {
+    font-size: 16px;
+}
+
+[data-font-size="normal"] h1 {
+    font-size: 32px;
+}
+
+[data-font-size="normal"] h2 {
+    font-size: 24px;
+}
+
+[data-font-size="normal"] h3 {
+    font-size: 20px;
+}
+
+[data-font-size="large"] {
+    font-size: 18px;
+}
+
+[data-font-size="large"] h1 {
+    font-size: 36px;
+}
+
+[data-font-size="large"] h2 {
+    font-size: 28px;
+}
+
+[data-font-size="large"] h3 {
+    font-size: 24px;
+}
+
+[data-font-size="extra-large"] {
+    font-size: 20px;
+}
+
+[data-font-size="extra-large"] h1 {
+    font-size: 40px;
+}
+
+[data-font-size="extra-large"] h2 {
+    font-size: 32px;
+}
+
+[data-font-size="extra-large"] h3 {
+    font-size: 28px;
+}
+
+/* Accessibility: Line Spacing */
+[data-line-spacing="compact"] {
+    line-height: 1.3;
+}
+
+[data-line-spacing="compact"] p,
+[data-line-spacing="compact"] li,
+[data-line-spacing="compact"] div {
+    line-height: 1.3;
+}
+
+[data-line-spacing="normal"] {
+    line-height: 1.5;
+}
+
+[data-line-spacing="normal"] p,
+[data-line-spacing="normal"] li,
+[data-line-spacing="normal"] div {
+    line-height: 1.5;
+}
+
+[data-line-spacing="relaxed"] {
+    line-height: 1.8;
+}
+
+[data-line-spacing="relaxed"] p,
+[data-line-spacing="relaxed"] li,
+[data-line-spacing="relaxed"] div {
+    line-height: 1.8;
+}
+
+[data-line-spacing="spacious"] {
+    line-height: 2.2;
+}
+
+[data-line-spacing="spacious"] p,
+[data-line-spacing="spacious"] li,
+[data-line-spacing="spacious"] div {
+    line-height: 2.2;
+}
+
+/* Dark Mode Text Overrides */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .clients-table-empty,
+[data-theme="dark"] .contracts-loading-text,
+[data-theme="dark"] .categories-loading-text {
+    color: #333 !important;
+}
+
+/* Dark Mode - Using class instead of data-theme */
+.dark-mode .clients-title,
+.dark-mode .categories-title,
+.dark-mode .audit-logs-title,
+.dark-mode .users-title,
+.dark-mode .agreements-title,
+.dark-mode .dashboard-title {
+    color: var(--page-title-color, var(--text-color, #f7fafc)) !important;
+}
+
+.dark-mode .clients-table-empty,
+.dark-mode .categories-loading-text,
+.dark-mode .audit-logs-loading-text,
+.dark-mode .contracts-loading-text {
+    color: #333 !important;
+}
+
+/* Page titles should use theme colors */
+.clients-title,
+.categories-title,
+.audit-logs-title,
+.users-title,
+.agreements-title,
+.dashboard-title {
+    color: var(--page-title-color, var(--text-color, #2c3e50));
+}
+
+/* Empty states and loading states */
+.clients-table-empty,
+.categories-loading-text,
+.audit-logs-loading-text,
+.contracts-loading-text {
+    color: #333 !important;
+}
+
+/* Tables in dark mode */
+.dark-mode .clients-table,
+.dark-mode .categories-table,
+.dark-mode .users-table,
+.dark-mode .audit-logs-table {
+    background: var(--content-bg, #2d3748);
+}
+
+.dark-mode .clients-table th,
+.dark-mode .categories-table th,
+.dark-mode .users-table th,
+.dark-mode .audit-logs-table th {
+    background: var(--content-bg, #2d3748);
+    color: var(--text-color, #f7fafc);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table td,
+.dark-mode .categories-table td,
+.dark-mode .users-table td,
+.dark-mode .audit-logs-table td {
+    color: var(--text-color, #f7fafc);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table tbody tr,
+.dark-mode .categories-table tbody tr,
+.dark-mode .users-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table-wrapper,
+.dark-mode .categories-table-wrapper,
+.dark-mode .users-table-wrapper,
+.dark-mode .audit-logs-table-wrapper {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+}
+
+/* Filter buttons in dark mode */
+.dark-mode .clients-filter-button,
+.dark-mode .audit-logs-button-secondary {
+    background: var(--content-bg, #2d3748);
+    color: var(--text-color, #f7fafc);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-filter-button:hover,
+.dark-mode .audit-logs-button-secondary:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+/* Search inputs in dark mode */
+.dark-mode .clients-search-input,
+.dark-mode .categories-search-input,
+.dark-mode .audit-logs-search-input {
+    background: var(--content-bg, #2d3748);
+    color: var(--text-color, #f7fafc);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-search-input::placeholder,
+.dark-mode .categories-search-input::placeholder,
+.dark-mode .audit-logs-search-input::placeholder {
+    color: rgba(247, 250, 252, 0.5);
+}
+
+/* Sidebar Logo Animation Improvements */
+.app-nav-branding {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Keep centered but allow full width usage */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Hide image immediately when collapsing starts */
+.app-nav.collapsed .app-nav-branding img {
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
+    /* Fast fade out */
+}
+
+/* Show image with delay when expanding */
+.app-nav:not(.collapsed) .app-nav-branding img {
+    opacity: 1;
+    transition: opacity 0.3s ease-in 0.2s;
+    /* Wait for width transition */
+}
+
+/* Primary Button - Used for Create/New Actions */
+.primary-button {
+    background-color: var(--primary-color, #3498db);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-width: 185px;
+}
+
+.primary-button:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+.primary-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Dark mode for primary button */
+.dark-mode .primary-button {
+    background-color: var(--primary-color, #3498db);
+    color: white;
+}
+
+.dark-mode .primary-button:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+/* Secondary Button - Used for Refresh/Update Actions */
+.secondary-button {
+    background-color: var(--secondary-color, #2c3e50);
+    color: var(--primary-text-color, white);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-width: 185px;
+}
+
+.secondary-button:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+.secondary-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Dark mode for secondary button */
+.dark-mode .secondary-button {
+    background-color: var(--secondary-color, #2c3e50);
+    color: var(--primary-text-color, white);
+}
+
+.dark-mode .secondary-button:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+/* Tertiary Button - Used for Export/Other Actions */
+.tertiary-button {
+    background-color: var(--content-bg, white);
+    color: var(--primary-color, #3498db);
+    border: 1px solid var(--primary-color, #3498db);
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-width: 185px;
+}
+
+.tertiary-button:hover:not(:disabled) {
+    background: var(--hover-bg, #ecf0f1);
+}
+
+.tertiary-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Dark mode for tertiary button */
+.dark-mode .tertiary-button {
+    background: var(--content-bg, #2d3748);
+    color: var(--primary-color, #3498db);
+    border-color: var(--primary-color, #3498db);
+}
+
+.dark-mode .tertiary-button:hover:not(:disabled) {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+/* Button Group Container */
+.button-group {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+/* Update Timestamp */
+.update-timestamp {
+    font-size: 0.75rem;
+    color: var(--text-secondary-color, #999);
+    font-weight: normal;
+    display: block;
+    margin-top: 2px;
+    text-align: right;
+}
+
+.dark-mode .update-timestamp {
+    color: var(--text-secondary-color, #a0aec0);
+}
+
+/* High Contrast Filter */
+.high-contrast-filter {
+    filter: contrast(1.3);
 }

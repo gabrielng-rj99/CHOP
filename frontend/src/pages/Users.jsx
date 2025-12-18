@@ -17,7 +17,9 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useConfig } from "../contexts/ConfigContext";
 import { usersApi } from "../api/usersApi";
+import { useUrlState } from "../hooks/useUrlState";
 import {
     filterUsers,
     getInitialFormData,
@@ -25,8 +27,9 @@ import {
 } from "../utils/userHelpers";
 import UsersTable from "../components/users/UsersTable";
 import UserModal from "../components/users/UserModal";
-import AuditLogsTable from "../components/audit/AuditLogsTable";
-import "./Users.css";
+import RefreshButton from "../components/common/RefreshButton";
+import PrimaryButton from "../components/common/PrimaryButton";
+import "./styles/Users.css";
 
 export default function Users({
     token,
@@ -40,7 +43,15 @@ export default function Users({
     const [error, setError] = useState("");
     const [modalError, setModalError] = useState("");
     const [success, setSuccess] = useState("");
-    const [searchTerm, setSearchTerm] = useState("");
+
+    // State persistence for search
+    const { values, updateValue } = useUrlState(
+        { search: "" },
+        { debounce: true, debounceTime: 300 },
+    );
+    const searchTerm = values.search;
+    const setSearchTerm = (val) => updateValue("search", val);
+
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
     const [selectedUser, setSelectedUser] = useState(null);
@@ -68,6 +79,7 @@ export default function Users({
     };
 
     const handleCreateUser = async () => {
+        // ... rest of functions unchanged until return ...
         setModalError("");
         try {
             await usersApi.createUser(apiUrl, token, formData, onTokenExpired);
@@ -250,6 +262,8 @@ export default function Users({
         searchTerm,
     );
 
+    const { config, getGenderHelpers } = useConfig();
+
     if (loading) {
         return (
             <div className="users-loading">
@@ -258,24 +272,25 @@ export default function Users({
         );
     }
 
+    // We need to access getGenderHelpers in component body
+    const g = getGenderHelpers(config.labels.user_gender || "M");
+
     return (
         <div className="users-container">
             <div className="users-header">
-                <h1 className="users-title">Gerenciamento de Usuários</h1>
-                <div className="users-button-group">
-                    <button
+                <h1 className="users-title">
+                    {config.labels.users || "Usuários"}
+                </h1>
+                <div className="button-group">
+                    <RefreshButton
                         onClick={loadUsers}
-                        className="users-button-secondary"
-                    >
-                        Atualizar
-                    </button>
+                        isLoading={loading}
+                        icon="↻"
+                    />
                     {["admin", "root"].includes(user.role) && (
-                        <button
-                            onClick={openCreateModal}
-                            className="users-button"
-                        >
-                            + Novo Usuário
-                        </button>
+                        <PrimaryButton onClick={openCreateModal}>
+                            + {g.new} {config.labels.user || "Usuário"}
+                        </PrimaryButton>
                     )}
                 </div>
             </div>
@@ -317,6 +332,8 @@ export default function Users({
                 onClose={closeModal}
                 error={modalError}
                 currentUserRole={user.role}
+                apiUrl={apiUrl}
+                token={token}
             />
 
             {/* Exemplo de uso: AuditLogsTable recebe lista de usuários */}

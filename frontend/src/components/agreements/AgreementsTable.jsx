@@ -29,6 +29,8 @@ import EditIcon from "../../assets/icons/edit.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
 
+import { useConfig } from "../../contexts/ConfigContext";
+
 export default function AgreementsTable({
     filteredContracts,
     clients,
@@ -38,10 +40,16 @@ export default function AgreementsTable({
     onArchive,
     onUnarchive,
 }) {
+    const { config } = useConfig();
+    const { labels } = config;
+
     if (filteredContracts.length === 0) {
         return (
             <div className="contracts-table-empty">
-                <p>Nenhum contrato encontrado</p>
+                <p>
+                    Nenhum {labels.agreement?.toLowerCase() || "contrato"}{" "}
+                    encontrado
+                </p>
             </div>
         );
     }
@@ -50,9 +58,9 @@ export default function AgreementsTable({
         <table className="contracts-table">
             <thead>
                 <tr>
-                    <th>Modelo</th>
-                    <th>Cliente</th>
-                    <th>Categoria</th>
+                    <th>{labels.model || "Modelo"}</th>
+                    <th>{labels.entity || "Cliente"}</th>
+                    <th>{labels.category || "Categoria"}</th>
                     <th>Vencimento</th>
                     <th className="status">Status</th>
                     <th className="actions">Ações</th>
@@ -87,7 +95,10 @@ export default function AgreementsTable({
                                 )}
                             </td>
                             <td>
-                                {getCategoryName(contract.subcategory_id, categories)}
+                                {getCategoryName(
+                                    contract.subcategory_id,
+                                    categories,
+                                )}
                                 {contract.line && (
                                     <div className="contracts-table-line">
                                         {contract.line.line}

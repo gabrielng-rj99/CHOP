@@ -17,13 +17,19 @@
  */
 
 .categories-table-empty {
-    padding: 40px;
     text-align: center;
+    color: #333 !important;
+    height: 100px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .categories-table-empty p {
     font-size: 16px;
-    color: #7f8c8d;
+    color: #333 !important;
+    margin: 0;
 }
 
 .categories-table {
@@ -32,8 +38,8 @@
 }
 
 .categories-table thead tr {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background: var(--content-bg, #f8f9fa);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 .categories-table th {
@@ -41,7 +47,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-color, #495057);
 }
 
 .categories-table th.status,
@@ -54,18 +60,19 @@
 }
 
 .categories-table tbody tr {
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--border-color, #ecf0f1);
     background: transparent;
 }
 
 .categories-table tbody tr.selected {
-    background: #e3f2fd;
+    background: var(--primary-color, #e3f2fd);
+    opacity: 0.2;
 }
 
 .categories-table td {
     padding: 16px;
     font-size: 14px;
-    color: #2c3e50;
+    color: var(--text-color, #2c3e50);
     font-weight: 500;
 }
 
@@ -112,5 +119,32 @@
 }
 
 .categories-table-icon-button:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+/* Dark mode specific styles */
+.dark-mode .categories-table-empty {
+    color: #333 !important;
+}
+
+.dark-mode .categories-table thead tr {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .categories-table th {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .categories-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .categories-table td {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .categories-table tbody tr.selected {
+    background: var(--primary-color, #3498db);
+    opacity: 0.3;
 }

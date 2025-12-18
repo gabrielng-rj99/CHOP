@@ -17,13 +17,20 @@
  */
 
 .clients-table-empty {
-    padding: 40px;
+    padding: 60px 40px;
     text-align: center;
+    color: #333 !important;
+    height: 100px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .clients-table-empty p {
     font-size: 16px;
-    color: #7f8c8d;
+    color: #333 !important;
+    margin: 0;
 }
 
 .clients-table {
@@ -32,8 +39,8 @@
 }
 
 .clients-table thead tr {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background: var(--content-bg, #f8f9fa);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 .clients-table th {
@@ -41,7 +48,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-color, #495057);
 }
 
 .clients-table th.actions {
@@ -50,13 +57,13 @@
 }
 
 .clients-table tbody tr {
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--border-color, #ecf0f1);
 }
 
 .clients-table td {
     padding: 16px;
     font-size: 14px;
-    color: #2c3e50;
+    color: var(--text-color, #2c3e50);
 }
 
 .clients-table td.name {
@@ -64,13 +71,13 @@
 }
 
 .clients-table td.nickname {
-    color: #7f8c8d;
+    color: var(--text-secondary-color, #7f8c8d);
 }
 
 .clients-table td.contracts-count {
     text-align: center;
     font-weight: 500;
-    color: #2c3e50;
+    color: var(--text-color, #2c3e50);
 }
 
 .clients-table td.actions {
@@ -115,5 +122,35 @@
 }
 
 .clients-table-icon-button:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+/* Dark mode specific styles */
+.dark-mode .clients-table-empty {
+    color: #333 !important;
+}
+
+.dark-mode .clients-table thead tr {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table th {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .clients-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table td {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .clients-table td.nickname {
+    color: var(--text-secondary-color, #a0aec0);
+}
+
+.dark-mode .clients-table td.contracts-count {
+    color: var(--text-color, #f7fafc);
 }

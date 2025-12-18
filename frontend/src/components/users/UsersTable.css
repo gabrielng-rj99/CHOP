@@ -17,13 +17,20 @@
  */
 
 .users-table-empty {
-    padding: 40px;
+    padding: 60px 40px;
     text-align: center;
+    color: #333 !important;
+    height: 100px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .users-table-empty p {
     font-size: 16px;
-    color: #7f8c8d;
+    color: #333 !important;
+    margin: 0;
 }
 
 .users-table {

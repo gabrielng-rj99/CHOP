@@ -16,8 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useConfig } from "../contexts/ConfigContext";
+import { useData } from "../contexts/DataContext";
 import { agreementsApi } from "../api/agreementsApi";
+import { useUrlState } from "../hooks/useUrlState";
 import {
     getInitialFormData,
     formatContractForEdit,
@@ -29,10 +32,22 @@ import {
     prepareContractDataForAPI,
 } from "../utils/contractHelpers";
 import AgreementsTable from "../components/agreements/AgreementsTable";
-import AgreementModal from "../components/agreements/AgreementModal";
-import "./Agreements.css";
+import AgreementModal from "../components/agreements/AgreementsModal";
+import RefreshButton from "../components/common/RefreshButton";
+import PrimaryButton from "../components/common/PrimaryButton";
+import "./styles/Agreements.css";
 
 export default function Contracts({ token, apiUrl, onTokenExpired }) {
+    const {
+        fetchAgreements,
+        fetchEntities,
+        fetchCategories,
+        fetchSubcategories,
+        createAgreement,
+        updateAgreement,
+        deleteAgreement,
+        invalidateCache,
+    } = useData();
     const [contracts, setAgreements] = useState([]);
     const [clients, setEntities] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -40,68 +55,102 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [dependents, setDependents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [filter, setFilter] = useState("all");
-    const [searchTerm, setSearchTerm] = useState("");
+
+    // State persistence
+    const { values, updateValue } = useUrlState(
+        { filter: "all", search: "" },
+        { debounce: true, debounceTime: 300 },
+    );
+    const filter = values.filter;
+    const searchTerm = values.search;
+    const setFilter = (val) => updateValue("filter", val);
+    const setSearchTerm = (val) => updateValue("search", val);
+
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
     const [selectedContract, setSelectedContract] = useState(null);
     const [formData, setFormData] = useState(getInitialFormData());
+    const { config, getGenderHelpers } = useConfig();
+    const g = getGenderHelpers(config.labels.agreement_gender || "M");
+    const filtersContainerRef = useRef(null);
 
     useEffect(() => {
         loadInitialData();
     }, []);
 
-    const loadInitialData = async () => {
+    // Equalize filter button widths
+    useEffect(() => {
+        if (filtersContainerRef.current) {
+            const buttons = filtersContainerRef.current.querySelectorAll(
+                ".contracts-filter-button",
+            );
+            if (buttons.length > 0) {
+                // Reset min-width to measure natural width
+                buttons.forEach((btn) => (btn.style.minWidth = "auto"));
+
+                // Calculate max width
+                let maxWidth = 0;
+                buttons.forEach((btn) => {
+                    const width = btn.offsetWidth;
+                    if (width > maxWidth) {
+                        maxWidth = width;
+                    }
+                });
+
+                // Apply max width to all buttons
+                buttons.forEach((btn) => {
+                    btn.style.minWidth = maxWidth + "px";
+                });
+            }
+        }
+    }, [filter, contracts]); // Re-calculate when filter or contracts change
+
+    const loadInitialData = async (forceRefresh = false) => {
         setLoading(true);
         try {
             await Promise.all([
-                loadAgreements(),
-                loadEntities(),
-                loadCategories(),
+                loadAgreements(forceRefresh),
+                loadEntities(forceRefresh),
+                loadCategories(forceRefresh),
             ]);
         } finally {
             setLoading(false);
         }
     };
 
-    const loadAgreements = async () => {
+    const loadAgreements = async (forceRefresh = false) => {
         setError("");
         try {
-            const data = await agreementsApi.loadAgreements(apiUrl, token, onTokenExpired);
-            setAgreements(data);
+            const response = await fetchAgreements({}, forceRefresh);
+            setAgreements(response.data || []);
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const loadEntities = async () => {
+    const loadEntities = async (forceRefresh = false) => {
         try {
-            const data = await agreementsApi.loadEntities(apiUrl, token, onTokenExpired);
-            setEntities(data);
+            const response = await fetchEntities({}, forceRefresh);
+            setEntities(response.data || []);
         } catch (err) {
             console.error("Erro ao carregar clientes:", err);
         }
     };
 
-    const loadCategories = async () => {
+    const loadCategories = async (forceRefresh = false) => {
         try {
-            const data = await agreementsApi.loadCategories(apiUrl, token, onTokenExpired);
-            setCategories(data);
+            const response = await fetchCategories(forceRefresh);
+            setCategories(response.data || []);
         } catch (err) {
             console.error("Erro ao carregar categorias:", err);
         }
     };
 
-    const loadSubcategories = async (categoryId) => {
+    const loadSubcategories = async (categoryId, forceRefresh = false) => {
         try {
-            const data = await agreementsApi.loadSubcategories(
-                apiUrl,
-                token,
-                categoryId,
-                onTokenExpired,
-            );
-            setLines(data);
+            const response = await fetchSubcategories(categoryId, forceRefresh);
+            setLines(response.data || []);
         } catch (err) {
             console.error("Erro ao carregar linhas:", err);
         }
@@ -124,8 +173,14 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const handleCreateContract = async () => {
         try {
             const apiData = prepareContractDataForAPI(formData);
-            await agreementsApi.createAgreement(apiUrl, token, apiData, onTokenExpired);
-            await loadAgreements();
+            await agreementsApi.createAgreement(
+                apiUrl,
+                token,
+                apiData,
+                onTokenExpired,
+            );
+            invalidateCache("agreements");
+            await loadAgreements(true);
             closeModal();
         } catch (err) {
             setError(err.message);
@@ -142,7 +197,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 prepareContractDataForAPI(formData),
                 onTokenExpired,
             );
-            await loadAgreements();
+            invalidateCache("agreements");
+            await loadAgreements(true);
             closeModal();
         } catch (err) {
             setError(err.message);
@@ -154,8 +210,14 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
             return;
 
         try {
-            await agreementsApi.archiveAgreement(apiUrl, token, contractId, onTokenExpired);
-            await loadAgreements();
+            await agreementsApi.archiveAgreement(
+                apiUrl,
+                token,
+                contractId,
+                onTokenExpired,
+            );
+            invalidateCache("agreements");
+            await loadAgreements(true);
         } catch (err) {
             setError(err.message);
         }
@@ -163,8 +225,14 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const handleUnarchiveAgreement = async (contractId) => {
         try {
-            await agreementsApi.unarchiveAgreement(apiUrl, token, contractId, onTokenExpired);
-            await loadAgreements();
+            await agreementsApi.unarchiveAgreement(
+                apiUrl,
+                token,
+                contractId,
+                onTokenExpired,
+            );
+            invalidateCache("agreements");
+            await loadAgreements(true);
         } catch (err) {
             setError(err.message);
         }
@@ -275,36 +343,33 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         <div className="contracts-container">
             <div className="contracts-header">
                 <h1 className="contracts-title">Contratos</h1>
-                <div className="contracts-button-group">
-                    <button
-                        onClick={loadAgreements}
-                        className="contracts-button-secondary"
-                    >
-                        Atualizar
-                    </button>
-                    <button
-                        onClick={openCreateModal}
-                        className="contracts-button"
-                    >
-                        + Novo Contrato
-                    </button>
+                <div className="button-group">
+                    <RefreshButton
+                        onClick={() => loadInitialData(true)}
+                        disabled={loading}
+                        isLoading={loading}
+                        icon="↻"
+                    />
+                    <PrimaryButton onClick={openCreateModal}>
+                        + {g.new} {config.labels.agreement}
+                    </PrimaryButton>
                 </div>
             </div>
 
             {error && <div className="contracts-error">{error}</div>}
 
-            <div className="contracts-filters">
+            <div className="contracts-filters" ref={filtersContainerRef}>
                 <button
                     onClick={() => setFilter("all")}
                     className={`contracts-filter-button ${filter === "all" ? "active-all" : ""}`}
                 >
-                    Todos ({contracts.filter((c) => !c.archived_at).length})
+                    {g.all} ({contracts.filter((c) => !c.archived_at).length})
                 </button>
                 <button
                     onClick={() => setFilter("active")}
                     className={`contracts-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
-                    Ativos
+                    {g.active}
                 </button>
                 <button
                     onClick={() => setFilter("not-started")}
@@ -328,12 +393,12 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     onClick={() => setFilter("archived")}
                     className={`contracts-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
-                    Arquivados
+                    {config.labels.archived || g.archived}
                 </button>
 
                 <input
                     type="text"
-                    placeholder="Buscar por modelo, chave, cliente..."
+                    placeholder={`Buscar por modelo, chave, ${config.labels.entity.toLowerCase()}...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="contracts-search-input"
@@ -413,15 +478,17 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
                         <div style={{ display: "grid", gap: "16px" }}>
                             <DetailRow
-                                label="Modelo"
+                                label={config.labels.model || "Modelo"}
                                 value={selectedContract.model || "-"}
                             />
                             <DetailRow
-                                label="Chave do Produto"
+                                label={
+                                    config.labels.item_key || "Chave do Produto"
+                                }
                                 value={selectedContract.item_key || "-"}
                             />
                             <DetailRow
-                                label="Cliente"
+                                label={config.labels.entity || "Cliente"}
                                 value={getClientName(
                                     selectedContract.entity_id,
                                     clients,
@@ -429,19 +496,23 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                             />
                             {selectedContract.dependent && (
                                 <DetailRow
-                                    label="Dependente"
+                                    label={
+                                        config.labels.dependent || "Dependente"
+                                    }
                                     value={selectedContract.dependent.name}
                                 />
                             )}
                             <DetailRow
-                                label="Categoria"
+                                label={config.labels.category || "Categoria"}
                                 value={getCategoryName(
                                     selectedContract.subcategory_id,
                                     categories,
                                 )}
                             />
                             <DetailRow
-                                label="Linha"
+                                label={
+                                    config.labels.subcategory || "Subcategoria"
+                                }
                                 value={selectedContract.line?.line || "-"}
                             />
                             <DetailRow
