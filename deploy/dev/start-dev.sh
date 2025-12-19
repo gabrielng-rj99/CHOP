@@ -1,0 +1,375 @@
+#!/bin/bash
+
+# Entity Hub - Development Mode Startup Script
+# This script reads dev.ini, generates secure passwords if needed,
+# and starts backend + Vite dev server for hot reload development.
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Resolve Paths
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+CONFIG_FILE="$SCRIPT_DIR/dev.ini"
+
+# Function to generate secure 64-character password
+generate_password() {
+    openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
+}
+
+# Function to update ini file with generated password
+update_ini_value() {
+    local key=$1
+    local value=$2
+    local file=$3
+
+    # Escape special characters in value for sed
+    local escaped_value=$(echo "$value" | sed 's/[&/\]/\\&/g')
+
+    # Update the line with the key
+    sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$file"
+}
+
+# Function to print highlighted message
+print_highlight() {
+    echo -e "${BOLD}${YELLOW}================================================================================${NC}"
+    echo -e "${BOLD}${YELLOW}$1${NC}"
+    echo -e "${BOLD}${YELLOW}================================================================================${NC}"
+}
+
+echo -e "${BLUE}🚀 Starting Entity Hub (Development Mode)${NC}"
+echo -e "${BLUE}===========================================${NC}"
+echo ""
+echo -e "${YELLOW}ℹ️  Development mode uses:${NC}"
+echo -e "   • Vite dev server (hot reload) on port 5173"
+echo -e "   • Backend API on port 3000"
+echo -e "   • Separate development database (ehopdb_dev)"
+echo ""
+
+# Check Config
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo -e "${RED}❌ Error: $CONFIG_FILE not found!${NC}"
+    echo "Creating default dev.ini..."
+    cp "$SCRIPT_DIR/dev.ini.example" "$CONFIG_FILE" 2>/dev/null || {
+        echo -e "${RED}Could not create dev.ini${NC}"
+        exit 1
+    }
+fi
+
+# Load configuration from dev.ini
+echo "📄 Loading configuration from $CONFIG_FILE..."
+
+# First pass: read all variables into associative array
+declare -A CONFIG
+while IFS= read -r line; do
+    # Skip comments and empty lines
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "$line" ]] && continue
+
+    # Extract key=value
+    if [[ "$line" =~ ^[[:space:]]*([A-Z_][A-Z0-9_]*)=(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+
+        # Remove quotes if present
+        value="${value%\"}"
+        value="${value#\"}"
+
+        # Store in array
+        CONFIG[$key]="$value"
+    fi
+done < "$CONFIG_FILE"
+
+# Second pass: handle password generation and expand variables
+GENERATED_DB_PASSWORD=""
+GENERATED_JWT_SECRET=""
+
+for key in "${!CONFIG[@]}"; do
+    value="${CONFIG[$key]}"
+
+    # Generate passwords if empty
+    if [[ "$key" == "DB_PASSWORD" && -z "$value" ]]; then
+        value=$(generate_password)
+        GENERATED_DB_PASSWORD="$value"
+        CONFIG[$key]="$value"
+        update_ini_value "$key" "$value" "$CONFIG_FILE"
+        echo -e "${GREEN}✓ Generated secure DB_PASSWORD${NC}"
+    elif [[ "$key" == "JWT_SECRET" && -z "$value" ]]; then
+        value=$(generate_password)
+        GENERATED_JWT_SECRET="$value"
+        CONFIG[$key]="$value"
+        update_ini_value "$key" "$value" "$CONFIG_FILE"
+        echo -e "${GREEN}✓ Generated secure JWT_SECRET${NC}"
+    fi
+
+    # Expand variables in value (e.g., ${API_PORT})
+    while [[ "$value" =~ \$\{([A-Z_][A-Z0-9_]*)\} ]]; do
+        var_name="${BASH_REMATCH[1]}"
+        var_value="${CONFIG[$var_name]}"
+        value="${value//\$\{$var_name\}/$var_value}"
+    done
+
+    # Update in array and export
+    CONFIG[$key]="$value"
+    export "$key=$value"
+done
+
+echo -e "${GREEN}✓ Configuration loaded${NC}"
+echo ""
+
+# Set defaults if not in config
+export DB_HOST="${DB_HOST:-localhost}"
+export DB_PORT="${DB_PORT:-5432}"
+export DB_USER="${DB_USER:-ehopuser}"
+export DB_NAME="${DB_NAME:-ehopdb_dev}"
+export API_PORT="${API_PORT:-3000}"
+export VITE_PORT="${VITE_PORT:-5173}"
+
+# Check if PostgreSQL is running
+echo "🔍 Checking PostgreSQL..."
+if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" > /dev/null 2>&1; then
+    echo -e "${RED}❌ PostgreSQL is not running on ${DB_HOST}:${DB_PORT}!${NC}"
+    echo ""
+    echo "Start PostgreSQL:"
+    echo "  Linux:   sudo systemctl start postgresql"
+    echo "  macOS:   brew services start postgresql"
+    exit 1
+fi
+echo -e "${GREEN}✓ PostgreSQL is running${NC}"
+
+# Check/create database user and database
+echo "🗄️  Setting up development database..."
+
+# Detect how to run psql as postgres user
+PSQL_CMD=""
+if id postgres >/dev/null 2>&1; then
+    # postgres user exists, try to use it
+    if sudo -u postgres psql -c '\q' >/dev/null 2>&1; then
+        PSQL_CMD="sudo -u postgres psql"
+    fi
+elif psql -U postgres -c '\q' >/dev/null 2>&1; then
+    # Can connect as postgres directly
+    PSQL_CMD="psql -U postgres"
+fi
+
+if [ -z "$PSQL_CMD" ]; then
+    echo -e "${RED}❌ Cannot connect to PostgreSQL as superuser!${NC}"
+    echo -e "${YELLOW}Please ensure you can run: sudo -u postgres psql${NC}"
+    exit 1
+fi
+
+# Check if user exists, if not create it
+USER_EXISTS=$($PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null || echo "")
+if [[ "$USER_EXISTS" != "1" ]]; then
+    echo "Creating database user ${DB_USER}..."
+    $PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" || {
+         echo -e "${RED}❌ Failed to create database user.${NC}"
+         exit 1
+    }
+    echo -e "${GREEN}✓ Database user created${NC}"
+else
+    echo -e "${GREEN}✓ Database user exists${NC}"
+    # Update password in case it changed
+    $PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" >/dev/null 2>&1 || true
+fi
+
+# Check if database exists
+DB_EXISTS=$($PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null || echo "")
+if [[ "$DB_EXISTS" != "1" ]]; then
+    echo "Creating development database ${DB_NAME}..."
+    $PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" || {
+        echo -e "${RED}❌ Failed to create database.${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Development database created${NC}"
+else
+    echo -e "${GREEN}✓ Development database exists${NC}"
+fi
+
+# Grant privileges
+$PSQL_CMD -h "$DB_HOST" -p "$DB_PORT" -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" >/dev/null 2>&1 || true
+
+echo -e "${GREEN}✓ Database ready${NC}"
+echo ""
+
+# Build Backend
+echo "🔧 Building Backend..."
+cd "$PROJECT_ROOT/backend"
+
+# Clean old binary if exists
+if [ -f "ehop-backend-dev" ]; then
+    rm -f ehop-backend-dev
+fi
+
+if go build -o ehop-backend-dev ./cmd/server/main.go; then
+    echo -e "${GREEN}✓ Backend built successfully${NC}"
+else
+    echo -e "${RED}❌ Backend build failed!${NC}"
+    exit 1
+fi
+
+echo ""
+echo -e "${BLUE}ℹ️  Note: Frontend uses Vite dev server (no build needed)${NC}"
+
+# Prepare backend environment
+echo "🔧 Starting backend service..."
+cd "$PROJECT_ROOT/backend"
+
+# Ensure logs directory exists
+LOG_DIR="$PROJECT_ROOT/logs/backend_dev"
+mkdir -p "$LOG_DIR"
+
+# Create a PID file location
+BACKEND_PID_FILE="$LOG_DIR/backend.pid"
+
+# Stop any existing backend process
+if [ -f "$BACKEND_PID_FILE" ]; then
+    OLD_PID=$(cat "$BACKEND_PID_FILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "Stopping old backend process (PID: $OLD_PID)..."
+        kill "$OLD_PID" 2>/dev/null || true
+        sleep 2
+    fi
+    rm -f "$BACKEND_PID_FILE"
+fi
+
+# Start backend in background with environment variables
+DB_HOST="$DB_HOST" \
+DB_PORT="$DB_PORT" \
+DB_USER="$DB_USER" \
+DB_PASSWORD="$DB_PASSWORD" \
+DB_NAME="$DB_NAME" \
+JWT_SECRET="$JWT_SECRET" \
+API_PORT="$API_PORT" \
+APP_ENV="development" \
+nohup ./ehop-backend-dev > "$LOG_DIR/server.log" 2>&1 &
+BACKEND_PID=$!
+echo $BACKEND_PID > "$BACKEND_PID_FILE"
+
+echo -e "${GREEN}✓ Backend started (PID: $BACKEND_PID)${NC}"
+
+# Wait for backend to initialize
+echo "Waiting for backend to be ready..."
+for i in {1..30}; do
+    if curl -s http://localhost:${API_PORT}/health >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Backend health check passed${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${YELLOW}⚠️  Backend may not be fully ready yet. Check logs: $LOG_DIR/server.log${NC}"
+        echo ""
+        echo "Last 20 lines of backend log:"
+        tail -20 "$LOG_DIR/server.log"
+    fi
+    sleep 1
+done
+
+echo ""
+
+# Start Vite dev server
+echo "🎨 Starting Vite dev server..."
+cd "$PROJECT_ROOT/frontend"
+
+# Create PID file for Vite
+VITE_LOG_DIR="$PROJECT_ROOT/logs"
+mkdir -p "$VITE_LOG_DIR"
+VITE_PID_FILE="$VITE_LOG_DIR/vite-dev.pid"
+
+# Stop any existing Vite process
+if [ -f "$VITE_PID_FILE" ]; then
+    OLD_PID=$(cat "$VITE_PID_FILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "Stopping old Vite process (PID: $OLD_PID)..."
+        kill "$OLD_PID" 2>/dev/null || true
+        sleep 2
+    fi
+    rm -f "$VITE_PID_FILE"
+fi
+
+# Export environment variables for Vite (used by vite.config.js)
+export VITE_PORT="$VITE_PORT"
+export API_PORT="$API_PORT"
+
+# Start Vite in background (vite.config.js will read env vars and setup proxy)
+nohup npm run dev > "$VITE_LOG_DIR/vite-dev.log" 2>&1 &
+VITE_PID=$!
+echo $VITE_PID > "$VITE_PID_FILE"
+
+echo -e "${GREEN}✓ Vite dev server started (PID: $VITE_PID)${NC}"
+
+# Wait for Vite to be ready
+echo "Waiting for Vite to be ready..."
+for i in {1..30}; do
+    if curl -s http://localhost:${VITE_PORT} >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Vite dev server ready${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${YELLOW}⚠️  Vite may not be fully ready yet. Check logs: $VITE_LOG_DIR/vite-dev.log${NC}"
+    fi
+    sleep 1
+done
+
+echo ""
+echo -e "${GREEN}🎉 Development environment started successfully!${NC}"
+echo ""
+echo -e "${BOLD}Services running:${NC}"
+echo "  Frontend (Vite):  http://localhost:${VITE_PORT}"
+echo "  Backend API:      http://localhost:${API_PORT}"
+echo "  API Health:       http://localhost:${API_PORT}/health"
+echo ""
+echo -e "${BOLD}How it works:${NC}"
+echo "  • Vite proxies /api requests to backend on port ${API_PORT}"
+echo "  • Access the app at http://localhost:${VITE_PORT}"
+echo "  • Frontend makes requests to /api/* which are proxied to backend"
+echo ""
+echo -e "${BOLD}Features:${NC}"
+echo "  • Hot reload enabled (edit files and see changes instantly)"
+echo "  • React DevTools available"
+echo "  • Separate development database (${DB_NAME})"
+echo "  • Debug logging enabled"
+echo ""
+echo -e "${BOLD}Logs:${NC}"
+echo "  Backend:  $LOG_DIR/server.log"
+echo "  Vite:     $VITE_LOG_DIR/vite-dev.log"
+echo ""
+echo -e "${BOLD}Process IDs:${NC}"
+echo "  Backend PID: $BACKEND_PID (saved to $BACKEND_PID_FILE)"
+echo "  Vite PID:    $VITE_PID (saved to $VITE_PID_FILE)"
+echo ""
+
+# Print generated passwords with highlight
+if [ -n "$GENERATED_DB_PASSWORD" ] || [ -n "$GENERATED_JWT_SECRET" ]; then
+    print_highlight "🔐 IMPORTANT: Save these generated passwords!"
+    echo ""
+
+    if [ -n "$GENERATED_DB_PASSWORD" ]; then
+        echo -e "${BOLD}${RED}Database Password (DB_PASSWORD):${NC}"
+        echo -e "${BOLD}${GREEN}$GENERATED_DB_PASSWORD${NC}"
+        echo ""
+        echo "Saved to: $CONFIG_FILE"
+        echo ""
+    fi
+
+    if [ -n "$GENERATED_JWT_SECRET" ]; then
+        echo -e "${BOLD}${RED}JWT Secret (JWT_SECRET):${NC}"
+        echo -e "${BOLD}${GREEN}$GENERATED_JWT_SECRET${NC}"
+        echo ""
+        echo "Saved to: $CONFIG_FILE"
+        echo ""
+    fi
+
+    print_highlight "Passwords have been saved to $CONFIG_FILE"
+    echo ""
+fi
+
+echo -e "${YELLOW}To stop services, run: ./deploy/dev/stop-dev.sh${NC}"
+echo ""
+echo -e "${BLUE}Happy coding! 🚀${NC}"
