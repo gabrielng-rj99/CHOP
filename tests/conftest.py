@@ -409,6 +409,31 @@ def setup_teardown(http_client, api_url):
     print(f"{'='*70}\n")
 
 
+# Fixtures de tokens para testes de segurança
+@pytest.fixture(scope="session")
+def root_token(root_user):
+    """Token do usuário root."""
+    if root_user and "token" in root_user:
+        return root_user["token"]
+    return None
+
+
+@pytest.fixture(scope="session")
+def admin_token(admin_user):
+    """Token do usuário admin."""
+    if admin_user and "token" in admin_user:
+        return admin_user["token"]
+    return None
+
+
+@pytest.fixture(scope="session")
+def user_token(regular_user):
+    """Token do usuário comum."""
+    if regular_user and "token" in regular_user:
+        return regular_user["token"]
+    return None
+
+
 # Funções utilitárias para os testes
 def get_valid_token(http_client, api_url, username, password):
     """Obtém um token válido para um usuário"""
