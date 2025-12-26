@@ -225,7 +225,6 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
                     <PrimaryButton
                         onClick={handleExport}
                         style={{
-                            backgroundColor: "var(--secondary-color, #2c3e50)",
                             minWidth: "160px",
                         }}
                     >

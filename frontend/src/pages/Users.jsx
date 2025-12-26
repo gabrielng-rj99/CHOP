@@ -273,7 +273,7 @@ export default function Users({
     }
 
     // We need to access getGenderHelpers in component body
-    const g = getGenderHelpers(config.labels.user_gender || "M");
+    const g = getGenderHelpers("user");
 
     return (
         <div className="users-container">

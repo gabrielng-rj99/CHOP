@@ -50,7 +50,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const [modalError, setModalError] = useState("");
     const [dependentModalError, setSubEntityModalError] = useState("");
     const { config, getGenderHelpers } = useConfig();
-    const g = getGenderHelpers(config.labels.entity_gender || "M");
+    const g = getGenderHelpers("entity");
     const filtersContainerRef = useRef(null);
 
     // State persistence

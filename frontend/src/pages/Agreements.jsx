@@ -72,7 +72,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [selectedContract, setSelectedContract] = useState(null);
     const [formData, setFormData] = useState(getInitialFormData());
     const { config, getGenderHelpers } = useConfig();
-    const g = getGenderHelpers(config.labels.agreement_gender || "M");
+    const g = getGenderHelpers("agreement");
     const filtersContainerRef = useRef(null);
 
     useEffect(() => {

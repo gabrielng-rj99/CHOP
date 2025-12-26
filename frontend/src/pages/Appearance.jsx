@@ -1054,7 +1054,7 @@ export default function Appearance({ token, apiUrl }) {
                                         onClick={handleSaveGlobalTheme}
                                         title="Define o tema salvo como padrão para novos usuários"
                                     >
-                                        Aplicar como Padrão para Novos Usuários
+                                        Atualizar Tema <br></br> Padrão Global
                                     </button>
                                     <button
                                         type="button"

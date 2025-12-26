@@ -39,7 +39,7 @@ import "./styles/Categories.css";
 export default function Categories({ token, apiUrl, onTokenExpired }) {
     const { config, getGenderHelpers } = useConfig();
     const { labels } = config;
-    const gCat = getGenderHelpers(labels.category_gender || "F");
+    const gCat = getGenderHelpers("category");
     // const gSub = getGenderHelpers(labels.subcategory_gender || 'F');
 
     const CATEGORY_LABEL = labels.categories || "Categorias";
