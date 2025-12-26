@@ -87,8 +87,27 @@ export default function Settings({ token, apiUrl }) {
         setBrandingError("");
         setBrandingSaving(true);
         try {
+            // Check if useCustomLogo is truly enabled (handle both boolean and string)
+            const isCustomLogoEnabled =
+                formData.branding?.useCustomLogo === true ||
+                formData.branding?.useCustomLogo === "true";
+
+            // Only include logo URLs if useCustomLogo is true
+            const brandingToSave = {
+                appName: formData.branding?.appName || "",
+                useCustomLogo: isCustomLogoEnabled,
+            };
+
+            // Only include logo URLs if custom logo is enabled
+            if (isCustomLogoEnabled) {
+                brandingToSave.logoWideUrl =
+                    formData.branding?.logoWideUrl || "";
+                brandingToSave.logoSquareUrl =
+                    formData.branding?.logoSquareUrl || "";
+            }
+
             const systemSettings = {
-                branding: formData.branding,
+                branding: brandingToSave,
             };
             await updateSettings(systemSettings);
 
@@ -610,8 +629,10 @@ export default function Settings({ token, apiUrl }) {
                                 <input
                                     type="checkbox"
                                     checked={
-                                        formData.branding?.useCustomLogo ||
-                                        false
+                                        formData.branding?.useCustomLogo ===
+                                            true ||
+                                        formData.branding?.useCustomLogo ===
+                                            "true"
                                     }
                                     onChange={(e) =>
                                         handleChange(
@@ -629,7 +650,8 @@ export default function Settings({ token, apiUrl }) {
                             </span>
                         </div>
 
-                        {formData.branding?.useCustomLogo && (
+                        {(formData.branding?.useCustomLogo === true ||
+                            formData.branding?.useCustomLogo === "true") && (
                             <>
                                 <div className="form-group">
                                     <label>
@@ -819,9 +841,9 @@ export default function Settings({ token, apiUrl }) {
                                     label: "Subcategoria",
                                 },
                                 {
-                                    key: "sub_entity",
-                                    pluralKey: "sub_entities",
-                                    genderKey: "sub_entity_gender",
+                                    key: "dependent",
+                                    pluralKey: "dependents",
+                                    genderKey: "dependent_gender",
                                     label: "Sub-entidade (Dependente)",
                                 },
                                 {
