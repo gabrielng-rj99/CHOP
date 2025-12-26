@@ -81,9 +81,9 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                 </button>
 
                 <button
-                    onClick={() => navigate("/contracts")}
-                    className={`app-nav-button ${currentPath === "contracts" ? "active" : ""}`}
-                    title={labels.agreements || "Contratos"}
+                    onClick={() => navigate("/agreements")}
+                    className={`app-nav-button ${currentPath === "agreements" ? "active" : ""}`}
+                    title={labels.agreements || "Acordos"}
                 >
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faFileContract} />

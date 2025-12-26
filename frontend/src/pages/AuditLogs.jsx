@@ -215,7 +215,7 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
     return (
         <div className="audit-logs-container">
             <div className="audit-logs-header">
-                <h1 className="audit-logs-title">Logs</h1>
+                <h1 className="audit-logs-title">🔍 Logs</h1>
                 <div className="button-group">
                     <RefreshButton
                         onClick={loadLogs}

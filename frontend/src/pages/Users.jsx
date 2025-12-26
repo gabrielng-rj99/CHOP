@@ -279,7 +279,7 @@ export default function Users({
         <div className="users-container">
             <div className="users-header">
                 <h1 className="users-title">
-                    {config.labels.users || "Usuários"}
+                    👤 {config.labels.users || "Usuários"}
                 </h1>
                 <div className="button-group">
                     <RefreshButton

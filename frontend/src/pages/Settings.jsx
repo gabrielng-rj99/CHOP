@@ -18,8 +18,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useConfig } from "../contexts/ConfigContext";
-import SecuritySettings from "../components/SecuritySettings";
-import RolesPermissions from "../components/RolesPermissions";
+import SecuritySettings from "../components/settings/SecuritySettings";
+import RolesPermissions from "../components/settings/RolesPermissions";
 import "./styles/Settings.css";
 
 const GenderSelect = ({ section, fieldKey, value, onChange }) => (
@@ -301,7 +301,7 @@ export default function Settings({ token, apiUrl }) {
     return (
         <div className="settings-container">
             <div className="settings-header">
-                <h1 className="settings-title">Configurações do Sistema</h1>
+                <h1 className="settings-title">⚙️ Configurações do Sistema</h1>
             </div>
 
             {/* Main Navigation Tabs */}
@@ -369,203 +369,199 @@ export default function Settings({ token, apiUrl }) {
                         )}
 
                         {/* Aniversariantes */}
-                        <div className="settings-group">
-                            <h3>🎂 Aniversariantes</h3>
-                            <div className="form-group-inline">
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            dashboardSettings.show_birthdays
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "show_birthdays",
-                                                e.target.checked,
-                                            )
-                                        }
-                                    />
-                                    <span className="slider round"></span>
-                                </label>
-                                <span>Exibir widget de aniversariantes</span>
+                        <div className="dashboard-settings-grid">
+                            {/* Aniversariantes */}
+                            <div className="settings-card">
+                                <h3>🎂 Aniversariantes</h3>
+                                <div className="card-content">
+                                    <div className="switch-row">
+                                        <label className="switch small">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    dashboardSettings.show_birthdays
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "show_birthdays",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <span className="slider round"></span>
+                                        </label>
+                                        <span>Ativar Widget</span>
+                                    </div>
+                                    {dashboardSettings.show_birthdays && (
+                                        <div className="compact-input-row">
+                                            <label>Dias:</label>
+                                            <input
+                                                type="number"
+                                                className="small-input"
+                                                min="1"
+                                                max="90"
+                                                value={
+                                                    dashboardSettings.birthdays_days_ahead
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "birthdays_days_ahead",
+                                                        parseInt(
+                                                            e.target.value,
+                                                        ) || 7,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            {dashboardSettings.show_birthdays && (
-                                <div className="form-group">
-                                    <label>
-                                        Mostrar aniversariantes dos próximos
-                                    </label>
-                                    <div className="input-with-suffix">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="90"
-                                            value={
-                                                dashboardSettings.birthdays_days_ahead
-                                            }
-                                            onChange={(e) =>
-                                                handleDashboardChange(
-                                                    "birthdays_days_ahead",
-                                                    parseInt(e.target.value) ||
-                                                        7,
-                                                )
-                                            }
-                                        />
-                                        <span>dias</span>
+
+                            {/* Atividade Recente */}
+                            <div className="settings-card">
+                                <h3>📋 Atividade Recente</h3>
+                                <div className="card-content">
+                                    <div className="switch-row">
+                                        <label className="switch small">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    dashboardSettings.show_recent_activity
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "show_recent_activity",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <span className="slider round"></span>
+                                        </label>
+                                        <span>Ativar Widget</span>
+                                    </div>
+                                    {dashboardSettings.show_recent_activity && (
+                                        <div className="compact-input-row">
+                                            <label>Itens:</label>
+                                            <input
+                                                type="number"
+                                                className="small-input"
+                                                min="5"
+                                                max="50"
+                                                value={
+                                                    dashboardSettings.recent_activity_count
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "recent_activity_count",
+                                                        parseInt(
+                                                            e.target.value,
+                                                        ) || 10,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Estatísticas */}
+                            <div className="settings-card">
+                                <h3>📈 Estatísticas</h3>
+                                <div className="card-content">
+                                    <div className="switch-row">
+                                        <label className="switch small">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    dashboardSettings.show_statistics
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "show_statistics",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <span className="slider round"></span>
+                                        </label>
+                                        <span>Exibir Cards de Totais</span>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Atividade Recente */}
-                        <div className="settings-group">
-                            <h3>📋 Atividade Recente</h3>
-                            <div className="form-group-inline">
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            dashboardSettings.show_recent_activity
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "show_recent_activity",
-                                                e.target.checked,
-                                            )
-                                        }
-                                    />
-                                    <span className="slider round"></span>
-                                </label>
-                                <span>Exibir widget de atividade recente</span>
                             </div>
-                            {dashboardSettings.show_recent_activity && (
-                                <div className="form-group">
-                                    <label>Número de itens a exibir</label>
-                                    <input
-                                        type="number"
-                                        min="5"
-                                        max="50"
-                                        value={
-                                            dashboardSettings.recent_activity_count
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "recent_activity_count",
-                                                parseInt(e.target.value) || 10,
-                                            )
-                                        }
-                                    />
+
+                            {/* Acordos Próximos ao Vencimento */}
+                            <div className="settings-card">
+                                <h3>
+                                    ⏰ {config.labels?.agreements || "Acordos"}{" "}
+                                    Próximos
+                                </h3>
+                                <div className="card-content">
+                                    <div className="switch-row">
+                                        <label className="switch small">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    dashboardSettings.show_expiring_agreements
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "show_expiring_agreements",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <span className="slider round"></span>
+                                        </label>
+                                        <span>Exibir Widget</span>
+                                    </div>
+                                    {dashboardSettings.show_expiring_agreements && (
+                                        <div className="compact-input-row">
+                                            <label>Alerta:</label>
+                                            <input
+                                                type="number"
+                                                className="small-input"
+                                                min="7"
+                                                max="180"
+                                                value={
+                                                    dashboardSettings.expiring_days_ahead
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "expiring_days_ahead",
+                                                        parseInt(
+                                                            e.target.value,
+                                                        ) || 30,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Estatísticas */}
-                        <div className="settings-group">
-                            <h3>📈 Estatísticas</h3>
-                            <div className="form-group-inline">
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            dashboardSettings.show_statistics
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "show_statistics",
-                                                e.target.checked,
-                                            )
-                                        }
-                                    />
-                                    <span className="slider round"></span>
-                                </label>
-                                <span>
-                                    Exibir cards de estatísticas (totais de
-                                    entidades,{" "}
-                                    {config.labels?.agreements?.toLowerCase() ||
-                                        "acordos"}
-                                    , etc)
-                                </span>
                             </div>
-                        </div>
 
-                        {/* Acordos Próximos ao Vencimento */}
-                        <div className="settings-group">
-                            <h3>
-                                ⏰ {config.labels?.agreements || "Acordos"}{" "}
-                                Próximos ao Vencimento
-                            </h3>
-                            <div className="form-group-inline">
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            dashboardSettings.show_expiring_agreements
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "show_expiring_agreements",
-                                                e.target.checked,
-                                            )
-                                        }
-                                    />
-                                    <span className="slider round"></span>
-                                </label>
-                                <span>
-                                    Exibir widget de{" "}
-                                    {config.labels?.agreements?.toLowerCase() ||
-                                        "acordos"}{" "}
-                                    próximos ao vencimento
-                                </span>
-                            </div>
-                            {dashboardSettings.show_expiring_agreements && (
-                                <div className="form-group">
-                                    <label>
-                                        Alertar{" "}
-                                        {config.labels?.agreements?.toLowerCase() ||
-                                            "acordos"}{" "}
-                                        que vencem nos próximos
-                                    </label>
-                                    <div className="input-with-suffix">
-                                        <input
-                                            type="number"
-                                            min="7"
-                                            max="180"
-                                            value={
-                                                dashboardSettings.expiring_days_ahead
-                                            }
-                                            onChange={(e) =>
-                                                handleDashboardChange(
-                                                    "expiring_days_ahead",
-                                                    parseInt(e.target.value) ||
-                                                        30,
-                                                )
-                                            }
-                                        />
-                                        <span>dias</span>
+                            {/* Ações Rápidas */}
+                            <div className="settings-card">
+                                <h3>⚡ Ações Rápidas</h3>
+                                <div className="card-content">
+                                    <div className="switch-row">
+                                        <label className="switch small">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    dashboardSettings.show_quick_actions
+                                                }
+                                                onChange={(e) =>
+                                                    handleDashboardChange(
+                                                        "show_quick_actions",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <span className="slider round"></span>
+                                        </label>
+                                        <span>Botões de Ação</span>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Ações Rápidas */}
-                        <div className="settings-group">
-                            <h3>⚡ Ações Rápidas</h3>
-                            <div className="form-group-inline">
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            dashboardSettings.show_quick_actions
-                                        }
-                                        onChange={(e) =>
-                                            handleDashboardChange(
-                                                "show_quick_actions",
-                                                e.target.checked,
-                                            )
-                                        }
-                                    />
-                                    <span className="slider round"></span>
-                                </label>
-                                <span>Exibir botões de ações rápidas</span>
                             </div>
                         </div>
 

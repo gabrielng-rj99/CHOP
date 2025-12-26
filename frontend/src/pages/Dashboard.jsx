@@ -271,7 +271,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 }}
             >
                 <h1 className="dashboard-title" style={{ margin: 0 }}>
-                    Dashboard
+                    📈 Dashboard
                 </h1>
                 <RefreshButton
                     onClick={() => loadData(true)}
