@@ -19,23 +19,59 @@
 import React, { useState, useEffect } from "react";
 import "./styles/Initialize.css";
 
+const generateSecurePassword = (length = 64) => {
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*()-_=+[]{}.,;:<>?";
+    const allChars = uppercase + lowercase + numbers + symbols;
+
+    let newPassword = "";
+    // Ensure at least one of each type
+    newPassword += uppercase.charAt(
+        Math.floor(Math.random() * uppercase.length),
+    );
+    newPassword += lowercase.charAt(
+        Math.floor(Math.random() * lowercase.length),
+    );
+    newPassword += numbers.charAt(
+        Math.floor(Math.random() * numbers.length),
+    );
+    newPassword += symbols.charAt(
+        Math.floor(Math.random() * symbols.length),
+    );
+
+    // Fill the rest randomly
+    for (let i = newPassword.length; i < length; i++) {
+        newPassword += allChars.charAt(
+            Math.floor(Math.random() * allChars.length),
+        );
+    }
+
+    // Shuffle the password
+    return newPassword
+        .split("")
+        .sort(() => Math.random() - 0.5)
+        .join("");
+};
+
 const Initialize = ({ onInitializationComplete }) => {
     const [step, setStep] = useState("check"); // check, create-admin, success
     const [status, setStatus] = useState(null);
     const [errors, setErrors] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const PASSWORD_MIN = 32;
+    const PASSWORD_MAX = 128;
+
     // Root user configuration
     const [username, setUsername] = useState("root");
     const [displayName, setDisplayName] = useState("Administrator");
-    const [password, setPassword] = useState("Change_Me_123456");
-    const [passwordLength, setPasswordLength] = useState(16);
+    const [passwordLength, setPasswordLength] = useState(64);
+    const [password, setPassword] = useState(generateSecurePassword(64));
 
     const [showPassword, setShowPassword] = useState(false);
     const [creatingAdmin, setCreatingAdmin] = useState(false);
-
-    const PASSWORD_MIN = 8;
-    const PASSWORD_MAX = 128;
 
     useEffect(() => {
         checkBackendStatus();
@@ -87,42 +123,6 @@ const Initialize = ({ onInitializationComplete }) => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const generateSecurePassword = (length = 16) => {
-        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const lowercase = "abcdefghijklmnopqrstuvwxyz";
-        const numbers = "0123456789";
-        const symbols = "!@#$%^&*()-_=+";
-        const allChars = uppercase + lowercase + numbers + symbols;
-
-        let newPassword = "";
-        // Ensure at least one of each type
-        newPassword += uppercase.charAt(
-            Math.floor(Math.random() * uppercase.length),
-        );
-        newPassword += lowercase.charAt(
-            Math.floor(Math.random() * lowercase.length),
-        );
-        newPassword += numbers.charAt(
-            Math.floor(Math.random() * numbers.length),
-        );
-        newPassword += symbols.charAt(
-            Math.floor(Math.random() * symbols.length),
-        );
-
-        // Fill the rest randomly
-        for (let i = newPassword.length; i < length; i++) {
-            newPassword += allChars.charAt(
-                Math.floor(Math.random() * allChars.length),
-            );
-        }
-
-        // Shuffle the password
-        return newPassword
-            .split("")
-            .sort(() => Math.random() - 0.5)
-            .join("");
     };
 
     const handleGeneratePassword = () => {
@@ -188,6 +188,14 @@ const Initialize = ({ onInitializationComplete }) => {
                 return;
             }
 
+            // Auto copy password
+            try {
+                await navigator.clipboard.writeText(password);
+                alert("Password copied to clipboard!");
+            } catch (err) {
+                console.error("Failed to auto-copy password:", err);
+            }
+
             setStatus({
                 type: "success",
                 message: "✅ Root admin user created successfully!",
@@ -197,10 +205,10 @@ const Initialize = ({ onInitializationComplete }) => {
                 },
             });
 
-            // Show success screen for 2 seconds then redirect
+            // Show success screen for a very short time then redirect
             setTimeout(() => {
                 onInitializationComplete();
-            }, 2500);
+            }, 500);
 
             setStep("success");
         } catch (error) {
@@ -428,44 +436,8 @@ const Initialize = ({ onInitializationComplete }) => {
         return (
             <div className="initialize-container">
                 <div className="initialize-screen success-screen">
-                    <div className="init-icon">🎉</div>
-                    <h1>Setup Complete!</h1>
-                    <p className="init-message">
-                        Your root administrator account is ready
-                    </p>
-
-                    <div className="success-info">
-                        <div className="info-item">
-                            <span className="label">Username:</span>
-                            <span className="value">
-                                {status?.credentials?.username}
-                            </span>
-                        </div>
-                        <div className="info-item">
-                            <span className="label">Password:</span>
-                            <span className="value password-display">
-                                {"•".repeat(
-                                    status?.credentials?.password?.length || 0,
-                                )}
-                            </span>
-                            <button
-                                type="button"
-                                className="copy-btn-small"
-                                onClick={() =>
-                                    copyToClipboard(
-                                        status?.credentials?.password,
-                                    )
-                                }
-                                title="Copy password to clipboard"
-                            >
-                                📋 Copy
-                            </button>
-                        </div>
-                    </div>
-
-                    <p className="redirect-message">
-                        Redirecting to login in a moment...
-                    </p>
+                    <div className="init-spinner">⏳</div>
+                    <h1>Validating Root...</h1>
                 </div>
             </div>
         );
