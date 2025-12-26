@@ -41,7 +41,7 @@ func (s *Server) handleSubcategories(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleListLines(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListLines(w http.ResponseWriter, _ *http.Request) {
 	subcategories, err := s.subcategoryStore.GetAllSubcategories()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
@@ -53,7 +53,7 @@ func (s *Server) handleListLines(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name string `json:"name"`
+		Name       string `json:"name"`
 		CategoryID string `json:"category_id"`
 	}
 
@@ -65,7 +65,7 @@ func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request)
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	line := domain.Subcategory{
-		Name: req.Name,
+		Name:       req.Name,
 		CategoryID: req.CategoryID,
 	}
 
@@ -160,7 +160,7 @@ func (s *Server) handleSubcategoryByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleGetLine(w http.ResponseWriter, r *http.Request, subcategoryID string) {
+func (s *Server) handleGetLine(w http.ResponseWriter, _ *http.Request, subcategoryID string) {
 	line, err := s.subcategoryStore.GetSubcategoryByID(subcategoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -197,7 +197,7 @@ func (s *Server) handleUpdateSubcategory(w http.ResponseWriter, r *http.Request,
 
 	line := domain.Subcategory{
 		ID:         subcategoryID,
-		Name: req.Name,
+		Name:       req.Name,
 		CategoryID: existingLine.CategoryID,
 	}
 

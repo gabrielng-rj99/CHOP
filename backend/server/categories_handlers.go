@@ -166,7 +166,7 @@ func (s *Server) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleGetCategory(w http.ResponseWriter, r *http.Request, categoryID string) {
+func (s *Server) handleGetCategory(w http.ResponseWriter, _ *http.Request, categoryID string) {
 	category, err := s.categoryStore.GetCategoryByID(categoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {

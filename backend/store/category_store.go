@@ -360,7 +360,7 @@ func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
 
 	// Check if category has any subcategories associated with active agreements
 	// Active = not archived and (no end_date or end_date in future)
-	var activeContracts int
+	var activeAgreements int
 	now := time.Now()
 	err = s.db.QueryRow(`
 		SELECT COUNT(DISTINCT c.id)
@@ -369,14 +369,14 @@ func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
 		WHERE l.category_id = $1
 		AND c.archived_at IS NULL
 		AND (c.end_date IS NULL OR c.end_date > $2)
-	`, categoryID, now).Scan(&activeContracts)
+	`, categoryID, now).Scan(&activeAgreements)
 	if err != nil {
 		return err
 	}
 
 	// Set status based on usage in active agreements
 	var newStatus string
-	if activeContracts > 0 {
+	if activeAgreements > 0 {
 		newStatus = "ativo"
 	} else {
 		newStatus = "inativo"

@@ -485,7 +485,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         <div className="categories-container">
             <div className="categories-header">
                 <h1 className="categories-title">
-                    {CATEGORY_LABEL} e {SUBCATEGORY_LABEL}
+                    🏷️ {config.labels.categories || "Categorias"} e{" "}
+                    {config.labels.subcategories || "Subcategorias"}
                 </h1>
                 <div className="button-group">
                     <RefreshButton
