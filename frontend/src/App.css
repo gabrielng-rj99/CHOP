@@ -32,12 +32,34 @@
     --border-color: #cbd5e0;
     /* Default border color for light mode */
     /* Card/Panel bg */
+
+    /* Fonts */
+    --font-general:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --font-title:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --font-table-title:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
+    font-family: var(--font-general);
     margin: 0;
+}
+
+/* Explicitly set font for form controls to matching general font */
+button,
+input,
+select,
+textarea,
+label,
+.btn {
+    font-family: var(--font-general);
 }
 
 .app-container {
@@ -50,6 +72,8 @@ body {
     width: 250px;
     background: var(--secondary-color);
     color: var(--nav-text-color, white);
+    font-family: var(--font-table-title);
+    /* User requested Table Title font for Sidebar */
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -101,6 +125,7 @@ body {
     overflow: hidden;
     color: var(--nav-text-color, white);
     /* Ensure high contrast against sidebar bg */
+    font-family: var(--font-title);
 }
 
 .app-nav-branding {
@@ -155,6 +180,8 @@ body {
 .app-nav-button {
     background: transparent;
     color: var(--nav-text-color, white);
+    font-family: var(--font-table-title);
+    /* Specific override for sidebar buttons */
     border: none;
     padding: 12px 16px;
     margin-bottom: 8px;
@@ -297,6 +324,27 @@ body {
     transition: margin-left 0.5s ease;
     overflow-y: auto;
     height: 100vh;
+    box-sizing: border-box;
+    /* Ensure padding doesn't affect calculation */
+}
+
+/* Layout Modes */
+.app-main.layout-mode-standard > * {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.app-main.layout-mode-centralized > * {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.app-main.layout-mode-full > * {
+    max-width: 100%;
 }
 
 .app-nav.collapsed ~ .app-main {
@@ -381,6 +429,31 @@ h4,
 h5,
 h6 {
     color: var(--text-color);
+    font-family: var(--font-table-title);
+    /* Secondary Titles (Section Headers) */
+}
+
+/* Global Table Styles */
+table,
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    font-family: var(--font-general);
+    /* Redirected to General Font per user request */
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    font-family: var(--font-table-title);
+    /* Use Secondary Title font for headers */
+    font-weight: 600;
+    color: var(--text-secondary-color);
 }
 
 /* High Contrast Mode - Reinforcement */
@@ -442,21 +515,6 @@ h6 {
     width: 0;
     height: 0;
     overflow: hidden;
-}
-
-/* Protanopia filter - difficulty distinguishing red */
-#protanopia-filter feColorMatrix {
-    values: "0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0";
-}
-
-/* Deuteranopia filter - difficulty distinguishing green */
-#deuteranopia-filter feColorMatrix {
-    values: "0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0";
-}
-
-/* Tritanopia filter - difficulty distinguishing blue */
-#tritanopia-filter feColorMatrix {
-    values: "0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0";
 }
 
 /* Accessibility: Underline Links */
@@ -560,13 +618,13 @@ h6 {
     line-height: 1.8;
 }
 
-[data-line-spacing="spacious"] {
+[data-line-spacing="standard"] {
     line-height: 2.2;
 }
 
-[data-line-spacing="spacious"] p,
-[data-line-spacing="spacious"] li,
-[data-line-spacing="spacious"] div {
+[data-line-spacing="standard"] p,
+[data-line-spacing="standard"] li,
+[data-line-spacing="standard"] div {
     line-height: 2.2;
 }
 
@@ -581,7 +639,7 @@ h6 {
 }
 
 [data-theme="dark"] .clients-table-empty,
-[data-theme="dark"] .contracts-loading-text,
+[data-theme="dark"] .agreements-loading-text,
 [data-theme="dark"] .categories-loading-text {
     color: #333 !important;
 }
@@ -592,14 +650,16 @@ h6 {
 .dark-mode .audit-logs-title,
 .dark-mode .users-title,
 .dark-mode .agreements-title,
-.dark-mode .dashboard-title {
+.dark-mode .dashboard-title,
+.dark-mode .appearance-title,
+.dark-mode .settings-title {
     color: var(--page-title-color, var(--text-color, #f7fafc)) !important;
 }
 
 .dark-mode .clients-table-empty,
 .dark-mode .categories-loading-text,
 .dark-mode .audit-logs-loading-text,
-.dark-mode .contracts-loading-text {
+.dark-mode .agreements-loading-text {
     color: #333 !important;
 }
 
@@ -609,7 +669,9 @@ h6 {
 .audit-logs-title,
 .users-title,
 .agreements-title,
-.dashboard-title {
+.dashboard-title,
+.appearance-title,
+.settings-title {
     color: var(--page-title-color, var(--text-color, #2c3e50));
 }
 
@@ -617,7 +679,7 @@ h6 {
 .clients-table-empty,
 .categories-loading-text,
 .audit-logs-loading-text,
-.contracts-loading-text {
+.agreements-loading-text {
     color: #333 !important;
 }
 
@@ -636,6 +698,7 @@ h6 {
     background: var(--content-bg, #2d3748);
     color: var(--text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
+    font-family: var(--font-table-title);
 }
 
 .dark-mode .clients-table td,
@@ -644,6 +707,7 @@ h6 {
 .dark-mode .audit-logs-table td {
     color: var(--text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
+    font-family: var(--font-table-content);
 }
 
 .dark-mode .clients-table tbody tr,
@@ -850,4 +914,96 @@ h6 {
 /* High Contrast Filter */
 .high-contrast-filter {
     filter: contrast(1.3);
+}
+
+/* Layout Modes */
+/* Standard - Default (1600px) */
+.layout-standard .app-main {
+    max-width: 1600px;
+    margin-right: auto;
+}
+
+.layout-standard:not(.collapsed) .app-main {
+    margin-left: max(250px, calc((100vw - 1600px) / 2));
+}
+
+.layout-standard.collapsed .app-main {
+    margin-left: max(70px, calc((100vw - 1600px) / 2));
+}
+
+/* Centralized - Classic (1200px) */
+.layout-centralized .app-main {
+    max-width: 1200px;
+    margin-right: auto;
+}
+
+.layout-centralized:not(.collapsed) .app-main {
+    margin-left: max(250px, calc((100vw - 1200px) / 2));
+}
+
+.layout-centralized.collapsed .app-main {
+    margin-left: max(70px, calc((100vw - 1200px) / 2));
+}
+
+/* Full Width - 100% */
+.layout-full .app-main {
+    max-width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+/* Ensure full width for specific full-screen containers if needed */
+.layout-standard .app-main > .full-width-container,
+.layout-full .app-main > .full-width-container {
+    max-width: 100%;
+    padding: 0;
+}
+
+/* Layout Modes - Controlled by ConfigContext className on html root */
+
+/* Centralized: Narrow constraint (e.g. 1200px), centered */
+html.layout-centralized .app-main > * {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* Standard (Padrão): Wider constraint (e.g. 1600px), centered */
+html.layout-standard .app-main > * {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1600px;
+    width: 100%;
+}
+
+/* Full: 100% width (Default behavior, but explicit here) */
+html.layout-full .app-main > * {
+    max-width: 100%;
+}
+
+html.layout-centralized .app-main,
+html.layout-standard .app-main {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+/* On mobile, standard padding */
+@media (max-width: 768px) {
+    html.layout-centralized .app-main,
+    html.layout-standard .app-main {
+        padding-left: 20px;
+        padding-right: 20px;
+        /* standard padding */
+    }
+}
+
+/* Adjust centering for small screens assuming collapsed sidebar */
+@media (max-width: 1366px) {
+    .layout-standard .app-main {
+        margin-left: max(70px, calc((100vw - 1600px) / 2));
+    }
+    .layout-centralized .app-main {
+        margin-left: max(70px, calc((100vw - 1200px) / 2));
+    }
 }

@@ -145,6 +145,9 @@ const defaultSettings = {
         textColor: "#0c4a6e",
         textSecondaryColor: "#475569",
         borderColor: "#7dd3fc",
+        fontGeneral: "System",
+        fontTitle: "System",
+        fontTableTitle: "System",
     },
 };
 
@@ -174,6 +177,7 @@ const defaultLabels = {
 const defaultAccessibility = {
     highContrast: false,
     colorBlindMode: "none",
+    dyslexicFont: false,
 };
 
 export const ConfigProvider = ({ children }) => {
@@ -189,8 +193,15 @@ export const ConfigProvider = ({ children }) => {
     });
     const [themeSaving, setThemeSaving] = useState(false);
 
-    // Theme mode and accessibility preferences
+    // Theme mode, layout mode, font settings, and accessibility preferences
     const [themeMode, setThemeModeState] = useState("system");
+    const [layoutMode, setLayoutModeState] = useState("standard");
+    const [fontSettings, setFontSettings] = useState({
+        general: "System",
+        title: "System",
+        tableTitle: "System",
+        tableContent: "System",
+    });
     const [accessibility, setAccessibilityState] =
         useState(defaultAccessibility);
 
@@ -258,8 +269,18 @@ export const ConfigProvider = ({ children }) => {
         if (!token) {
             // Fall back to localStorage if not logged in
             const savedMode = localStorage.getItem("themeMode");
+            const savedLayout = localStorage.getItem("layoutMode");
+            const savedFonts = localStorage.getItem("fontSettings");
             const savedAccessibility = localStorage.getItem("accessibility");
             if (savedMode) setThemeModeState(savedMode);
+            if (savedLayout) setLayoutModeState(savedLayout);
+            if (savedFonts) {
+                try {
+                    setFontSettings(JSON.parse(savedFonts));
+                } catch (e) {
+                    console.error("Error parsing saved fonts:", e);
+                }
+            }
             if (savedAccessibility) {
                 try {
                     setAccessibilityState(JSON.parse(savedAccessibility));
@@ -274,7 +295,17 @@ export const ConfigProvider = ({ children }) => {
             const response = await themeApi.getUserTheme("/api", token, () => {
                 // Token expired - fall back to localStorage
                 const savedMode = localStorage.getItem("themeMode");
+                const savedLayout = localStorage.getItem("layoutMode");
+                const savedFonts = localStorage.getItem("fontSettings");
                 if (savedMode) setThemeModeState(savedMode);
+                if (savedLayout) setLayoutModeState(savedLayout);
+                if (savedFonts) {
+                    try {
+                        setFontSettings(JSON.parse(savedFonts));
+                    } catch (e) {
+                        console.error("Error parsing saved fonts:", e);
+                    }
+                }
             });
 
             // Set permissions
@@ -292,10 +323,19 @@ export const ConfigProvider = ({ children }) => {
             if (response.settings) {
                 const settings = themeApi.apiToFrontend(response.settings);
                 setUserThemeSettings(settings);
+                setUserThemeSettings(settings);
                 setThemeModeState(settings.mode || "system");
+                setLayoutModeState(settings.layoutMode || "standard");
+                setFontSettings({
+                    general: settings.fontGeneral || "System",
+                    title: settings.fontTitle || "System",
+                    tableTitle: settings.fontTableTitle || "System",
+                    tableContent: settings.fontTableContent || "System",
+                });
                 setAccessibilityState({
                     highContrast: settings.highContrast || false,
                     colorBlindMode: settings.colorBlindMode || "none",
+                    dyslexicFont: settings.dyslexicFont || false,
                 });
 
                 // Update config theme if user has custom settings
@@ -329,15 +369,35 @@ export const ConfigProvider = ({ children }) => {
                                 prev.theme.textSecondaryColor,
                             borderColor:
                                 settings.borderColor || prev.theme.borderColor,
+                            fontGeneral:
+                                settings.fontGeneral || prev.theme.fontGeneral,
+                            fontTitle:
+                                settings.fontTitle || prev.theme.fontTitle,
+                            fontTableTitle:
+                                settings.fontTableTitle ||
+                                prev.theme.fontTableTitle,
+                            fontTableContent:
+                                settings.fontTableContent ||
+                                prev.theme.fontTableContent,
                         },
                     };
                 });
             } else {
                 // No user settings - use localStorage as fallback
                 const savedMode = localStorage.getItem("themeMode");
+                const savedLayout = localStorage.getItem("layoutMode");
+                const savedFonts = localStorage.getItem("fontSettings");
                 const savedAccessibility =
                     localStorage.getItem("accessibility");
                 if (savedMode) setThemeModeState(savedMode);
+                if (savedLayout) setLayoutModeState(savedLayout);
+                if (savedFonts) {
+                    try {
+                        setFontSettings(JSON.parse(savedFonts));
+                    } catch (e) {
+                        console.error("Error parsing saved fonts:", e);
+                    }
+                }
                 if (savedAccessibility) {
                     try {
                         setAccessibilityState(JSON.parse(savedAccessibility));
@@ -350,8 +410,10 @@ export const ConfigProvider = ({ children }) => {
             console.error("Error fetching user theme:", err);
             // Fall back to localStorage
             const savedMode = localStorage.getItem("themeMode");
+            const savedLayout = localStorage.getItem("layoutMode");
             const savedAccessibility = localStorage.getItem("accessibility");
             if (savedMode) setThemeModeState(savedMode);
+            if (savedLayout) setLayoutModeState(savedLayout);
             if (savedAccessibility) {
                 try {
                     setAccessibilityState(JSON.parse(savedAccessibility));
@@ -371,9 +433,16 @@ export const ConfigProvider = ({ children }) => {
                 if (themeSettings.mode) {
                     localStorage.setItem("themeMode", themeSettings.mode);
                 }
+                if (themeSettings.layoutMode) {
+                    localStorage.setItem(
+                        "layoutMode",
+                        themeSettings.layoutMode,
+                    );
+                }
                 if (
                     themeSettings.highContrast !== undefined ||
-                    themeSettings.colorBlindMode !== undefined
+                    themeSettings.colorBlindMode !== undefined ||
+                    themeSettings.dyslexicFont !== undefined
                 ) {
                     localStorage.setItem(
                         "accessibility",
@@ -381,6 +450,7 @@ export const ConfigProvider = ({ children }) => {
                             highContrast: themeSettings.highContrast || false,
                             colorBlindMode:
                                 themeSettings.colorBlindMode || "none",
+                            dyslexicFont: themeSettings.dyslexicFont || false,
                         }),
                     );
                 }
@@ -405,6 +475,12 @@ export const ConfigProvider = ({ children }) => {
                 if (themeSettings.mode) {
                     localStorage.setItem("themeMode", themeSettings.mode);
                 }
+                if (themeSettings.layoutMode) {
+                    localStorage.setItem(
+                        "layoutMode",
+                        themeSettings.layoutMode,
+                    );
+                }
                 throw err;
             } finally {
                 setThemeSaving(false);
@@ -413,7 +489,58 @@ export const ConfigProvider = ({ children }) => {
         [canEditTheme],
     );
 
-    // Initial fetch
+    // Save global theme settings (Admin/Root only)
+    const saveGlobalTheme = useCallback(async (globalSettings) => {
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("Token não encontrado");
+
+        const apiSettings = themeApi.frontendToApi(globalSettings);
+
+        const response = await fetch("/api/settings/global-theme", {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(apiSettings),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || "Erro ao salvar tema global");
+        }
+    }, []);
+
+    // Save theme permissions (Root only)
+    const saveThemePermissions = useCallback(
+        async (usersCanEdit, adminsCanEdit) => {
+            const token = localStorage.getItem("accessToken");
+            if (!token) throw new Error("Token não encontrado");
+
+            const response = await fetch("/api/settings/theme-permissions", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    users_can_edit_theme: usersCanEdit,
+                    admins_can_edit_theme: adminsCanEdit,
+                }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || "Erro ao salvar permissões");
+            }
+
+            setThemePermissions({
+                usersCanEditTheme: usersCanEdit,
+                adminsCanEditTheme: adminsCanEdit,
+            });
+        },
+        [],
+    );
     useEffect(() => {
         fetchSettings();
         fetchUserTheme();
@@ -441,6 +568,11 @@ export const ConfigProvider = ({ children }) => {
                         borderColor: config.theme?.borderColor,
                         highContrast: accessibility.highContrast,
                         colorBlindMode: accessibility.colorBlindMode,
+                        dyslexicFont: accessibility.dyslexicFont,
+                        fontGeneral: fontSettings.general,
+                        fontTitle: fontSettings.title,
+                        fontTableTitle: fontSettings.tableTitle,
+                        fontTableContent: fontSettings.tableContent,
                         focusIndicator: accessibility.focusIndicator,
                     };
                     await saveUserTheme({ ...currentSettings, mode });
@@ -455,8 +587,133 @@ export const ConfigProvider = ({ children }) => {
             config.theme,
             accessibility,
             saveUserTheme,
+            fontSettings,
         ],
     );
+
+    // Update layout mode
+    const setLayoutMode = useCallback(
+        async (mode) => {
+            if (
+                mode !== "standard" &&
+                mode !== "full" &&
+                mode !== "centralized"
+            )
+                return;
+
+            setLayoutModeState(mode);
+            localStorage.setItem("layoutMode", mode);
+
+            const token = localStorage.getItem("accessToken");
+            if (token && canEditTheme) {
+                try {
+                    const currentSettings = userThemeSettings || {
+                        preset: config.theme?.preset || "default",
+                        mode: themeMode,
+                        layoutMode: mode,
+                        primaryColor: config.theme?.primaryColor,
+                        secondaryColor: config.theme?.secondaryColor,
+                        backgroundColor: config.theme?.backgroundColor,
+                        surfaceColor: config.theme?.surfaceColor,
+                        textColor: config.theme?.textColor,
+                        textSecondaryColor: config.theme?.textSecondaryColor,
+                        borderColor: config.theme?.borderColor,
+                        highContrast: accessibility.highContrast,
+                        colorBlindMode: accessibility.colorBlindMode,
+                        dyslexicFont: accessibility.dyslexicFont,
+                        fontGeneral: fontSettings.general,
+                        fontTitle: fontSettings.title,
+                        fontTableTitle: fontSettings.tableTitle,
+                        fontTableContent: fontSettings.tableContent,
+                    };
+                    await saveUserTheme({
+                        ...currentSettings,
+                        layoutMode: mode,
+                    });
+                } catch (err) {
+                    console.error("Error saving layout mode:", err);
+                }
+            }
+        },
+        [
+            canEditTheme,
+            userThemeSettings,
+            config.theme,
+            themeMode,
+            accessibility,
+            fontSettings,
+            saveUserTheme,
+        ],
+    );
+
+    // Update fonts
+    const setFonts = useCallback(
+        async (newFonts) => {
+            const upFonts = { ...fontSettings, ...newFonts };
+            setFontSettings(upFonts);
+            localStorage.setItem("fontSettings", JSON.stringify(upFonts));
+
+            const token = localStorage.getItem("accessToken");
+            if (token && canEditTheme) {
+                try {
+                    const currentSettings = userThemeSettings || {
+                        preset: config.theme?.preset || "default",
+                        mode: themeMode,
+                        layoutMode: layoutMode,
+                        primaryColor: config.theme?.primaryColor,
+                        secondaryColor: config.theme?.secondaryColor,
+                        backgroundColor: config.theme?.backgroundColor,
+                        surfaceColor: config.theme?.surfaceColor,
+                        textColor: config.theme?.textColor,
+                        textSecondaryColor: config.theme?.textSecondaryColor,
+                        borderColor: config.theme?.borderColor,
+                        highContrast: accessibility.highContrast,
+                        colorBlindMode: accessibility.colorBlindMode,
+                        dyslexicFont: accessibility.dyslexicFont,
+                    };
+                    await saveUserTheme({
+                        ...currentSettings,
+                        fontGeneral: upFonts.general,
+                        fontTitle: upFonts.title,
+                        fontTableTitle: upFonts.tableTitle,
+                        fontTableContent: upFonts.tableContent,
+                    });
+                } catch (err) {
+                    console.error("Error saving font settings:", err);
+                }
+            }
+        },
+        [
+            fontSettings,
+            canEditTheme,
+            userThemeSettings,
+            config.theme,
+            themeMode,
+            layoutMode,
+            accessibility,
+            saveUserTheme,
+        ],
+    );
+
+    // Apply layout class to root
+    useEffect(() => {
+        const root = document.documentElement;
+        // Remove all layout classes first
+        root.classList.remove(
+            "layout-centralized",
+            "layout-standard",
+            "layout-full",
+        );
+
+        if (layoutMode === "full") {
+            root.classList.add("layout-full");
+        } else if (layoutMode === "centralized") {
+            root.classList.add("layout-centralized");
+        } else {
+            // Default to standard (which is now the standard constrained layout)
+            root.classList.add("layout-standard");
+        }
+    }, [layoutMode]);
 
     // Update accessibility settings
     const setAccessibility = useCallback(
@@ -481,11 +738,13 @@ export const ConfigProvider = ({ children }) => {
                         borderColor: config.theme?.borderColor,
                         highContrast: newPrefs.highContrast,
                         colorBlindMode: newPrefs.colorBlindMode,
+                        dyslexicFont: newPrefs.dyslexicFont,
                     };
                     await saveUserTheme({
                         ...currentSettings,
                         highContrast: newPrefs.highContrast,
                         colorBlindMode: newPrefs.colorBlindMode,
+                        dyslexicFont: newPrefs.dyslexicFont,
                     });
                 } catch (err) {
                     console.error("Error saving accessibility settings:", err);
@@ -715,6 +974,154 @@ export const ConfigProvider = ({ children }) => {
             root.classList.remove("high-contrast-filter");
         }
 
+        // Apply Fonts
+        const getFontStack = (fontName) => {
+            switch (fontName) {
+                // Accessibility
+                case "OpenDyslexic 3":
+                    return '"OpenDyslexic3", "Open Dyslexic", "Comic Sans MS", "Chalkboard SE", sans-serif';
+                case "OpenDyslexic":
+                    return '"OpenDyslexic", "Comic Sans MS", "Chalkboard SE", sans-serif';
+                case "OpenDyslexic Mono":
+                    return '"OpenDyslexicMono", monospace';
+
+                // Web Fonts (Open Source) - Stacks
+                case "Inter":
+                    return 'Inter, "DejaVu Sans", "Liberation Sans", sans-serif';
+                case "Roboto":
+                    return 'Roboto, "DejaVu Sans", "Liberation Sans", sans-serif';
+                case "Lato":
+                    return 'Lato, "DejaVu Sans", "Liberation Sans", sans-serif';
+                case "Montserrat":
+                    return 'Montserrat, "DejaVu Sans", "Liberation Sans", sans-serif';
+                case "Fira Code":
+                    return '"Fira Code", "Fira Mono", "DejaVu Sans Mono", monospace';
+
+                // Legacy / Windows fallbacks (mapped to closest Rep) or Keep for custom inputs
+                case "Arial":
+                    return 'Arial, "Liberation Sans", "DejaVu Sans", sans-serif';
+                case "Times New Roman":
+                    return '"Times New Roman", "Liberation Serif", "DejaVu Serif", serif';
+
+                default:
+                    if (!fontName || fontName === "System") {
+                        return '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"';
+                    }
+                    // Custom / Dynamic Web Font stack
+                    return `"${fontName}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+            }
+        };
+
+        if (accessibility.dyslexicFont) {
+            root.style.setProperty(
+                "--font-general",
+                getFontStack("OpenDyslexic"),
+            );
+            root.style.setProperty(
+                "--font-title",
+                getFontStack("OpenDyslexic 3"),
+            );
+            root.style.setProperty(
+                "--font-table-title",
+                getFontStack("OpenDyslexic 3"),
+            );
+        } else {
+            root.style.setProperty(
+                "--font-general",
+                getFontStack(fontSettings.general),
+            );
+            root.style.setProperty(
+                "--font-title",
+                getFontStack(fontSettings.title),
+            );
+            root.style.setProperty(
+                "--font-table-title",
+                getFontStack(fontSettings.tableTitle),
+            );
+        }
+
+        const allSelectedFonts = new Set([
+            fontSettings.general,
+            fontSettings.title,
+            fontSettings.tableTitle,
+            fontSettings.tableContent,
+        ]);
+
+        // Dynamically load Google Fonts
+        const CURATED_GOOGLE_FONTS = [
+            "Inter",
+            "Roboto",
+            "Open Sans",
+            "Lato",
+            "Montserrat",
+            "Poppins",
+            "Fira Code",
+            "Source Sans Pro",
+            "Oswald",
+            "Raleway",
+            "Merriweather",
+            "Nunito",
+            "Atkinson Hyperlegible",
+            "Lexend",
+        ];
+
+        const fontsToLoad = new Set([
+            ...CURATED_GOOGLE_FONTS,
+            fontSettings.general,
+            fontSettings.title,
+            fontSettings.tableTitle,
+            fontSettings.tableContent,
+        ]);
+
+        // Fonts that are expected to be LOCAL
+        const systemFonts = new Set([
+            "System",
+            "DejaVu Sans",
+            "Liberation Sans",
+            "Ubuntu",
+            "DejaVu Serif",
+            "Liberation Serif",
+            "DejaVu Sans Mono",
+            "Liberation Mono",
+            "Arial",
+            "Helvetica",
+            "Verdana",
+            "Tahoma",
+            "Trebuchet MS",
+            "Times New Roman",
+            "Courier New",
+            // Local Accessibility Fonts (now loaded via fonts.css)
+            "OpenDyslexic",
+            "OpenDyslexic 3",
+            "OpenDyslexic Mono",
+        ]);
+
+        const googleFonts = Array.from(fontsToLoad).filter(
+            (f) => !systemFonts.has(f) && f && f !== "System",
+        );
+
+        if (googleFonts.length > 0) {
+            const linkId = "dynamic-web-fonts";
+            let link = document.getElementById(linkId);
+            if (!link) {
+                link = document.createElement("link");
+                link.id = linkId;
+                link.rel = "stylesheet";
+                document.head.appendChild(link);
+            }
+
+            // Build URL: https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600&display=swap
+            const families = googleFonts
+                .map(
+                    (font) =>
+                        `family=${font.replace(/\s+/g, "+")}:wght@300;400;500;600;700`,
+                )
+                .join("&");
+            link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+        }
+
+        // Color blind mode
+
         // Color blind mode
         if (
             accessibility.colorBlindMode &&
@@ -729,7 +1136,7 @@ export const ConfigProvider = ({ children }) => {
                 "colorblind-tritanopia",
             );
         }
-    }, [accessibility]);
+    }, [accessibility, fontSettings]);
 
     // Helper function to darken a color
     function darkenColor(hex, percent) {
@@ -810,6 +1217,7 @@ export const ConfigProvider = ({ children }) => {
                     borderColor: newSettings.theme.borderColor || null,
                     highContrast: accessibility.highContrast,
                     colorBlindMode: accessibility.colorBlindMode,
+                    dyslexicFont: accessibility.dyslexicFont,
                     focusIndicator: accessibility.focusIndicator,
                 };
                 await saveUserTheme(themeSettings);
@@ -891,6 +1299,10 @@ export const ConfigProvider = ({ children }) => {
                         : accessibility.highContrast,
                 colorBlindMode:
                     themeData.colorBlindMode || accessibility.colorBlindMode,
+                dyslexicFont:
+                    themeData.dyslexicFont !== undefined
+                        ? themeData.dyslexicFont
+                        : accessibility.dyslexicFont,
             };
 
             try {
@@ -1020,26 +1432,36 @@ export const ConfigProvider = ({ children }) => {
     };
 
     const value = {
-        config: configWithFallbacks,
-        loading,
-        updateSettings,
+        config: configWithFallbacks || defaultSettings,
         themeMode,
+        layoutMode,
         setThemeMode,
+        setLayoutMode,
         resolvedMode,
+        fontSettings,
+        setFonts,
         accessibility,
         setAccessibility,
-        getPersistentFilter,
-        setPersistentFilter,
-        getLabel,
-        getGenderHelpers,
-        fetchSettings,
-        // New theme-related exports
+        loading,
         canEditTheme,
         themePermissions,
         themeSaving,
-        saveThemeSettings,
-        fetchUserTheme,
-        userThemeSettings,
+        saveUserTheme,
+        saveGlobalTheme,
+        saveThemePermissions,
+        updateSettings: async (newSettings) => {
+            // ... strict subset of settings update ...
+            // This is kept for backward compatibility if needed,
+            // but we encourage using saveUserTheme for theme settings
+            // and separate API calls for system settings.
+
+            // For now, we reuse the save logic inside Appearance.jsx
+            // which calls specific API endpoints.
+            throw new Error("Use specific update functions");
+        },
+        getPersistentFilter,
+        setPersistentFilter,
+        getGenderHelpers,
     };
 
     return (

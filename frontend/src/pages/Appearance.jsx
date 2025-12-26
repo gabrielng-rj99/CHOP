@@ -55,10 +55,21 @@ export default function Appearance({ token, apiUrl }) {
     const saveThemeSettings = config?.saveThemeSettings || (() => {});
     const themeMode = config?.themeMode || "system";
     const setThemeMode = config?.setThemeMode || (() => {});
+    const layoutMode = config?.layoutMode || "standard";
+    const setLayoutMode = config?.setLayoutMode || (() => {});
     const accessibility = config?.accessibility || {};
     const setAccessibility = config?.setAccessibility || (() => {});
     const userThemeSettings = config?.userThemeSettings || null;
     const fetchUserTheme = config?.fetchUserTheme || (() => {});
+    const fontSettings = config?.fontSettings || {
+        general: "System",
+        title: "System",
+        tableTitle: "System",
+        tableContent: "System",
+    };
+    const setFonts = config?.setFonts || (() => {});
+    const saveGlobalTheme = config?.saveGlobalTheme || (() => {});
+    const saveThemePermissions = config?.saveThemePermissions || (() => {});
 
     // Debounce timeout ref
     const debounceTimeout = useRef(null);
@@ -106,6 +117,9 @@ export default function Appearance({ token, apiUrl }) {
     // Get user role from localStorage
     const userRole = localStorage.getItem("userRole") || "user";
     const isRoot = userRole === "root";
+
+    // Active section tab
+    const [activeTab, setActiveTab] = useState("general");
 
     // Fetch user theme on mount to ensure we have the latest from backend
     useEffect(() => {
@@ -780,6 +794,10 @@ export default function Appearance({ token, apiUrl }) {
         setAccessibility({ [key]: value });
     };
 
+    const handleFontChange = (key, value) => {
+        setFonts({ [key]: value });
+    };
+
     const saveAccessibility = async (newAccessibility) => {
         setAccessibility(newAccessibility);
         try {
@@ -800,377 +818,1356 @@ export default function Appearance({ token, apiUrl }) {
     return (
         <div className="appearance-container">
             <div className="appearance-header">
-                <h1 className="appearance-title">⚙️ Aparência</h1>
+                <h1 className="appearance-title">🎨 Aparência</h1>
             </div>
 
-            {/* Display Mode and Accessibility Section */}
-            <section className="appearance-section">
-                <h2>🎨 Modo de Exibição</h2>
-                <div className="display-mode-container">
-                    <div className="theme-mode-selector">
-                        <button
-                            className={`theme-mode-button ${themeMode === "light" ? "active" : ""}`}
-                            onClick={() => handleThemeModeChange("light")}
-                        >
-                            <span className="mode-icon">☀️</span>
-                            <span className="mode-label">Claro</span>
-                        </button>
-                        <button
-                            className={`theme-mode-button ${themeMode === "dark" ? "active" : ""}`}
-                            onClick={() => handleThemeModeChange("dark")}
-                        >
-                            <span className="mode-icon">🌙</span>
-                            <span className="mode-label">Escuro</span>
-                        </button>
-                        <button
-                            className={`theme-mode-button ${themeMode === "system" ? "active" : ""}`}
-                            onClick={() => handleThemeModeChange("system")}
-                        >
-                            <span className="mode-icon">💻</span>
-                            <span className="mode-label">Sistema</span>
-                        </button>
-                    </div>
-                </div>
+            {/* Main Navigation Tabs */}
+            <div className="settings-main-tabs">
+                <button
+                    className={`settings-main-tab ${activeTab === "general" ? "active" : ""}`}
+                    onClick={() => setActiveTab("general")}
+                >
+                    ⚙️ Geral
+                </button>
+                <button
+                    className={`settings-main-tab ${activeTab === "themes" ? "active" : ""}`}
+                    onClick={() => setActiveTab("themes")}
+                >
+                    🎨 Temas e Cores
+                </button>
+            </div>
 
-                <h2 style={{ marginTop: "2rem" }}>♿ Acessibilidade</h2>
-                <div className="accessibility-wrapper">
-                    <div className="accessibility-section">
-                        <h3>Contraste</h3>
-                        <div className="accessibility-mode-selector">
-                            <button
-                                className={`accessibility-mode-button ${!accessibility?.highContrast ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast: false,
-                                        colorBlindMode:
-                                            accessibility.colorBlindMode,
-                                    })
-                                }
-                                title="Configuração padrão"
-                            >
-                                <span className="a11y-mode-icon">👁️</span>
-                                <span className="a11y-mode-label">Padrão</span>
-                            </button>
-                            <button
-                                className={`accessibility-mode-button ${accessibility?.highContrast ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast: true,
-                                        colorBlindMode:
-                                            accessibility.colorBlindMode,
-                                    })
-                                }
-                                title="Aumenta o contraste das cores escuras e claras"
-                            >
-                                <span className="a11y-mode-icon">⚫⚪</span>
-                                <span className="a11y-mode-label">
-                                    Alto Contraste
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="accessibility-section">
-                        <h3>Modo Daltonismo</h3>
-                        <div className="accessibility-mode-selector">
-                            <button
-                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "none" ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast:
-                                            accessibility.highContrast,
-                                        colorBlindMode: "none",
-                                    })
-                                }
-                                title="Sem filtros de cor"
-                            >
-                                <span className="a11y-mode-icon">🌈</span>
-                                <span className="a11y-mode-label">
-                                    Desativado
-                                </span>
-                            </button>
-                            <button
-                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "protanopia" ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast:
-                                            accessibility.highContrast,
-                                        colorBlindMode: "protanopia",
-                                    })
-                                }
-                                title="Filtro para dificuldade em distinguir vermelho"
-                            >
-                                <span className="a11y-mode-icon">🔴</span>
-                                <span className="a11y-mode-label">
-                                    Protanopia
-                                </span>
-                            </button>
-                            <button
-                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "deuteranopia" ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast:
-                                            accessibility.highContrast,
-                                        colorBlindMode: "deuteranopia",
-                                    })
-                                }
-                                title="Filtro para dificuldade em distinguir verde"
-                            >
-                                <span className="a11y-mode-icon">🟢</span>
-                                <span className="a11y-mode-label">
-                                    Deuteranopia
-                                </span>
-                            </button>
-                            <button
-                                className={`accessibility-mode-button ${accessibility?.colorBlindMode === "tritanopia" ? "active" : ""}`}
-                                onClick={() =>
-                                    saveAccessibility({
-                                        highContrast:
-                                            accessibility.highContrast,
-                                        colorBlindMode: "tritanopia",
-                                    })
-                                }
-                                title="Filtro para dificuldade em distinguir azul"
-                            >
-                                <span className="a11y-mode-icon">🔵</span>
-                                <span className="a11y-mode-label">
-                                    Tritanopia
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Root Only Sections */}
-            {isRoot && (
-                <>
-                    {/* Theme Permissions Section */}
-                    <section className="appearance-section permissions-section">
-                        <h2>🔒 Permissões de Tema</h2>
-                        <p className="section-description">
-                            Controle quem pode personalizar as configurações de
-                            tema. Usuários root sempre podem editar.
-                        </p>
-
-                        <div className="permissions-grid">
-                            <div className="permission-item">
-                                <div className="permission-toggle">
-                                    <label className="switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                permissionsFormData.adminsCanEditTheme
-                                            }
-                                            onChange={(e) =>
-                                                handlePermissionsChange(
-                                                    "adminsCanEditTheme",
-                                                    e.target.checked,
-                                                )
-                                            }
-                                        />
-                                        <span className="slider round"></span>
-                                    </label>
-                                    <div className="permission-info">
-                                        <span className="permission-label">
-                                            Administradores podem alterar tema
+            {/* TAB: GERAL */}
+            {activeTab === "general" && (
+                <section className="appearance-section appearance-section-nav-color">
+                    <div className="appearance-grid-layout">
+                        {/* 1. Display Mode */}
+                        <div className="grid-item">
+                            <h2>🖥️ Modo de Exibição</h2>
+                            <div className="display-mode-container">
+                                <div className="theme-mode-selector">
+                                    <button
+                                        className={`theme-mode-button ${themeMode === "light" ? "active" : ""}`}
+                                        onClick={() =>
+                                            handleThemeModeChange("light")
+                                        }
+                                    >
+                                        <span className="mode-icon">☀️</span>
+                                        <span className="mode-label">
+                                            Claro
                                         </span>
-                                        <span className="permission-description">
-                                            Permite que usuários com role
-                                            "admin" personalizem suas próprias
-                                            configurações de tema
+                                    </button>
+                                    <button
+                                        className={`theme-mode-button ${themeMode === "dark" ? "active" : ""}`}
+                                        onClick={() =>
+                                            handleThemeModeChange("dark")
+                                        }
+                                    >
+                                        <span className="mode-icon">🌙</span>
+                                        <span className="mode-label">
+                                            Escuro
                                         </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="permission-item">
-                                <div className="permission-toggle">
-                                    <label className="switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                permissionsFormData.usersCanEditTheme
-                                            }
-                                            onChange={(e) =>
-                                                handlePermissionsChange(
-                                                    "usersCanEditTheme",
-                                                    e.target.checked,
-                                                )
-                                            }
-                                        />
-                                        <span className="slider round"></span>
-                                    </label>
-                                    <div className="permission-info">
-                                        <span className="permission-label">
-                                            Usuários podem alterar tema
+                                    </button>
+                                    <button
+                                        className={`theme-mode-button ${themeMode === "system" ? "active" : ""}`}
+                                        onClick={() =>
+                                            handleThemeModeChange("system")
+                                        }
+                                    >
+                                        <span className="mode-icon">💻</span>
+                                        <span className="mode-label">
+                                            Sistema
                                         </span>
-                                        <span className="permission-description">
-                                            Permite que usuários convencionais
-                                            personalizem suas próprias
-                                            configurações de tema
-                                        </span>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Permissions are saved automatically */}
-                    </section>
+                        {/* 2. Layout */}
+                        <div className="grid-item">
+                            <h2>📏 Layout</h2>
+                            <div className="display-mode-container">
+                                <button
+                                    className={`theme-mode-button ${layoutMode === "centralized" ? "active" : ""}`}
+                                    onClick={() => setLayoutMode("centralized")}
+                                >
+                                    <span className="mode-icon">📄</span>
+                                    <span className="mode-label">
+                                        Centralizado
+                                    </span>
+                                </button>
+                                <button
+                                    className={`theme-mode-button ${layoutMode === "standard" ? "active" : ""}`}
+                                    onClick={() => setLayoutMode("standard")}
+                                >
+                                    <span className="mode-icon">🖥️</span>
+                                    <span className="mode-label">Padrão</span>
+                                </button>
+                                <button
+                                    className={`theme-mode-button ${layoutMode === "full" ? "active" : ""}`}
+                                    onClick={() => setLayoutMode("full")}
+                                >
+                                    <span className="mode-icon">↔️</span>
+                                    <span className="mode-label">
+                                        Tela Cheia
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
 
-                    {/* Global Theme is now integrated in Theme and Colors */}
-                </>
+                        {/* 3. Typography */}
+                        <div className="grid-item">
+                            <h2>🔤 Tipografia</h2>
+                            <div className="typography-grid">
+                                {[
+                                    { label: "Fonte Geral", key: "general" },
+                                    { label: "Fonte de Títulos", key: "title" },
+                                    {
+                                        label: "Fonte de Títulos Secundários",
+                                        key: "tableTitle",
+                                    },
+                                ].map(({ label, key }) => {
+                                    // Standardize the list of options
+                                    const standardOptions = [
+                                        "System",
+                                        // Linux / FLOSS Standard
+                                        "DejaVu Sans",
+                                        "Liberation Sans",
+                                        "Ubuntu",
+                                        "DejaVu Serif",
+                                        "Liberation Serif",
+                                        "DejaVu Sans Mono",
+                                        "Liberation Mono",
+                                        // Accessibility
+                                        "OpenDyslexic",
+                                        "OpenDyslexic 3",
+                                        "OpenDyslexic Mono",
+                                        // Web Fonts (Open Source)
+                                        "Inter",
+                                        "Roboto",
+                                        "Open Sans",
+                                        "Lato",
+                                        "Montserrat",
+                                        "Poppins",
+                                        "Source Sans Pro",
+                                        "Oswald",
+                                        "Raleway",
+                                        "Merriweather",
+                                        "Nunito",
+                                        "Fira Code",
+                                        "Atkinson Hyperlegible",
+                                        "Lexend",
+                                    ];
+
+                                    const isCustom = !standardOptions.includes(
+                                        fontSettings[key],
+                                    );
+                                    const selectValue = isCustom
+                                        ? "custom"
+                                        : fontSettings[key];
+
+                                    return (
+                                        <div className="form-group" key={key}>
+                                            <div
+                                                style={{
+                                                    marginBottom: "0.5rem",
+                                                }}
+                                            >
+                                                <label
+                                                    style={{
+                                                        display: "block",
+                                                        marginBottom: "0.5rem",
+                                                        fontSize: "1rem",
+                                                        fontWeight: "600",
+                                                    }}
+                                                >
+                                                    {label}
+                                                </label>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "10px",
+                                                        alignItems: "center",
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="font-controls"
+                                                        style={{
+                                                            display: "flex",
+                                                            gap: "8px",
+                                                        }}
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            className="icon-button"
+                                                            title="Definir como padrão para todos os usuários"
+                                                            onClick={async () => {
+                                                                if (
+                                                                    !window.confirm(
+                                                                        "Definir a configuração de fontes atual como padrão global para todos os usuários?",
+                                                                    )
+                                                                )
+                                                                    return;
+                                                                try {
+                                                                    await saveGlobalTheme(
+                                                                        {
+                                                                            ...formData.theme,
+                                                                            fontGeneral:
+                                                                                fontSettings.general,
+                                                                            fontTitle:
+                                                                                fontSettings.title,
+                                                                            fontTableTitle:
+                                                                                fontSettings.tableTitle,
+                                                                        },
+                                                                    );
+                                                                    alert(
+                                                                        "Padrão global atualizado com sucesso!",
+                                                                    );
+                                                                } catch (e) {
+                                                                    alert(
+                                                                        "Erro ao salvar: " +
+                                                                            e.message,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                background:
+                                                                    "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                opacity: 0.8,
+                                                                fontSize:
+                                                                    "1.5rem",
+                                                                padding: "4px",
+                                                            }}
+                                                        >
+                                                            💾
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="icon-button"
+                                                            title={
+                                                                themePermissions.usersCanEditTheme
+                                                                    ? "Permitir que usuários editem (Atualmente: Permitido)"
+                                                                    : "Bloquear edição por usuários (Atualmente: Bloqueado)"
+                                                            }
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const newStatus =
+                                                                        !themePermissions.usersCanEditTheme;
+                                                                    await saveThemePermissions(
+                                                                        newStatus,
+                                                                        themePermissions.adminsCanEditTheme,
+                                                                    );
+                                                                    alert(
+                                                                        newStatus
+                                                                            ? "Edição por usuários desbloqueada."
+                                                                            : "Edição por usuários bloqueada.",
+                                                                    );
+                                                                } catch (e) {
+                                                                    alert(
+                                                                        "Erro ao atualizar permissões: " +
+                                                                            e.message,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                background:
+                                                                    "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                opacity: 0.8,
+                                                                fontSize:
+                                                                    "1.5rem",
+                                                                padding: "4px",
+                                                            }}
+                                                        >
+                                                            {themePermissions.usersCanEditTheme
+                                                                ? "🔓"
+                                                                : "🔒"}
+                                                        </button>
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <select
+                                                            value={selectValue}
+                                                            onChange={(e) => {
+                                                                if (
+                                                                    e.target
+                                                                        .value ===
+                                                                    "custom"
+                                                                ) {
+                                                                    // Set to empty string to ensure input shows up immediately (since "" is not in standardOptions)
+                                                                    handleFontChange(
+                                                                        key,
+                                                                        "",
+                                                                    );
+                                                                } else {
+                                                                    handleFontChange(
+                                                                        key,
+                                                                        e.target
+                                                                            .value,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="form-control"
+                                                        >
+                                                            <optgroup label="Padrão">
+                                                                <option
+                                                                    value="System"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "system-ui",
+                                                                    }}
+                                                                >
+                                                                    Sistema
+                                                                    (Padrão)
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="Linux & FLOSS Standards">
+                                                                <option
+                                                                    value="DejaVu Sans"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "DejaVu Sans",
+                                                                    }}
+                                                                >
+                                                                    DejaVu Sans
+                                                                </option>
+                                                                <option
+                                                                    value="Liberation Sans"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Liberation Sans",
+                                                                    }}
+                                                                >
+                                                                    Liberation
+                                                                    Sans
+                                                                </option>
+                                                                <option
+                                                                    value="Ubuntu"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Ubuntu",
+                                                                    }}
+                                                                >
+                                                                    Ubuntu
+                                                                </option>
+                                                                <option
+                                                                    value="DejaVu Serif"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "DejaVu Serif",
+                                                                    }}
+                                                                >
+                                                                    DejaVu Serif
+                                                                </option>
+                                                                <option
+                                                                    value="Liberation Serif"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Liberation Serif",
+                                                                    }}
+                                                                >
+                                                                    Liberation
+                                                                    Serif
+                                                                </option>
+                                                                <option
+                                                                    value="DejaVu Sans Mono"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "DejaVu Sans Mono",
+                                                                    }}
+                                                                >
+                                                                    DejaVu Sans
+                                                                    Mono
+                                                                </option>
+                                                                <option
+                                                                    value="Liberation Mono"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Liberation Mono",
+                                                                    }}
+                                                                >
+                                                                    Liberation
+                                                                    Mono
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="Acessibilidade / Dislexia">
+                                                                <option
+                                                                    value="OpenDyslexic"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "OpenDyslexic",
+                                                                    }}
+                                                                >
+                                                                    OpenDyslexic
+                                                                    (Clássica/V2)
+                                                                </option>
+                                                                <option
+                                                                    value="OpenDyslexic 3"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "OpenDyslexic3",
+                                                                    }}
+                                                                >
+                                                                    OpenDyslexic
+                                                                    3 (Moderna)
+                                                                </option>
+                                                                <option
+                                                                    value="OpenDyslexic Mono"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "OpenDyslexicMono",
+                                                                    }}
+                                                                >
+                                                                    OpenDyslexic
+                                                                    Mono
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="Web Fonts (Google Open Source)">
+                                                                <option
+                                                                    value="Open Sans"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Open Sans",
+                                                                    }}
+                                                                >
+                                                                    Open Sans
+                                                                </option>
+                                                                <option
+                                                                    value="Roboto"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Roboto",
+                                                                    }}
+                                                                >
+                                                                    Roboto
+                                                                </option>
+                                                                <option
+                                                                    value="Inter"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Inter",
+                                                                    }}
+                                                                >
+                                                                    Inter
+                                                                </option>
+                                                                <option
+                                                                    value="Lato"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Lato",
+                                                                    }}
+                                                                >
+                                                                    Lato
+                                                                </option>
+                                                                <option
+                                                                    value="Montserrat"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Montserrat",
+                                                                    }}
+                                                                >
+                                                                    Montserrat
+                                                                </option>
+                                                                <option
+                                                                    value="Poppins"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Poppins",
+                                                                    }}
+                                                                >
+                                                                    Poppins
+                                                                </option>
+                                                                <option
+                                                                    value="Fira Code"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Fira Code, monospace",
+                                                                    }}
+                                                                >
+                                                                    Fira Code
+                                                                    (Monospace)
+                                                                </option>
+                                                                <option
+                                                                    value="Source Sans Pro"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Source Sans Pro",
+                                                                    }}
+                                                                >
+                                                                    Source Sans
+                                                                    Pro
+                                                                </option>
+                                                                <option
+                                                                    value="Oswald"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Oswald",
+                                                                    }}
+                                                                >
+                                                                    Oswald
+                                                                </option>
+                                                                <option
+                                                                    value="Raleway"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Raleway",
+                                                                    }}
+                                                                >
+                                                                    Raleway
+                                                                </option>
+                                                                <option
+                                                                    value="Merriweather"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Merriweather, serif",
+                                                                    }}
+                                                                >
+                                                                    Merriweather
+                                                                </option>
+                                                                <option
+                                                                    value="Nunito"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Nunito",
+                                                                    }}
+                                                                >
+                                                                    Nunito
+                                                                </option>
+                                                                <option
+                                                                    value="Atkinson Hyperlegible"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Atkinson Hyperlegible",
+                                                                    }}
+                                                                >
+                                                                    Atkinson
+                                                                    Hyperlegible
+                                                                </option>
+                                                                <option
+                                                                    value="Lexend"
+                                                                    style={{
+                                                                        fontFamily:
+                                                                            "Lexend",
+                                                                    }}
+                                                                >
+                                                                    Lexend
+                                                                </option>
+                                                            </optgroup>
+                                                            <option value="custom">
+                                                                ✨
+                                                                Personalizado...
+                                                            </option>
+                                                        </select>
+
+                                                        {(selectValue ===
+                                                            "custom" ||
+                                                            isCustom) && (
+                                                            <div
+                                                                style={{
+                                                                    marginTop:
+                                                                        "8px",
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    placeholder="Nome da Google Font (ex: Ubuntu)"
+                                                                    value={
+                                                                        fontSettings[
+                                                                            key
+                                                                        ] ===
+                                                                        "System"
+                                                                            ? ""
+                                                                            : fontSettings[
+                                                                                  key
+                                                                              ]
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleFontChange(
+                                                                            key,
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <small
+                                                                    style={{
+                                                                        display:
+                                                                            "block",
+                                                                        marginTop:
+                                                                            "4px",
+                                                                        color: "var(--text-secondary-color)",
+                                                                    }}
+                                                                >
+                                                                    ⚠️ Digite o
+                                                                    nome exato
+                                                                    da fonte
+                                                                    disponível
+                                                                    no{" "}
+                                                                    <a
+                                                                        href="https://fonts.google.com"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        Google
+                                                                        Fonts
+                                                                    </a>
+                                                                    .
+                                                                </small>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* 4. Accessibility */}
+                        <div className="grid-item">
+                            <h2>♿ Acessibilidade</h2>
+                            <div className="accessibility-wrapper">
+                                <div className="accessibility-section">
+                                    <h3>Contraste</h3>
+                                    <div className="accessibility-mode-selector">
+                                        <button
+                                            className={`accessibility-mode-button ${!accessibility?.highContrast ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast: false,
+                                                    colorBlindMode:
+                                                        accessibility.colorBlindMode,
+                                                })
+                                            }
+                                            title="Configuração padrão"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                👁️
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Padrão
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.highContrast ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast: true,
+                                                    colorBlindMode:
+                                                        accessibility.colorBlindMode,
+                                                })
+                                            }
+                                            title="Aumenta o contraste das cores escuras e claras"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                ⚫⚪
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Alto Contraste
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="accessibility-section">
+                                    <h3>Suporte à Leitura</h3>
+                                    <div className="accessibility-mode-selector">
+                                        <button
+                                            className={`accessibility-mode-button ${!accessibility?.dyslexicFont ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode:
+                                                        accessibility.colorBlindMode,
+                                                    dyslexicFont: false,
+                                                })
+                                            }
+                                            title="Tipografia padrão"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                Tt
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Padrão
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.dyslexicFont ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode:
+                                                        accessibility.colorBlindMode,
+                                                    dyslexicFont: true,
+                                                })
+                                            }
+                                            title="Ativa a fonte OpenDyslexic em títulos e textos"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                📖
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Dislexia
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="accessibility-section">
+                                    <h3>Modo Daltonismo</h3>
+                                    <div className="accessibility-mode-selector">
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.colorBlindMode === "none" ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode: "none",
+                                                })
+                                            }
+                                            title="Sem filtros de cor"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                🌈
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Desativado
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.colorBlindMode === "protanopia" ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode:
+                                                        "protanopia",
+                                                })
+                                            }
+                                            title="Filtro para dificuldade em distinguir vermelho"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                🔴
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Protanopia
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.colorBlindMode === "deuteranopia" ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode:
+                                                        "deuteranopia",
+                                                })
+                                            }
+                                            title="Filtro para dificuldade em distinguir verde"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                🟢
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Deuteranopia
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={`accessibility-mode-button ${accessibility?.colorBlindMode === "tritanopia" ? "active" : ""}`}
+                                            onClick={() =>
+                                                saveAccessibility({
+                                                    highContrast:
+                                                        accessibility.highContrast,
+                                                    colorBlindMode:
+                                                        "tritanopia",
+                                                })
+                                            }
+                                            title="Filtro para dificuldade em distinguir azul"
+                                        >
+                                            <span className="a11y-mode-icon">
+                                                🔵
+                                            </span>
+                                            <span className="a11y-mode-label">
+                                                Tritanopia
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             )}
 
-            {/* Theme Selection Section */}
-            <section className="appearance-section">
-                <h2>🎨 Tema e Cores</h2>
-
-                {!canEditTheme && (
-                    <div className="permission-warning">
-                        <span className="warning-icon">⚠️</span>
-                        <span>
-                            Você não tem permissão para alterar configurações de
-                            tema. Entre em contato com um administrador se
-                            precisar de acesso.
-                        </span>
-                    </div>
-                )}
-
-                {canEditTheme && (
-                    <>
-                        <p className="section-description">
-                            Clique em um tema para visualizar as mudanças em
-                            tempo real. As alterações são salvas
-                            automaticamente.
-                        </p>
-
-                        {isRoot ? (
-                            <div className="theme-management-container">
-                                <div className="theme-block-actions">
-                                    <button
-                                        type="button"
-                                        className="theme-action-button apply-global-small"
-                                        onClick={handleSaveGlobalTheme}
-                                        title="Define o tema salvo como padrão para novos usuários"
-                                    >
-                                        Atualizar Tema <br></br> Padrão Global
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="theme-action-button unlock-all-small"
-                                        onClick={handleUnlockAllThemes}
-                                        title="Libera todos os temas"
-                                    >
-                                        Liberar Todos
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="theme-action-button block-all-small"
-                                        onClick={handleBlockAllExceptSelected}
-                                        title="Bloqueia todos os temas exceto o selecionado"
-                                    >
-                                        Bloquear Todos Exceto Selecionado
-                                    </button>
-                                </div>
-
-                                {globalTheme && (
-                                    <div className="global-theme-info">
-                                        <p>
-                                            <strong>
-                                                Tema Global atualmente
-                                                selecionado:
-                                            </strong>{" "}
-                                            {getThemeName(globalTheme)}
-                                        </p>
-                                    </div>
-                                )}
-
-                                <p className="theme-selection-note">
-                                    Arraste os temas entre os blocos para
-                                    bloquear ou liberar. Use Ctrl+Clique ou
-                                    Shift+Clique para selecionar múltiplos. As
-                                    alterações são salvas automaticamente.
+            {/* TAB: THEMES & COLORS */}
+            {activeTab === "themes" && (
+                <>
+                    {/* Root Only Sections */}
+                    {isRoot && (
+                        <>
+                            {/* Theme Permissions Section */}
+                            <section className="appearance-section permissions-section">
+                                <h2>🔒 Permissões de Tema</h2>
+                                <p className="section-description">
+                                    Controle quem pode personalizar as
+                                    configurações de tema. Usuários root sempre
+                                    podem editar.
                                 </p>
 
-                                <div className="theme-blocks-wrapper">
-                                    <div className="theme-block">
-                                        <h4>✅ Temas Liberados</h4>
-                                        <div
-                                            className="preset-grid theme-drop-zone allowed-zone"
-                                            onDragOver={handleContainerDragOver}
-                                            onDragLeave={
-                                                handleContainerDragLeave
-                                            }
-                                            onDrop={handleDropToAllowed}
-                                            onMouseDown={(e) =>
-                                                handleLassoStart(e, "allowed")
-                                            }
-                                            onMouseMove={handleLassoMove}
-                                            onMouseUp={handleLassoEnd}
-                                            onMouseLeave={handleLassoEnd}
-                                        >
+                                <div className="permissions-grid">
+                                    <div className="permission-item">
+                                        <div className="permission-toggle">
+                                            <label className="switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        permissionsFormData.adminsCanEditTheme
+                                                    }
+                                                    onChange={(e) =>
+                                                        handlePermissionsChange(
+                                                            "adminsCanEditTheme",
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                />
+                                                <span className="slider round"></span>
+                                            </label>
+                                            <div className="permission-info">
+                                                <span className="permission-label">
+                                                    Administradores podem
+                                                    alterar tema
+                                                </span>
+                                                <span className="permission-description">
+                                                    Permite que usuários com
+                                                    role "admin" personalizem
+                                                    suas próprias configurações
+                                                    de tema
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="permission-item">
+                                        <div className="permission-toggle">
+                                            <label className="switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        permissionsFormData.usersCanEditTheme
+                                                    }
+                                                    onChange={(e) =>
+                                                        handlePermissionsChange(
+                                                            "usersCanEditTheme",
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                />
+                                                <span className="slider round"></span>
+                                            </label>
+                                            <div className="permission-info">
+                                                <span className="permission-label">
+                                                    Usuários podem alterar tema
+                                                </span>
+                                                <span className="permission-description">
+                                                    Permite que usuários
+                                                    convencionais personalizem
+                                                    suas próprias configurações
+                                                    de tema
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Permissions are saved automatically */}
+                            </section>
+
+                            {/* Global Theme is now integrated in Theme and Colors */}
+                        </>
+                    )}
+
+                    {/* Theme Selection Section */}
+                    <section className="appearance-section">
+                        <h2>🎨 Tema e Cores</h2>
+
+                        {!canEditTheme && (
+                            <div className="permission-warning">
+                                <span className="warning-icon">⚠️</span>
+                                <span>
+                                    Você não tem permissão para alterar
+                                    configurações de tema. Entre em contato com
+                                    um administrador se precisar de acesso.
+                                </span>
+                            </div>
+                        )}
+
+                        {canEditTheme && (
+                            <>
+                                <p className="section-description">
+                                    Clique em um tema para visualizar as
+                                    mudanças em tempo real. As alterações são
+                                    salvas automaticamente.
+                                </p>
+
+                                {isRoot ? (
+                                    <div className="theme-management-container">
+                                        <div className="theme-block-actions">
+                                            <button
+                                                type="button"
+                                                className="theme-action-button apply-global-small"
+                                                onClick={handleSaveGlobalTheme}
+                                                title="Define o tema salvo como padrão para novos usuários"
+                                            >
+                                                Atualizar Tema <br></br> Padrão
+                                                Global
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="theme-action-button unlock-all-small"
+                                                onClick={handleUnlockAllThemes}
+                                                title="Libera todos os temas"
+                                            >
+                                                Liberar Todos
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="theme-action-button block-all-small"
+                                                onClick={
+                                                    handleBlockAllExceptSelected
+                                                }
+                                                title="Bloqueia todos os temas exceto o selecionado"
+                                            >
+                                                Bloquear Todos Exceto
+                                                Selecionado
+                                            </button>
+                                        </div>
+
+                                        {globalTheme && (
+                                            <div className="global-theme-info">
+                                                <p>
+                                                    <strong>
+                                                        Tema Global atualmente
+                                                        selecionado:
+                                                    </strong>{" "}
+                                                    {getThemeName(globalTheme)}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <p className="theme-selection-note">
+                                            Arraste os temas entre os blocos
+                                            para bloquear ou liberar. Use
+                                            Ctrl+Clique ou Shift+Clique para
+                                            selecionar múltiplos. As alterações
+                                            são salvas automaticamente.
+                                        </p>
+
+                                        <div className="theme-blocks-wrapper">
+                                            <div className="theme-block">
+                                                <h4>✅ Temas Liberados</h4>
+                                                <div
+                                                    className="preset-grid theme-drop-zone allowed-zone"
+                                                    onDragOver={
+                                                        handleContainerDragOver
+                                                    }
+                                                    onDragLeave={
+                                                        handleContainerDragLeave
+                                                    }
+                                                    onDrop={handleDropToAllowed}
+                                                    onMouseDown={(e) =>
+                                                        handleLassoStart(
+                                                            e,
+                                                            "allowed",
+                                                        )
+                                                    }
+                                                    onMouseMove={
+                                                        handleLassoMove
+                                                    }
+                                                    onMouseUp={handleLassoEnd}
+                                                    onMouseLeave={
+                                                        handleLassoEnd
+                                                    }
+                                                >
+                                                    {allowedThemes.includes(
+                                                        "custom",
+                                                    ) && (
+                                                        <button
+                                                            type="button"
+                                                            data-theme="custom"
+                                                            draggable
+                                                            className={`preset-card ${
+                                                                savedTheme.preset ===
+                                                                "custom"
+                                                                    ? "active"
+                                                                    : ""
+                                                            } ${
+                                                                selectedThemes.has(
+                                                                    "custom",
+                                                                )
+                                                                    ? "selected"
+                                                                    : ""
+                                                            } ${
+                                                                isDragging &&
+                                                                draggedThemes?.includes(
+                                                                    "custom",
+                                                                )
+                                                                    ? "dragging"
+                                                                    : ""
+                                                            }`}
+                                                            onClick={(e) => {
+                                                                if (
+                                                                    e.ctrlKey ||
+                                                                    e.metaKey
+                                                                ) {
+                                                                    e.stopPropagation();
+                                                                    toggleThemeSelection(
+                                                                        "custom",
+                                                                    );
+                                                                } else if (
+                                                                    e.shiftKey
+                                                                ) {
+                                                                    e.stopPropagation();
+                                                                    setSelectionStart(
+                                                                        "custom",
+                                                                    );
+                                                                    selectThemeRange(
+                                                                        "custom",
+                                                                        allowedThemes,
+                                                                    );
+                                                                } else {
+                                                                    handleThemeChange(
+                                                                        "preset",
+                                                                        "custom",
+                                                                    );
+                                                                }
+                                                            }}
+                                                            onDragStart={(e) =>
+                                                                handleThemeDragStart(
+                                                                    "custom",
+                                                                    e,
+                                                                )
+                                                            }
+                                                            onDragEnd={() => {
+                                                                setIsDragging(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                            title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                        >
+                                                            <div
+                                                                className="preset-preview"
+                                                                style={{
+                                                                    background:
+                                                                        "#ccc",
+                                                                }}
+                                                            ></div>
+                                                            <span>
+                                                                Personalizado
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                    {Object.entries(
+                                                        THEME_PRESETS,
+                                                    )
+                                                        .filter(([key]) =>
+                                                            allowedThemes.includes(
+                                                                key,
+                                                            ),
+                                                        )
+                                                        .map(
+                                                            ([key, preset]) => (
+                                                                <button
+                                                                    key={key}
+                                                                    type="button"
+                                                                    data-theme={
+                                                                        key
+                                                                    }
+                                                                    draggable
+                                                                    className={`preset-card ${
+                                                                        savedTheme.preset ===
+                                                                        key
+                                                                            ? "active"
+                                                                            : ""
+                                                                    } ${
+                                                                        selectedThemes.has(
+                                                                            key,
+                                                                        )
+                                                                            ? "selected"
+                                                                            : ""
+                                                                    } ${
+                                                                        isDragging &&
+                                                                        draggedThemes?.includes(
+                                                                            key,
+                                                                        )
+                                                                            ? "dragging"
+                                                                            : ""
+                                                                    }`}
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) => {
+                                                                        if (
+                                                                            e.ctrlKey ||
+                                                                            e.metaKey
+                                                                        ) {
+                                                                            e.stopPropagation();
+                                                                            toggleThemeSelection(
+                                                                                key,
+                                                                            );
+                                                                        } else if (
+                                                                            e.shiftKey
+                                                                        ) {
+                                                                            e.stopPropagation();
+                                                                            setSelectionStart(
+                                                                                key,
+                                                                            );
+                                                                            selectThemeRange(
+                                                                                key,
+                                                                                allowedThemes,
+                                                                            );
+                                                                        } else {
+                                                                            handleThemeChange(
+                                                                                "preset",
+                                                                                key,
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                    onDragStart={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleThemeDragStart(
+                                                                            key,
+                                                                            e,
+                                                                        )
+                                                                    }
+                                                                    onDragEnd={() => {
+                                                                        setIsDragging(
+                                                                            false,
+                                                                        );
+                                                                    }}
+                                                                    style={{
+                                                                        borderColor:
+                                                                            savedTheme.preset ===
+                                                                            key
+                                                                                ? preset
+                                                                                      .light
+                                                                                      .borderDefault
+                                                                                : "transparent",
+                                                                    }}
+                                                                    title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                                >
+                                                                    <div
+                                                                        className="preset-preview"
+                                                                        style={{
+                                                                            background: `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
+                                                                        }}
+                                                                    ></div>
+                                                                    <span>
+                                                                        {
+                                                                            preset.name
+                                                                        }
+                                                                    </span>
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    {allowedThemes.length ===
+                                                        0 && (
+                                                        <div className="preset-empty">
+                                                            Nenhum tema liberado
+                                                        </div>
+                                                    )}
+                                                    {isLassoSelecting &&
+                                                        lassoRect &&
+                                                        currentZone ===
+                                                            "allowed" && (
+                                                            <div
+                                                                className="lasso-selection-box"
+                                                                style={{
+                                                                    left: `${lassoRect.left}px`,
+                                                                    top: `${lassoRect.top}px`,
+                                                                    width: `${lassoRect.right - lassoRect.left}px`,
+                                                                    height: `${lassoRect.bottom - lassoRect.top}px`,
+                                                                }}
+                                                            />
+                                                        )}
+                                                </div>
+                                            </div>
+
+                                            <div className="theme-block">
+                                                <h4>🚫 Temas Bloqueados</h4>
+                                                <div
+                                                    className="preset-grid theme-drop-zone blocked-zone"
+                                                    onDragOver={
+                                                        handleContainerDragOver
+                                                    }
+                                                    onDragLeave={
+                                                        handleContainerDragLeave
+                                                    }
+                                                    onDrop={handleDropToBlocked}
+                                                    onMouseDown={(e) =>
+                                                        handleLassoStart(
+                                                            e,
+                                                            "blocked",
+                                                        )
+                                                    }
+                                                    onMouseMove={
+                                                        handleLassoMove
+                                                    }
+                                                    onMouseUp={handleLassoEnd}
+                                                    onMouseLeave={
+                                                        handleLassoEnd
+                                                    }
+                                                >
+                                                    {blockedThemes.map(
+                                                        (key) => {
+                                                            const preset =
+                                                                key === "custom"
+                                                                    ? null
+                                                                    : THEME_PRESETS[
+                                                                          key
+                                                                      ];
+                                                            return (
+                                                                <button
+                                                                    key={key}
+                                                                    type="button"
+                                                                    data-theme={
+                                                                        key
+                                                                    }
+                                                                    draggable
+                                                                    className={`preset-card ${
+                                                                        selectedThemes.has(
+                                                                            key,
+                                                                        )
+                                                                            ? "selected"
+                                                                            : ""
+                                                                    } ${
+                                                                        isDragging &&
+                                                                        draggedThemes?.includes(
+                                                                            key,
+                                                                        )
+                                                                            ? "dragging"
+                                                                            : ""
+                                                                    }`}
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) => {
+                                                                        if (
+                                                                            e.ctrlKey ||
+                                                                            e.metaKey
+                                                                        ) {
+                                                                            e.stopPropagation();
+                                                                            toggleThemeSelection(
+                                                                                key,
+                                                                            );
+                                                                        } else if (
+                                                                            e.shiftKey
+                                                                        ) {
+                                                                            e.stopPropagation();
+                                                                            setSelectionStart(
+                                                                                key,
+                                                                            );
+                                                                            selectThemeRange(
+                                                                                key,
+                                                                                blockedThemes,
+                                                                            );
+                                                                        } else {
+                                                                            setSelectionStart(
+                                                                                key,
+                                                                            );
+                                                                            setSelectedThemes(
+                                                                                new Set(
+                                                                                    [
+                                                                                        key,
+                                                                                    ],
+                                                                                ),
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                    onDragStart={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleThemeDragStart(
+                                                                            key,
+                                                                            e,
+                                                                        )
+                                                                    }
+                                                                    onDragEnd={() => {
+                                                                        setIsDragging(
+                                                                            false,
+                                                                        );
+                                                                    }}
+                                                                    title="Arraste para liberar, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                                >
+                                                                    <div
+                                                                        className="preset-preview"
+                                                                        style={{
+                                                                            background:
+                                                                                key ===
+                                                                                "custom"
+                                                                                    ? "#ccc"
+                                                                                    : `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
+                                                                        }}
+                                                                    ></div>
+                                                                    <span>
+                                                                        {key ===
+                                                                        "custom"
+                                                                            ? "Personalizado"
+                                                                            : preset?.name ||
+                                                                              key}
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        },
+                                                    )}
+                                                    {blockedThemes.length ===
+                                                        0 && (
+                                                        <div className="preset-empty">
+                                                            Nenhum tema
+                                                            bloqueado
+                                                        </div>
+                                                    )}
+                                                    {isLassoSelecting &&
+                                                        lassoRect &&
+                                                        currentZone ===
+                                                            "blocked" && (
+                                                            <div
+                                                                className="lasso-selection-box"
+                                                                style={{
+                                                                    left: `${lassoRect.left}px`,
+                                                                    top: `${lassoRect.top}px`,
+                                                                    width: `${lassoRect.right - lassoRect.left}px`,
+                                                                    height: `${lassoRect.bottom - lassoRect.top}px`,
+                                                                }}
+                                                            />
+                                                        )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="form-group">
+                                        <label>Predefinição de Tema</label>
+                                        <div className="preset-grid">
                                             {allowedThemes.includes(
                                                 "custom",
                                             ) && (
                                                 <button
                                                     type="button"
-                                                    data-theme="custom"
-                                                    draggable
-                                                    className={`preset-card ${
-                                                        savedTheme.preset ===
-                                                        "custom"
-                                                            ? "active"
-                                                            : ""
-                                                    } ${
-                                                        selectedThemes.has(
+                                                    className={`preset-card ${savedTheme.preset === "custom" ? "active" : ""}`}
+                                                    onClick={() =>
+                                                        handleThemeChange(
+                                                            "preset",
                                                             "custom",
-                                                        )
-                                                            ? "selected"
-                                                            : ""
-                                                    } ${
-                                                        isDragging &&
-                                                        draggedThemes?.includes(
-                                                            "custom",
-                                                        )
-                                                            ? "dragging"
-                                                            : ""
-                                                    }`}
-                                                    onClick={(e) => {
-                                                        if (
-                                                            e.ctrlKey ||
-                                                            e.metaKey
-                                                        ) {
-                                                            e.stopPropagation();
-                                                            toggleThemeSelection(
-                                                                "custom",
-                                                            );
-                                                        } else if (e.shiftKey) {
-                                                            e.stopPropagation();
-                                                            setSelectionStart(
-                                                                "custom",
-                                                            );
-                                                            selectThemeRange(
-                                                                "custom",
-                                                                allowedThemes,
-                                                            );
-                                                        } else {
-                                                            handleThemeChange(
-                                                                "preset",
-                                                                "custom",
-                                                            );
-                                                        }
-                                                    }}
-                                                    onDragStart={(e) =>
-                                                        handleThemeDragStart(
-                                                            "custom",
-                                                            e,
                                                         )
                                                     }
-                                                    onDragEnd={() => {
-                                                        setIsDragging(false);
-                                                    }}
-                                                    title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
                                                 >
                                                     <div
                                                         className="preset-preview"
@@ -1189,65 +2186,13 @@ export default function Appearance({ token, apiUrl }) {
                                                     <button
                                                         key={key}
                                                         type="button"
-                                                        data-theme={key}
-                                                        draggable
-                                                        className={`preset-card ${
-                                                            savedTheme.preset ===
-                                                            key
-                                                                ? "active"
-                                                                : ""
-                                                        } ${
-                                                            selectedThemes.has(
+                                                        className={`preset-card ${savedTheme.preset === key ? "active" : ""}`}
+                                                        onClick={() =>
+                                                            handleThemeChange(
+                                                                "preset",
                                                                 key,
-                                                            )
-                                                                ? "selected"
-                                                                : ""
-                                                        } ${
-                                                            isDragging &&
-                                                            draggedThemes?.includes(
-                                                                key,
-                                                            )
-                                                                ? "dragging"
-                                                                : ""
-                                                        }`}
-                                                        onClick={(e) => {
-                                                            if (
-                                                                e.ctrlKey ||
-                                                                e.metaKey
-                                                            ) {
-                                                                e.stopPropagation();
-                                                                toggleThemeSelection(
-                                                                    key,
-                                                                );
-                                                            } else if (
-                                                                e.shiftKey
-                                                            ) {
-                                                                e.stopPropagation();
-                                                                setSelectionStart(
-                                                                    key,
-                                                                );
-                                                                selectThemeRange(
-                                                                    key,
-                                                                    allowedThemes,
-                                                                );
-                                                            } else {
-                                                                handleThemeChange(
-                                                                    "preset",
-                                                                    key,
-                                                                );
-                                                            }
-                                                        }}
-                                                        onDragStart={(e) =>
-                                                            handleThemeDragStart(
-                                                                key,
-                                                                e,
                                                             )
                                                         }
-                                                        onDragEnd={() => {
-                                                            setIsDragging(
-                                                                false,
-                                                            );
-                                                        }}
                                                         style={{
                                                             borderColor:
                                                                 savedTheme.preset ===
@@ -1257,7 +2202,6 @@ export default function Appearance({ token, apiUrl }) {
                                                                           .borderDefault
                                                                     : "transparent",
                                                         }}
-                                                        title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
                                                     >
                                                         <div
                                                             className="preset-preview"
@@ -1270,451 +2214,262 @@ export default function Appearance({ token, apiUrl }) {
                                                         </span>
                                                     </button>
                                                 ))}
-                                            {allowedThemes.length === 0 && (
-                                                <div className="preset-empty">
-                                                    Nenhum tema liberado
-                                                </div>
-                                            )}
-                                            {isLassoSelecting &&
-                                                lassoRect &&
-                                                currentZone === "allowed" && (
-                                                    <div
-                                                        className="lasso-selection-box"
-                                                        style={{
-                                                            left: `${lassoRect.left}px`,
-                                                            top: `${lassoRect.top}px`,
-                                                            width: `${lassoRect.right - lassoRect.left}px`,
-                                                            height: `${lassoRect.bottom - lassoRect.top}px`,
-                                                        }}
-                                                    />
-                                                )}
                                         </div>
                                     </div>
+                                )}
 
-                                    <div className="theme-block">
-                                        <h4>🚫 Temas Bloqueados</h4>
-                                        <div
-                                            className="preset-grid theme-drop-zone blocked-zone"
-                                            onDragOver={handleContainerDragOver}
-                                            onDragLeave={
-                                                handleContainerDragLeave
-                                            }
-                                            onDrop={handleDropToBlocked}
-                                            onMouseDown={(e) =>
-                                                handleLassoStart(e, "blocked")
-                                            }
-                                            onMouseMove={handleLassoMove}
-                                            onMouseUp={handleLassoEnd}
-                                            onMouseLeave={handleLassoEnd}
-                                        >
-                                            {blockedThemes.map((key) => {
-                                                const preset =
-                                                    key === "custom"
-                                                        ? null
-                                                        : THEME_PRESETS[key];
-                                                return (
-                                                    <button
-                                                        key={key}
-                                                        type="button"
-                                                        data-theme={key}
-                                                        draggable
-                                                        className={`preset-card ${
-                                                            selectedThemes.has(
-                                                                key,
-                                                            )
-                                                                ? "selected"
-                                                                : ""
-                                                        } ${
-                                                            isDragging &&
-                                                            draggedThemes?.includes(
-                                                                key,
-                                                            )
-                                                                ? "dragging"
-                                                                : ""
-                                                        }`}
-                                                        onClick={(e) => {
-                                                            if (
-                                                                e.ctrlKey ||
-                                                                e.metaKey
-                                                            ) {
-                                                                e.stopPropagation();
-                                                                toggleThemeSelection(
-                                                                    key,
-                                                                );
-                                                            } else if (
-                                                                e.shiftKey
-                                                            ) {
-                                                                e.stopPropagation();
-                                                                setSelectionStart(
-                                                                    key,
-                                                                );
-                                                                selectThemeRange(
-                                                                    key,
-                                                                    blockedThemes,
-                                                                );
-                                                            } else {
-                                                                setSelectionStart(
-                                                                    key,
-                                                                );
-                                                                setSelectedThemes(
-                                                                    new Set([
-                                                                        key,
-                                                                    ]),
-                                                                );
-                                                            }
-                                                        }}
-                                                        onDragStart={(e) =>
-                                                            handleThemeDragStart(
-                                                                key,
-                                                                e,
+                                {formData.theme?.preset === "custom" && (
+                                    <>
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Cor Primária</label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.primaryColor ||
+                                                            "#3498db"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "primaryColor",
+                                                                e.target.value,
                                                             )
                                                         }
-                                                        onDragEnd={() => {
-                                                            setIsDragging(
-                                                                false,
-                                                            );
-                                                        }}
-                                                        title="Arraste para liberar, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
-                                                    >
-                                                        <div
-                                                            className="preset-preview"
-                                                            style={{
-                                                                background:
-                                                                    key ===
-                                                                    "custom"
-                                                                        ? "#ccc"
-                                                                        : `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
-                                                            }}
-                                                        ></div>
-                                                        <span>
-                                                            {key === "custom"
-                                                                ? "Personalizado"
-                                                                : preset?.name ||
-                                                                  key}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                            {blockedThemes.length === 0 && (
-                                                <div className="preset-empty">
-                                                    Nenhum tema bloqueado
-                                                </div>
-                                            )}
-                                            {isLassoSelecting &&
-                                                lassoRect &&
-                                                currentZone === "blocked" && (
-                                                    <div
-                                                        className="lasso-selection-box"
-                                                        style={{
-                                                            left: `${lassoRect.left}px`,
-                                                            top: `${lassoRect.top}px`,
-                                                            width: `${lassoRect.right - lassoRect.left}px`,
-                                                            height: `${lassoRect.bottom - lassoRect.top}px`,
-                                                        }}
                                                     />
-                                                )}
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.primaryColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "primaryColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Cor Secundária</label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.secondaryColor ||
+                                                            "#2c3e50"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "secondaryColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.secondaryColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "secondaryColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="form-group">
-                                <label>Predefinição de Tema</label>
-                                <div className="preset-grid">
-                                    {allowedThemes.includes("custom") && (
-                                        <button
-                                            type="button"
-                                            className={`preset-card ${savedTheme.preset === "custom" ? "active" : ""}`}
-                                            onClick={() =>
-                                                handleThemeChange(
-                                                    "preset",
-                                                    "custom",
-                                                )
-                                            }
-                                        >
-                                            <div
-                                                className="preset-preview"
-                                                style={{ background: "#ccc" }}
-                                            ></div>
-                                            <span>Personalizado</span>
-                                        </button>
-                                    )}
-                                    {Object.entries(THEME_PRESETS)
-                                        .filter(([key]) =>
-                                            allowedThemes.includes(key),
-                                        )
-                                        .map(([key, preset]) => (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                className={`preset-card ${savedTheme.preset === key ? "active" : ""}`}
-                                                onClick={() =>
-                                                    handleThemeChange(
-                                                        "preset",
-                                                        key,
-                                                    )
-                                                }
-                                                style={{
-                                                    borderColor:
-                                                        savedTheme.preset ===
-                                                        key
-                                                            ? preset.light
-                                                                  .borderDefault
-                                                            : "transparent",
-                                                }}
-                                            >
-                                                <div
-                                                    className="preset-preview"
-                                                    style={{
-                                                        background: `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
-                                                    }}
-                                                ></div>
-                                                <span>{preset.name}</span>
-                                            </button>
-                                        ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {formData.theme?.preset === "custom" && (
-                            <>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Cor Primária</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.primaryColor ||
-                                                    "#3498db"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "primaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.primaryColor || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "primaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Cor de Fundo</label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.backgroundColor ||
+                                                            "#f8f9fa"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "backgroundColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.backgroundColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "backgroundColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Cor de Superfície</label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.surfaceColor ||
+                                                            "#ffffff"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "surfaceColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.surfaceColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "surfaceColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Cor Secundária</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.secondaryColor ||
-                                                    "#2c3e50"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "secondaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.secondaryColor || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "secondaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>
+                                                    Cor do Texto Principal
+                                                </label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.textColor ||
+                                                            "#333333"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "textColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.textColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "textColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>
+                                                    Cor do Texto Secundário
+                                                </label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.textSecondaryColor ||
+                                                            "#666666"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "textSecondaryColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.textSecondaryColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "textSecondaryColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Cor de Fundo</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.backgroundColor ||
-                                                    "#f8f9fa"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "backgroundColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.backgroundColor || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "backgroundColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Cor da Borda</label>
+                                                <div className="color-input-wrapper">
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            formData.theme
+                                                                ?.borderColor ||
+                                                            "#cbd5e0"
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "borderColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            formData.theme
+                                                                ?.borderColor ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleThemeChange(
+                                                                "borderColor",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Cor de Superfície</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.surfaceColor ||
-                                                    "#ffffff"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "surfaceColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.surfaceColor || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "surfaceColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Cor do Texto Principal</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme?.textColor ||
-                                                    "#333333"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "textColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme?.textColor ||
-                                                    ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "textColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Cor do Texto Secundário</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.textSecondaryColor ||
-                                                    "#666666"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "textSecondaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.textSecondaryColor ||
-                                                    ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "textSecondaryColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Cor da Borda</label>
-                                        <div className="color-input-wrapper">
-                                            <input
-                                                type="color"
-                                                value={
-                                                    formData.theme
-                                                        ?.borderColor ||
-                                                    "#cbd5e0"
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "borderColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData.theme
-                                                        ?.borderColor || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleThemeChange(
-                                                        "borderColor",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </>
                         )}
-                    </>
-                )}
-            </section>
+                    </section>
+                </>
+            )}
         </div>
     );
 }

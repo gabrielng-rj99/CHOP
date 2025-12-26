@@ -35,6 +35,7 @@ import Initialize from "./pages/Initialize";
 import Settings from "./pages/Settings";
 import Appearance from "./pages/Appearance";
 import Sidebar from "./components/layout/Sidebar";
+import LayoutManager from "./components/layout/LayoutManager";
 import { ConfigProvider } from "./contexts/ConfigContext";
 import { DataProvider } from "./contexts/DataContext";
 import "./App.css";
@@ -266,6 +267,7 @@ function App() {
                     apiUrl={API_URL}
                     onTokenExpired={() => logout("Token inválido")}
                 >
+                    <LayoutManager />
                     <div className="app-container">
                         <Sidebar
                             sidebarCollapsed={sidebarCollapsed}
@@ -312,7 +314,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/contracts"
+                        path="/agreements"
                         element={
                             <Contracts
                                 token={token}
