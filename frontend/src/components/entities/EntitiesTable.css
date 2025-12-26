@@ -74,7 +74,7 @@
     color: var(--text-secondary-color, #7f8c8d);
 }
 
-.clients-table td.contracts-count {
+.clients-table td.agreements-count {
     text-align: center;
     font-weight: 500;
     color: var(--text-color, #2c3e50);
@@ -151,6 +151,6 @@
     color: var(--text-secondary-color, #a0aec0);
 }
 
-.dark-mode .clients-table td.contracts-count {
+.dark-mode .clients-table td.agreements-count {
     color: var(--text-color, #f7fafc);
 }

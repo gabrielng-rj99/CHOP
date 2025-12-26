@@ -345,7 +345,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         <div className="clients-container">
             <div className="clients-header">
                 <h1 className="clients-title">
-                    {config.labels.entities || "Clientes"}
+                    👥 {config.labels.entities || "Clientes"}
                 </h1>
                 <div className="button-group">
                     <RefreshButton

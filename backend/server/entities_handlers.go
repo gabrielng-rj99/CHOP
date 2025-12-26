@@ -44,7 +44,7 @@ func (s *Server) handleEntities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListEntities(w http.ResponseWriter, r *http.Request) {
-	// Check if requesting with contract stats
+	// Check if requesting with agreement stats
 	includeStats := r.URL.Query().Get("include_stats") == "true"
 
 	entities, err := s.entityStore.GetAllEntitiesIncludingArchived()
@@ -54,7 +54,7 @@ func (s *Server) handleListEntities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if includeStats {
-		// Get contract stats for all entities
+		// Get agreement stats for all entities
 		statsMap, err := s.agreementStore.GetAgreementStatsForAllEntities()
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
@@ -243,7 +243,7 @@ func (s *Server) handleDeleteEntity(w http.ResponseWriter, r *http.Request, enti
 	respondJSON(w, http.StatusNoContent, nil) // 204 No Content
 }
 
-func (s *Server) handleGetEntity(w http.ResponseWriter, r *http.Request, entityID string) {
+func (s *Server) handleGetEntity(w http.ResponseWriter, _ *http.Request, entityID string) {
 	entity, err := s.entityStore.GetEntityByID(entityID)
 	if err != nil {
 		if err == sql.ErrNoRows {

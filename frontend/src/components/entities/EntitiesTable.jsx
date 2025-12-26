@@ -77,13 +77,13 @@ export default function EntitiesTable({
                                     {isArchived ? "Arquivado" : effectiveStatus}
                                 </span>
                             </td>
-                            <td className="contracts-count">
+                            <td className="agreements-count">
                                 {client.active_agreements || 0}
                             </td>
-                            <td className="contracts-count">
+                            <td className="agreements-count">
                                 {client.expired_agreements || 0}
                             </td>
-                            <td className="contracts-count">
+                            <td className="agreements-count">
                                 {client.archived_agreements || 0}
                             </td>
                             <td className="actions">

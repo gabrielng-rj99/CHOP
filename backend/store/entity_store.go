@@ -362,7 +362,7 @@ func (s *EntityStore) UpdateEntityStatus(entityID string) error {
 	}
 
 	// Count active agreements (not archived and either no end_date or end_date in future)
-	var activeContracts int
+	var activeAgreements int
 	now := time.Now()
 	err = s.db.QueryRow(`
 		SELECT COUNT(*)
@@ -370,14 +370,14 @@ func (s *EntityStore) UpdateEntityStatus(entityID string) error {
 		WHERE entity_id = $1
 		AND archived_at IS NULL
 		AND (end_date IS NULL OR end_date > $2)
-	`, entityID, now).Scan(&activeContracts)
+	`, entityID, now).Scan(&activeAgreements)
 	if err != nil {
 		return err
 	}
 
 	// Set status based on active agreements
 	var newStatus string
-	if activeContracts > 0 {
+	if activeAgreements > 0 {
 		newStatus = "ativo"
 	} else {
 		newStatus = "inativo"
