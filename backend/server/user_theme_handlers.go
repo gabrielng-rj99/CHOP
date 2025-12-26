@@ -37,6 +37,7 @@ const maxThemeRequestSize = 16 * 1024
 type UserThemeSettingsRequest struct {
 	ThemePreset        string  `json:"theme_preset"`
 	ThemeMode          string  `json:"theme_mode"`
+	LayoutMode         string  `json:"layout_mode"`
 	PrimaryColor       *string `json:"primary_color,omitempty"`
 	SecondaryColor     *string `json:"secondary_color,omitempty"`
 	BackgroundColor    *string `json:"background_color,omitempty"`
@@ -46,6 +47,10 @@ type UserThemeSettingsRequest struct {
 	BorderColor        *string `json:"border_color,omitempty"`
 	HighContrast       bool    `json:"high_contrast"`
 	ColorBlindMode     string  `json:"color_blind_mode"`
+	DyslexicFont       bool    `json:"dyslexic_font"`
+	FontGeneral        *string `json:"font_general,omitempty"`
+	FontTitle          *string `json:"font_title,omitempty"`
+	FontTableTitle     *string `json:"font_table_title,omitempty"`
 }
 
 // ThemePermissionsRequest represents the request for updating theme permissions
@@ -108,6 +113,14 @@ func validateThemeRequest(req *UserThemeSettingsRequest) error {
 		return fmt.Errorf("invalid theme_mode: must be 'light', 'dark', or 'system'")
 	}
 
+	// Validate layout mode
+	if req.LayoutMode == "" {
+		req.LayoutMode = "standard" // Default value
+	}
+	if req.LayoutMode != "standard" && req.LayoutMode != "full" && req.LayoutMode != "centralized" {
+		return fmt.Errorf("invalid layout_mode: must be 'standard', 'full', or 'centralized'")
+	}
+
 	// Validate colorblind mode
 	if req.ColorBlindMode == "" {
 		req.ColorBlindMode = "none" // Default value
@@ -149,6 +162,11 @@ func validateThemeRequest(req *UserThemeSettingsRequest) error {
 			return err
 		}
 	}
+
+	// Validate fonts (optional, allow empty)
+	// We rely on the store validation for strict whitelist checks,
+	// but we can do basic length/safety checks here if needed.
+	// For now, we trust the store validation.
 
 	return nil
 }
@@ -350,13 +368,24 @@ func (s *Server) HandleUpdateUserTheme(w http.ResponseWriter, r *http.Request) {
 	// Sanitize string inputs
 	req.ThemePreset = sanitizeString(req.ThemePreset)
 	req.ThemeMode = sanitizeString(req.ThemeMode)
+	req.LayoutMode = sanitizeString(req.LayoutMode)
 	req.ColorBlindMode = sanitizeString(req.ColorBlindMode)
+	if req.FontGeneral != nil {
+		*req.FontGeneral = sanitizeString(*req.FontGeneral)
+	}
+	if req.FontTitle != nil {
+		*req.FontTitle = sanitizeString(*req.FontTitle)
+	}
+	if req.FontTableTitle != nil {
+		*req.FontTableTitle = sanitizeString(*req.FontTableTitle)
+	}
 
 	// Build settings object
 	settings := &store.UserThemeSettings{
 		UserID:             claims.UserID,
 		ThemePreset:        req.ThemePreset,
 		ThemeMode:          req.ThemeMode,
+		LayoutMode:         req.LayoutMode,
 		PrimaryColor:       req.PrimaryColor,
 		SecondaryColor:     req.SecondaryColor,
 		BackgroundColor:    req.BackgroundColor,
@@ -366,6 +395,10 @@ func (s *Server) HandleUpdateUserTheme(w http.ResponseWriter, r *http.Request) {
 		BorderColor:        req.BorderColor,
 		HighContrast:       req.HighContrast,
 		ColorBlindMode:     req.ColorBlindMode,
+		DyslexicFont:       req.DyslexicFont,
+		FontGeneral:        req.FontGeneral,
+		FontTitle:          req.FontTitle,
+		FontTableTitle:     req.FontTableTitle,
 	}
 
 	// Upsert settings
@@ -543,6 +576,9 @@ type GlobalThemeRequest struct {
 	TextColor          *string `json:"text_color,omitempty"`
 	TextSecondaryColor *string `json:"text_secondary_color,omitempty"`
 	BorderColor        *string `json:"border_color,omitempty"`
+	FontGeneral        *string `json:"font_general,omitempty"`
+	FontTitle          *string `json:"font_title,omitempty"`
+	FontTableTitle     *string `json:"font_table_title,omitempty"`
 }
 
 // HandleGetGlobalTheme handles GET /api/settings/global-theme
@@ -684,6 +720,15 @@ func (s *Server) HandleUpdateGlobalTheme(w http.ResponseWriter, r *http.Request)
 	if req.BorderColor != nil {
 		s.settingsStore.UpdateSystemSetting("global_theme.border_color", *req.BorderColor)
 	}
+	if req.FontGeneral != nil {
+		s.settingsStore.UpdateSystemSetting("global_theme.font_general", *req.FontGeneral)
+	}
+	if req.FontTitle != nil {
+		s.settingsStore.UpdateSystemSetting("global_theme.font_title", *req.FontTitle)
+	}
+	if req.FontTableTitle != nil {
+		s.settingsStore.UpdateSystemSetting("global_theme.font_table_title", *req.FontTableTitle)
+	}
 
 	log.Printf("✅ Root user %s updated global theme (preset: %s)", claims.Username, req.ThemePreset)
 
@@ -712,6 +757,15 @@ func (s *Server) HandleUpdateGlobalTheme(w http.ResponseWriter, r *http.Request)
 		}
 		if req.BorderColor != nil {
 			newValue["border_color"] = *req.BorderColor
+		}
+		if req.FontGeneral != nil {
+			newValue["font_general"] = *req.FontGeneral
+		}
+		if req.FontTitle != nil {
+			newValue["font_title"] = *req.FontTitle
+		}
+		if req.FontTableTitle != nil {
+			newValue["font_table_title"] = *req.FontTableTitle
 		}
 
 		_, auditErr := s.auditStore.LogOperation(store.AuditLogRequest{

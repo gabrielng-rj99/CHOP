@@ -33,6 +33,7 @@ type UserThemeSettings struct {
 	UserID             string    `json:"user_id"`
 	ThemePreset        string    `json:"theme_preset"`
 	ThemeMode          string    `json:"theme_mode"`
+	LayoutMode         string    `json:"layout_mode"`
 	PrimaryColor       *string   `json:"primary_color,omitempty"`
 	SecondaryColor     *string   `json:"secondary_color,omitempty"`
 	BackgroundColor    *string   `json:"background_color,omitempty"`
@@ -42,6 +43,10 @@ type UserThemeSettings struct {
 	BorderColor        *string   `json:"border_color,omitempty"`
 	HighContrast       bool      `json:"high_contrast"`
 	ColorBlindMode     string    `json:"color_blind_mode"`
+	DyslexicFont       bool      `json:"dyslexic_font"`
+	FontGeneral        *string   `json:"font_general,omitempty"`
+	FontTitle          *string   `json:"font_title,omitempty"`
+	FontTableTitle     *string   `json:"font_table_title,omitempty"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
@@ -70,6 +75,33 @@ var validThemeModes = map[string]bool{
 	"light":  true,
 	"dark":   true,
 	"system": true,
+}
+
+// Valid layout modes
+var validLayoutModes = map[string]bool{
+	"centralized": true,
+	"standard":    true,
+	"full":        true,
+}
+
+// Valid fonts (whitelist to prevent injection/invalid values)
+var validFonts = map[string]bool{
+	"System":          true,
+	"Arial":           true,
+	"Helvetica":       true,
+	"Verdana":         true,
+	"Tahoma":          true,
+	"Trebuchet MS":    true,
+	"Times New Roman": true,
+	"Georgia":         true,
+	"Garamond":        true,
+	"Courier New":     true,
+	"Brush Script MT": true,
+	"Inter":           true, // Keeping simply for backward compat if any data exists
+	"Roboto":          true,
+	"Open Sans":       true,
+	"Lato":            true,
+	"Montserrat":      true,
 }
 
 // Valid colorblind modes
@@ -110,6 +142,29 @@ func validateUserID(userID string) error {
 func validateThemeMode(mode string) error {
 	if !validThemeModes[mode] {
 		return ErrInvalidThemeMode
+	}
+	return nil
+}
+
+// validateLayoutMode checks if the layout mode is valid
+func validateLayoutMode(mode string) error {
+	if mode == "" {
+		return nil // Optional, defaults to centralized
+	}
+	if !validLayoutModes[mode] {
+		return errors.New("invalid layout mode: must be 'centralized', 'standard', or 'full'")
+	}
+	return nil
+}
+
+// validateFont checks if the font family is valid
+func validateFont(font *string) error {
+	if font == nil || *font == "" {
+		return nil
+	}
+	if !validFonts[*font] {
+		// If custom font handling is needed later, this can be relaxed
+		return errors.New("invalid font family")
 	}
 	return nil
 }
@@ -188,6 +243,10 @@ func ValidateUserThemeSettings(settings *UserThemeSettings) error {
 		return err
 	}
 
+	if err := validateLayoutMode(settings.LayoutMode); err != nil {
+		return err
+	}
+
 	if err := validateColorBlindMode(settings.ColorBlindMode); err != nil {
 		return err
 	}
@@ -213,6 +272,18 @@ func ValidateUserThemeSettings(settings *UserThemeSettings) error {
 		}
 	}
 
+	// Validate fonts
+	fontFields := []*string{
+		settings.FontGeneral,
+		settings.FontTitle,
+		settings.FontTableTitle,
+	}
+	for _, font := range fontFields {
+		if err := validateFont(font); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -223,10 +294,12 @@ func (s *UserThemeStore) GetUserThemeSettings(userID string) (*UserThemeSettings
 	}
 
 	query := `
-		SELECT id, user_id, theme_preset, theme_mode,
+		SELECT id, user_id, theme_preset, theme_mode, layout_mode,
+			   primary_color, secondary_color, background_color,
 			   primary_color, secondary_color, background_color,
 			   surface_color, text_color, text_secondary_color, border_color,
-			   high_contrast, color_blind_mode, created_at, updated_at
+			   high_contrast, color_blind_mode, dyslexic_font, font_general, font_title,
+			   font_table_title, created_at, updated_at
 		FROM user_theme_settings
 		WHERE user_id = $1
 	`
@@ -237,6 +310,7 @@ func (s *UserThemeStore) GetUserThemeSettings(userID string) (*UserThemeSettings
 		&settings.UserID,
 		&settings.ThemePreset,
 		&settings.ThemeMode,
+		&settings.LayoutMode,
 		&settings.PrimaryColor,
 		&settings.SecondaryColor,
 		&settings.BackgroundColor,
@@ -246,6 +320,10 @@ func (s *UserThemeStore) GetUserThemeSettings(userID string) (*UserThemeSettings
 		&settings.BorderColor,
 		&settings.HighContrast,
 		&settings.ColorBlindMode,
+		&settings.DyslexicFont,
+		&settings.FontGeneral,
+		&settings.FontTitle,
+		&settings.FontTableTitle,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
@@ -271,11 +349,12 @@ func (s *UserThemeStore) CreateUserThemeSettings(settings *UserThemeSettings) er
 
 	query := `
 		INSERT INTO user_theme_settings (
-			user_id, theme_preset, theme_mode,
+			user_id, theme_preset, theme_mode, layout_mode,
 			primary_color, secondary_color, background_color,
 			surface_color, text_color, text_secondary_color, border_color,
-			high_contrast, color_blind_mode, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+			high_contrast, color_blind_mode, dyslexic_font, font_general, font_title,
+			font_table_title, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id
 	`
 
@@ -283,8 +362,10 @@ func (s *UserThemeStore) CreateUserThemeSettings(settings *UserThemeSettings) er
 	err := s.db.QueryRow(
 		query,
 		settings.UserID,
+		settings.UserID,
 		settings.ThemePreset,
 		settings.ThemeMode,
+		settings.LayoutMode,
 		settings.PrimaryColor,
 		settings.SecondaryColor,
 		settings.BackgroundColor,
@@ -294,6 +375,10 @@ func (s *UserThemeStore) CreateUserThemeSettings(settings *UserThemeSettings) er
 		settings.BorderColor,
 		settings.HighContrast,
 		settings.ColorBlindMode,
+		settings.DyslexicFont,
+		settings.FontGeneral,
+		settings.FontTitle,
+		settings.FontTableTitle,
 		now,
 		now,
 	).Scan(&settings.ID)
@@ -321,16 +406,21 @@ func (s *UserThemeStore) UpdateUserThemeSettings(settings *UserThemeSettings) er
 		UPDATE user_theme_settings SET
 			theme_preset = $2,
 			theme_mode = $3,
-			primary_color = $4,
-			secondary_color = $5,
-			background_color = $6,
-			surface_color = $7,
-			text_color = $8,
-			text_secondary_color = $9,
-			border_color = $10,
-			high_contrast = $11,
-			color_blind_mode = $12,
-			updated_at = $13
+			layout_mode = $4,
+			primary_color = $5,
+			secondary_color = $6,
+			background_color = $7,
+			surface_color = $8,
+			text_color = $9,
+			text_secondary_color = $10,
+			border_color = $11,
+			high_contrast = $12,
+			color_blind_mode = $13,
+			dyslexic_font = $14,
+			font_general = $15,
+			font_title = $16,
+			font_table_title = $17,
+			updated_at = $18
 		WHERE user_id = $1
 	`
 
@@ -340,6 +430,7 @@ func (s *UserThemeStore) UpdateUserThemeSettings(settings *UserThemeSettings) er
 		settings.UserID,
 		settings.ThemePreset,
 		settings.ThemeMode,
+		settings.LayoutMode,
 		settings.PrimaryColor,
 		settings.SecondaryColor,
 		settings.BackgroundColor,
@@ -349,6 +440,10 @@ func (s *UserThemeStore) UpdateUserThemeSettings(settings *UserThemeSettings) er
 		settings.BorderColor,
 		settings.HighContrast,
 		settings.ColorBlindMode,
+		settings.DyslexicFont,
+		settings.FontGeneral,
+		settings.FontTitle,
+		settings.FontTableTitle,
 		now,
 	)
 
@@ -381,14 +476,16 @@ func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) er
 
 	query := `
 		INSERT INTO user_theme_settings (
-			user_id, theme_preset, theme_mode,
+			user_id, theme_preset, theme_mode, layout_mode,
 			primary_color, secondary_color, background_color,
 			surface_color, text_color, text_secondary_color, border_color,
-			high_contrast, color_blind_mode, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+			high_contrast, color_blind_mode, dyslexic_font, font_general, font_title,
+			font_table_title, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		ON CONFLICT (user_id) DO UPDATE SET
 			theme_preset = EXCLUDED.theme_preset,
 			theme_mode = EXCLUDED.theme_mode,
+			layout_mode = EXCLUDED.layout_mode,
 			primary_color = EXCLUDED.primary_color,
 			secondary_color = EXCLUDED.secondary_color,
 			background_color = EXCLUDED.background_color,
@@ -398,6 +495,10 @@ func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) er
 			border_color = EXCLUDED.border_color,
 			high_contrast = EXCLUDED.high_contrast,
 			color_blind_mode = EXCLUDED.color_blind_mode,
+			dyslexic_font = EXCLUDED.dyslexic_font,
+			font_general = EXCLUDED.font_general,
+			font_title = EXCLUDED.font_title,
+			font_table_title = EXCLUDED.font_table_title,
 			updated_at = EXCLUDED.updated_at
 		RETURNING id, created_at
 	`
@@ -408,6 +509,7 @@ func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) er
 		settings.UserID,
 		settings.ThemePreset,
 		settings.ThemeMode,
+		settings.LayoutMode,
 		settings.PrimaryColor,
 		settings.SecondaryColor,
 		settings.BackgroundColor,
@@ -417,6 +519,10 @@ func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) er
 		settings.BorderColor,
 		settings.HighContrast,
 		settings.ColorBlindMode,
+		settings.DyslexicFont,
+		settings.FontGeneral,
+		settings.FontTitle,
+		settings.FontTableTitle,
 		now,
 		now,
 	).Scan(&settings.ID, &settings.CreatedAt)

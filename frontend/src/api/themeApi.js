@@ -226,6 +226,19 @@ const themeApi = {
             sanitized.high_contrast = Boolean(settings.high_contrast);
         }
 
+        // Dyslexic font - boolean
+        if (settings.dyslexic_font !== undefined) {
+            sanitized.dyslexic_font = Boolean(settings.dyslexic_font);
+        }
+
+        // Font fields - sanitize string
+        const fontFields = ['font_general', 'font_title', 'font_table_title'];
+        fontFields.forEach(field => {
+            if (settings[field] !== undefined) {
+                sanitized[field] = String(settings[field]).trim().replace(/[<>]/g, '');
+            }
+        });
+
         // Color fields - validate hex format
         const colorFields = [
             'primary_color',
@@ -282,6 +295,10 @@ const themeApi = {
             borderColor: apiSettings.border_color || null,
             highContrast: apiSettings.high_contrast || false,
             colorBlindMode: apiSettings.color_blind_mode || 'none',
+            dyslexicFont: apiSettings.dyslexic_font || false,
+            fontGeneral: apiSettings.font_general || 'System',
+            fontTitle: apiSettings.font_title || 'System',
+            fontTableTitle: apiSettings.font_table_title || 'System',
         };
     },
 
@@ -304,7 +321,12 @@ const themeApi = {
             text_secondary_color: frontendSettings.textSecondaryColor || null,
             border_color: frontendSettings.borderColor || null,
             high_contrast: frontendSettings.highContrast || false,
+            high_contrast: frontendSettings.highContrast || false,
             color_blind_mode: frontendSettings.colorBlindMode || 'none',
+            dyslexic_font: frontendSettings.dyslexicFont || false,
+            font_general: frontendSettings.fontGeneral || null,
+            font_title: frontendSettings.fontTitle || null,
+            font_table_title: frontendSettings.fontTableTitle || null,
         };
     },
 };
