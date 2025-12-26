@@ -17,6 +17,7 @@
  */
 
 .agreements-table-empty {
+    padding: 32px;
     text-align: center;
     color: #333 !important;
     height: 100px;

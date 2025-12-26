@@ -73,6 +73,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [formData, setFormData] = useState(getInitialFormData());
     const { config, getGenderHelpers } = useConfig();
     const g = getGenderHelpers("agreement");
+
     const filtersContainerRef = useRef(null);
 
     useEffect(() => {
@@ -89,18 +90,21 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 // Reset min-width to measure natural width
                 buttons.forEach((btn) => (btn.style.minWidth = "auto"));
 
-                // Calculate max width
-                let maxWidth = 0;
+                // Calculate minimum button width
+                let minButtonWidth = 0;
                 buttons.forEach((btn) => {
                     const width = btn.offsetWidth;
-                    if (width > maxWidth) {
-                        maxWidth = width;
+                    if (width > minButtonWidth) {
+                        minButtonWidth = width;
                     }
                 });
 
-                // Apply max width to all buttons
+                // Ensure minimum width of 120px
+                minButtonWidth = Math.max(minButtonWidth, 120);
+
+                // Apply minimum width to all buttons
                 buttons.forEach((btn) => {
-                    btn.style.minWidth = maxWidth + "px";
+                    btn.style.minWidth = minButtonWidth + "px";
                 });
             }
         }
@@ -407,7 +411,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 />
             </div>
 
-            <div className="agreements-table-container">
+            <div className="agreements-table-wrapper">
                 {/* <div className="agreements-table-header">
                     <h2 className="agreements-table-header-title">Acordos</h2>
                 </div>*/}

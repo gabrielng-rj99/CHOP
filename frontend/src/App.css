@@ -687,14 +687,16 @@ th {
 .dark-mode .clients-table,
 .dark-mode .categories-table,
 .dark-mode .users-table,
-.dark-mode .audit-logs-table {
+.dark-mode .audit-logs-table,
+.dark-mode .agreements-table {
     background: var(--content-bg, #2d3748);
 }
 
 .dark-mode .clients-table th,
 .dark-mode .categories-table th,
 .dark-mode .users-table th,
-.dark-mode .audit-logs-table th {
+.dark-mode .audit-logs-table th,
+.dark-mode .agreements-table th {
     background: var(--content-bg, #2d3748);
     color: var(--text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
@@ -704,7 +706,8 @@ th {
 .dark-mode .clients-table td,
 .dark-mode .categories-table td,
 .dark-mode .users-table td,
-.dark-mode .audit-logs-table td {
+.dark-mode .audit-logs-table td,
+.dark-mode .agreements-table td {
     color: var(--text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
     font-family: var(--font-table-content);
@@ -712,14 +715,16 @@ th {
 
 .dark-mode .clients-table tbody tr,
 .dark-mode .categories-table tbody tr,
-.dark-mode .users-table tbody tr {
+.dark-mode .users-table tbody tr,
+.dark-mode .agreements-table tbody tr {
     border-color: var(--border-color, #4a5568);
 }
 
 .dark-mode .clients-table-wrapper,
 .dark-mode .categories-table-wrapper,
 .dark-mode .users-table-wrapper,
-.dark-mode .audit-logs-table-wrapper {
+.dark-mode .audit-logs-table-wrapper,
+.dark-mode .agreements-table-wrapper {
     background: var(--content-bg, #2d3748);
     border-color: var(--border-color, #4a5568);
 }

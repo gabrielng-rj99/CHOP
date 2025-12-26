@@ -118,6 +118,7 @@
     cursor: pointer;
     font-size: 14px;
     text-align: center;
+    min-width: 120px;
 }
 
 .clients-filter-button:hover {
@@ -209,4 +210,22 @@
 
 .dark-mode .clients-button-secondary:hover {
     filter: brightness(0.9);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .clients-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .clients-filter-button {
+        flex: 1;
+    }
+
+    .clients-search-input {
+        flex: 1;
+        min-width: 200px;
+    }
 }
