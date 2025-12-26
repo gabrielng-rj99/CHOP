@@ -44,22 +44,9 @@ echo ""
 echo -e "${RED}${BOLD}⚠️  THIS ACTION CANNOT BE UNDONE! ⚠️${NC}"
 echo ""
 
-# First confirmation
-read -p "Are you sure you want to destroy the development environment? (type 'yes' to confirm): " -r
-echo ""
-if [[ ! "$REPLY" == "yes" ]]; then
-    echo -e "${GREEN}Aborted. Nothing was deleted.${NC}"
-    exit 0
-fi
 
-# Second confirmation
-echo -e "${YELLOW}Last chance! This will delete ALL development data permanently.${NC}"
-read -p "Type 'DELETE DEV' to proceed: " -r
-echo ""
-if [[ ! "$REPLY" == "DELETE DEV" ]]; then
-    echo -e "${GREEN}Aborted. Nothing was deleted.${NC}"
-    exit 0
-fi
+
+
 
 echo ""
 echo -e "${RED}🔥 Proceeding with destruction...${NC}"
