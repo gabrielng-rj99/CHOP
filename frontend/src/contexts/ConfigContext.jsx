@@ -216,6 +216,17 @@ export const ConfigProvider = ({ children }) => {
 
             const newConfig = { ...defaultSettings };
 
+            // Helper function to parse values from the API
+            // Backend stores everything as strings, so we need to convert back
+            const parseValue = (value) => {
+                if (value === "true") return true;
+                if (value === "false") return false;
+                // Try to parse as number if it looks like one
+                if (/^-?\d+$/.test(value)) return parseInt(value, 10);
+                if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
+                return value;
+            };
+
             // Handle both map (object) and array responses
             const settingsToProcess = Array.isArray(data)
                 ? data
@@ -230,7 +241,7 @@ export const ConfigProvider = ({ children }) => {
                     if (!obj[val]) obj[val] = {};
                     obj = obj[val];
                 }
-                obj[parts[parts.length - 1]] = item.value;
+                obj[parts[parts.length - 1]] = parseValue(item.value);
             }
 
             setConfig(newConfig);
@@ -522,17 +533,22 @@ export const ConfigProvider = ({ children }) => {
 
     // Apply theme colors to CSS variables
     useEffect(() => {
+        // Only apply theme if config is loaded and has valid theme data
+        if (!config || loading || !config.theme) {
+            return;
+        }
+
         updateResolvedMode();
         const root = document.documentElement;
 
-        const preset = config?.theme?.preset || "default";
-        const primaryColor = config?.theme?.primaryColor;
-        const secondaryColor = config?.theme?.secondaryColor;
-        const backgroundColor = config?.theme?.backgroundColor;
-        const surfaceColor = config?.theme?.surfaceColor;
-        const textColor = config?.theme?.textColor;
-        const textSecondaryColor = config?.theme?.textSecondaryColor;
-        const borderColor = config?.theme?.borderColor;
+        const preset = config.theme.preset || "default";
+        const primaryColor = config.theme.primaryColor;
+        const secondaryColor = config.theme.secondaryColor;
+        const backgroundColor = config.theme.backgroundColor;
+        const surfaceColor = config.theme.surfaceColor;
+        const textColor = config.theme.textColor;
+        const textSecondaryColor = config.theme.textSecondaryColor;
+        const borderColor = config.theme.borderColor;
 
         let themeColors;
 
@@ -843,10 +859,8 @@ export const ConfigProvider = ({ children }) => {
                 body: JSON.stringify({ settings: flatSettings }),
             });
 
-            // Recarrega as configurações após salvar com sucesso
-            if (res.ok) {
-                await fetchSettings();
-            }
+            // Não recarregar configurações após salvar - o estado local já foi atualizado
+            // Isso evita quebra temporária do tema durante o recarregamento
             if (!res.ok) throw new Error("Failed to save settings");
         } catch (err) {
             console.error("Error saving settings:", err);
