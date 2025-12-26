@@ -75,6 +75,18 @@ func main() {
 			} else {
 				log.Printf("✅ Database schema initialized\n")
 				fmt.Printf("✅ Database schema initialized\n")
+
+				// Apply seeds after schema initialization
+				log.Printf("🌱 Applying database seeds...\n")
+				fmt.Printf("🌱 Applying database seeds...\n")
+				if err := database.ApplySeeds(db); err != nil {
+					log.Printf("❌ Failed to apply database seeds: %v\n", err)
+					fmt.Printf("❌ Failed to apply database seeds: %v\n", err)
+					// Don't fail the startup, just warn
+				} else {
+					log.Printf("✅ Database seeds applied\n")
+					fmt.Printf("✅ Database seeds applied\n")
+				}
 			}
 		}
 	}

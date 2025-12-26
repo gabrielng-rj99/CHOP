@@ -23,6 +23,8 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"Open-Generic-Hub/backend/config"
@@ -81,16 +83,67 @@ func InitDB(db *sql.DB) error {
 	return nil
 }
 
-// IsDatabaseInitialized checks if the database has been initialized by verifying if key tables exist
+// ApplySeeds applies all seed files in order after schema initialization
+func ApplySeeds(db *sql.DB) error {
+	cfg := config.GetConfig()
+	// Use seeds directory relative to schema file location
+	seedsDir := strings.Replace(cfg.Paths.SchemaFile, "schema.sql", "seeds", 1)
+
+	// Read all files in seeds directory
+	entries, err := os.ReadDir(seedsDir)
+	if err != nil {
+		return fmt.Errorf("failed to read seeds directory: %v", err)
+	}
+
+	// Filter and collect SQL files
+	var seedFiles []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
+			seedFiles = append(seedFiles, entry.Name())
+		}
+	}
+
+	// Sort files by name (which includes the numeric prefix)
+	sort.Strings(seedFiles)
+
+	// Apply seeds in order
+	for _, seedFile := range seedFiles {
+		seedPath := fmt.Sprintf("%s/%s", seedsDir, seedFile)
+
+		fmt.Printf("🌱 Applying seed: %s\n", seedFile)
+
+		script, err := os.ReadFile(seedPath)
+		if err != nil {
+			return fmt.Errorf("failed to read seed file %s: %v", seedFile, err)
+		}
+
+		_, err = db.Exec(string(script))
+		if err != nil {
+			return fmt.Errorf("failed to execute seed file %s: %v", seedFile, err)
+		}
+
+		fmt.Printf("✅ Seed applied: %s\n", seedFile)
+	}
+
+	return nil
+}
+
+// IsDatabaseInitialized checks if the database has been initialized by verifying if key tables exist and seeds were applied
 func IsDatabaseInitialized(db *sql.DB) bool {
-	// Check if the users table exists and has at least one record
+	// Check if the users table exists
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'").Scan(&count)
 	if err != nil || count == 0 {
 		return false
 	}
 
-	// Optionally check if there are users
-	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	return err == nil
+	// Check if roles table exists and has system roles (indicating seeds were applied)
+	err = db.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'roles'").Scan(&count)
+	if err != nil || count == 0 {
+		return false
+	}
+
+	// Check if system roles exist (root, admin, user, viewer)
+	err = db.QueryRow("SELECT COUNT(*) FROM roles WHERE is_system = true").Scan(&count)
+	return err == nil && count >= 4 // At least the 4 system roles
 }

@@ -129,7 +129,14 @@ ON CONFLICT (key) DO UPDATE SET
 -- Para políticas por role, veja a tabela role_password_policies
 
 INSERT INTO system_settings (key, value, description, category)
-VALUES ('security.password_min_length', '16', 'Tamanho mínimo da senha (padrão global)', 'security')
+VALUES ('security.password_min_length', '8', 'Tamanho mínimo da senha (padrão global, range: 8-128)', 'security')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    category = EXCLUDED.category,
+    updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO system_settings (key, value, description, category)
+VALUES ('security.password_max_length', '128', 'Tamanho máximo da senha (padrão global, range: 8-256)', 'security')
 ON CONFLICT (key) DO UPDATE SET
     description = EXCLUDED.description,
     category = EXCLUDED.category,
@@ -172,6 +179,28 @@ ON CONFLICT (key) DO UPDATE SET
 
 INSERT INTO system_settings (key, value, description, category)
 VALUES ('security.password_history_count', '0', 'Número de senhas anteriores que não podem ser reutilizadas (0 = desabilitado)', 'security')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    category = EXCLUDED.category,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- ============================================
+-- PASSWORD ENTROPY (Informativo - não é limite de segurança)
+-- ============================================
+-- A entropia é calculada como: min_length * log2(charset_size)
+-- Exemplo com política root (24 chars, todos os tipos):
+--   charset_size = 26 (lower) + 26 (upper) + 10 (digits) + 32 (special) = 94
+--   entropy = 24 * log2(94) = 24 * 6.55 ≈ 157 bits
+--
+-- Para referência de força:
+--   < 50 bits: Fraca
+--   50-90 bits: Básica
+--   90-120 bits: Média
+--   120-160 bits: Forte
+--   > 160 bits: Muito Forte
+
+INSERT INTO system_settings (key, value, description, category)
+VALUES ('security.password_entropy_min_bits', '90', 'Entropia mínima recomendada em bits (apenas para UI/info, não é obrigatório)', 'security')
 ON CONFLICT (key) DO UPDATE SET
     description = EXCLUDED.description,
     category = EXCLUDED.category,
