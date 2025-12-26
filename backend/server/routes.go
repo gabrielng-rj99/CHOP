@@ -213,7 +213,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Dependents
 	mux.HandleFunc("/api/sub-entities/", s.standardMiddleware(s.authMiddleware(s.handleSubEntityByID)))
 
-	// Contracts
+	// Agreements
 	mux.HandleFunc("/api/agreements/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleAgreementArchive(w, r)
@@ -381,11 +381,12 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) handleSettingsRoute(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
 		s.HandleGetSettings(w, r)
-	} else if r.Method == http.MethodPut {
+	case http.MethodPut:
 		s.HandleUpdateSettings(w, r)
-	} else {
+	default:
 		respondError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
 }

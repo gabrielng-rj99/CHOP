@@ -39,7 +39,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListUsers(w http.ResponseWriter, _ *http.Request) {
 	users, err := s.userStore.ListUsers()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
@@ -564,7 +564,7 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "User unlocked successfully"})
 }
 
-func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request, username string) {
+func (s *Server) handleGetUser(w http.ResponseWriter, _ *http.Request, username string) {
 	// Middleware already ensures Admin/Root or verified Auth, but routes.go wraps this in AdminOnlyMiddleware.
 	// So only Admin/Root can call this.
 

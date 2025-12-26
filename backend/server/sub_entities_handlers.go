@@ -48,7 +48,7 @@ func (s *Server) handleEntitySubEntities(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *Server) handleListDependents(w http.ResponseWriter, r *http.Request, entityID string) {
+func (s *Server) handleListDependents(w http.ResponseWriter, _ *http.Request, entityID string) {
 	sub_entities, err := s.subEntityStore.GetSubEntitiesByEntityID(entityID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())

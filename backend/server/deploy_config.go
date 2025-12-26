@@ -124,10 +124,8 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 		Server:   currentCfg.Server,
 		Database: currentCfg.Database,
 		JWT:      currentCfg.JWT,
-		Logging:  currentCfg.Logging,
 		Security: currentCfg.Security,
 		App:      currentCfg.App,
-		Paths:    currentCfg.Paths,
 	}
 
 	var errors []string
