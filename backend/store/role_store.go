@@ -206,15 +206,69 @@ func (s *RoleStore) GetRoleByName(name string) (*Role, error) {
 	return &role, nil
 }
 
+// GetAnyRoleByName returns a role by its name regardless of active status
+func (s *RoleStore) GetAnyRoleByName(name string) (*Role, error) {
+	query := `
+		SELECT id, name, display_name, description, is_system, is_active, priority, created_at, updated_at
+		FROM roles
+		WHERE name = $1
+	`
+
+	var role Role
+	var description sql.NullString
+
+	err := s.db.QueryRow(query, name).Scan(
+		&role.ID,
+		&role.Name,
+		&role.DisplayName,
+		&description,
+		&role.IsSystem,
+		&role.IsActive,
+		&role.Priority,
+		&role.CreatedAt,
+		&role.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get role by name: %w", err)
+	}
+
+	if description.Valid {
+		role.Description = &description.String
+	}
+
+	return &role, nil
+}
+
 // CreateRole creates a new role
 func (s *RoleStore) CreateRole(name, displayName string, description *string, priority int) (*Role, error) {
-	// Check if name already exists
-	existing, err := s.GetRoleByName(name)
+    // Check if name already exists (active or inactive)
+	existing, err := s.GetAnyRoleByName(name)
 	if err != nil {
 		return nil, err
 	}
+
 	if existing != nil {
-		return nil, errors.New("role with this name already exists")
+        if existing.IsActive {
+		    return nil, errors.New("role with this name already exists")
+        }
+        
+        // If inactive (deleted), rename it to free up the name
+		timestamp := time.Now().Format("20060102150405")
+		newName := fmt.Sprintf("%s_deleted_%s", existing.Name, timestamp)
+        
+        // Ensure new name fits in database (truncate if needed, though unlikely for standard names)
+        if len(newName) > 255 {
+             newName = newName[:255]
+        }
+        
+        _, err = s.db.Exec("UPDATE roles SET name = $1 WHERE id = $2", newName, existing.ID)
+        if err != nil {
+            return nil, fmt.Errorf("failed to rename old deleted role: %w", err)
+        }
 	}
 
 	// Validate priority (custom roles must have priority < 100)
@@ -307,8 +361,17 @@ func (s *RoleStore) DeleteRole(roleID string) error {
 		return fmt.Errorf("cannot delete role: %d users have this role", count)
 	}
 
-	query := `UPDATE roles SET is_active = false, updated_at = $1 WHERE id = $2`
-	_, err = s.db.Exec(query, time.Now(), roleID)
+    // Rename role to free up the name for future use
+    timestamp := time.Now().Format("20060102150405")
+    deletedName := fmt.Sprintf("%s_deleted_%s", role.Name, timestamp)
+
+    // Ensure we don't exceed max length (assuming 255 or similar, safe bet)
+    if len(deletedName) > 255 {
+        deletedName = deletedName[:255]
+    }
+
+	query := `UPDATE roles SET is_active = false, name = $1, updated_at = $2 WHERE id = $3`
+	_, err = s.db.Exec(query, deletedName, time.Now(), roleID)
 	if err != nil {
 		return fmt.Errorf("failed to delete role: %w", err)
 	}
