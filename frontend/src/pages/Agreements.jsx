@@ -83,7 +83,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     useEffect(() => {
         if (filtersContainerRef.current) {
             const buttons = filtersContainerRef.current.querySelectorAll(
-                ".contracts-filter-button",
+                ".agreements-filter-button",
             );
             if (buttons.length > 0) {
                 // Reset min-width to measure natural width
@@ -331,18 +331,20 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     if (loading) {
         return (
-            <div className="contracts-loading">
-                <div className="contracts-loading-text">
-                    Carregando contratos...
+            <div className="agreements-loading">
+                <div className="agreements-loading-text">
+                    Carregando acordos...
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="contracts-container">
-            <div className="contracts-header">
-                <h1 className="contracts-title">Contratos</h1>
+        <div className="agreements-container">
+            <div className="agreements-header">
+                <h1 className="agreements-title">
+                    📄 {config.labels.agreements || "Acordos"}
+                </h1>
                 <div className="button-group">
                     <RefreshButton
                         onClick={() => loadInitialData(true)}
@@ -356,42 +358,42 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 </div>
             </div>
 
-            {error && <div className="contracts-error">{error}</div>}
+            {error && <div className="agreements-error">{error}</div>}
 
-            <div className="contracts-filters" ref={filtersContainerRef}>
+            <div className="agreements-filters" ref={filtersContainerRef}>
                 <button
                     onClick={() => setFilter("all")}
-                    className={`contracts-filter-button ${filter === "all" ? "active-all" : ""}`}
+                    className={`agreements-filter-button ${filter === "all" ? "active-all" : ""}`}
                 >
                     {g.all} ({contracts.filter((c) => !c.archived_at).length})
                 </button>
                 <button
                     onClick={() => setFilter("active")}
-                    className={`contracts-filter-button ${filter === "active" ? "active-active" : ""}`}
+                    className={`agreements-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
                     {g.active}
                 </button>
                 <button
                     onClick={() => setFilter("not-started")}
-                    className={`contracts-filter-button ${filter === "not-started" ? "active-not-started" : ""}`}
+                    className={`agreements-filter-button ${filter === "not-started" ? "active-not-started" : ""}`}
                 >
                     Não Iniciados
                 </button>
                 <button
                     onClick={() => setFilter("expiring")}
-                    className={`contracts-filter-button ${filter === "expiring" ? "active-expiring" : ""}`}
+                    className={`agreements-filter-button ${filter === "expiring" ? "active-expiring" : ""}`}
                 >
                     Expirando
                 </button>
                 <button
                     onClick={() => setFilter("expired")}
-                    className={`contracts-filter-button ${filter === "expired" ? "active-expired" : ""}`}
+                    className={`agreements-filter-button ${filter === "expired" ? "active-expired" : ""}`}
                 >
                     Expirados
                 </button>
                 <button
                     onClick={() => setFilter("archived")}
-                    className={`contracts-filter-button ${filter === "archived" ? "active-archived" : ""}`}
+                    className={`agreements-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
                     {config.labels.archived || g.archived}
                 </button>
@@ -401,13 +403,13 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     placeholder={`Buscar por modelo, chave, ${config.labels.entity.toLowerCase()}...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="contracts-search-input"
+                    className="agreements-search-input"
                 />
             </div>
 
-            <div className="contracts-table-wrapper">
-                {/* <div className="contracts-table-header">
-                    <h2 className="contracts-table-header-title">Contratos</h2>
+            <div className="agreements-table-container">
+                {/* <div className="agreements-table-header">
+                    <h2 className="agreements-table-header-title">Acordos</h2>
                 </div>*/}
                 <AgreementsTable
                     filteredContracts={filteredContracts}

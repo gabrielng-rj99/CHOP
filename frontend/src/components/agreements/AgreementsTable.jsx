@@ -19,7 +19,7 @@
 import React from "react";
 import {
     formatDate,
-    getContractStatus,
+    getAgreementStatus,
     getClientName,
     getCategoryName,
 } from "../../utils/contractHelpers";
@@ -45,9 +45,9 @@ export default function AgreementsTable({
 
     if (filteredContracts.length === 0) {
         return (
-            <div className="contracts-table-empty">
+            <div className="agreements-table-empty">
                 <p>
-                    Nenhum {labels.agreement?.toLowerCase() || "contrato"}{" "}
+                    Nenhum {labels.agreement?.toLowerCase() || "acordo"}{" "}
                     encontrado
                 </p>
             </div>
@@ -55,7 +55,7 @@ export default function AgreementsTable({
     }
 
     return (
-        <table className="contracts-table">
+        <table className="agreements-table">
             <thead>
                 <tr>
                     <th>{labels.model || "Modelo"}</th>
@@ -68,7 +68,7 @@ export default function AgreementsTable({
             </thead>
             <tbody>
                 {filteredContracts.map((contract) => {
-                    const status = getContractStatus(contract);
+                    const status = getAgreementStatus(contract);
                     const isArchived = !!contract.archived_at;
 
                     return (
@@ -77,11 +77,11 @@ export default function AgreementsTable({
                             className={isArchived ? "archived" : ""}
                         >
                             <td>
-                                <div className="contracts-table-model">
+                                <div className="agreements-table-model">
                                     {contract.model || "-"}
                                 </div>
                                 {contract.item_key && (
-                                    <div className="contracts-table-product-key">
+                                    <div className="agreements-table-product-key">
                                         {contract.item_key}
                                     </div>
                                 )}
@@ -89,7 +89,7 @@ export default function AgreementsTable({
                             <td>
                                 {getClientName(contract.entity_id, clients)}
                                 {contract.dependent && (
-                                    <div className="contracts-table-dependent">
+                                    <div className="agreements-table-dependent">
                                         Dep: {contract.dependent.name}
                                     </div>
                                 )}
@@ -100,7 +100,7 @@ export default function AgreementsTable({
                                     categories,
                                 )}
                                 {contract.line && (
-                                    <div className="contracts-table-line">
+                                    <div className="agreements-table-line">
                                         {contract.line.line}
                                     </div>
                                 )}
@@ -108,7 +108,7 @@ export default function AgreementsTable({
                             <td>{formatDate(contract.end_date)}</td>
                             <td className="status">
                                 <span
-                                    className="contracts-table-status"
+                                    className="agreements-table-status"
                                     style={{
                                         background: `${status.color}20`,
                                         color: status.color,
@@ -118,10 +118,10 @@ export default function AgreementsTable({
                                 </span>
                             </td>
                             <td className="actions">
-                                <div className="contracts-table-actions">
+                                <div className="agreements-table-actions">
                                     <button
                                         onClick={() => onViewDetails(contract)}
-                                        className="contracts-table-icon-button"
+                                        className="agreements-table-icon-button"
                                         title="Detalhes"
                                     >
                                         <img
@@ -138,7 +138,7 @@ export default function AgreementsTable({
                                         <>
                                             <button
                                                 onClick={() => onEdit(contract)}
-                                                className="contracts-table-icon-button"
+                                                className="agreements-table-icon-button"
                                                 title="Editar"
                                             >
                                                 <img
@@ -155,7 +155,7 @@ export default function AgreementsTable({
                                                 onClick={() =>
                                                     onArchive(contract.id)
                                                 }
-                                                className="contracts-table-icon-button"
+                                                className="agreements-table-icon-button"
                                                 title="Arquivar"
                                             >
                                                 <img
@@ -175,7 +175,7 @@ export default function AgreementsTable({
                                             onClick={() =>
                                                 onUnarchive(contract.id)
                                             }
-                                            className="contracts-table-icon-button"
+                                            className="agreements-table-icon-button"
                                             title="Desarquivar"
                                         >
                                             <img

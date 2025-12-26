@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-.contracts-table-empty {
+.agreements-table-empty {
     text-align: center;
     color: #333 !important;
     height: 100px;
@@ -26,23 +26,23 @@
     justify-content: center;
 }
 
-.contracts-table-empty p {
+.agreements-table-empty p {
     font-size: 16px;
     color: #333 !important;
     margin: 0;
 }
 
-.contracts-table {
+.agreements-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.contracts-table thead tr {
+.agreements-table thead tr {
     background: var(--content-bg, #f8f9fa);
     border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
-.contracts-table th {
+.agreements-table th {
     padding: 16px;
     text-align: left;
     font-size: 14px;
@@ -50,71 +50,71 @@
     color: var(--text-color, #495057);
 }
 
-.contracts-table th.status,
-.contracts-table th.actions {
+.agreements-table th.status,
+.agreements-table th.actions {
     text-align: center;
 }
 
-.contracts-table th.actions {
+.agreements-table th.actions {
     width: 250px;
 }
 
-.contracts-table tbody tr {
+.agreements-table tbody tr {
     border-bottom: 1px solid var(--border-color, #ecf0f1);
 }
 
-.contracts-table tbody tr.archived {
+.agreements-table tbody tr.archived {
     opacity: 0.6;
 }
 
-.contracts-table td {
+.agreements-table td {
     padding: 16px;
     font-size: 14px;
     color: var(--text-color, #2c3e50);
 }
 
-.contracts-table td.status,
-.contracts-table td.actions {
+.agreements-table td.status,
+.agreements-table td.actions {
     text-align: center;
 }
 
-.contracts-table-model {
+.agreements-table-model {
     font-weight: 500;
 }
 
-.contracts-table-product-key {
+.agreements-table-product-key {
     font-size: 12px;
     color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
-.contracts-table-dependent {
+.agreements-table-dependent {
     font-size: 12px;
     color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
-.contracts-table-line {
+.agreements-table-line {
     font-size: 12px;
     color: var(--text-secondary-color, #7f8c8d);
     margin-top: 4px;
 }
 
-.contracts-table-status {
+.agreements-table-status {
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
 }
 
-.contracts-table-actions {
+.agreements-table-actions {
     display: flex;
     gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
 }
 
-.contracts-table-button {
+.agreements-table-button {
     padding: 6px 12px;
     color: white;
     border: none;
@@ -123,7 +123,7 @@
     font-size: 13px;
 }
 
-.contracts-table-icon-button {
+.agreements-table-icon-button {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -135,50 +135,50 @@
     transition: background 0.2s;
 }
 
-.contracts-table-icon-button:hover {
+.agreements-table-icon-button:hover {
     background: var(--hover-bg, rgba(0, 0, 0, 0.05));
 }
 
-.contracts-table-button-details {
+.agreements-table-button-details {
     background: #9b59b6;
 }
 
-.contracts-table-button-edit {
+.agreements-table-button-edit {
     background: #3498db;
 }
 
-.contracts-table-button-archive {
+.agreements-table-button-archive {
     background: #95a5a6;
 }
 
-.contracts-table-button-unarchive {
+.agreements-table-button-unarchive {
     background: #27ae60;
 }
 
 /* Dark mode specific styles */
-.dark-mode .contracts-table-empty {
+.dark-mode .agreements-table-empty {
     color: #333 !important;
 }
 
-.dark-mode .contracts-table thead tr {
+.dark-mode .agreements-table thead tr {
     background: var(--content-bg, #2d3748);
     border-color: var(--border-color, #4a5568);
 }
 
-.dark-mode .contracts-table th {
+.dark-mode .agreements-table th {
     color: var(--text-color, #f7fafc);
 }
 
-.dark-mode .contracts-table tbody tr {
+.dark-mode .agreements-table tbody tr {
     border-color: var(--border-color, #4a5568);
 }
 
-.dark-mode .contracts-table td {
+.dark-mode .agreements-table td {
     color: var(--text-color, #f7fafc);
 }
 
-.dark-mode .contracts-table-product-key,
-.dark-mode .contracts-table-dependent,
-.dark-mode .contracts-table-line {
+.dark-mode .agreements-table-product-key,
+.dark-mode .agreements-table-dependent,
+.dark-mode .agreements-table-line {
     color: var(--text-secondary-color, #a0aec0);
 }

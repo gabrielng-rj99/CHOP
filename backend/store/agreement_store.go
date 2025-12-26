@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Open-Generic-Hub/backend/store/contract_store.go
+// Open-Generic-Hub/backend/store/agreement_store.go
 
 package store
 
@@ -31,7 +31,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// AgreementStats representa estatísticas de contratos por cliente
+// AgreementStats representa estatísticas de acordos por entidade
 type AgreementStats struct {
 	EntityID           string `json:"entity_id"`
 	ActiveAgreements   int    `json:"active_agreements"`
@@ -159,7 +159,7 @@ func (s *AgreementStore) CreateAgreement(agreement domain.Agreement) (string, er
 			return "", err
 		}
 		if overlapCount > 0 {
-			return "", errors.New("contract period overlaps with another contract of the same type for this client/dependent")
+			return "", errors.New("agreement period overlaps with another agreement of the same type for this entity/dependent")
 		}
 	}
 
@@ -329,7 +329,7 @@ func (s *AgreementStore) GetAgreementsNotStarted() (agreements []domain.Agreemen
 
 func (s *AgreementStore) UpdateAgreement(agreement domain.Agreement) error {
 	if agreement.ID == "" {
-		return errors.New("contract ID cannot be empty")
+		return errors.New("agreement ID cannot be empty")
 	}
 
 	var trimmedModel, trimmedItemKey string
@@ -368,14 +368,14 @@ func (s *AgreementStore) UpdateAgreement(agreement domain.Agreement) error {
 		}
 	}
 
-	// Check if contract exists
+	// Check if agreement exists
 	var count int
 	err = s.db.QueryRow("SELECT COUNT(*) FROM agreements WHERE id = $1", agreement.ID).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
-		return errors.New("contract does not exist")
+		return errors.New("agreement does not exist")
 	}
 
 	sqlStatement := `UPDATE agreements SET model = $1, item_key = $2, start_date = $3, end_date = $4 WHERE id = $5`
@@ -391,7 +391,7 @@ func (s *AgreementStore) UpdateAgreement(agreement domain.Agreement) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("no contract updated")
+		return errors.New("no agreement updated")
 	}
 	return nil
 }
@@ -483,7 +483,7 @@ func (s *AgreementStore) GetAgreementStatsForAllEntities() (map[string]*Agreemen
 // GetAgreementByID busca um contrato específico pelo seu ID
 func (s *AgreementStore) GetAgreementByID(id string) (*domain.Agreement, error) {
 	if id == "" {
-		return nil, errors.New("contract ID cannot be empty")
+		return nil, errors.New("agreement ID cannot be empty")
 	}
 	sqlStatement := `
 		SELECT id, model, item_key, start_date, end_date, subcategory_id, entity_id, sub_entity_id
@@ -522,7 +522,7 @@ func (s *AgreementStore) GetAgreementByID(id string) (*domain.Agreement, error) 
 	return &agreement, nil
 }
 
-// Utility: Get explicit status for a contract (ativo, expirando, expirado)
+// Utility: Get explicit status for an agreement (ativo, expirando, expirado)
 // Uses time.Now() internally, so timing can matter in tests
 // EndDate nil = infinito superior (nunca expira)
 // StartDate nil = infinito inferior (começou sempre)
@@ -549,16 +549,16 @@ func GetAgreementStatus(agreement domain.Agreement) string {
 
 func (s *AgreementStore) DeleteAgreement(id string) error {
 	if id == "" {
-		return errors.New("contract ID cannot be empty")
+		return errors.New("agreement ID cannot be empty")
 	}
-	// Check if contract exists
+	// Check if agreement exists
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM agreements WHERE id = $1", id).Scan(&count)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
-		return errors.New("contract does not exist")
+		return errors.New("agreement does not exist")
 	}
 	sqlStatement := `DELETE FROM agreements WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)
@@ -570,7 +570,7 @@ func (s *AgreementStore) DeleteAgreement(id string) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("no contract deleted")
+		return errors.New("no agreement deleted")
 	}
 	return nil
 }

@@ -16,29 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-.contracts-container {
+.agreements-container {
     padding: 0;
 }
 
-.contracts-header {
+.agreements-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
 }
 
-.contracts-title {
+.agreements-title {
     font-size: 32px;
-    color: var(--text-color, #2c3e50);
     margin: 0;
 }
 
-.contracts-button-group {
+.agreements-button-group {
     display: flex;
     gap: 12px;
 }
 
-.contracts-button {
+.agreements-button {
     background-color: var(--primary-color, #3498db);
     color: white;
     border: none;
@@ -56,17 +55,17 @@
     min-width: 185px;
 }
 
-.contracts-button:hover:not(:disabled) {
+.agreements-button:hover:not(:disabled) {
     filter: brightness(0.9);
 }
 
-.contracts-button:disabled {
+.agreements-button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
 }
 
 /* Deprecated: Use .refresh-button instead */
-.contracts-button-secondary {
+.agreements-button-secondary {
     background-color: var(--secondary-color, #2c3e50);
     color: var(--primary-text-color, white);
     border: none;
@@ -81,16 +80,16 @@
     min-width: 185px;
 }
 
-.contracts-button-secondary:hover {
+.agreements-button-secondary:hover {
     filter: brightness(0.9);
 }
 
-.contracts-button-secondary:disabled {
+.agreements-button-secondary:disabled {
     opacity: 0.7;
     cursor: not-allowed;
 }
 
-.contracts-error {
+.agreements-error {
     background: #fee;
     color: #c33;
     padding: 16px;
@@ -99,7 +98,7 @@
     margin-bottom: 20px;
 }
 
-.contracts-filters {
+.agreements-filters {
     display: flex;
     gap: 12px;
     margin-bottom: 24px;
@@ -107,7 +106,7 @@
     align-items: center;
 }
 
-.contracts-filter-button {
+.agreements-filter-button {
     padding: 8px 16px;
     background: var(--content-bg, white);
     color: var(--text-color, #2c3e50);
@@ -118,41 +117,41 @@
     text-align: center;
 }
 
-.contracts-filter-button:hover {
+.agreements-filter-button:hover {
     background: var(--hover-bg, #f8f9fa);
 }
 
-.contracts-filter-button.active-all {
+.agreements-filter-button.active-all {
     background: #3498db;
     color: white;
 }
 
-.contracts-filter-button.active-active {
+.agreements-filter-button.active-active {
     background: #27ae60;
     color: white;
 }
 
-.contracts-filter-button.active-not-started {
+.agreements-filter-button.active-not-started {
     background: #3498db;
     color: white;
 }
 
-.contracts-filter-button.active-expiring {
+.agreements-filter-button.active-expiring {
     background: #f39c12;
     color: white;
 }
 
-.contracts-filter-button.active-expired {
+.agreements-filter-button.active-expired {
     background: #e74c3c;
     color: white;
 }
 
-.contracts-filter-button.active-archived {
+.agreements-filter-button.active-archived {
     background: #95a5a6;
     color: white;
 }
 
-.contracts-search-input {
+.agreements-search-input {
     flex: 1;
     min-width: 300px;
     padding: 8px 16px;
@@ -163,16 +162,16 @@
     color: var(--text-color, #333);
 }
 
-.contracts-search-input:focus {
+.agreements-search-input:focus {
     outline: none;
     border-color: var(--primary-color, #3498db);
 }
 
-.contracts-search-input::placeholder {
+.agreements-search-input::placeholder {
     color: var(--text-secondary-color, #999);
 }
 
-.contracts-table-wrapper {
+.agreements-table-wrapper {
     background: var(--content-bg, white);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -180,7 +179,7 @@
     overflow: hidden;
 }
 
-.contracts-table-header {
+.agreements-table-header {
     padding: 20px;
     background: var(--content-bg, #f8f9fa);
     border-bottom: 1px solid var(--border-color, #dee2e6);
@@ -189,50 +188,47 @@
     align-items: center;
 }
 
-.contracts-table-header-title {
+.agreements-table-header-title {
     margin: 0;
     font-size: 20px;
     color: var(--text-color, #2c3e50);
 }
 
-.contracts-loading {
+.agreements-loading {
     text-align: center;
     padding: 60px;
 }
 
-.contracts-loading-text {
+.agreements-loading-text {
     font-size: 18px;
     color: var(--text-color, #7f8c8d);
 }
 
 /* Dark mode specific styles */
-.dark-mode .contracts-title {
-    color: var(--text-color, #f7fafc);
-}
 
-.dark-mode .contracts-button-secondary {
+.dark-mode .agreements-button-secondary {
     background-color: var(--secondary-color, #2c3e50);
     color: var(--primary-text-color, white);
 }
 
-.dark-mode .contracts-button-secondary:hover {
+.dark-mode .agreements-button-secondary:hover {
     filter: brightness(0.9);
 }
 
-.dark-mode .contracts-table-wrapper {
+.dark-mode .agreements-table-wrapper {
     background: var(--content-bg, #2d3748);
     border-color: var(--border-color, #4a5568);
 }
 
-.dark-mode .contracts-table-header {
+.dark-mode .agreements-table-header {
     background: var(--content-bg, #2d3748);
     border-color: var(--border-color, #4a5568);
 }
 
-.dark-mode .contracts-table-header-title {
+.dark-mode .agreements-table-header-title {
     color: var(--text-color, #f7fafc);
 }
 
-.dark-mode .contracts-loading-text {
+.dark-mode .agreements-loading-text {
     color: var(--text-color, #f7fafc);
 }

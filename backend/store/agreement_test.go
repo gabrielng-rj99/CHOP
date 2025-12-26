@@ -104,7 +104,7 @@ func TestCannotMoveLineBetweenCategories(t *testing.T) {
 }
 
 // Teste: Não pode deletar linha com contratos associadas
-func TestDeleteSubcategoryWithContractsAssociated(t *testing.T) {
+func TestDeleteSubcategoryWithAgreementsAssociated(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -336,21 +336,21 @@ func TestCreateAgreement(t *testing.T) {
 }
 
 // Função de utilitário para status de licença deve estar fora do TestCreateAgreement!
-func TestContractStatusUtil(t *testing.T) {
+func TestAgreementStatusUtil(t *testing.T) {
 	now := time.Now()
-	contractActive := domain.Agreement{
+	agreementActive := domain.Agreement{
 		EndDate: timePtr(now.AddDate(0, 1, 0)), // expira em 1 mês
 	}
-	contractExpiring := domain.Agreement{
+	agreementExpiring := domain.Agreement{
 		EndDate: timePtr(now.AddDate(0, 0, 10)), // expira em 10 dias
 	}
-	contractExpired := domain.Agreement{
+	agreementExpired := domain.Agreement{
 		EndDate: timePtr(now.AddDate(0, 0, -1)), // já expirou
 	}
 
-	statusActive := GetAgreementStatus(contractActive)
-	statusExpiring := GetAgreementStatus(contractExpiring)
-	statusExpired := GetAgreementStatus(contractExpired)
+	statusActive := GetAgreementStatus(agreementActive)
+	statusExpiring := GetAgreementStatus(agreementExpiring)
+	statusExpired := GetAgreementStatus(agreementExpired)
 
 	if statusActive != "ativo" {
 		t.Errorf("Expected status 'ativo', got '%s'", statusActive)
@@ -1258,15 +1258,15 @@ func TestCreateAgreementWithInvalidNames(t *testing.T) {
 				t.Fatalf("Failed to insert test line: %v", errInsert)
 			}
 
-			// Use different time periods for each contract to avoid overlap detection
-			contractStart := startDate.AddDate(0, 0, idx*30)
-			contractEnd := contractStart.AddDate(1, 0, 0)
+			// Use different time periods for each agreement to avoid overlap detection
+			agreementStart := startDate.AddDate(0, 0, idx*30)
+			agreementEnd := agreementStart.AddDate(1, 0, 0)
 
 			agreement := domain.Agreement{
 				Model:         tt.model,
 				ItemKey:       "TEST-KEY-" + string(rune('A'+idx)),
-				StartDate:     timePtr(contractStart),
-				EndDate:       timePtr(contractEnd),
+				StartDate:     timePtr(agreementStart),
+				EndDate:       timePtr(agreementEnd),
 				SubcategoryID: subcategoryID,
 				EntityID:      entityID,
 			}
@@ -1366,15 +1366,15 @@ func TestCreateAgreementWithInvalidItemKeys(t *testing.T) {
 				t.Fatalf("Failed to insert test line: %v", errInsert)
 			}
 
-			// Use different time periods for each contract to avoid overlap detection
-			contractStart := startDate.AddDate(0, 0, idx*30)
-			contractEnd := contractStart.AddDate(1, 0, 0)
+			// Use different time periods for each agreement to avoid overlap detection
+			agreementStart := startDate.AddDate(0, 0, idx*30)
+			agreementEnd := agreementStart.AddDate(1, 0, 0)
 
 			agreement := domain.Agreement{
 				Model:         "Test Model " + string(rune('A'+idx)),
 				ItemKey:       tt.itemKey,
-				StartDate:     timePtr(contractStart),
-				EndDate:       timePtr(contractEnd),
+				StartDate:     timePtr(agreementStart),
+				EndDate:       timePtr(agreementEnd),
 				SubcategoryID: subcategoryID,
 				EntityID:      entityID,
 			}
@@ -1634,15 +1634,15 @@ func TestCreateAgreementWithInvalidDates(t *testing.T) {
 				t.Fatalf("Failed to insert test line: %v", errInsert)
 			}
 
-			// Use different time periods for each contract to avoid overlap detection
-			contractStart := tt.startDate.AddDate(0, 0, idx*60)
-			contractEnd := tt.endDate.AddDate(0, 0, idx*60)
+			// Use different time periods for each agreement to avoid overlap detection
+			agreementStart := tt.startDate.AddDate(0, 0, idx*60)
+			agreementEnd := tt.endDate.AddDate(0, 0, idx*60)
 
 			agreement := domain.Agreement{
 				Model:         "Test Agreement " + string(rune('A'+idx)),
 				ItemKey:       "KEY-" + string(rune('A'+idx)) + "-TEST",
-				StartDate:     timePtr(contractStart),
-				EndDate:       timePtr(contractEnd),
+				StartDate:     timePtr(agreementStart),
+				EndDate:       timePtr(agreementEnd),
 				SubcategoryID: subcategoryID,
 				EntityID:      entityID,
 			}
