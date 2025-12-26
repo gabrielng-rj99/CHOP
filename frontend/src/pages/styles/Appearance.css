@@ -438,11 +438,9 @@
 
 /* Permissions Section */
 .permissions-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(52, 152, 219, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(52, 152, 219, 0.05) 100%);
     border-left: 4px solid var(--primary-color, #3498db);
 }
 
@@ -516,11 +514,9 @@
 
 /* Theme Lock Section */
 .theme-lock-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(231, 76, 60, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(231, 76, 60, 0.05) 100%);
     border-left: 4px solid #e74c3c;
 }
 
@@ -709,11 +705,9 @@
 
 /* Global Theme Section */
 .global-theme-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(155, 89, 182, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(155, 89, 182, 0.05) 100%);
     border-left: 4px solid #9b59b6;
 }
 
@@ -795,15 +789,15 @@
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--primary-color, #3498db);
 }
 
-input:focus + .slider {
+input:focus+.slider {
     box-shadow: 0 0 1px var(--primary-color, #3498db);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     transform: translateX(20px);
 }
 
@@ -831,6 +825,13 @@ input:checked + .slider:before {
 
 .dark-mode .theme-mode-button:hover {
     background: var(--hover-bg, rgba(52, 152, 219, 0.2));
+    border-color: var(--primary-color, #3498db);
+}
+
+.dark-mode .theme-mode-button.active {
+    border-color: var(--primary-color, #3498db);
+    background: var(--primary-color, #3498db);
+    color: var(--primary-text-color, white);
 }
 
 /* Dark mode styles for accessibility mode buttons */
@@ -1013,11 +1014,9 @@ input:checked + .slider:before {
 }
 
 .theme-drop-zone.drag-over {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, #f8f9fa) 0%,
-        rgba(52, 152, 219, 0.1) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, #f8f9fa) 0%,
+            rgba(52, 152, 219, 0.1) 100%);
     border: 2px dashed #3498db;
     box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
     display: grid;
@@ -1393,11 +1392,9 @@ input:checked + .slider:before {
 
 /* Nav Color Section Style */
 .appearance-section-nav-color {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(44, 62, 80, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(44, 62, 80, 0.05) 100%);
     border-left: 4px solid var(--secondary-color);
 }
 
