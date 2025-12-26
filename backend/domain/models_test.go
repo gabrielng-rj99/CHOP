@@ -28,27 +28,27 @@ func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
-// TestContractStatus tests the Status() method of Agreement domain model
-// This is a critical business rule function that determines contract state
-func TestContractStatus(t *testing.T) {
+// TestAgreementStatus tests the Status() method of Agreement domain model
+// This is a critical business rule function that determines agreement state
+func TestAgreementStatus(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
 		name           string
-		agreement       Agreement
+		agreement      Agreement
 		expectedStatus string
 	}{
 		// Test: Agreement is active (more than 30 days remaining)
 		{
 			name: "status - ativo (more than 30 days)",
 			agreement: Agreement{
-				ID:         "test-1",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-1",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 45)), // 45 days from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-1",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-1",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 45)), // 45 days from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
@@ -56,13 +56,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - expirando em breve (exactly 30 days)",
 			agreement: Agreement{
-				ID:         "test-2",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-2",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 30)), // exactly 30 days from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-2",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-2",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 30)), // exactly 30 days from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
@@ -70,13 +70,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - expirando em breve (15 days)",
 			agreement: Agreement{
-				ID:         "test-3",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-3",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 15)), // 15 days from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-3",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-3",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 15)), // 15 days from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
@@ -84,13 +84,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - expirando em breve (1 day)",
 			agreement: Agreement{
-				ID:         "test-4",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-4",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 1)), // 1 day from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-4",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-4",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 1)), // 1 day from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
@@ -98,13 +98,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - expirado (past end date)",
 			agreement: Agreement{
-				ID:         "test-5",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-5",
-				StartDate:  timePtr(now.AddDate(0, 0, -30)),
-				EndDate:    timePtr(now.AddDate(0, 0, -5)), // 5 days ago
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-5",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-5",
+				StartDate:     timePtr(now.AddDate(0, 0, -30)),
+				EndDate:       timePtr(now.AddDate(0, 0, -5)), // 5 days ago
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Expirado",
 		},
@@ -112,13 +112,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - expirado (yesterday)",
 			agreement: Agreement{
-				ID:         "test-6",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-6",
-				StartDate:  timePtr(now.AddDate(0, 0, -30)),
-				EndDate:    timePtr(now.AddDate(0, 0, -1)), // yesterday
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-6",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-6",
+				StartDate:     timePtr(now.AddDate(0, 0, -30)),
+				EndDate:       timePtr(now.AddDate(0, 0, -1)), // yesterday
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Expirado",
 		},
@@ -126,13 +126,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - ativo (100+ days)",
 			agreement: Agreement{
-				ID:         "test-7",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-7",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 365)), // 1 year from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-7",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-7",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 365)), // 1 year from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
@@ -140,13 +140,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - ativo (31 days)",
 			agreement: Agreement{
-				ID:         "test-8",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-8",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(now.AddDate(0, 0, 31)), // 31 days from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-8",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-8",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(now.AddDate(0, 0, 31)), // 31 days from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
@@ -154,13 +154,13 @@ func TestContractStatus(t *testing.T) {
 		{
 			name: "status - ativo (starts today)",
 			agreement: Agreement{
-				ID:         "test-9",
-				Model:      "Test Agreement",
-				ItemKey: "TEST-KEY-9",
-				StartDate:  timePtr(now),
-				EndDate:    timePtr(now.AddDate(0, 0, 60)), // 60 days from now
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test-9",
+				Model:         "Test Agreement",
+				ItemKey:       "TEST-KEY-9",
+				StartDate:     timePtr(now),
+				EndDate:       timePtr(now.AddDate(0, 0, 60)), // 60 days from now
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
@@ -176,8 +176,8 @@ func TestContractStatus(t *testing.T) {
 	}
 }
 
-// TestContractStatusBoundaryConditions tests edge cases and boundary conditions
-func TestContractStatusBoundaryConditions(t *testing.T) {
+// TestAgreementStatusBoundaryConditions tests edge cases and boundary conditions
+func TestAgreementStatusBoundaryConditions(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
@@ -214,13 +214,13 @@ func TestContractStatusBoundaryConditions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agreement := Agreement{
-				ID:         "test",
-				Model:      "Test",
-				ItemKey: "TEST-KEY",
-				StartDate:  timePtr(now.AddDate(0, 0, -10)),
-				EndDate:    timePtr(tt.endDate),
-				SubcategoryID:     "line-1",
-				EntityID:   "client-1",
+				ID:            "test",
+				Model:         "Test",
+				ItemKey:       "TEST-KEY",
+				StartDate:     timePtr(now.AddDate(0, 0, -10)),
+				EndDate:       timePtr(tt.endDate),
+				SubcategoryID: "line-1",
+				EntityID:      "client-1",
 			}
 			status := agreement.Status()
 			if status != tt.expectedStatus {
