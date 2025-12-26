@@ -18,6 +18,7 @@
 
 import React, { useState, useEffect } from "react";
 import "./SecuritySettings.css";
+import RolePasswordPolicies from "./RolePasswordPolicies";
 
 export default function SecuritySettings({ token, apiUrl }) {
     const [loading, setLoading] = useState(true);
@@ -474,45 +475,19 @@ export default function SecuritySettings({ token, apiUrl }) {
                 {/* Password Policy Tab */}
                 {activeTab === "password" && (
                     <div className="security-section">
-                        <h3>Política de Senha Global</h3>
-                        <p className="section-info">
-                            Configure os requisitos mínimos para senhas de
-                            usuários. Senhas mais fortes aumentam a segurança do
-                            sistema.
-                        </p>
+                        {/* Role-based Password Policies Component */}
+                        <RolePasswordPolicies token={token} apiUrl={apiUrl} />
 
-                        <div
-                            className="coming-soon-notice"
-                            style={{
-                                background: "#fff3cd",
-                                border: "1px solid #ffc107",
-                                borderRadius: "8px",
-                                padding: "12px 16px",
-                                marginBottom: "20px",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                            }}
-                        >
-                            <span style={{ fontSize: "24px" }}>🔜</span>
-                            <div>
-                                <strong style={{ color: "#856404" }}>
-                                    Em breve: Políticas por Função
-                                </strong>
-                                <p
-                                    style={{
-                                        margin: "4px 0 0 0",
-                                        fontSize: "13px",
-                                        color: "#856404",
-                                    }}
-                                >
-                                    Será possível definir políticas de senha
-                                    diferentes para cada papel (ex: senhas mais
-                                    rigorosas para administradores). As
-                                    configurações abaixo são aplicadas
-                                    globalmente.
-                                </p>
-                            </div>
+                        <div className="password-policy-divider">
+                            <span>Configurações Globais (Fallback)</span>
+                        </div>
+
+                        <div className="global-policy-section">
+                            <h3>🌐 Política de Senha Global</h3>
+                            <p className="section-info">
+                                Estas configurações são aplicadas quando um role
+                                não possui política específica definida acima.
+                            </p>
                         </div>
 
                         <div className="password-policy-grid">

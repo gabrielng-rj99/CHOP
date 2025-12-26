@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./RolePasswordPolicies.css";
 
 export default function RolePasswordPolicies({ token, apiUrl }) {
@@ -26,12 +26,9 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadPolicies();
-    }, []);
-
-    const loadPolicies = async () => {
+    const loadPolicies = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
@@ -54,20 +51,32 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiUrl, token]);
+
+    useEffect(() => {
+        loadPolicies();
+    }, [loadPolicies]);
 
     const handleEdit = (policy) => {
         setEditingPolicy({
             role_id: policy.role_id,
             role_name: policy.role_name,
-            min_length: policy.min_length,
-            require_uppercase: policy.require_uppercase,
-            require_lowercase: policy.require_lowercase,
-            require_numbers: policy.require_numbers,
-            require_special: policy.require_special,
-            max_age: policy.max_age || "",
-            prevent_reuse: policy.prevent_reuse || "",
-            min_change_interval: policy.min_change_interval || "",
+            min_length: policy.min_length || 16,
+            max_length: policy.max_length || 128,
+            require_uppercase: policy.require_uppercase ?? true,
+            require_lowercase: policy.require_lowercase ?? true,
+            require_numbers: policy.require_numbers ?? true,
+            require_special: policy.require_special ?? true,
+            allowed_special_chars:
+                policy.allowed_special_chars || "!@#$%^&*()_+-=[]{}|;:,.<>?",
+            max_age_days: policy.max_age_days || 0,
+            history_count: policy.history_count || 0,
+            min_age_hours: policy.min_age_hours || 0,
+            min_unique_chars: policy.min_unique_chars || 0,
+            no_username_in_password: policy.no_username_in_password ?? true,
+            no_common_passwords: policy.no_common_passwords ?? true,
+            description: policy.description || "",
+            is_active: policy.is_active,
         });
         setShowEditModal(true);
         setError("");
@@ -78,6 +87,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
         try {
             setError("");
             setMessage("");
+            setSaving(true);
 
             // Validate
             if (
@@ -87,27 +97,46 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 setError(
                     "Tamanho mínimo de senha deve estar entre 8 e 128 caracteres",
                 );
+                setSaving(false);
+                return;
+            }
+
+            if (editingPolicy.max_length < editingPolicy.min_length) {
+                setError(
+                    "Tamanho máximo deve ser maior ou igual ao tamanho mínimo",
+                );
+                setSaving(false);
                 return;
             }
 
             const payload = {
                 min_length: parseInt(editingPolicy.min_length),
+                max_length: parseInt(editingPolicy.max_length),
                 require_uppercase: editingPolicy.require_uppercase,
                 require_lowercase: editingPolicy.require_lowercase,
                 require_numbers: editingPolicy.require_numbers,
                 require_special: editingPolicy.require_special,
-                max_age:
-                    editingPolicy.max_age !== ""
-                        ? parseInt(editingPolicy.max_age)
-                        : null,
-                prevent_reuse:
-                    editingPolicy.prevent_reuse !== ""
-                        ? parseInt(editingPolicy.prevent_reuse)
-                        : null,
-                min_change_interval:
-                    editingPolicy.min_change_interval !== ""
-                        ? parseInt(editingPolicy.min_change_interval)
-                        : null,
+                allowed_special_chars:
+                    editingPolicy.allowed_special_chars || null,
+                max_age_days:
+                    editingPolicy.max_age_days !== ""
+                        ? parseInt(editingPolicy.max_age_days)
+                        : 0,
+                history_count:
+                    editingPolicy.history_count !== ""
+                        ? parseInt(editingPolicy.history_count)
+                        : 0,
+                min_age_hours:
+                    editingPolicy.min_age_hours !== ""
+                        ? parseInt(editingPolicy.min_age_hours)
+                        : 0,
+                min_unique_chars:
+                    editingPolicy.min_unique_chars !== ""
+                        ? parseInt(editingPolicy.min_unique_chars)
+                        : 0,
+                no_username_in_password: editingPolicy.no_username_in_password,
+                no_common_passwords: editingPolicy.no_common_passwords,
+                description: editingPolicy.description || null,
             };
 
             const response = await fetch(
@@ -134,11 +163,49 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
         } catch (err) {
             setError("Erro ao conectar com o servidor");
             console.error(err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleResetToDefault = async (roleId, roleName) => {
+        if (
+            !window.confirm(
+                `Tem certeza que deseja remover a política personalizada do role "${roleName}"?\n\nEle passará a usar as configurações globais do sistema.`,
+            )
+        ) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${apiUrl}/roles/${roleId}/password-policy`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            if (response.ok) {
+                setMessage(
+                    `Política do role "${roleName}" removida. Usando configurações globais.`,
+                );
+                loadPolicies();
+            } else {
+                const errorData = await response.json();
+                setError(errorData.error || "Erro ao remover política");
+            }
+        } catch (err) {
+            setError("Erro ao conectar com o servidor");
+            console.error(err);
         }
     };
 
     const getRoleBadgeClass = (roleName) => {
-        switch (roleName) {
+        const name = roleName?.toLowerCase();
+        switch (name) {
             case "root":
                 return "role-badge-root";
             case "admin":
@@ -147,6 +214,8 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 return "role-badge-user";
             case "viewer":
                 return "role-badge-viewer";
+            case "financeiro":
+                return "role-badge-financeiro";
             default:
                 return "role-badge-custom";
         }
@@ -155,32 +224,40 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
     const getStrengthLevel = (policy) => {
         let score = 0;
 
-        // Length
-        if (policy.min_length >= 20) score += 3;
+        // Length scoring
+        if (policy.min_length >= 24) score += 4;
+        else if (policy.min_length >= 20) score += 3;
         else if (policy.min_length >= 16) score += 2;
         else if (policy.min_length >= 12) score += 1;
 
-        // Requirements
+        // Character requirements
         if (policy.require_uppercase) score += 1;
         if (policy.require_lowercase) score += 1;
         if (policy.require_numbers) score += 1;
-        if (policy.require_special) score += 1;
+        if (policy.require_special) score += 2;
 
         // Advanced features
-        if (policy.max_age && policy.max_age <= 90) score += 2;
-        if (policy.prevent_reuse && policy.prevent_reuse >= 5) score += 1;
-        if (policy.min_change_interval) score += 1;
+        if (policy.max_age_days > 0 && policy.max_age_days <= 90) score += 2;
+        else if (policy.max_age_days > 0 && policy.max_age_days <= 180)
+            score += 1;
 
-        if (score >= 10)
+        if (policy.history_count >= 5) score += 2;
+        else if (policy.history_count >= 3) score += 1;
+
+        if (policy.min_age_hours > 0) score += 1;
+        if (policy.min_unique_chars >= 8) score += 1;
+        if (policy.no_username_in_password) score += 1;
+        if (policy.no_common_passwords) score += 1;
+
+        if (score >= 14)
             return { level: "Muito Forte", class: "strength-very-high" };
-        if (score >= 7) return { level: "Forte", class: "strength-high" };
-        if (score >= 5) return { level: "Média", class: "strength-medium" };
-        return { level: "Básica", class: "strength-low" };
+        if (score >= 10) return { level: "Forte", class: "strength-high" };
+        if (score >= 6) return { level: "Média", class: "strength-medium" };
+        if (score >= 3) return { level: "Básica", class: "strength-low" };
+        return { level: "Fraca", class: "strength-very-low" };
     };
 
     const calculatePasswordScore = (policy) => {
-        let complexity = 0;
-
         // Character set size
         let charsetSize = 0;
         if (policy.require_lowercase) charsetSize += 26;
@@ -188,14 +265,25 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
         if (policy.require_numbers) charsetSize += 10;
         if (policy.require_special) charsetSize += 32;
 
-        if (charsetSize > 0) {
-            // Entropy calculation: log2(charset^length)
-            const entropy =
-                policy.min_length * Math.log2(charsetSize);
-            complexity = Math.round(entropy);
-        }
+        // If nothing required, assume all
+        if (charsetSize === 0) charsetSize = 94;
 
-        return complexity;
+        // Entropy calculation: log2(charset^length)
+        const entropy = policy.min_length * Math.log2(charsetSize);
+        return Math.round(entropy);
+    };
+
+    const formatExpiration = (days) => {
+        if (!days || days === 0) return "Nunca expira";
+        if (days === 1) return "1 dia";
+        if (days < 30) return `${days} dias`;
+        if (days < 60) return "~1 mês";
+        if (days < 90) return "~2 meses";
+        if (days === 90) return "3 meses";
+        if (days < 180) return `${Math.round(days / 30)} meses`;
+        if (days === 180) return "6 meses";
+        if (days === 365) return "1 ano";
+        return `${days} dias`;
     };
 
     if (loading) {
@@ -215,8 +303,9 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 <div>
                     <h2>🔐 Políticas de Senha por Role</h2>
                     <p className="policies-description">
-                        Configure requisitos de senha e regras de segurança para
-                        cada nível de usuário
+                        Configure requisitos de senha específicos para cada
+                        nível de usuário. Roles sem política personalizada usam
+                        as configurações globais.
                     </p>
                 </div>
             </div>
@@ -225,6 +314,12 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 <div className="success-message">
                     <span className="success-icon">✓</span>
                     {message}
+                    <button
+                        className="dismiss-btn"
+                        onClick={() => setMessage("")}
+                    >
+                        ×
+                    </button>
                 </div>
             )}
 
@@ -232,63 +327,108 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 <div className="error-message">
                     <span className="error-icon">⚠</span>
                     {error}
+                    <button
+                        className="dismiss-btn"
+                        onClick={() => setError("")}
+                    >
+                        ×
+                    </button>
                 </div>
             )}
 
             <div className="policies-grid">
                 {policies.map((policy) => {
                     const strength = getStrengthLevel(policy);
-                    const score = calculatePasswordScore(policy);
+                    const entropy = calculatePasswordScore(policy);
                     return (
-                        <div key={policy.id} className="policy-card">
+                        <div
+                            key={policy.role_id}
+                            className={`policy-card ${!policy.is_active ? "using-global" : ""}`}
+                        >
                             <div className="policy-card-header">
                                 <div className="policy-role-info">
                                     <span
                                         className={`role-badge ${getRoleBadgeClass(policy.role_name)}`}
                                     >
-                                        {policy.role_name.toUpperCase()}
+                                        {policy.role_name?.toUpperCase()}
                                     </span>
                                     <span
                                         className={`strength-badge ${strength.class}`}
                                     >
                                         🛡️ {strength.level}
                                     </span>
+                                    {!policy.is_active && (
+                                        <span className="global-badge">
+                                            📋 Global
+                                        </span>
+                                    )}
                                 </div>
-                                <button
-                                    className="edit-button"
-                                    onClick={() => handleEdit(policy)}
-                                    title="Editar política"
-                                >
-                                    ✏️
-                                </button>
+                                <div className="policy-actions">
+                                    {policy.is_active && (
+                                        <button
+                                            className="reset-button"
+                                            onClick={() =>
+                                                handleResetToDefault(
+                                                    policy.role_id,
+                                                    policy.role_name,
+                                                )
+                                            }
+                                            title="Usar configurações globais"
+                                        >
+                                            🔄
+                                        </button>
+                                    )}
+                                    <button
+                                        className="edit-button"
+                                        onClick={() => handleEdit(policy)}
+                                        title="Editar política"
+                                    >
+                                        ✏️
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="policy-details">
-                                <div className="policy-metric">
-                                    <div className="metric-header">
-                                        <span className="metric-label">
-                                            Tamanho Mínimo
-                                        </span>
-                                        <span className="metric-value-large">
-                                            {policy.min_length}
-                                        </span>
+                                <div className="policy-metrics-row">
+                                    <div className="policy-metric">
+                                        <div className="metric-header">
+                                            <span className="metric-label">
+                                                Tamanho Mínimo
+                                            </span>
+                                            <span className="metric-value-large">
+                                                {policy.min_length}
+                                            </span>
+                                        </div>
+                                        <div className="metric-subtitle">
+                                            caracteres
+                                        </div>
                                     </div>
-                                    <div className="metric-subtitle">
-                                        caracteres
-                                    </div>
-                                </div>
 
-                                <div className="policy-metric">
-                                    <div className="metric-header">
-                                        <span className="metric-label">
-                                            Entropia
-                                        </span>
-                                        <span className="metric-value-large">
-                                            {score}
-                                        </span>
+                                    <div className="policy-metric">
+                                        <div className="metric-header">
+                                            <span className="metric-label">
+                                                Entropia
+                                            </span>
+                                            <span className="metric-value-large">
+                                                {entropy}
+                                            </span>
+                                        </div>
+                                        <div className="metric-subtitle">
+                                            bits
+                                        </div>
                                     </div>
-                                    <div className="metric-subtitle">
-                                        bits de complexidade
+
+                                    <div className="policy-metric">
+                                        <div className="metric-header">
+                                            <span className="metric-label">
+                                                Expiração
+                                            </span>
+                                            <span className="metric-value-small">
+                                                {formatExpiration(
+                                                    policy.max_age_days,
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -352,32 +492,44 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                     <div className="advanced-title">
                                         Regras Avançadas:
                                     </div>
-                                    <div className="advanced-item">
-                                        <span className="adv-icon">📅</span>
-                                        <span className="adv-text">
-                                            Expiração:{" "}
-                                            {policy.max_age
-                                                ? `${policy.max_age} dias`
-                                                : "Nunca"}
-                                        </span>
-                                    </div>
-                                    <div className="advanced-item">
-                                        <span className="adv-icon">🔄</span>
-                                        <span className="adv-text">
-                                            Prevenir reuso:{" "}
-                                            {policy.prevent_reuse
-                                                ? `${policy.prevent_reuse} senhas`
-                                                : "Não"}
-                                        </span>
-                                    </div>
-                                    <div className="advanced-item">
-                                        <span className="adv-icon">⏱️</span>
-                                        <span className="adv-text">
-                                            Intervalo mínimo:{" "}
-                                            {policy.min_change_interval
-                                                ? `${policy.min_change_interval}h`
-                                                : "Sem limite"}
-                                        </span>
+                                    <div className="advanced-grid">
+                                        <div className="advanced-item">
+                                            <span className="adv-icon">🔄</span>
+                                            <span className="adv-text">
+                                                Histórico:{" "}
+                                                {policy.history_count > 0
+                                                    ? `${policy.history_count} senhas`
+                                                    : "Não"}
+                                            </span>
+                                        </div>
+                                        <div className="advanced-item">
+                                            <span className="adv-icon">⏱️</span>
+                                            <span className="adv-text">
+                                                Intervalo:{" "}
+                                                {policy.min_age_hours > 0
+                                                    ? `${policy.min_age_hours}h`
+                                                    : "Sem limite"}
+                                            </span>
+                                        </div>
+                                        <div className="advanced-item">
+                                            <span className="adv-icon">🔤</span>
+                                            <span className="adv-text">
+                                                Únicos:{" "}
+                                                {policy.min_unique_chars > 0
+                                                    ? `${policy.min_unique_chars} chars`
+                                                    : "Não"}
+                                            </span>
+                                        </div>
+                                        <div className="advanced-item">
+                                            <span className="adv-icon">
+                                                {policy.no_common_passwords
+                                                    ? "✅"
+                                                    : "❌"}
+                                            </span>
+                                            <span className="adv-text">
+                                                Bloquear comuns
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -386,6 +538,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                 })}
             </div>
 
+            {/* Edit Modal */}
             {showEditModal && editingPolicy && (
                 <div className="modal-overlay">
                     <div className="modal-content modal-large">
@@ -395,7 +548,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                 <span
                                     className={`role-badge ${getRoleBadgeClass(editingPolicy.role_name)}`}
                                 >
-                                    {editingPolicy.role_name.toUpperCase()}
+                                    {editingPolicy.role_name?.toUpperCase()}
                                 </span>
                             </h3>
                             <button
@@ -418,32 +571,61 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                         )}
 
                         <div className="modal-body">
+                            {/* Basic Requirements */}
                             <div className="form-section">
                                 <h4 className="section-title">
-                                    Requisitos Básicos
+                                    📏 Tamanho da Senha
                                 </h4>
 
-                                <div className="form-group">
-                                    <label>
-                                        Tamanho Mínimo (caracteres)
-                                        <span className="required">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="8"
-                                        max="128"
-                                        value={editingPolicy.min_length}
-                                        onChange={(e) =>
-                                            setEditingPolicy({
-                                                ...editingPolicy,
-                                                min_length: e.target.value,
-                                            })
-                                        }
-                                    />
-                                    <span className="form-hint">
-                                        Entre 8 e 128 caracteres
-                                    </span>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>
+                                            Tamanho Mínimo
+                                            <span className="required">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="8"
+                                            max="128"
+                                            value={editingPolicy.min_length}
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    min_length: e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <span className="form-hint">
+                                            Entre 8 e 128 caracteres
+                                        </span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Tamanho Máximo</label>
+                                        <input
+                                            type="number"
+                                            min="8"
+                                            max="256"
+                                            value={editingPolicy.max_length}
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    max_length: e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <span className="form-hint">
+                                            Entre mínimo e 256 caracteres
+                                        </span>
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Character Requirements */}
+                            <div className="form-section">
+                                <h4 className="section-title">
+                                    🔤 Requisitos de Caracteres
+                                </h4>
 
                                 <div className="checkboxes-grid">
                                     <label className="checkbox-label">
@@ -511,16 +693,63 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                                 })
                                             }
                                         />
-                                        <span>
-                                            Exigir Especiais (!@#$%...)
-                                        </span>
+                                        <span>Exigir Especiais (!@#$...)</span>
                                     </label>
+                                </div>
+
+                                {editingPolicy.require_special && (
+                                    <div className="form-group">
+                                        <label>
+                                            Caracteres Especiais Permitidos
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={
+                                                editingPolicy.allowed_special_chars
+                                            }
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    allowed_special_chars:
+                                                        e.target.value,
+                                                })
+                                            }
+                                            placeholder="!@#$%^&*()_+-=[]{}|;:,.<>?"
+                                        />
+                                        <span className="form-hint">
+                                            Deixe vazio para permitir todos
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div className="form-group">
+                                    <label>
+                                        Mínimo de Caracteres Únicos (diferentes)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="64"
+                                        value={editingPolicy.min_unique_chars}
+                                        onChange={(e) =>
+                                            setEditingPolicy({
+                                                ...editingPolicy,
+                                                min_unique_chars:
+                                                    e.target.value,
+                                            })
+                                        }
+                                    />
+                                    <span className="form-hint">
+                                        Evita senhas como "aaaaaa1234" (0 =
+                                        desabilitado)
+                                    </span>
                                 </div>
                             </div>
 
+                            {/* Expiration and History */}
                             <div className="form-section">
                                 <h4 className="section-title">
-                                    Regras Avançadas
+                                    📅 Expiração e Histórico
                                 </h4>
 
                                 <div className="form-row">
@@ -528,46 +757,42 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                         <label>Expiração da Senha (dias)</label>
                                         <input
                                             type="number"
-                                            min="1"
+                                            min="0"
                                             max="365"
-                                            placeholder="Nunca expira"
-                                            value={editingPolicy.max_age}
+                                            value={editingPolicy.max_age_days}
                                             onChange={(e) =>
                                                 setEditingPolicy({
                                                     ...editingPolicy,
-                                                    max_age: e.target.value,
-                                                })
-                                            }
-                                        />
-                                        <span className="form-hint">
-                                            {editingPolicy.max_age
-                                                ? `Senha expira após ${editingPolicy.max_age} dias`
-                                                : "Deixe vazio para nunca expirar"}
-                                        </span>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>
-                                            Prevenir Reuso (últimas N senhas)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="24"
-                                            placeholder="Sem prevenção"
-                                            value={editingPolicy.prevent_reuse}
-                                            onChange={(e) =>
-                                                setEditingPolicy({
-                                                    ...editingPolicy,
-                                                    prevent_reuse:
+                                                    max_age_days:
                                                         e.target.value,
                                                 })
                                             }
                                         />
                                         <span className="form-hint">
-                                            {editingPolicy.prevent_reuse
-                                                ? `Não pode reusar as últimas ${editingPolicy.prevent_reuse} senhas`
-                                                : "Deixe vazio para permitir reuso"}
+                                            0 = nunca expira (Recomendado: 90
+                                            dias para roles sensíveis)
+                                        </span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            Histórico de Senhas (não reutilizar)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="24"
+                                            value={editingPolicy.history_count}
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    history_count:
+                                                        e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <span className="form-hint">
+                                            0 = sem verificação (Recomendado: 5)
                                         </span>
                                     </div>
                                 </div>
@@ -578,67 +803,151 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                     </label>
                                     <input
                                         type="number"
-                                        min="1"
-                                        max="168"
-                                        placeholder="Sem limite"
-                                        value={
-                                            editingPolicy.min_change_interval
-                                        }
+                                        min="0"
+                                        max="720"
+                                        value={editingPolicy.min_age_hours}
                                         onChange={(e) =>
                                             setEditingPolicy({
                                                 ...editingPolicy,
-                                                min_change_interval:
-                                                    e.target.value,
+                                                min_age_hours: e.target.value,
                                             })
                                         }
                                     />
                                     <span className="form-hint">
-                                        {editingPolicy.min_change_interval
-                                            ? `Usuário deve aguardar ${editingPolicy.min_change_interval}h para mudar senha novamente`
-                                            : "Deixe vazio para sem limite"}
+                                        Previne mudanças rápidas maliciosas (0 =
+                                        sem limite)
                                     </span>
                                 </div>
                             </div>
 
+                            {/* Security Checks */}
+                            <div className="form-section">
+                                <h4 className="section-title">
+                                    🛡️ Verificações de Segurança
+                                </h4>
+
+                                <div className="checkboxes-grid">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                editingPolicy.no_username_in_password
+                                            }
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    no_username_in_password:
+                                                        e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        <span>
+                                            Bloquear nome de usuário na senha
+                                        </span>
+                                    </label>
+
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                editingPolicy.no_common_passwords
+                                            }
+                                            onChange={(e) =>
+                                                setEditingPolicy({
+                                                    ...editingPolicy,
+                                                    no_common_passwords:
+                                                        e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        <span>
+                                            Bloquear senhas comuns (ex: 123456,
+                                            password)
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="form-section">
+                                <h4 className="section-title">📝 Descrição</h4>
+
+                                <div className="form-group">
+                                    <textarea
+                                        value={editingPolicy.description}
+                                        onChange={(e) =>
+                                            setEditingPolicy({
+                                                ...editingPolicy,
+                                                description: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Descrição opcional da política..."
+                                        rows="2"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Info Box */}
                             <div className="info-box">
                                 <div className="info-icon">ℹ️</div>
                                 <div className="info-content">
-                                    <strong>
-                                        Recomendações de Segurança:
-                                    </strong>
+                                    <strong>Recomendações de Segurança:</strong>
                                     <ul>
                                         <li>
-                                            Senhas mais longas são
-                                            exponencialmente mais seguras
+                                            <strong>Root/Admin:</strong> Mínimo
+                                            16-24 chars, expiração 90 dias,
+                                            histórico 5 senhas
                                         </li>
                                         <li>
-                                            Exija todos os tipos de caracteres
-                                            para maior entropia
+                                            <strong>User:</strong> Mínimo 12
+                                            chars, expiração 180-365 dias
                                         </li>
                                         <li>
-                                            Considere expiração de 90 dias para
-                                            roles sensíveis
+                                            <strong>Viewer:</strong> Mínimo 8
+                                            chars, sem expiração obrigatória
                                         </li>
                                         <li>
-                                            Previna reuso de pelo menos 5 senhas
-                                            anteriores
-                                        </li>
-                                        <li>
-                                            Intervalo mínimo previne mudanças
-                                            rápidas maliciosas
+                                            Sempre ative verificação de senhas
+                                            comuns e username
                                         </li>
                                     </ul>
                                 </div>
                             </div>
 
+                            {/* Preview Box */}
                             <div className="preview-box">
                                 <div className="preview-title">
                                     📊 Preview da Política
                                 </div>
                                 <div className="preview-content">
-                                    <div className="preview-item">
-                                        <strong>Exemplo de senha válida:</strong>
-                                        <code>
+                                    <div className="preview-row">
+                                        <div className="preview-item">
+                                            <strong>Entropia estimada:</strong>
+                                            <span className="preview-value">
+                                                {calculatePasswordScore(
+                                                    editingPolicy,
+                                                )}{" "}
+                                                bits
+                                            </span>
+                                        </div>
+                                        <div className="preview-item">
+                                            <strong>Nível de força:</strong>
+                                            <span
+                                                className={`strength-badge ${getStrengthLevel(editingPolicy).class}`}
+                                            >
+                                                {
+                                                    getStrengthLevel(
+                                                        editingPolicy,
+                                                    ).level
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="preview-item full-width">
+                                        <strong>
+                                            Exemplo de senha válida:
+                                        </strong>
+                                        <code className="password-example">
                                             {editingPolicy.require_uppercase
                                                 ? "A"
                                                 : ""}
@@ -655,32 +964,12 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                                 Math.max(
                                                     0,
                                                     parseInt(
-                                                        editingPolicy.min_length,
+                                                        editingPolicy.min_length ||
+                                                            8,
                                                     ) - 4,
                                                 ),
                                             )}
                                         </code>
-                                    </div>
-                                    <div className="preview-item">
-                                        <strong>Entropia estimada:</strong>
-                                        <span>
-                                            {" "}
-                                            {calculatePasswordScore(
-                                                editingPolicy,
-                                            )}{" "}
-                                            bits
-                                        </span>
-                                    </div>
-                                    <div className="preview-item">
-                                        <strong>Nível de força:</strong>
-                                        <span
-                                            className={`strength-badge ${getStrengthLevel(editingPolicy).class}`}
-                                        >
-                                            {
-                                                getStrengthLevel(editingPolicy)
-                                                    .level
-                                            }
-                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -694,14 +983,16 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                     setEditingPolicy(null);
                                     setError("");
                                 }}
+                                disabled={saving}
                             >
                                 Cancelar
                             </button>
                             <button
                                 className="button-save"
                                 onClick={handleSave}
+                                disabled={saving}
                             >
-                                💾 Salvar Política
+                                {saving ? "Salvando..." : "💾 Salvar Política"}
                             </button>
                         </div>
                     </div>

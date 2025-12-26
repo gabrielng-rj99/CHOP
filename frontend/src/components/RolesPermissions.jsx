@@ -35,6 +35,8 @@ export default function RolesPermissions({ token, apiUrl }) {
     // Modal state
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+    const [activeCategory, setActiveCategory] = useState(null);
     const [newRole, setNewRole] = useState({
         name: "",
         display_name: "",
@@ -266,7 +268,10 @@ export default function RolesPermissions({ token, apiUrl }) {
     };
 
     const handlePermissionToggle = async (permissionId) => {
-        if (!selectedRole) return;
+        if (!selectedRole) {
+            console.warn("No role selected");
+            return;
+        }
 
         // Root role permissions cannot be modified
         if (selectedRole.name === "root") {
@@ -274,8 +279,16 @@ export default function RolesPermissions({ token, apiUrl }) {
             return;
         }
 
+        // Clear any previous messages
+        setError("");
+        setMessage("");
+
         const currentPerms = rolePermissions[selectedRole.id] || {};
         const isEnabled = currentPerms[permissionId];
+
+        console.log(
+            `Toggling permission ${permissionId} for role ${selectedRole.id}: ${isEnabled} -> ${!isEnabled}`,
+        );
 
         // Optimistically update UI
         const newPerms = {
@@ -291,6 +304,8 @@ export default function RolesPermissions({ token, apiUrl }) {
         const enabledPermIds = Object.entries(newPerms)
             .filter(([_, enabled]) => enabled)
             .map(([id, _]) => id);
+
+        console.log(`Sending ${enabledPermIds.length} permissions to API`);
 
         try {
             const response = await fetch(
@@ -314,7 +329,10 @@ export default function RolesPermissions({ token, apiUrl }) {
                     [selectedRole.id]: currentPerms,
                 }));
                 const data = await response.json();
+                console.error("API error:", data);
                 setError(data.error || "Erro ao atualizar permissões");
+            } else {
+                console.log("Permission updated successfully");
             }
         } catch (err) {
             // Revert on error
@@ -410,6 +428,38 @@ export default function RolesPermissions({ token, apiUrl }) {
             <div className="roles-loading">
                 <div className="spinner"></div>
                 <p>Carregando papéis e permissões...</p>
+            </div>
+        );
+    }
+
+    // Check if no roles exist (seeds not applied)
+    if (roles.length === 0) {
+        return (
+            <div className="roles-permissions">
+                <div className="roles-header">
+                    <h2>👥 Gerenciamento de Papéis e Permissões</h2>
+                </div>
+                <div className="roles-empty-state">
+                    <div className="empty-state-icon">⚠️</div>
+                    <h3>Nenhum papel encontrado</h3>
+                    <p>
+                        Os papéis padrão (root, admin, user) não foram
+                        encontrados no sistema. Isso pode indicar que os seeds
+                        do banco de dados não foram aplicados.
+                    </p>
+                    <div className="empty-state-instructions">
+                        <p>
+                            <strong>Para corrigir, execute no terminal:</strong>
+                        </p>
+                        <code>
+                            psql -d ehopdb_dev -f
+                            backend/database/seeds/01_roles_permissions.sql
+                        </code>
+                    </div>
+                    <button className="retry-btn" onClick={() => loadData()}>
+                        🔄 Tentar Novamente
+                    </button>
+                </div>
             </div>
         );
     }
@@ -543,91 +593,71 @@ export default function RolesPermissions({ token, apiUrl }) {
                                 </div>
                             )}
 
-                            <div className="permissions-grid">
+                            <div className="permissions-categories-list">
                                 {Object.entries(permissionsByCategory).map(
-                                    ([category, perms]) => (
-                                        <div
-                                            key={category}
-                                            className="permission-category"
-                                        >
-                                            <div className="category-header">
-                                                <span className="category-title">
-                                                    {getCategoryIcon(category)}{" "}
-                                                    {category}
-                                                </span>
-                                                {selectedRole.name !==
-                                                    "root" && (
-                                                    <div className="category-actions">
-                                                        <button
-                                                            className="select-all-btn"
-                                                            onClick={() =>
-                                                                handleSelectAllCategory(
-                                                                    perms,
-                                                                    true,
-                                                                )
-                                                            }
-                                                        >
-                                                            Todos
-                                                        </button>
-                                                        <button
-                                                            className="select-none-btn"
-                                                            onClick={() =>
-                                                                handleSelectAllCategory(
-                                                                    perms,
-                                                                    false,
-                                                                )
-                                                            }
-                                                        >
-                                                            Nenhum
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                    ([category, perms]) => {
+                                        const enabledCount = perms.filter(
+                                            (p) =>
+                                                rolePermissions[
+                                                selectedRole.id
+                                                ]?.[p.id],
+                                        ).length;
+                                        const totalCount = perms.length;
+                                        const isAllEnabled =
+                                            enabledCount === totalCount;
+                                        const isNoneEnabled = enabledCount === 0;
 
-                                            <div className="category-permissions">
-                                                {perms.map((perm) => (
-                                                    <label
-                                                        key={perm.id}
-                                                        className={`permission-item ${
-                                                            selectedRole.name ===
-                                                            "root"
-                                                                ? "disabled"
-                                                                : ""
-                                                        }`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={
-                                                                selectedRole.name ===
-                                                                    "root" ||
-                                                                !!rolePermissions[
-                                                                    selectedRole
-                                                                        .id
-                                                                ]?.[perm.id]
-                                                            }
-                                                            onChange={() =>
-                                                                handlePermissionToggle(
-                                                                    perm.id,
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                selectedRole.name ===
-                                                                "root"
-                                                            }
-                                                        />
-                                                        <span className="permission-icon">
-                                                            {getActionIcon(
-                                                                perm.action,
+                                        return (
+                                            <div
+                                                key={category}
+                                                className="category-summary-row"
+                                            >
+                                                <div className="category-info">
+                                                    <span className="category-icon">
+                                                        {getCategoryIcon(
+                                                            category,
+                                                        )}
+                                                    </span>
+                                                    <div className="category-details">
+                                                        <span className="category-name">
+                                                            {category}
+                                                        </span>
+                                                        <span className="category-status">
+                                                            {isAllEnabled ? (
+                                                                <span className="status-badge all">
+                                                                    Todos
+                                                                </span>
+                                                            ) : isNoneEnabled ? (
+                                                                <span className="status-badge none">
+                                                                    Nenhum
+                                                                </span>
+                                                            ) : (
+                                                                <span className="status-badge partial">
+                                                                    {enabledCount}
+                                                                    /
+                                                                    {totalCount}
+                                                                </span>
                                                             )}
                                                         </span>
-                                                        <span className="permission-name">
-                                                            {perm.display_name}
-                                                        </span>
-                                                    </label>
-                                                ))}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    className="configure-btn"
+                                                    onClick={() => {
+                                                        setActiveCategory({
+                                                            name: category,
+                                                            perms: perms,
+                                                        });
+                                                        setShowPermissionsModal(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    ⚙️ Configurar
+                                                </button>
                                             </div>
-                                        </div>
-                                    ),
+                                        );
+                                    },
                                 )}
                             </div>
                         </>
@@ -638,6 +668,111 @@ export default function RolesPermissions({ token, apiUrl }) {
                     )}
                 </div>
             </div>
+
+            {/* Permissions Modal */}
+            {showPermissionsModal && activeCategory && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setShowPermissionsModal(false)}
+                >
+                    <div
+                        className="modal-content permissions-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h3>
+                                {getCategoryIcon(activeCategory.name)}{" "}
+                                {activeCategory.name}
+                            </h3>
+                            <button
+                                className="close-modal-btn"
+                                onClick={() => setShowPermissionsModal(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="modal-subheader">
+                            <p>
+                                Configurando permissões para{" "}
+                                <strong>{selectedRole.display_name}</strong>
+                            </p>
+                            {selectedRole.name !== "root" && (
+                                <div className="category-actions">
+                                    <button
+                                        className="select-all-btn"
+                                        onClick={() =>
+                                            handleSelectAllCategory(
+                                                activeCategory.perms,
+                                                true,
+                                            )
+                                        }
+                                    >
+                                        Todos
+                                    </button>
+                                    <button
+                                        className="select-none-btn"
+                                        onClick={() =>
+                                            handleSelectAllCategory(
+                                                activeCategory.perms,
+                                                false,
+                                            )
+                                        }
+                                    >
+                                        Nenhum
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-permissions-list">
+                            {activeCategory.perms.map((perm) => (
+                                <label
+                                    key={perm.id}
+                                    className={`permission-item ${selectedRole.name === "root"
+                                        ? "disabled"
+                                        : ""
+                                        }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            selectedRole.name === "root" ||
+                                            !!rolePermissions[
+                                            selectedRole.id
+                                            ]?.[perm.id]
+                                        }
+                                        onChange={() =>
+                                            handlePermissionToggle(perm.id)
+                                        }
+                                        disabled={selectedRole.name === "root"}
+                                    />
+                                    <span className="permission-icon">
+                                        {getActionIcon(perm.action)}
+                                    </span>
+                                    <div className="permission-details">
+                                        <span className="permission-name">
+                                            {perm.display_name}
+                                        </span>
+                                        <span className="permission-description">
+                                            {perm.description}
+                                        </span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="modal-confirm"
+                                onClick={() => setShowPermissionsModal(false)}
+                            >
+                                Concluído
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create Role Modal */}
             {showCreateModal && (
@@ -749,8 +884,7 @@ export default function RolesPermissions({ token, apiUrl }) {
                         </div>
 
                         <div className="modal-actions">
-                            <button
-                                className="modal-cancel"
+                            <button className="modal-cancel"
                                 onClick={() => setShowCreateModal(false)}
                             >
                                 Cancelar

@@ -636,3 +636,251 @@
     font-weight: 500;
     white-space: nowrap;
 }
+
+/* Empty State - No Roles Found */
+.roles-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    text-align: center;
+    background: var(--surface-color, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.roles-empty-state .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.roles-empty-state h3 {
+    font-size: 1.4rem;
+    color: var(--text-color, #1a1a2e);
+    margin: 0 0 12px 0;
+}
+
+.roles-empty-state > p {
+    font-size: 1rem;
+    color: var(--text-secondary, #666);
+    max-width: 500px;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+}
+
+.roles-empty-state .empty-state-instructions {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+}
+
+.roles-empty-state .empty-state-instructions p {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: var(--text-color, #1a1a2e);
+}
+
+.roles-empty-state .empty-state-instructions code {
+    display: block;
+    background: var(--surface-color, #1a1a2e);
+    color: #e0e0e0;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-family: "Fira Code", "Monaco", monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.roles-empty-state .retry-btn {
+    background: var(--primary-color, #4a6cf7);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.roles-empty-state .retry-btn:hover {
+    background: #3b5bdb;
+}
+
+/* NEW STYLES for Modal Refactor */
+
+.permissions-categories-list {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.category-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--surface-color, #ffffff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.category-summary-row:hover {
+    border-color: var(--primary-color, #4a6cf7);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.category-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f4ff;
+    border-radius: 8px;
+}
+
+.category-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-color, #1a1a2e);
+}
+
+.status-badge {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.all {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.none {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.status-badge.partial {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.configure-btn {
+    padding: 8px 16px;
+    background: var(--surface-color, #ffffff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 6px;
+    color: var(--text-color, #1a1a2e);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.configure-btn:hover {
+    background: #f8f9fa;
+    border-color: #d1d5db;
+}
+
+/* Permissions Modal Specifics */
+.permissions-modal {
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 4px;
+}
+
+.close-modal-btn:hover {
+    color: #4b5563;
+}
+
+.modal-subheader {
+    padding: 16px 24px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-subheader p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.modal-permissions-list {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.permission-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.permission-description {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.modal-actions {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    display: flex;
+    justify-content: flex-end;
+    background: #ffffff;
+}
