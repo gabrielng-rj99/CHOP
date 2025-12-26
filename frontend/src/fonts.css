@@ -1,0 +1,91 @@
+/* OpenDyslexic 3 */
+@font-face {
+    font-family: 'OpenDyslexic3';
+    src: url('./assets/fonts/OpenDyslexic3/OpenDyslexic3-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic3';
+    src: url('./assets/fonts/OpenDyslexic3/OpenDyslexic3-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* OpenDyslexic (Classic / V2) */
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('./assets/fonts/OpenDyslexic2/OpenDyslexic-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('./assets/fonts/OpenDyslexic2/OpenDyslexic-Bold.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('./assets/fonts/OpenDyslexic2/OpenDyslexic-Italic.otf') format('opentype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('./assets/fonts/OpenDyslexic2/OpenDyslexic-BoldItalic.otf') format('opentype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* OpenDyslexic Mono */
+@font-face {
+    font-family: 'OpenDyslexicMono';
+    src: url('./assets/fonts/OpenDyslexicMono/OpenDyslexicMono-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* OpenDyslexic Alta */
+@font-face {
+    font-family: 'OpenDyslexicAlta';
+    src: url('./assets/fonts/OpenDyslexicAlta/OpenDyslexicAlta-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexicAlta';
+    src: url('./assets/fonts/OpenDyslexicAlta/OpenDyslexicAlta-Bold.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexicAlta';
+    src: url('./assets/fonts/OpenDyslexicAlta/OpenDyslexicAlta-Italic.otf') format('opentype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexicAlta';
+    src: url('./assets/fonts/OpenDyslexicAlta/OpenDyslexicAlta-BoldItalic.otf') format('opentype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
