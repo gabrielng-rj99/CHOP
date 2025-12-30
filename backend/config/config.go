@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -113,7 +113,7 @@ type AppConfig struct {
 }
 
 type PathsConfig struct {
-	SchemaFile    string
+	SchemaDir     string
 	MigrationsDir string
 	LogsDir       string
 	ReportsDir    string
@@ -178,8 +178,8 @@ func LoadConfig() (*Config, error) {
 			LockLevel3Attempts:    getEnvInt("LOCK_LEVEL_3_ATTEMPTS", 10),
 			LockLevel3Duration:    getEnvDuration("LOCK_LEVEL_3_DURATION", 60*time.Minute),
 			LockLevelManualAtmpts: getEnvInt("LOCK_LEVEL_MANUAL_ATTEMPTS", 15),
-			RateLimit:             getEnvInt("RATE_LIMIT", 5),
-			RateBurst:             getEnvInt("RATE_BURST", 10),
+			RateLimit:             getEnvInt("RATE_LIMIT", 100),
+			RateBurst:             getEnvInt("RATE_BURST", 200),
 		},
 		App: AppConfig{
 			Env:     getEnv("APP_ENV", "development"),
@@ -187,7 +187,7 @@ func LoadConfig() (*Config, error) {
 			Name:    getEnv("APP_NAME", "Open-Generic-Hub"),
 		},
 		Paths: PathsConfig{
-			SchemaFile:    getEnv("SCHEMA_FILE", "database/schema.sql"),
+			SchemaDir:     getEnv("SCHEMA_DIR", "database/schema"),
 			MigrationsDir: getEnv("MIGRATIONS_DIR", "database/migrations"),
 			LogsDir:       getEnv("LOGS_DIR", "logs"),
 			ReportsDir:    getEnv("REPORTS_DIR", "reports"),

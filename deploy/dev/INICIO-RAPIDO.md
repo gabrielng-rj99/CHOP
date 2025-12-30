@@ -13,7 +13,7 @@
 
 ```bash
 git clone <repository-url>
-cd Entity-Hub-Open-Project
+cd Client-Hub-Open-Project
 ```
 
 ### 2. Configure o PostgreSQL
@@ -74,19 +74,26 @@ Usuário: root
 Senha: root123
 ```
 
-## 🗄️ Aplicar Seeds (Dados Iniciais)
+## 🗄️ Inicializar o Banco de Dados
 
-Se o banco estiver vazio, aplique os seeds:
+Se o banco estiver vazio, aplique o schema:
 
 ```bash
 # Conecte ao banco
 psql -h localhost -p 5432 -U ehopuser -d ehopdb_dev
 
-# Aplique os seeds na ordem:
-\i backend/seeds/01_roles_permissions.sql
-\i backend/seeds/02_system_settings.sql
-\i backend/seeds/03_root_user.sql
-\i backend/seeds/04_enhanced_permissions.sql
+# Aplique o schema completo (de dentro do diretório schema/):
+cd backend/database/schema
+\i init.sql
+
+# Ou aplique cada módulo individualmente:
+\i backend/database/schema/01_extensions.sql
+\i backend/database/schema/02_core.sql
+\i backend/database/schema/03_security.sql
+\i backend/database/schema/04_users.sql
+\i backend/database/schema/05_clients.sql
+\i backend/database/schema/06_agreements.sql
+\i backend/database/schema/07_audit.sql
 
 # Saia
 \q
@@ -139,7 +146,7 @@ tail -f logs/vite-dev.log
 ## 📁 Arquivos Importantes
 
 ```
-Entity-Hub-Open-Project/
+Client-Hub-Open-Project/
 ├── deploy/dev/
 │   ├── start-dev.sh         # Script de início
 │   ├── stop-dev.sh          # Script de parada
@@ -148,7 +155,15 @@ Entity-Hub-Open-Project/
 │   └── INICIO-RAPIDO.md     # Este arquivo
 ├── backend/
 │   ├── cmd/server/main.go   # Entrada do backend
-│   └── seeds/               # Scripts SQL iniciais
+│   └── database/schema/     # Schema SQL modular
+│       ├── 01_extensions.sql
+│       ├── 02_core.sql
+│       ├── 03_security.sql
+│       ├── 04_users.sql
+│       ├── 05_clients.sql
+│       ├── 06_agreements.sql
+│       ├── 07_audit.sql
+│       └── init.sql
 ├── frontend/
 │   ├── src/                 # Código React
 │   └── vite.config.js       # Configuração do Vite (proxy)

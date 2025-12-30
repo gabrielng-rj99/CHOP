@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -41,7 +41,7 @@ class TestDatabaseResilience:
             # 2. Stop the database container
             print("\nStopping database container...")
             self._docker_compose("stop", "postgres_test")
-            
+
             # Give it a moment to completely stop accepting connections
             time.sleep(2)
 
@@ -49,7 +49,7 @@ class TestDatabaseResilience:
             # It might return 503 Service Unavailable or 500 Internal Server Error
             response = http_client.get(f"{base_url}/health")
             assert response.status_code in [500, 503], "API should report error when DB is down"
-            
+
             data = response.json()
             # The exact message depends on the implementation, but 'status' should generally not be 'healthy'
             # or the connection error should be logged.
@@ -63,7 +63,7 @@ class TestDatabaseResilience:
                 # 401 is also acceptable (fail closed) if auth middleware can't verify user due to DB down
                 assert resp_users.status_code in [500, 503, 401], f"API should fail closed (500/503/401) when DB is down. Got: {resp_users.status_code}"
             except requests.exceptions.RequestException:
-                # Connection refused or timeout is also 'acceptable' in some crash scenarios, 
+                # Connection refused or timeout is also 'acceptable' in some crash scenarios,
                 # but ideally we get a 5xx response from the API gateway/backend.
                 pass
 
@@ -71,7 +71,7 @@ class TestDatabaseResilience:
             # 5. Restart the database container (cleanup)
             print("\nRestarting database container...")
             self._docker_compose("start", "postgres_test")
-            
+
             # 6. Wait for recovery
             self._wait_for_health(base_url, http_client, "healthy")
 
@@ -82,7 +82,7 @@ class TestDatabaseResilience:
         compose_file = "tests/docker-compose.test.yml"
         if not os.path.exists(compose_file):
             compose_file = "docker-compose.test.yml"
-        
+
         if not os.path.exists(compose_file):
              pytest.skip("docker-compose.test.yml not found, skipping db resilience test")
 
@@ -102,6 +102,6 @@ class TestDatabaseResilience:
             except Exception:
                 pass
             time.sleep(1)
-        
+
         # If we get here, we timed out
         pytest.fail(f"Timeout waiting for health status '{expected_status}'")

@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,14 +21,14 @@ export const auditApi = {
     getAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
-        if (filters.entity) params.append("entity", filters.entity);
+        if (filters.client) params.append("client", filters.client);
         if (filters.operation) params.append("operation", filters.operation);
         if (filters.adminId) params.append("admin_id", filters.adminId);
         if (filters.adminSearch)
             params.append("admin_search", filters.adminSearch);
-        if (filters.entityId) params.append("entity_id", filters.entityId);
-        if (filters.entitySearch)
-            params.append("entity_search", filters.entitySearch);
+        if (filters.clientId) params.append("client_id", filters.clientId);
+        if (filters.clientSearch)
+            params.append("client_search", filters.clientSearch);
         if (filters.changedData)
             params.append("changed_data", filters.changedData);
         if (filters.status) params.append("status", filters.status);
@@ -89,12 +89,12 @@ export const auditApi = {
         return await response.json();
     },
 
-    // Get all audit logs for a specific entity
-    getAuditLogsByEntity: async (
+    // Get all audit logs for a specific client
+    getAuditLogsByClient: async (
         apiUrl,
         token,
-        entity,
-        entityId,
+        client,
+        clientId,
         limit = 100,
         offset = 0,
         onTokenExpired,
@@ -104,7 +104,7 @@ export const auditApi = {
         params.append("offset", offset);
 
         const response = await fetch(
-            `${apiUrl}/audit-logs/entity/${entityType}/${entityId}?${params.toString()}`,
+            `${apiUrl}/audit-logs/client/${clientType}/${clientId}?${params.toString()}`,
             {
                 method: "GET",
                 headers: {
@@ -133,13 +133,13 @@ export const auditApi = {
     exportAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
-        if (filters.entity) params.append("entity", filters.entity);
+        if (filters.client) params.append("client", filters.client);
         if (filters.operation) params.append("operation", filters.operation);
         if (filters.adminId) params.append("admin_id", filters.adminId);
         if (filters.adminSearch)
             params.append("admin_search", filters.adminSearch);
-        if (filters.entitySearch)
-            params.append("entity_search", filters.entitySearch);
+        if (filters.clientSearch)
+            params.append("client_search", filters.clientSearch);
         if (filters.changedData)
             params.append("changed_data", filters.changedData);
 

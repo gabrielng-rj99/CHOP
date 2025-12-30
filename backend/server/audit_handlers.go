@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -38,9 +38,9 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	// Extrair filtros da query string
 	query := r.URL.Query()
 
-	var entity *string
-	if e := query.Get("entity"); e != "" {
-		entity = &e
+	var resource *string
+	if e := query.Get("resource"); e != "" {
+		resource = &e
 	}
 
 	var operation *string
@@ -58,14 +58,14 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		adminSearch = &as
 	}
 
-	var entityID *string
-	if ei := query.Get("entity_id"); ei != "" {
-		entityID = &ei
+	var resourceID *string
+	if ei := query.Get("resource_id"); ei != "" {
+		resourceID = &ei
 	}
 
-	var entitySearch *string
-	if es := query.Get("entity_search"); es != "" {
-		entitySearch = &es
+	var resourceSearch *string
+	if es := query.Get("resource_search"); es != "" {
+		resourceSearch = &es
 	}
 
 	var changedData *string
@@ -115,19 +115,19 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := store.AuditLogFilter{
-		Entity:       entity,
-		Operation:    operation,
-		AdminID:      adminID,
-		AdminSearch:  adminSearch,
-		EntityID:     entityID,
-		EntitySearch: entitySearch,
-		ChangedData:  changedData,
-		Status:       status,
-		IPAddress:    ipAddress,
-		StartDate:    startDate,
-		EndDate:      endDate,
-		Limit:        limit,
-		Offset:       offset,
+		Resource:       resource,
+		Operation:      operation,
+		AdminID:        adminID,
+		AdminSearch:    adminSearch,
+		ResourceID:     resourceID,
+		ResourceSearch: resourceSearch,
+		ChangedData:    changedData,
+		Status:         status,
+		IPAddress:      ipAddress,
+		StartDate:      startDate,
+		EndDate:        endDate,
+		Limit:          limit,
+		Offset:         offset,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)
@@ -232,23 +232,23 @@ func (s *Server) enrichLogWithUsername(log *domain.AuditLog) *domain.AuditLog {
 	return log
 }
 
-// handleAuditLogsByEntity GET /api/audit-logs/entity/{entity}/{entityID} - todos os logs para uma entidade
-func (s *Server) handleAuditLogsByEntity(w http.ResponseWriter, r *http.Request) {
+// handleAuditLogsByResource GET /api/audit-logs/resource/{resource}/{resourceID} - todos os logs para um recurso
+func (s *Server) handleAuditLogsByResource(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		respondError(w, http.StatusMethodNotAllowed, "Método não permitido")
 		return
 	}
 
-	path := strings.TrimPrefix(r.URL.Path, "/api/audit-logs/entity/")
+	path := strings.TrimPrefix(r.URL.Path, "/api/audit-logs/resource/")
 	parts := strings.Split(strings.TrimSuffix(path, "/"), "/")
 
 	if len(parts) < 2 {
-		respondError(w, http.StatusBadRequest, "Entity e EntityID são obrigatórios")
+		respondError(w, http.StatusBadRequest, "Resource e ResourceID são obrigatórios")
 		return
 	}
 
-	entity := parts[0]
-	entityID := parts[1]
+	resource := parts[0]
+	resourceID := parts[1]
 
 	limit := 100
 	if l := r.URL.Query().Get("limit"); l != "" {
@@ -264,18 +264,18 @@ func (s *Server) handleAuditLogsByEntity(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	logs, err := s.auditStore.GetAuditLogsByEntity(entity, entityID, limit, offset)
+	logs, err := s.auditStore.GetAuditLogsByResource(resource, resourceID, limit, offset)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Erro ao buscar logs")
 		return
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"data":      logs,
-		"entity":    entity,
-		"entity_id": entityID,
-		"limit":     limit,
-		"offset":    offset,
+		"data":        logs,
+		"resource":    resource,
+		"resource_id": resourceID,
+		"limit":       limit,
+		"offset":      offset,
 	})
 }
 
@@ -284,8 +284,8 @@ type AuditLogResponse struct {
 	ID              string    `json:"id"`
 	Timestamp       time.Time `json:"timestamp"`
 	Operation       string    `json:"operation"`
-	Entity          string    `json:"entity"`
-	EntityID        string    `json:"entity_id"`
+	Resource        string    `json:"resource"`
+	ResourceID      string    `json:"resource_id"`
 	AdminID         *string   `json:"admin_id,omitempty"`
 	AdminUsername   *string   `json:"admin_username,omitempty"`
 	OldValue        *string   `json:"old_value,omitempty"`
@@ -310,9 +310,9 @@ func (s *Server) handleAuditLogsExport(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 
-	var entity *string
-	if e := query.Get("entity"); e != "" {
-		entity = &e
+	var resource *string
+	if e := query.Get("resource"); e != "" {
+		resource = &e
 	}
 
 	var operation *string
@@ -330,9 +330,9 @@ func (s *Server) handleAuditLogsExport(w http.ResponseWriter, r *http.Request) {
 		adminSearch = &as
 	}
 
-	var entitySearch *string
-	if es := query.Get("entity_search"); es != "" {
-		entitySearch = &es
+	var resourceSearch *string
+	if es := query.Get("resource_search"); es != "" {
+		resourceSearch = &es
 	}
 
 	var changedData *string
@@ -341,14 +341,14 @@ func (s *Server) handleAuditLogsExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := store.AuditLogFilter{
-		Entity:       entity,
-		Operation:    operation,
-		AdminID:      adminID,
-		AdminSearch:  adminSearch,
-		EntitySearch: entitySearch,
-		ChangedData:  changedData,
-		Limit:        10000,
-		Offset:       0,
+		Resource:       resource,
+		Operation:      operation,
+		AdminID:        adminID,
+		AdminSearch:    adminSearch,
+		ResourceSearch: resourceSearch,
+		ChangedData:    changedData,
+		Limit:          10000,
+		Offset:         0,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)

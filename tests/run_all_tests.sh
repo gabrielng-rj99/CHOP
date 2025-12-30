@@ -115,7 +115,7 @@ init_report() {
 
     cat > "$REPORT_FILE" << EOF
 # 🧪 RELATÓRIO COMPLETO DE TESTES
-## Entity Hub Open Project
+## Client Hub Open Project
 
 **Data/Hora:** $(date '+%Y-%m-%d %H:%M:%S')
 **Ambiente:** $(uname -s) $(uname -r)
@@ -231,7 +231,7 @@ run_unit_tests() {
 
     local output_file=$(mktemp)
     local test_exit_code=0
-    
+
     # Run tests but capture exit code without failing the script immediately due to set -e
     # We use || test_exit_code=$? to capture failure
     if ! go test -v -cover -coverprofile=coverage.out ./... 2>&1 | tee "$output_file" | tee -a "$REPORT_FILE"; then
@@ -457,7 +457,7 @@ run_e2e_tests() {
     local start=$(start_timer)
 
     cd "$SCRIPT_DIR"
-    
+
     export BACKEND_URL="http://localhost:63000"
     export FRONTEND_URL="http://localhost:65080"
 
@@ -521,7 +521,7 @@ run_python_tests() {
 
     export TEST_API_URL="http://localhost:63000/api"
     export DB_HOST="localhost"
-    export DB_PORT="65432" 
+    export DB_PORT="65432"
     # Mapeamento do docker-compose.test.yml é 5432:5432 no host normalmente?
     # Vamos verificar o docker-compose.test.yml. Se não tiver porta exposta, o teste local falha.
     # Mas security_test_suite.sh roda localmente usando curl, então a porta deve estar exposta.
@@ -533,8 +533,8 @@ run_python_tests() {
     else
         test_result=1
     fi
-     
-    # Pytest returns non-zero on failure. 
+
+    # Pytest returns non-zero on failure.
     # Use PIPESTATUS to get pytest exit code
     test_result=${PIPESTATUS[0]}
 
@@ -658,7 +658,7 @@ EOF
 # ============================================================================
 
 main() {
-    log_header "🧪 STACK COMPLETA DE TESTES - Entity Hub"
+    log_header "🧪 STACK COMPLETA DE TESTES - Client Hub"
 
     init_report
     check_dependencies

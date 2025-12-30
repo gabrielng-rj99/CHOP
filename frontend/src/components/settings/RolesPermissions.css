@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -161,9 +161,11 @@
 }
 
 .role-item.selected {
-    background: linear-gradient(135deg,
-            rgba(74, 108, 247, 0.1) 0%,
-            rgba(74, 108, 247, 0.05) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(74, 108, 247, 0.1) 0%,
+        rgba(74, 108, 247, 0.05) 100%
+    );
     border-left: 3px solid var(--primary-color, #4a6cf7);
 }
 
@@ -577,9 +579,11 @@
 
 .priority-option.selected {
     border-color: var(--primary-color, #4a6cf7);
-    background: linear-gradient(135deg,
-            rgba(74, 108, 247, 0.1) 0%,
-            rgba(74, 108, 247, 0.05) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(74, 108, 247, 0.1) 0%,
+        rgba(74, 108, 247, 0.05) 100%
+    );
     box-shadow: 0 2px 8px rgba(74, 108, 247, 0.2);
 }
 
@@ -657,7 +661,7 @@
     margin: 0 0 12px 0;
 }
 
-.roles-empty-state>p {
+.roles-empty-state > p {
     font-size: 1rem;
     color: var(--text-secondary, #666);
     max-width: 500px;

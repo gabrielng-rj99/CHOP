@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -71,7 +71,7 @@ func SetupTestDB() (*sql.DB, error) {
 		port = "5432"
 	}
 	if dbname == "" {
-		dbname = "agreements_manager_test"
+		dbname = "contracts_manager_test"
 	}
 	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
@@ -118,7 +118,7 @@ func ClearTables(db *sql.DB) error {
 	defer db.Exec("SET session_replication_role = 'origin'")
 
 	// Limpar todas as tabelas
-	tables := []string{"agreements", "sub_entities", "subcategories", "categories", "entities", "users", "system_settings"}
+	tables := []string{"contracts", "affiliates", "subcategories", "categories", "clients", "users", "system_settings"}
 	for _, table := range tables {
 		// Deletar em vez de truncate para evitar problemas com sequences
 		_, err := db.Exec("DELETE FROM " + table)
@@ -134,29 +134,29 @@ func ClearTables(db *sql.DB) error {
 	return nil
 }
 
-// InsertTestEntity inserts a test entity and returns its ID
-func InsertTestEntity(db *sql.DB, name, registrationID string) (string, error) {
+// InsertTestClient inserts a test client and returns its ID
+func InsertTestClient(db *sql.DB, name, registrationID string) (string, error) {
 	// Gera um UUID válido
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO entities (id, name, registration_id) VALUES ($1, $2, $3)",
+		"INSERT INTO clients (id, name, registration_id) VALUES ($1, $2, $3)",
 		id, name, registrationID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test entity: %v", err)
+		return "", fmt.Errorf("failed to insert test client: %v", err)
 	}
 	return id, nil
 }
 
-// InsertTestSubEntity inserts a test sub-entity and returns its ID
-func InsertTestSubEntity(db *sql.DB, name string, entityID string) (string, error) {
+// InsertTestAffiliate inserts a test affiliate and returns its ID
+func InsertTestAffiliate(db *sql.DB, name string, clientID string) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO sub_entities (id, name, entity_id) VALUES ($1, $2, $3)",
-		id, name, entityID,
+		"INSERT INTO affiliates (id, name, client_id) VALUES ($1, $2, $3)",
+		id, name, clientID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test sub-entity: %v", err)
+		return "", fmt.Errorf("failed to insert test affiliate: %v", err)
 	}
 	return id, nil
 }
@@ -187,16 +187,16 @@ func InsertTestSubcategory(db *sql.DB, name string, categoryID string) (string, 
 	return id, nil
 }
 
-// InsertTestAgreement inserts a test agreement and returns its UUID
+// InsertTestContract inserts a test contract and returns its UUID
 // startDate and endDate can be nil to represent nullable dates
-func InsertTestAgreement(db *sql.DB, model, itemKey string, startDate, endDate *time.Time, subcategoryID, entityID string, subEntityID interface{}) (string, error) {
+func InsertTestContract(db *sql.DB, model, itemKey string, startDate, endDate *time.Time, subcategoryID, clientID string, subClientID interface{}) (string, error) {
 	id := uuid.New().String()
 	_, err := db.Exec(
-		"INSERT INTO agreements (id, model, item_key, start_date, end_date, subcategory_id, entity_id, sub_entity_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-		id, model, itemKey, startDate, endDate, subcategoryID, entityID, subEntityID, nil,
+		"INSERT INTO contracts (id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id, archived_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+		id, model, itemKey, startDate, endDate, subcategoryID, clientID, subClientID, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert test agreement: %v", err)
+		return "", fmt.Errorf("failed to insert test contract: %v", err)
 	}
 	return id, nil
 }

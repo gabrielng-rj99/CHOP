@@ -1,5 +1,5 @@
 # =============================================================================
-# Entity Hub Open Project - Test Requirements
+# Client Hub Open Project - Test Requirements
 # Licensed under GNU Affero General Public License v3.0
 #
 # DEPENDENCY LICENSE COMPATIBILITY VERIFICATION:

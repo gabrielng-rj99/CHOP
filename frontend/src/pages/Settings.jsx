@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -805,7 +805,7 @@ export default function Settings({ token, apiUrl }) {
 
                         <div className="label-config-grid">
                             <div className="label-header-row">
-                                <div className="col-entity">Entidade</div>
+                                <div className="col-client">Cliente</div>
                                 <div className="col-input">Singular</div>
                                 <div className="col-input">Plural</div>
                                 <div className="col-gender">Gênero</div>
@@ -813,9 +813,9 @@ export default function Settings({ token, apiUrl }) {
 
                             {[
                                 {
-                                    key: "entity",
-                                    pluralKey: "entities",
-                                    genderKey: "entity_gender",
+                                    key: "client",
+                                    pluralKey: "clients",
+                                    genderKey: "client_gender",
                                     label: "Entidade (Cliente)",
                                 },
                                 {
@@ -837,10 +837,10 @@ export default function Settings({ token, apiUrl }) {
                                     label: "Subcategoria",
                                 },
                                 {
-                                    key: "dependent",
-                                    pluralKey: "dependents",
-                                    genderKey: "dependent_gender",
-                                    label: "Sub-entidade (Dependente)",
+                                    key: "affiliate",
+                                    pluralKey: "affiliates",
+                                    genderKey: "affiliate_gender",
+                                    label: "Afiliado",
                                 },
                                 {
                                     key: "user",
@@ -850,7 +850,7 @@ export default function Settings({ token, apiUrl }) {
                                 },
                             ].map((item) => (
                                 <div key={item.key} className="label-row">
-                                    <div className="col-entity">
+                                    <div className="col-client">
                                         {item.label}
                                     </div>
                                     <div className="col-input">

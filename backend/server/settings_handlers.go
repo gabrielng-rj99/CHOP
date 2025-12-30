@@ -114,8 +114,8 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			log.Printf("✅ User %s updated branding settings", claims.Username)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "settings_branding",
-				EntityID:      "branding",
+				Resource:        "settings_branding",
+				ResourceID:      "branding",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      nil,
@@ -132,8 +132,8 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			log.Printf("✅ User %s updated labels settings", claims.Username)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "settings_labels",
-				EntityID:      "labels",
+				Resource:        "settings_labels",
+				ResourceID:      "labels",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      nil,
@@ -150,8 +150,8 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			log.Printf("✅ User %s updated system settings", claims.Username)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "settings_system",
-				EntityID:      "system",
+				Resource:        "settings_system",
+				ResourceID:      "system",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      nil,

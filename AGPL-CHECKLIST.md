@@ -38,7 +38,7 @@
 - [x] Update `frontend/package.json`:
   ```json
   "license": "AGPL-3.0",
-  "homepage": "https://github.com/your-org/Entity-Hub-Open-Project"
+  "homepage": "https://github.com/your-org/Client-Hub-Open-Project"
   ```
 - [x] Update `backend/go.mod` comment with license info
 - [x] Verify all dependencies in `tests/requirements.txt` with license comments
@@ -152,8 +152,8 @@ When adding new files, remember to include appropriate headers:
 ### Go Files
 ```go
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -165,8 +165,8 @@ When adding new files, remember to include appropriate headers:
 ### JavaScript/React Files
 ```javascript
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -178,8 +178,8 @@ When adding new files, remember to include appropriate headers:
 ### Python Files
 ```python
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by

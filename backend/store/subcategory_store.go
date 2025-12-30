@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Open-Generic-Hub/backend/store/line_store.go
+// Open-Generic-Hub/backend/store/subcategory_store.go
 
 package store
 
@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	domain "Open-Generic-Hub/backend/domain" // Use o nome do seu módulo
+	"Open-Generic-Hub/backend/domain"
 
 	"github.com/google/uuid"
 )
@@ -379,12 +379,12 @@ func (s *SubcategoryStore) DeleteSubcategory(id string) error {
 	}
 	// NOVA REGRA: Não permitir deletar linha com contratos associados
 	var contractCount int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM agreements WHERE subcategory_id = $1", id).Scan(&contractCount)
+	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE subcategory_id = $1", id).Scan(&contractCount)
 	if err != nil {
 		return err
 	}
 	if contractCount > 0 {
-		return errors.New("cannot delete line with associated agreements")
+		return errors.New("cannot delete line with associated contracts")
 	}
 	sqlStatement := `DELETE FROM subcategories WHERE id = $1`
 	result, err := s.db.Exec(sqlStatement, id)

@@ -32,8 +32,8 @@ func TestAuditLogOperations(t *testing.T) {
 	t.Run("LogOperation", func(t *testing.T) {
 		req := AuditLogRequest{
 			Operation:     "create",
-			Entity:        "user",
-			EntityID:      uuid.New().String(),
+			Resource:      "user",
+			ResourceID:    uuid.New().String(),
 			AdminID:       &adminID,
 			AdminUsername: &adminUser,
 			Status:        "success",
@@ -54,10 +54,10 @@ func TestAuditLogOperations(t *testing.T) {
 	// 2. Test GetAuditLogByID
 	t.Run("GetAuditLogByID", func(t *testing.T) {
 		req := AuditLogRequest{
-			Operation: "update",
-			Entity:    "category",
-			EntityID:  "cat123",
-			Status:    "success",
+			Operation:  "update",
+			Resource:   "category",
+			ResourceID: "cat123",
+			Status:     "success",
 		}
 		id, _ := store.LogOperation(req)
 
@@ -76,18 +76,18 @@ func TestAuditLogOperations(t *testing.T) {
 	// 3. Test ListAuditLogs with filters
 	t.Run("ListAuditLogs", func(t *testing.T) {
 		// Create some dummy logs
-		_, err := store.LogOperation(AuditLogRequest{Operation: "delete", Entity: "agreement", Status: "success", AdminID: &adminID})
+		_, err := store.LogOperation(AuditLogRequest{Operation: "delete", Resource: "contract", Status: "success", AdminID: &adminID})
 		if err != nil {
 			t.Fatalf("Failed to create log 1: %v", err)
 		}
-		_, err = store.LogOperation(AuditLogRequest{Operation: "read", Entity: "agreement", Status: "error"})
+		_, err = store.LogOperation(AuditLogRequest{Operation: "read", Resource: "contract", Status: "error"})
 		if err != nil {
 			t.Fatalf("Failed to create log 2: %v", err)
 		}
 
 		filter := AuditLogFilter{
-			Entity: stringToPtr("agreement"),
-			Limit:  10,
+			Resource: stringToPtr("contract"),
+			Limit:    10,
 		}
 
 		logs, err := store.ListAuditLogs(filter)
@@ -102,7 +102,7 @@ func TestAuditLogOperations(t *testing.T) {
 	// 4. Test CountAuditLogs
 	t.Run("CountAuditLogs", func(t *testing.T) {
 		filter := AuditLogFilter{
-			Entity: stringToPtr("agreement"),
+			Resource: stringToPtr("contract"),
 		}
 		count, err := store.CountAuditLogs(filter)
 		if err != nil {
@@ -117,7 +117,7 @@ func TestAuditLogOperations(t *testing.T) {
 	t.Run("InvalidOperation", func(t *testing.T) {
 		req := AuditLogRequest{
 			Operation: "destroy", // Invalid
-			Entity:    "user",
+			Resource:  "user",
 		}
 		_, err := store.LogOperation(req)
 		if err == nil {
@@ -131,7 +131,7 @@ func TestAuditLogOperations(t *testing.T) {
 		// we'll primarily test that the query executes without error.
 		// Or we could manually insert an old log using db.Exec
 
-		_, err := db.Exec("INSERT INTO audit_logs (id, timestamp, operation, entity, entity_id, status) VALUES ($1, $2, 'create', 'test', '123', 'success')",
+		_, err := db.Exec("INSERT INTO audit_logs (id, timestamp, operation, resource, resource_id, status) VALUES ($1, $2, 'create', 'test', '123', 'success')",
 			uuid.New().String(), time.Now().AddDate(0, 0, -10))
 		if err != nil {
 			t.Fatalf("Failed to insert old log: %v", err)

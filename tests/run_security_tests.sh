@@ -162,7 +162,7 @@ verify_schema() {
     log_info "Verificando se schema foi aplicado..."
 
     # Verificar tabelas principais
-    TABLES=("users" "clients" "categories" "lines" "contracts" "audit_logs" "dependents")
+    TABLES=("users" "clients" "categories" "lines" "contracts" "audit_logs" "affiliates")
 
     for table in "${TABLES[@]}"; do
         RESULT=$($DOCKER_COMPOSE -f docker-compose.test.yml exec -T postgres_test \

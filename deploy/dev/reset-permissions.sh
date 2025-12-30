@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Reset Permissions and Clean Restart
+# Client Hub - Reset Permissions and Clean Restart
 # This script fixes permission issues and does a clean restart
 
 set -e
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-echo -e "${BLUE}🔧 Resetting Entity Hub Development Environment${NC}"
+echo -e "${BLUE}🔧 Resetting Client Hub Development Environment${NC}"
 echo -e "${BLUE}=================================================${NC}"
 echo ""
 

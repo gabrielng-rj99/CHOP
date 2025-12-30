@@ -53,7 +53,7 @@ version = 1.0.0
 name = Contract Manager
 
 [paths]
-schema_file = ../database/schema.sql
+schema_dir = ../database/schema
 migrations_dir = ../migrations
 logs_dir = ./logs
 reports_dir = ./reports

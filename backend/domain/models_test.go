@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -28,139 +28,139 @@ func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
-// TestAgreementStatus tests the Status() method of Agreement domain model
-// This is a critical business rule function that determines agreement state
-func TestAgreementStatus(t *testing.T) {
+// TestContractStatus tests the Status() method of Contract domain model
+// This is a critical business rule function that determines contract state
+func TestContractStatus(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
 		name           string
-		agreement      Agreement
+		contract       Contract
 		expectedStatus string
 	}{
-		// Test: Agreement is active (more than 30 days remaining)
+		// Test: Contract is active (more than 30 days remaining)
 		{
 			name: "status - ativo (more than 30 days)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-1",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-1",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 45)), // 45 days from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
-		// Test: Agreement is expiring soon (less than or equal to 30 days)
+		// Test: Contract is expiring soon (less than or equal to 30 days)
 		{
 			name: "status - expirando em breve (exactly 30 days)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-2",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-2",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 30)), // exactly 30 days from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
-		// Test: Agreement is expiring soon (15 days remaining)
+		// Test: Contract is expiring soon (15 days remaining)
 		{
 			name: "status - expirando em breve (15 days)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-3",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-3",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 15)), // 15 days from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
-		// Test: Agreement is expiring soon (1 day remaining)
+		// Test: Contract is expiring soon (1 day remaining)
 		{
 			name: "status - expirando em breve (1 day)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-4",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-4",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 1)), // 1 day from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Expirando em Breve",
 		},
-		// Test: Agreement has expired (past end date)
+		// Test: Contract has expired (past end date)
 		{
 			name: "status - expirado (past end date)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-5",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-5",
 				StartDate:     timePtr(now.AddDate(0, 0, -30)),
 				EndDate:       timePtr(now.AddDate(0, 0, -5)), // 5 days ago
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Expirado",
 		},
-		// Test: Agreement just expired (yesterday)
+		// Test: Contract just expired (yesterday)
 		{
 			name: "status - expirado (yesterday)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-6",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-6",
 				StartDate:     timePtr(now.AddDate(0, 0, -30)),
 				EndDate:       timePtr(now.AddDate(0, 0, -1)), // yesterday
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Expirado",
 		},
-		// Test: Agreement expires far in the future (100+ days)
+		// Test: Contract expires far in the future (100+ days)
 		{
 			name: "status - ativo (100+ days)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-7",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-7",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 365)), // 1 year from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
-		// Test: Agreement expires in 31 days (should be ativo, not expiring soon)
+		// Test: Contract expires in 31 days (should be ativo, not expiring soon)
 		{
 			name: "status - ativo (31 days)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-8",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-8",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(now.AddDate(0, 0, 31)), // 31 days from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
-		// Test: Agreement starts today
+		// Test: Contract starts today
 		{
 			name: "status - ativo (starts today)",
-			agreement: Agreement{
+			contract: Contract{
 				ID:            "test-9",
-				Model:         "Test Agreement",
+				Model:         "Test Contract",
 				ItemKey:       "TEST-KEY-9",
 				StartDate:     timePtr(now),
 				EndDate:       timePtr(now.AddDate(0, 0, 60)), // 60 days from now
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			},
 			expectedStatus: "Ativo",
 		},
@@ -168,7 +168,7 @@ func TestAgreementStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status := tt.agreement.Status()
+			status := tt.contract.Status()
 			if status != tt.expectedStatus {
 				t.Errorf("expected status '%s', got '%s'", tt.expectedStatus, status)
 			}
@@ -176,8 +176,8 @@ func TestAgreementStatus(t *testing.T) {
 	}
 }
 
-// TestAgreementStatusBoundaryConditions tests edge cases and boundary conditions
-func TestAgreementStatusBoundaryConditions(t *testing.T) {
+// TestContractStatusBoundaryConditions tests edge cases and boundary conditions
+func TestContractStatusBoundaryConditions(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
@@ -213,16 +213,16 @@ func TestAgreementStatusBoundaryConditions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agreement := Agreement{
+			contract := Contract{
 				ID:            "test",
 				Model:         "Test",
 				ItemKey:       "TEST-KEY",
 				StartDate:     timePtr(now.AddDate(0, 0, -10)),
 				EndDate:       timePtr(tt.endDate),
 				SubcategoryID: "line-1",
-				EntityID:      "client-1",
+				ClientID:      "client-1",
 			}
-			status := agreement.Status()
+			status := contract.Status()
 			if status != tt.expectedStatus {
 				t.Errorf("expected status '%s', got '%s'", tt.expectedStatus, status)
 			}
@@ -230,45 +230,45 @@ func TestAgreementStatusBoundaryConditions(t *testing.T) {
 	}
 }
 
-// TestClientModel tests the Entity domain model
+// TestClientModel tests the Client domain model
 func TestClientModel(t *testing.T) {
 	t.Run("client model structure", func(t *testing.T) {
 		regID := "12345678000180"
-		entity := Entity{
+		client := Client{
 			ID:             "test-id",
-			Name:           "Test Entity",
+			Name:           "Test Client",
 			RegistrationID: &regID,
 			Status:         "ativo",
 			CreatedAt:      time.Now(),
 		}
 
-		if entity.ID != "test-id" {
-			t.Errorf("expected ID 'test-id', got '%s'", entity.ID)
+		if client.ID != "test-id" {
+			t.Errorf("expected ID 'test-id', got '%s'", client.ID)
 		}
-		if entity.Name != "Test Entity" {
-			t.Errorf("expected Name 'Test Entity', got '%s'", entity.Name)
+		if client.Name != "Test Client" {
+			t.Errorf("expected Name 'Test Client', got '%s'", client.Name)
 		}
-		if entity.RegistrationID == nil || *entity.RegistrationID != "12345678000180" {
-			t.Errorf("expected RegistrationID '12345678000180', got '%v'", entity.RegistrationID)
+		if client.RegistrationID == nil || *client.RegistrationID != "12345678000180" {
+			t.Errorf("expected RegistrationID '12345678000180', got '%v'", client.RegistrationID)
 		}
 	})
 
 	t.Run("client with archived_at", func(t *testing.T) {
 		archivedTime := time.Now()
 		regID := "12345678000180"
-		entity := Entity{
+		client := Client{
 			ID:             "test-id",
-			Name:           "Test Entity",
+			Name:           "Test Client",
 			RegistrationID: &regID,
 			Status:         "ativo",
 			CreatedAt:      time.Now(),
 			ArchivedAt:     &archivedTime,
 		}
 
-		if entity.ArchivedAt == nil {
+		if client.ArchivedAt == nil {
 			t.Error("expected ArchivedAt to be set")
 		}
-		if entity.ArchivedAt.Unix() != archivedTime.Unix() {
+		if client.ArchivedAt.Unix() != archivedTime.Unix() {
 			t.Errorf("expected ArchivedAt to match")
 		}
 	})
@@ -329,22 +329,22 @@ func TestUserModel(t *testing.T) {
 	})
 }
 
-// TestDependentModel tests the SubEntity domain model
-func TestDependentModel(t *testing.T) {
-	subEntity := SubEntity{
-		ID:       "dependent-1",
-		Name:     "Test SubEntity",
-		EntityID: "client-1",
+// TestAffiliateModel tests the Affiliate domain model
+func TestAffiliateModel(t *testing.T) {
+	affiliate := Affiliate{
+		ID:       "affiliate-1",
+		Name:     "Test Affiliate",
+		ClientID: "client-1",
 	}
 
-	if subEntity.ID != "dependent-1" {
-		t.Errorf("expected ID 'dependent-1', got '%s'", subEntity.ID)
+	if affiliate.ID != "affiliate-1" {
+		t.Errorf("expected ID 'affiliate-1', got '%s'", affiliate.ID)
 	}
-	if subEntity.Name != "Test SubEntity" {
-		t.Errorf("expected Name 'Test SubEntity', got '%s'", subEntity.Name)
+	if affiliate.Name != "Test Affiliate" {
+		t.Errorf("expected Name 'Test Affiliate', got '%s'", affiliate.Name)
 	}
-	if subEntity.EntityID != "client-1" {
-		t.Errorf("expected EntityID 'client-1', got '%s'", subEntity.EntityID)
+	if affiliate.ClientID != "client-1" {
+		t.Errorf("expected ClientID 'client-1', got '%s'", affiliate.ClientID)
 	}
 }
 
@@ -363,21 +363,21 @@ func TestCategoryModel(t *testing.T) {
 	}
 }
 
-// TestLineModel tests the Subcategory domain model
-func TestLineModel(t *testing.T) {
-	line := Subcategory{
+// TestSubcategoryModel tests the Subcategory domain model
+func TestSubcategoryModel(t *testing.T) {
+	subcategory := Subcategory{
 		ID:         "line-1",
 		Name:       "Windows Server",
 		CategoryID: "category-1",
 	}
 
-	if line.ID != "line-1" {
-		t.Errorf("expected ID 'line-1', got '%s'", line.ID)
+	if subcategory.ID != "line-1" {
+		t.Errorf("expected ID 'line-1', got '%s'", subcategory.ID)
 	}
-	if line.Name != "Windows Server" {
-		t.Errorf("expected Subcategory 'Windows Server', got '%s'", line.Name)
+	if subcategory.Name != "Windows Server" {
+		t.Errorf("expected Subcategory 'Windows Server', got '%s'", subcategory.Name)
 	}
-	if line.CategoryID != "category-1" {
-		t.Errorf("expected CategoryID 'category-1', got '%s'", line.CategoryID)
+	if subcategory.CategoryID != "category-1" {
+		t.Errorf("expected CategoryID 'category-1', got '%s'", subcategory.CategoryID)
 	}
 }

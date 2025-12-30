@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -34,9 +34,9 @@ class CacheManager {
     generateKey(endpoint, params = {}) {
         const sortedParams = Object.keys(params)
             .sort()
-            .map(key => `${key}=${JSON.stringify(params[key])}`)
-            .join('&');
-        return `${endpoint}${sortedParams ? '?' + sortedParams : ''}`;
+            .map((key) => `${key}=${JSON.stringify(params[key])}`)
+            .join("&");
+        return `${endpoint}${sortedParams ? "?" + sortedParams : ""}`;
     }
 
     /**
@@ -97,7 +97,7 @@ class CacheManager {
             }
         }
 
-        keysToDelete.forEach(key => {
+        keysToDelete.forEach((key) => {
             this.cache.delete(key);
             this.timestamps.delete(key);
         });
@@ -143,7 +143,7 @@ class CacheManager {
             }
         }
 
-        keysToDelete.forEach(key => {
+        keysToDelete.forEach((key) => {
             this.cache.delete(key);
             this.timestamps.delete(key);
         });
@@ -156,8 +156,11 @@ class CacheManager {
 const cacheManager = new CacheManager();
 
 // Run cleanup every 10 minutes
-setInterval(() => {
-    cacheManager.cleanup();
-}, 10 * 60 * 1000);
+setInterval(
+    () => {
+        cacheManager.cleanup();
+    },
+    10 * 60 * 1000,
+);
 
 export default cacheManager;

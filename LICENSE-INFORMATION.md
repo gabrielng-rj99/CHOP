@@ -2,7 +2,7 @@
 
 ## Project License
 
-Entity Hub Open Project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+Client Hub Open Project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
 
 This is a strong copyleft license designed to protect user freedom and ensure that improvements to the software remain available to the community.
 
@@ -27,7 +27,7 @@ Under AGPL-3.0, you are free to:
 
 ## Your Obligations
 
-If you use, modify, or distribute Entity Hub Open Project:
+If you use, modify, or distribute Client Hub Open Project:
 
 1. **Preserve Notices** - Keep copyright notices and license information intact
 2. **Document Changes** - Clearly mark modifications you've made
@@ -42,13 +42,13 @@ The AGPL's most distinctive feature is the "network service" clause (Section 13)
 > If you modify the Program, your modified version must prominently display that fact, and if the modified Program is accessed remotely through a computer network, users must have a way to get its source code.
 
 **This means:**
-- If you run Entity Hub as a SaaS/web service, you must provide source code access
+- If you run Client Hub as a SaaS/web service, you must provide source code access
 - You can still charge for the service, support, hosting, etc.
 - You cannot withhold the code from users just because they're accessing it over the network
 
 ## Business Models Compatible with AGPL-3.0
 
-Entity Hub AGPL-3.0 license allows these business models:
+Client Hub AGPL-3.0 license allows these business models:
 
 - **SaaS/Hosting** - Charge users for hosted access (but provide source code)
 - **Support & Services** - Charge for professional support, custom implementations
@@ -69,7 +69,7 @@ The following are **NOT** permitted without authorization:
 
 ## Third-Party Dependencies
 
-Entity Hub Open Project uses libraries with the following licenses:
+Client Hub Open Project uses libraries with the following licenses:
 
 ### Frontend
 - **React, React DOM** - MIT License (Facebook)
@@ -104,7 +104,7 @@ AGPL-3.0 is **NOT** directly compatible with:
 
 ## What About Contributing?
 
-When you contribute to Entity Hub Open Project:
+When you contribute to Client Hub Open Project:
 
 - Your contributions automatically fall under AGPL-3.0
 - You retain copyright to your original work
@@ -116,31 +116,31 @@ When you contribute to Entity Hub Open Project:
 ### When Distributing Modified Code
 
 ```
-This software is based on Entity Hub Open Project
-Copyright (C) 2025 Entity Hub Contributors
+This software is based on Client Hub Open Project
+Copyright (C) 2025 Client Hub Contributors
 
-Original source: https://github.com/[owner]/Entity-Hub-Open-Project
+Original source: https://github.com/[owner]/Client-Hub-Open-Project
 Original license: GNU Affero General Public License v3.0
 ```
 
 ### When Running as a Service
 
 ```
-Powered by Entity Hub Open Project
+Powered by Client Hub Open Project
 Source Code Available: [your-domain]/source-code
 License: GNU Affero General Public License v3.0
 ```
 
 ## Compliance Checklist
 
-If you use Entity Hub Open Project, verify you are:
+If you use Client Hub Open Project, verify you are:
 
 - [ ] Retaining all copyright notices
 - [ ] Including a copy of the AGPL-3.0 license
 - [ ] Documenting any modifications made
 - [ ] Providing source code to users (especially if SaaS)
 - [ ] Licensing any derivatives under AGPL-3.0
-- [ ] Attributing Entity Hub Contributors appropriately
+- [ ] Attributing Client Hub Contributors appropriately
 
 ## Getting Help with License Compliance
 
@@ -165,12 +165,12 @@ A: Only with permission from all copyright holders. You can relicense future ver
 
 ## File Headers
 
-All source files in Entity Hub Open Project include a license header identifying them as part of an AGPL-3.0 licensed project:
+All source files in Client Hub Open Project include a license header identifying them as part of an AGPL-3.0 licensed project:
 
 ```
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  * Licensed under GNU Affero General Public License v3.0
  * See LICENSE file for details
  */

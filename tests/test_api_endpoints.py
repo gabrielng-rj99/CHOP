@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -206,32 +206,32 @@ class TestUsersAPI:
 
 @pytest.mark.api
 @pytest.mark.security
-class TestEntitiesAPI:
+class TestClientsAPI:
     """Testes completos da API de clientes"""
 
-    def test_list_entities_requires_auth(self, http_client, api_url, timer):
+    def test_list_clients_requires_auth(self, http_client, api_url, timer):
         """Listar clientes requer autenticação"""
-        response = http_client.get(f"{api_url}/entities")
+        response = http_client.get(f"{api_url}/clients")
         assert response.status_code == 401, "Deve exigir autenticação"
 
-    def test_list_entities_success(self, http_client, api_url, root_user, timer):
+    def test_list_clients_success(self, http_client, api_url, root_user, timer):
         """Listar clientes com sucesso"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.get(f"{api_url}/entities", headers=headers)
+        response = http_client.get(f"{api_url}/clients", headers=headers)
 
         assert response.status_code == 200, "Deve listar clientes"
 
-    def test_create_entity(self, http_client, api_url, root_user, timer):
+    def test_create_client(self, http_client, api_url, root_user, timer):
         """Criar cliente"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        response = http_client.post(f"{api_url}/entities", json={
+        response = http_client.post(f"{api_url}/clients", json={
             "name": f"Test Client {int(time.time())}",
             "email": f"test_{int(time.time())}@test.com",
             "phone": "11999999999"
@@ -239,7 +239,7 @@ class TestEntitiesAPI:
 
         assert response.status_code in [200, 201], "Deve criar cliente"
 
-    def test_create_entity_with_all_fields(self, http_client, api_url, root_user, timer):
+    def test_create_client_with_all_fields(self, http_client, api_url, root_user, timer):
         """Criar cliente com todos os campos"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
@@ -250,24 +250,24 @@ class TestEntitiesAPI:
         def generate_valid_cpf():
             import random
             digits = [random.randint(0, 9) for _ in range(9)]
-            
+
             # First digit
             sum1 = sum(d * (10 - i) for i, d in enumerate(digits))
             rem1 = sum1 % 11
             d1 = 0 if rem1 < 2 else 11 - rem1
             digits.append(d1)
-            
+
             # Second digit
             sum2 = sum(d * (11 - i) for i, d in enumerate(digits))
             rem2 = sum2 % 11
             d2 = 0 if rem2 < 2 else 11 - rem2
             digits.append(d2)
-            
+
             return "".join(map(str, digits))
 
         cpf = generate_valid_cpf()
 
-        response = http_client.post(f"{api_url}/entities", json={
+        response = http_client.post(f"{api_url}/clients", json={
             "name": f"Full Client {int(time.time())}",
             "registration_id": cpf,
             "nickname": "Nickname",
@@ -290,7 +290,7 @@ class TestEntitiesAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Get Client {int(time.time())}",
             "email": "gettest@test.com"
         }, headers=headers)
@@ -299,13 +299,13 @@ class TestEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = create_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Buscar
-        get_response = http_client.get(f"{api_url}/entities/{entity_id}", headers=headers)
+        get_response = http_client.get(f"{api_url}/clients/{client_id}", headers=headers)
         assert get_response.status_code == 200, "Deve encontrar cliente"
 
     def test_update_client(self, http_client, api_url, root_user, timer):
@@ -316,7 +316,7 @@ class TestEntitiesAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Update Client {int(time.time())}",
             "email": "updatetest@test.com"
         }, headers=headers)
@@ -325,13 +325,13 @@ class TestEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = create_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Atualizar
-        update_response = http_client.put(f"{api_url}/entities/{entity_id}", json={
+        update_response = http_client.put(f"{api_url}/clients/{client_id}", json={
             "notes": "Notas atualizadas"
         }, headers=headers)
 
@@ -345,7 +345,7 @@ class TestEntitiesAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Delete Client {int(time.time())}",
             "email": "deletetest@test.com"
         }, headers=headers)
@@ -354,13 +354,13 @@ class TestEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = create_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Deletar
-        delete_response = http_client.delete(f"{api_url}/entities/{entity_id}", headers=headers)
+        delete_response = http_client.delete(f"{api_url}/clients/{client_id}", headers=headers)
         assert delete_response.status_code in [200, 204], "Deve permitir deleção"
 
     def test_archive_client(self, http_client, api_url, root_user, timer):
@@ -371,7 +371,7 @@ class TestEntitiesAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Archive Client {int(time.time())}",
             "email": "archivetest@test.com"
         }, headers=headers)
@@ -380,13 +380,13 @@ class TestEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = create_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Arquivar
-        archive_response = http_client.post(f"{api_url}/entities/{entity_id}/archive", headers=headers)
+        archive_response = http_client.post(f"{api_url}/clients/{client_id}/archive", headers=headers)
         assert archive_response.status_code in [200, 204], "Deve permitir arquivamento"
 
     def test_unarchive_client(self, http_client, api_url, root_user, timer):
@@ -397,7 +397,7 @@ class TestEntitiesAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Unarchive Client {int(time.time())}",
             "email": "unarchivetest@test.com"
         }, headers=headers)
@@ -406,16 +406,16 @@ class TestEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = create_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Arquivar primeiro
-        http_client.post(f"{api_url}/entities/{entity_id}/archive", headers=headers)
+        http_client.post(f"{api_url}/clients/{client_id}/archive", headers=headers)
 
         # Desarquivar
-        unarchive_response = http_client.post(f"{api_url}/entities/{entity_id}/unarchive", headers=headers)
+        unarchive_response = http_client.post(f"{api_url}/clients/{client_id}/unarchive", headers=headers)
         assert unarchive_response.status_code in [200, 204], "Deve permitir desarquivamento"
 
 
@@ -693,7 +693,7 @@ class TestAgreementsAPI:
         subcategory_id = line_data.get("data", {}).get("id") or line_data.get("id")
 
         # Criar cliente
-        client_response = http_client.post(f"{api_url}/entities", json={
+        client_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Contract Client {int(time.time())}",
             "email": "contracttest@test.com"
         }, headers=headers)
@@ -702,14 +702,14 @@ class TestAgreementsAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = client_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
         # Criar contrato
         response = http_client.post(f"{api_url}/agreements", json={
             "model": "Premium",
             "item_key": f"PK-{int(time.time())}",
             "subcategory_id": subcategory_id,
-            "entity_id": entity_id
+            "client_id": client_id
         }, headers=headers)
 
         assert response.status_code in [200, 201], "Deve criar contrato"
@@ -723,17 +723,17 @@ class TestAgreementsAPI:
 
         # Sem subcategory_id
         response = http_client.post(f"{api_url}/agreements", json={
-            "entity_id": "12345678-1234-1234-1234-123456789012"
+            "client_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
 
         assert response.status_code in [400, 422], "Sem subcategory_id deve ser rejeitado"
 
-        # Sem entity_id
+        # Sem client_id
         response = http_client.post(f"{api_url}/agreements", json={
             "subcategory_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
 
-        assert response.status_code in [400, 422], "Sem entity_id deve ser rejeitado"
+        assert response.status_code in [400, 422], "Sem client_id deve ser rejeitado"
 
     def test_archive_contract(self, http_client, api_url, root_user, timer):
         """Arquivar contrato"""
@@ -762,7 +762,7 @@ class TestAgreementsAPI:
 
         subcategory_id = line_response.json().get("data", {}).get("id") or line_response.json().get("id")
 
-        client_response = http_client.post(f"{api_url}/entities", json={
+        client_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Archive Contract Client {int(time.time())}",
             "email": "archivecontract@test.com"
         }, headers=headers)
@@ -770,13 +770,13 @@ class TestAgreementsAPI:
         if client_response.status_code not in [200, 201]:
             pytest.skip("Não foi possível criar cliente")
 
-        entity_id = client_response.json().get("data", {}).get("id") or client_response.json().get("id")
+        client_id = client_response.json().get("data", {}).get("id") or client_response.json().get("id")
 
         # Criar contrato
         contract_response = http_client.post(f"{api_url}/agreements", json={
             "item_key": f"ARCH-{int(time.time())}",
             "subcategory_id": subcategory_id,
-            "entity_id": entity_id
+            "client_id": client_id
         }, headers=headers)
 
         if contract_response.status_code not in [200, 201]:
@@ -791,49 +791,49 @@ class TestAgreementsAPI:
 
 @pytest.mark.api
 @pytest.mark.security
-class TestSubEntitiesAPI:
-    """Testes completos da API de dependentes"""
+class TestAffiliatesAPI:
+    """Testes completos da API de afiliado"""
 
-    def test_create_sub_entity(self, http_client, api_url, root_user, timer):
-        """Criar dependente"""
+    def test_create_affiliate(self, http_client, api_url, root_user, timer):
+        """Criar afiliado"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente primeiro
-        client_response = http_client.post(f"{api_url}/entities", json={
-            "name": f"Dependent Client {int(time.time())}",
-            "email": "dependenttest@test.com"
+        client_response = http_client.post(f"{api_url}/clients", json={
+            "name": f"Affiliate Client {int(time.time())}",
+            "email": "affiliatetest@test.com"
         }, headers=headers)
 
         if client_response.status_code not in [200, 201]:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = client_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
-        # Criar dependente
-        response = http_client.post(f"{api_url}/entities/{entity_id}/sub_entities", json={
-            "name": f"Dependent {int(time.time())}",
+        # Criar afiliado
+        response = http_client.post(f"{api_url}/clients/{client_id}/affiliates", json={
+            "name": f"Affiliate {int(time.time())}",
             "description": "Filho",
-            "email": "dependent@test.com"
+            "email": "affiliate@test.com"
         }, headers=headers)
 
-        assert response.status_code in [200, 201], "Deve criar dependente"
+        assert response.status_code in [200, 201], "Deve criar afiliado"
 
-    def test_list_entity_sub_entities(self, http_client, api_url, root_user, timer):
-        """Listar dependentes de um cliente"""
+    def test_list_client_affiliates(self, http_client, api_url, root_user, timer):
+        """Listar afiliados de um cliente"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Criar cliente
-        client_response = http_client.post(f"{api_url}/entities", json={
+        client_response = http_client.post(f"{api_url}/clients", json={
             "name": f"List Deps Client {int(time.time())}",
             "email": "listdeps@test.com"
         }, headers=headers)
@@ -842,18 +842,18 @@ class TestSubEntitiesAPI:
             pytest.skip("Não foi possível criar cliente")
 
         client_data = client_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        # Criar alguns dependentes
+        # Criar alguns afiliados
         for i in range(3):
-            http_client.post(f"{api_url}/entities/{entity_id}/sub_entities", json={
-                "name": f"Dependent {i} {int(time.time())}",
-                "description": f"Dependent {i}"
+            http_client.post(f"{api_url}/clients/{client_id}/affiliates", json={
+                "name": f"Affiliate {i} {int(time.time())}",
+                "description": f"Affiliate {i}"
             }, headers=headers)
 
-        # Listar dependentes
-        response = http_client.get(f"{api_url}/entities/{entity_id}/sub_entities", headers=headers)
-        assert response.status_code == 200, "Deve listar dependentes"
+        # Listar afiliados
+        response = http_client.get(f"{api_url}/clients/{client_id}/affiliates", headers=headers)
+        assert response.status_code == 200, "Deve listar afiliados"
 
 
 @pytest.mark.api

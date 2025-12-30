@@ -1,6 +1,6 @@
-# Entity Hub - Monolith Deployment
+# Client Hub - Monolith Deployment
 
-Deploy Entity Hub on a single machine with all services running on the host (production-like environment).
+Deploy Client Hub on a single machine with all services running on the host (production-like environment).
 
 ## 📋 Overview
 

@@ -1,14 +1,14 @@
-Entity Hub Open Project
+Client Hub Open Project
 =======================
 
-Copyright (C) 2025 Entity Hub Contributors
+Copyright (C) 2025 Client Hub Contributors
 
 DESCRIPTION
 ===========
 
-Entity Hub is a flexible entity management system with robust authentication,
+Client Hub is a flexible entity management system with robust authentication,
 authorization, and audit logging. It provides a modern web application for
-managing abstract entities (clients, contracts, categories, etc.) with a focus
+managing clients (or another abstract entity with client function) with a focus
 on security and extensibility.
 
 Built with:
@@ -26,7 +26,7 @@ See the LICENSE file for details.
 CONTRIBUTORS
 ============
 
-Entity Hub Open Project is built and maintained by Entity Hub Contributors.
+Client Hub Open Project is built and maintained by Client Hub Contributors.
 
 THIRD-PARTY COMPONENTS
 ======================
@@ -65,7 +65,7 @@ See each dependency's documentation for complete license information.
 TRADEMARK
 =========
 
-"Entity Hub" is a trademark of Entity Hub Contributors. Use of this name is
+"Client Hub" is a trademark of Client Hub Contributors. Use of this name is
 subject to the terms outlined in the AGPL-3.0 license.
 
 SECURITY

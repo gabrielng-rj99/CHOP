@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -40,7 +40,7 @@ import "./styles/Agreements.css";
 export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const {
         fetchAgreements,
-        fetchEntities,
+        fetchClients,
         fetchCategories,
         fetchSubcategories,
         createAgreement,
@@ -49,10 +49,10 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         invalidateCache,
     } = useData();
     const [contracts, setAgreements] = useState([]);
-    const [clients, setEntities] = useState([]);
+    const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
-    const [dependents, setDependents] = useState([]);
+    const [affiliates, setAffiliates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -115,7 +115,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         try {
             await Promise.all([
                 loadAgreements(forceRefresh),
-                loadEntities(forceRefresh),
+                loadClients(forceRefresh),
                 loadCategories(forceRefresh),
             ]);
         } finally {
@@ -133,10 +133,10 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const loadEntities = async (forceRefresh = false) => {
+    const loadClients = async (forceRefresh = false) => {
         try {
-            const response = await fetchEntities({}, forceRefresh);
-            setEntities(response.data || []);
+            const response = await fetchClients({}, forceRefresh);
+            setClients(response.data || []);
         } catch (err) {
             console.error("Erro ao carregar clientes:", err);
         }
@@ -160,17 +160,17 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    const loadSubEntities = async (clientId) => {
+    const loadAffiliates = async (clientId) => {
         try {
-            const data = await agreementsApi.loadSubEntities(
+            const data = await agreementsApi.loadAffiliates(
                 apiUrl,
                 token,
                 clientId,
                 onTokenExpired,
             );
-            setDependents(data);
+            setAffiliates(data);
         } catch (err) {
-            console.error("Erro ao carregar dependentes:", err);
+            console.error("Erro ao carregar afiliados:", err);
         }
     };
 
@@ -246,7 +246,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setModalMode("create");
         setFormData(getInitialFormData());
         setLines([]);
-        setDependents([]);
+        setAffiliates([]);
         setShowModal(true);
     };
 
@@ -256,8 +256,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setFormData(formatContractForEdit(contract));
         setShowModal(true);
 
-        if (contract.entity_id) {
-            loadSubEntities(contract.entity_id);
+        if (contract.client_id) {
+            loadAffiliates(contract.client_id);
         }
         if (contract.line?.category_id) {
             loadSubcategories(contract.line.category_id);
@@ -274,7 +274,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setSelectedContract(null);
         setFormData(getInitialFormData());
         setLines([]);
-        setDependents([]);
+        setAffiliates([]);
         setError("");
     };
 
@@ -302,9 +302,9 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const handleClientChange = (clientId) => {
         if (clientId) {
-            loadSubEntities(clientId);
+            loadAffiliates(clientId);
         } else {
-            setDependents([]);
+            setAffiliates([]);
         }
     };
 
@@ -404,7 +404,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
                 <input
                     type="text"
-                    placeholder={`Buscar por modelo, chave, ${config.labels.entity.toLowerCase()}...`}
+                    placeholder={`Buscar por modelo, chave, ${config.labels.client.toLowerCase()}...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="agreements-search-input"
@@ -434,7 +434,7 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 clients={clients}
                 categories={categories}
                 lines={lines}
-                dependents={dependents}
+                affiliates={affiliates}
                 onSubmit={handleSubmit}
                 onClose={closeModal}
                 onCategoryChange={handleCategoryChange}
@@ -494,18 +494,18 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                                 value={selectedContract.item_key || "-"}
                             />
                             <DetailRow
-                                label={config.labels.entity || "Cliente"}
+                                label={config.labels.client || "Cliente"}
                                 value={getClientName(
-                                    selectedContract.entity_id,
+                                    selectedContract.client_id,
                                     clients,
                                 )}
                             />
-                            {selectedContract.dependent && (
+                            {selectedContract.affiliate && (
                                 <DetailRow
                                     label={
-                                        config.labels.dependent || "Dependente"
+                                        config.labels.affiliate || "Afiliado"
                                     }
-                                    value={selectedContract.dependent.name}
+                                    value={selectedContract.affiliate.name}
                                 />
                             )}
                             <DetailRow

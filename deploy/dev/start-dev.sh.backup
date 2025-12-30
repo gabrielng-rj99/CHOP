@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Development Mode Startup Script
+# Client Hub - Development Mode Startup Script
 # This script reads dev.ini, generates secure passwords if needed,
 # and starts backend + Vite dev server for hot reload development.
 
@@ -44,7 +44,7 @@ print_highlight() {
     echo -e "${BOLD}${YELLOW}================================================================================${NC}"
 }
 
-echo -e "${BLUE}🚀 Starting Entity Hub (Development Mode)${NC}"
+echo -e "${BLUE}🚀 Starting Client Hub (Development Mode)${NC}"
 echo -e "${BLUE}===========================================${NC}"
 echo ""
 echo -e "${YELLOW}ℹ️  Development mode uses:${NC}"

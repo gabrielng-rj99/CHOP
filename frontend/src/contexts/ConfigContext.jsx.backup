@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -1331,7 +1331,7 @@ const COLORBLIND_SAFE = {
 // Default Settings
 const defaultSettings = {
     branding: {
-        appName: "Entity Hub",
+        appName: "Client Hub",
         logoUrl:
             "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%233498db' width='40' height='40'/%3E%3C/svg%3E",
         minimizedIconUrl:
@@ -1341,9 +1341,9 @@ const defaultSettings = {
         useCustomLogo: false,
     },
     labels: {
-        entity: "Cliente",
-        entity_gender: "M",
-        entities: "Clientes",
+        client: "Cliente",
+        client_gender: "M",
+        clients: "Clientes",
         agreement: "Contrato",
         agreement_gender: "M",
         agreements: "Contratos",
@@ -1353,9 +1353,9 @@ const defaultSettings = {
         subcategory: "Subcategoria",
         subcategory_gender: "F",
         subcategories: "Subcategorias",
-        dependent: "Dependente",
-        dependent_gender: "M",
-        dependents: "Dependentes",
+        affiliate: "Affiliatee",
+        affiliate_gender: "M",
+        affiliates: "Affiliatees",
         user: "Usuário",
         user_gender: "M",
         users: "Usuários",
@@ -1375,9 +1375,9 @@ const defaultSettings = {
 
 // Default label definitions
 const defaultLabels = {
-    entity: "Cliente",
-    entity_gender: "M",
-    entities: "Clientes",
+    client: "Cliente",
+    client_gender: "M",
+    clients: "Clientes",
     agreement: "Contrato",
     agreement_gender: "M",
     agreements: "Contratos",
@@ -1387,9 +1387,9 @@ const defaultLabels = {
     subcategory: "Subcategoria",
     subcategory_gender: "F",
     subcategories: "Subcategorias",
-    dependent: "Dependente",
-    dependent_gender: "M",
-    dependents: "Dependentes",
+    affiliate: "Affiliatee",
+    affiliate_gender: "M",
+    affiliates: "Affiliatees",
     user: "Usuário",
     user_gender: "M",
     users: "Usuários",
@@ -1746,13 +1746,13 @@ export const ConfigProvider = ({ children }) => {
     const getGenderHelpers = (baseKey) => {
         let gender = config?.labels?.[`${baseKey}_gender`] || "M";
 
-        // Handle singular label key (entity, agreement, etc.)
+        // Handle singular label key (client, agreement, etc.)
         if (
-            baseKey === "entity" ||
+            baseKey === "client" ||
             baseKey === "agreement" ||
             baseKey === "category" ||
             baseKey === "subcategory" ||
-            baseKey === "dependent" ||
+            baseKey === "affiliate" ||
             baseKey === "user"
         ) {
             const value = getLabel(baseKey);

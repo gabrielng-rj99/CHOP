@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,9 @@ export const agreementsApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -38,8 +40,8 @@ export const agreementsApi = {
         return data.data || [];
     },
 
-    loadEntities: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/entities`, {
+    loadClients: async (apiUrl, token, onTokenExpired) => {
+        const response = await fetch(`${apiUrl}/clients`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -48,7 +50,9 @@ export const agreementsApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -69,7 +73,9 @@ export const agreementsApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -106,9 +112,9 @@ export const agreementsApi = {
         return data.data || [];
     },
 
-    loadSubEntities: async (apiUrl, token, clientId, onTokenExpired) => {
+    loadAffiliates: async (apiUrl, token, clientId, onTokenExpired) => {
         const response = await fetch(
-            `${apiUrl}/entities/${clientId}/sub_entities`,
+            `${apiUrl}/clients/${clientId}/affiliates`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -125,7 +131,7 @@ export const agreementsApi = {
         }
 
         if (!response.ok) {
-            throw new Error("Erro ao carregar dependentes");
+            throw new Error("Erro ao carregar afiliados");
         }
 
         const data = await response.json();
@@ -138,8 +144,8 @@ export const agreementsApi = {
             item_key: formData.item_key || "",
             start_date: formData.start_date,
             end_date: formData.end_date,
-            entity_id: formData.entity_id,
-            sub_entity_id: formData.sub_entity_id || null,
+            client_id: formData.client_id,
+            affiliate_id: formData.affiliate_id || null,
             subcategory_id: formData.subcategory_id,
         };
 
@@ -179,8 +185,8 @@ export const agreementsApi = {
             item_key: formData.item_key || "",
             start_date: formData.start_date,
             end_date: formData.end_date,
-            entity_id: formData.entity_id,
-            sub_entity_id: formData.sub_entity_id || null,
+            client_id: formData.client_id,
+            affiliate_id: formData.affiliate_id || null,
             subcategory_id: formData.subcategory_id,
         };
 

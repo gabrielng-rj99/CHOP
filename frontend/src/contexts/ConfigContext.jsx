@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -106,9 +106,9 @@ const COLORBLIND_SAFE = {
 // Default Settings
 const defaultSettings = {
     branding: {
-        appName: "Entity Hub",
+        appName: "Client Hub",
         logoUrl:
-            "https://via.placeholder.com/150x50/3498db/ffffff?text=Entity+Hub",
+            "https://via.placeholder.com/150x50/3498db/ffffff?text=Client+Hub",
         minimizedIconUrl:
             "https://via.placeholder.com/32x32/3498db/ffffff?text=EH",
         logoWideUrl: "",
@@ -116,9 +116,9 @@ const defaultSettings = {
         useCustomLogo: false,
     },
     labels: {
-        entity: "Cliente",
-        entity_gender: "M",
-        entities: "Clientes",
+        client: "Cliente",
+        client_gender: "M",
+        clients: "Clientes",
         agreement: "Contrato",
         agreement_gender: "M",
         agreements: "Contratos",
@@ -128,16 +128,16 @@ const defaultSettings = {
         subcategory: "Subcategoria",
         subcategory_gender: "F",
         subcategories: "Subcategorias",
-        dependent: "Dependente",
-        dependent_gender: "M",
-        dependents: "Dependentes",
+        affiliate: "Afiliado",
+        affiliate_gender: "M",
+        affiliates: "Afiliados",
         user: "Usuário",
         user_gender: "M",
         users: "Usuários",
     },
     theme: {
         mode: "system",
-        preset: "default",
+        preset: "ocean",
         primaryColor: "#0284c7",
         secondaryColor: "#0369a1",
         backgroundColor: "#f0f9ff",
@@ -153,9 +153,9 @@ const defaultSettings = {
 
 // Default label definitions
 const defaultLabels = {
-    entity: "Cliente",
-    entity_gender: "M",
-    entities: "Clientes",
+    client: "Cliente",
+    client_gender: "M",
+    clients: "Clientes",
     agreement: "Contrato",
     agreement_gender: "M",
     agreements: "Contratos",
@@ -165,9 +165,9 @@ const defaultLabels = {
     subcategory: "Subcategoria",
     subcategory_gender: "F",
     subcategories: "Subcategorias",
-    dependent: "Dependente",
-    dependent_gender: "M",
-    dependents: "Dependentes",
+    affiliate: "Afiliado",
+    affiliate_gender: "M",
+    affiliates: "Afiliados",
     user: "Usuário",
     user_gender: "M",
     users: "Usuários",
@@ -192,6 +192,9 @@ export const ConfigProvider = ({ children }) => {
         adminsCanEditTheme: true,
     });
     const [themeSaving, setThemeSaving] = useState(false);
+    // Consolidated theme data from API (avoids multiple requests)
+    const [allowedThemes, setAllowedThemes] = useState([]);
+    const [globalTheme, setGlobalTheme] = useState(null);
 
     // Theme mode, layout mode, font settings, and accessibility preferences
     const [themeMode, setThemeModeState] = useState("system");
@@ -319,6 +322,16 @@ export const ConfigProvider = ({ children }) => {
                 });
             }
 
+            // Set allowed themes from consolidated response
+            if (response.allowed_themes) {
+                setAllowedThemes(response.allowed_themes);
+            }
+
+            // Set global theme for root users from consolidated response
+            if (response.global_theme) {
+                setGlobalTheme(response.global_theme);
+            }
+
             // Set user theme settings
             if (response.settings) {
                 const settings = themeApi.apiToFrontend(response.settings);
@@ -428,7 +441,17 @@ export const ConfigProvider = ({ children }) => {
     const saveUserTheme = useCallback(
         async (themeSettings) => {
             const token = localStorage.getItem("accessToken");
-            if (!token || !canEditTheme) {
+            const userRole = localStorage.getItem("userRole") || "user";
+
+            // Determine if user can save based on role and permissions
+            // Root can always save, admin checks permissions, user checks permissions
+            const canSave =
+                userRole === "root" ||
+                (userRole === "admin" && themePermissions.adminsCanEditTheme) ||
+                (userRole === "user" && themePermissions.usersCanEditTheme) ||
+                canEditTheme;
+
+            if (!token || !canSave) {
                 // Save to localStorage if not logged in or no permission
                 if (themeSettings.mode) {
                     localStorage.setItem("themeMode", themeSettings.mode);
@@ -486,7 +509,7 @@ export const ConfigProvider = ({ children }) => {
                 setThemeSaving(false);
             }
         },
-        [canEditTheme],
+        [canEditTheme, themePermissions],
     );
 
     // Save global theme settings (Admin/Root only)
@@ -1278,7 +1301,17 @@ export const ConfigProvider = ({ children }) => {
     // Save only theme settings to user API
     const saveThemeSettings = useCallback(
         async (themeData) => {
-            if (!canEditTheme) {
+            const userRole = localStorage.getItem("userRole") || "user";
+
+            // Determine if user can save based on role and permissions
+            // Root can always save, admin checks permissions, user checks permissions
+            const canSave =
+                userRole === "root" ||
+                (userRole === "admin" && themePermissions.adminsCanEditTheme) ||
+                (userRole === "user" && themePermissions.usersCanEditTheme) ||
+                canEditTheme;
+
+            if (!canSave) {
                 console.warn("User does not have permission to edit theme");
                 return;
             }
@@ -1286,6 +1319,7 @@ export const ConfigProvider = ({ children }) => {
             const themeSettings = {
                 preset: themeData.preset || config.theme?.preset || "default",
                 mode: themeData.mode || themeMode,
+                layoutMode: themeData.layoutMode || layoutMode || "standard",
                 primaryColor: themeData.primaryColor || null,
                 secondaryColor: themeData.secondaryColor || null,
                 backgroundColor: themeData.backgroundColor || null,
@@ -1343,7 +1377,15 @@ export const ConfigProvider = ({ children }) => {
                 throw err;
             }
         },
-        [canEditTheme, config.theme, themeMode, accessibility, saveUserTheme],
+        [
+            canEditTheme,
+            themePermissions,
+            config.theme,
+            themeMode,
+            layoutMode,
+            accessibility,
+            saveUserTheme,
+        ],
     );
 
     // Persistent filter state
@@ -1446,9 +1488,14 @@ export const ConfigProvider = ({ children }) => {
         canEditTheme,
         themePermissions,
         themeSaving,
+        userThemeSettings,
+        fetchUserTheme,
         saveUserTheme,
+        saveThemeSettings,
         saveGlobalTheme,
         saveThemePermissions,
+        allowedThemes,
+        globalTheme,
         updateSettings: async (newSettings) => {
             // ... strict subset of settings update ...
             // This is kept for backward compatibility if needed,

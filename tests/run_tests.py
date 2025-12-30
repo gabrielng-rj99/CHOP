@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """
-MASTER TEST RUNNER - Entity Hub Open Project
+MASTER TEST RUNNER - Client Hub Open Project
 Executa todos os testes com cronometragem detalhada e gera relatórios
 
 Portas do ambiente de teste:
@@ -453,7 +453,7 @@ def save_json_report(results: Dict, total_duration: float, filepath: str):
 
 def main():
     """Função principal"""
-    print_header("SUITE DE TESTES - ENTITY HUB")
+    print_header("SUITE DE TESTES - Client Hub")
 
     print(f"  📅 Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  🔧 Ambiente de Teste:")

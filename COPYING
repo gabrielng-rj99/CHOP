@@ -1,7 +1,7 @@
-COPYING - Entity Hub Open Project
+COPYING - Client Hub Open Project
 ==================================
 
-Entity Hub Open Project is licensed under the GNU Affero General Public License
+Client Hub Open Project is licensed under the GNU Affero General Public License
 version 3 (AGPL-3.0). This file provides information about your rights and
 obligations under this license.
 
@@ -18,7 +18,7 @@ The AGPL-3.0 is a free software license that guarantees your freedom to:
 OBLIGATIONS
 ===========
 
-When you use, modify, or distribute Entity Hub Open Project, you must:
+When you use, modify, or distribute Client Hub Open Project, you must:
 
   1. Provide clear attribution to the original authors
   2. Include a copy of this license with any distribution
@@ -31,7 +31,7 @@ KEY FEATURE: NETWORK USE
 ========================
 
 Unlike the regular GPL, the AGPL includes a special provision for network
-services. If you run a modified version of Entity Hub as a service over a
+services. If you run a modified version of Client Hub as a service over a
 network (SaaS, web service, etc.), you must make the source code available
 to your users.
 
@@ -90,13 +90,13 @@ For questions about what you can and cannot do under this license, consult:
 CONTRIBUTING
 ============
 
-If you contribute code to Entity Hub Open Project, your contributions will
+If you contribute code to Client Hub Open Project, your contributions will
 automatically be licensed under AGPL-3.0, consistent with the project's
 overall license.
 
 RELICENSING
 ===========
 
-The Entity Hub Open Project maintainers may relicense the project under
+The Client Hub Open Project maintainers may relicense the project under
 compatible licenses (such as GPLv3+) in the future. However, all versions
 released under AGPL-3.0 will remain under that license in perpetuity.

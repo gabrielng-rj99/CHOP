@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -38,7 +38,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func cleanupTestData(db *sql.DB) error {
-	tables := []string{"agreements", "sub_entities", "entities", "subcategories", "categories"}
+	tables := []string{"contracts", "affiliates", "clients", "subcategories", "categories"}
 	for _, table := range tables {
 		if _, err := db.Exec("DELETE FROM " + table); err != nil {
 			return err
@@ -53,14 +53,14 @@ func TestClientContractIntegration(t *testing.T) {
 	defer cleanupTestData(db)
 
 	// Criar client store e license store
-	entityStore := NewEntityStore(db)
-	agreementStore := NewAgreementStore(db)
+	clientStore := NewClientStore(db)
+	contractStore := NewContractStore(db)
 
 	// Criar cliente
 	email := "empresa@teste.com"
-	phone := "+5511987654321"
+	phone := "5511987654321"
 	regID := "45.723.174/0001-10"
-	client := domain.Entity{
+	client := domain.Client{
 		Name:           "Empresa Teste",
 		RegistrationID: &regID,
 		Status:         "ativo",
@@ -68,7 +68,7 @@ func TestClientContractIntegration(t *testing.T) {
 		Phone:          &phone,
 	}
 
-	entityID, err := entityStore.CreateEntity(client)
+	clientID, err := clientStore.CreateClient(client)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -85,122 +85,122 @@ func TestClientContractIntegration(t *testing.T) {
 
 	// Criar contrato para a empresa
 	now := time.Now()
-	contract := domain.Agreement{
+	contract := domain.Contract{
 		Model:         "Test License",
 		ItemKey:       "TEST-KEY-123",
 		StartDate:     timePtr(now),
 		EndDate:       timePtr(now.AddDate(1, 0, 0)),
 		SubcategoryID: subcategoryID,
-		EntityID:      entityID,
+		ClientID:      clientID,
 	}
 
-	_, err = agreementStore.CreateAgreement(contract)
+	_, err = contractStore.CreateContract(contract)
 	if err != nil {
 		t.Fatalf("Failed to create contract: %v", err)
 	}
 
-	// Criar dependente associado ao cliente
-	subEntityStore := NewSubEntityStore(db)
-	dependent := domain.SubEntity{
-		Name:     "Dependente Teste",
-		EntityID: entityID,
+	// Criar afiliado associado ao cliente
+	subClientStore := NewAffiliateStore(db)
+	affiliate := domain.Affiliate{
+		Name:     "Afiliado Teste",
+		ClientID: clientID,
 		Status:   "ativo",
 	}
-	subEntityID, err := subEntityStore.CreateSubEntity(dependent)
+	subClientID, err := subClientStore.CreateAffiliate(affiliate)
 	if err != nil {
-		t.Fatalf("Failed to create dependent: %v", err)
+		t.Fatalf("Failed to create affiliate: %v", err)
 	}
 
 	// Verificar se o contrato está associada à empresa
-	agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
+	contracts, err := contractStore.GetContractsByClientID(clientID)
 	if err != nil {
 		if err != ErrNoRows {
-			t.Fatalf("Failed to get agreements: %v", err)
+			t.Fatalf("Failed to get contracts: %v", err)
 		}
-	} else if len(agreements) != 1 {
-		t.Errorf("Expected 1 contract, got %d", len(agreements))
+	} else if len(contracts) != 1 {
+		t.Errorf("Expected 1 contract, got %d", len(contracts))
 	}
 
 	// Arquivar empresa e verificar se as contratos ainda são acessíveis
-	err = entityStore.ArchiveEntity(entityID)
+	err = clientStore.ArchiveClient(clientID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
 
 	// Não deve encontrar contratos para empresa arquivada
-	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
+	contracts, err = contractStore.GetContractsByClientID(clientID)
 	if err == nil {
 		t.Error("Expected error for archived client, got none")
 	}
 
 	// Arquivar o cliente antes de deletar (nova regra de negócio)
-	err = entityStore.ArchiveEntity(entityID)
+	err = clientStore.ArchiveClient(clientID)
 	if err != nil {
 		t.Fatalf("Failed to archive client: %v", err)
 	}
 
 	// Remover todas as contratos associadas antes de deletar o cliente
-	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
+	contracts, err = contractStore.GetContractsByClientID(clientID)
 	if err != nil && err.Error() != "client not found or archived" {
-		t.Fatalf("Failed to get agreements for client: %v", err)
+		t.Fatalf("Failed to get contracts for client: %v", err)
 	}
-	for _, agreement := range agreements {
-		err := agreementStore.DeleteAgreement(agreement.ID)
+	for _, contract := range contracts {
+		err := contractStore.DeleteContract(contract.ID)
 		if err != nil {
-			t.Fatalf("Failed to delete contract %s: %v", agreement.ID, err)
+			t.Fatalf("Failed to delete contract %s: %v", contract.ID, err)
 		}
 	}
 	// Agora pode deletar empresa e verificar se as contratos e entidades são deletadas em cascata
-	err = entityStore.DeleteEntityPermanently(entityID)
+	err = clientStore.DeleteClientPermanently(clientID)
 	if err != nil {
 		t.Fatalf("Failed to delete client: %v", err)
 	}
 
-	// O dependente não deve mais existir
-	deletedDependent, err := subEntityStore.GetSubEntityByID(subEntityID)
+	// O afiliado não deve mais existir
+	deletedAffiliate, err := subClientStore.GetAffiliateByID(subClientID)
 	if err != nil {
-		t.Fatalf("Unexpected error when checking for deleted dependent: %v", err)
+		t.Fatalf("Unexpected error when checking for deleted affiliate: %v", err)
 	}
-	if deletedDependent != nil {
-		t.Error("Expected dependent to be deleted with client")
+	if deletedAffiliate != nil {
+		t.Error("Expected affiliate to be deleted with client")
 	}
 }
 
-func TestClientDependentContractIntegration(t *testing.T) {
+func TestClientAffiliateContractIntegration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	defer cleanupTestData(db)
 
 	// Criar stores necessárias
-	entityStore := NewEntityStore(db)
-	subEntityStore := NewSubEntityStore(db)
-	agreementStore := NewAgreementStore(db)
+	clientStore := NewClientStore(db)
+	subClientStore := NewAffiliateStore(db)
+	contractStore := NewContractStore(db)
 
 	// Criar Cliente
-	phone := "+5511999999999"
+	phone := "5511999999999"
 	regID2 := "45.723.174/0001-10"
-	client := domain.Entity{
-		Name:           "Full Integration Test Entity",
+	client := domain.Client{
+		Name:           "Full Integration Test Client",
 		RegistrationID: &regID2,
 		Status:         "ativo",
 		Phone:          &phone,
 	}
 
-	entityID, err := entityStore.CreateEntity(client)
+	clientID, err := clientStore.CreateClient(client)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	// Criar dependente
-	dependent := domain.SubEntity{
-		Name:     "Test SubEntity",
-		EntityID: entityID,
+	// Criar afiliado
+	affiliate := domain.Affiliate{
+		Name:     "Test Affiliate",
+		ClientID: clientID,
 		Status:   "ativo",
 	}
 
-	subEntityID, err := subEntityStore.CreateSubEntity(dependent)
+	subClientID, err := subClientStore.CreateAffiliate(affiliate)
 	if err != nil {
-		t.Fatalf("Failed to create dependent: %v", err)
+		t.Fatalf("Failed to create affiliate: %v", err)
 	}
 
 	// Inserir categoria e tipo antes de criar o contrato
@@ -213,77 +213,77 @@ func TestClientDependentContractIntegration(t *testing.T) {
 		t.Fatalf("Failed to insert test line: %v", err)
 	}
 
-	// Criar contrato associada ao dependente
+	// Criar contrato associada ao afiliado
 	now := time.Now()
-	var entityIDPtr *string
-	if subEntityID != "" {
-		entityIDPtr = &subEntityID
+	var clientIDPtr *string
+	if subClientID != "" {
+		clientIDPtr = &subClientID
 	}
-	contract := domain.Agreement{
-		Model:         "SubEntity License",
-		ItemKey:       "ENTITY-KEY-123",
+	contract := domain.Contract{
+		Model:         "Affiliate License",
+		ItemKey:       "TEST-KEY-123",
 		StartDate:     timePtr(now),
 		EndDate:       timePtr(now.AddDate(1, 0, 0)),
 		SubcategoryID: subcategoryID, // Use o ID realmente inserido
-		EntityID:      entityID,
-		SubEntityID:   entityIDPtr,
+		ClientID:      clientID,
+		AffiliateID:   clientIDPtr,
 	}
 
-	_, err = agreementStore.CreateAgreement(contract)
+	_, err = contractStore.CreateContract(contract)
 	if err != nil {
 		t.Fatalf("Failed to create contract: %v", err)
 	}
 
-	// Verificar se o contrato está corretamente associada ao dependente
-	agreements, err := agreementStore.GetAgreementsByEntityID(entityID)
+	// Verificar se o contrato está corretamente associada ao afiliado
+	contracts, err := contractStore.GetContractsByClientID(clientID)
 	if err != nil {
 		if err != ErrNoRows {
-			t.Fatalf("Failed to get agreements: %v", err)
+			t.Fatalf("Failed to get contracts: %v", err)
 		}
 		return
 	}
-	if len(agreements) != 1 {
-		t.Fatalf("Expected 1 contract, got %d", len(agreements))
+	if len(contracts) != 1 {
+		t.Fatalf("Expected 1 contract, got %d", len(contracts))
 	}
-	if agreements[0].SubEntityID == nil || *agreements[0].SubEntityID != subEntityID {
-		t.Error("Agreement not properly associated with dependent")
+	if contracts[0].AffiliateID == nil || *contracts[0].AffiliateID != subClientID {
+		t.Error("Contract not properly associated with affiliate")
 	}
 
 	// Deletar a unidade e verificar se o contrato é atualizada (não deletada)
-	// Deletar o dependente e verificar desassociação
-	err = subEntityStore.DeleteSubEntity(subEntityID)
+	// Deletar o afiliado e verificar desassociação
+	err = subClientStore.DeleteAffiliate(subClientID)
 	if err != nil {
-		t.Fatalf("Failed to delete dependent: %v", err)
+		t.Fatalf("Failed to delete affiliate: %v", err)
 	}
 
 	// Deletar empresa e verificar se tudo é limpo
 	// Remover todas as contratos associadas antes de deletar o cliente
-	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
+	contracts, err = contractStore.GetContractsByClientID(clientID)
 	if err != nil && err.Error() != "client not found or archived" {
-		t.Fatalf("Failed to get agreements for client: %v", err)
+		t.Fatalf("Failed to get contracts for client: %v", err)
 	}
-	for _, agreement := range agreements {
-		err := agreementStore.DeleteAgreement(agreement.ID)
+	for _, contract := range contracts {
+		err := contractStore.DeleteContract(contract.ID)
 		if err != nil {
-			t.Fatalf("Failed to delete contract %s: %v", agreement.ID, err)
+			t.Fatalf("Failed to delete contract %s: %v", contract.ID, err)
 		}
 	}
 	// Agora pode deletar o cliente
-	err = entityStore.DeleteEntityPermanently(entityID)
+	err = clientStore.DeleteClientPermanently(clientID)
 	if err != nil {
 		t.Fatalf("Failed to delete client: %v", err)
 	}
 
 	// Verificar se nada permanece no banco
-	sub_entities, err := subEntityStore.GetSubEntitiesByEntityID(entityID)
+	affiliates, err := subClientStore.GetAffiliatesByClientID(clientID)
 	if err != nil {
-		t.Fatalf("Failed to check sub_entities: %v", err)
+		t.Fatalf("Failed to check affiliates: %v", err)
 	}
-	if len(sub_entities) > 0 {
-		t.Error("Expected no sub_entities after client deletion")
+	if len(affiliates) > 0 {
+		t.Error("Expected no affiliates after client deletion")
 	}
 
-	agreements, err = agreementStore.GetAgreementsByEntityID(entityID)
+	contracts, err = contractStore.GetContractsByClientID(clientID)
 	if err == nil {
 		t.Error("Expected error for deleted client, got none")
 	}

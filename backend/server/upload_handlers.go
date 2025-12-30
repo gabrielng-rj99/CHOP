@@ -142,8 +142,8 @@ func (s *Server) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "upload",
-			Entity:        "file",
-			EntityID:      filename,
+			Resource:        "file",
+			ResourceID:      filename,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			NewValue: map[string]interface{}{

@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -137,7 +137,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for payload in self.XSS_PAYLOADS[:10]:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -155,7 +155,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for i, payload in enumerate(self.XSS_PAYLOADS[:5]):
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": f"XSS Notes Test {int(time.time())}_{i}",
                 "notes": payload,
                 "email": "test@test.com"
@@ -164,10 +164,10 @@ class TestXSSSecurity:
             if response.status_code in [200, 201]:
                 # Buscar o cliente criado
                 client_data = response.json()
-                entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+                client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-                if entity_id:
-                    get_response = http_client.get(f"{api_url}/entities/{entity_id}", headers=headers)
+                if client_id:
+                    get_response = http_client.get(f"{api_url}/clients/{client_id}", headers=headers)
                     if get_response.status_code == 200:
                         client = get_response.json()
                         notes = str(client.get("notes", ""))
@@ -199,7 +199,7 @@ class TestXSSSecurity:
 
         for payload in self.XSS_PAYLOADS[:10]:
             response = http_client.get(
-                f"{api_url}/entities",
+                f"{api_url}/clients",
                 params={"search": payload},
                 headers=headers
             )
@@ -267,7 +267,7 @@ class TestXSSSecurity:
         ]
 
         for email in xss_emails:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": f"XSS Email Test {int(time.time())}",
                 "email": email
             }, headers=headers)
@@ -286,7 +286,7 @@ class TestXSSSecurity:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         for payload in self.XSS_PAYLOADS[:5]:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": f"XSS Address Test {int(time.time())}",
                 "address": payload,
                 "email": "test@test.com"
@@ -335,7 +335,7 @@ class TestXSSSecurity:
             pytest.skip("ID da linha não retornado")
 
         # Criar cliente
-        client_response = http_client.post(f"{api_url}/entities", json={
+        client_response = http_client.post(f"{api_url}/clients", json={
             "name": f"XSS Test Client {int(time.time())}",
             "email": "xsstest@test.com"
         }, headers=headers)
@@ -344,9 +344,9 @@ class TestXSSSecurity:
             pytest.skip("Não foi possível criar cliente de teste")
 
         client_data = client_response.json()
-        entity_id = client_data.get("data", {}).get("id") or client_data.get("id")
+        client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
-        if not entity_id:
+        if not client_id:
             pytest.skip("ID do cliente não retornado")
 
         # Testar XSS no contrato
@@ -355,7 +355,7 @@ class TestXSSSecurity:
                 "model": payload,
                 "item_key": f"XSS-{int(time.time())}-{hash(payload) % 10000}",
                 "subcategory_id": subcategory_id,
-                "entity_id": entity_id
+                "client_id": client_id
             }, headers=headers)
 
             if response.status_code in [200, 201]:
@@ -382,7 +382,7 @@ class TestXSSSecurity:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        endpoints = ["/users", "/entities", "/categories", "/agreements"]
+        endpoints = ["/users", "/clients", "/categories", "/agreements"]
 
         for endpoint in endpoints:
             response = http_client.get(f"{api_url}{endpoint}", headers=headers)
@@ -424,7 +424,7 @@ class TestXSSSecurity:
 
         for payload in malformed_payloads:
             response = http_client.post(
-                f"{api_url}/entities",
+                f"{api_url}/clients",
                 data=payload,
                 headers=headers
             )
@@ -450,7 +450,7 @@ class TestXSSSecurity:
         ]
 
         for payload in svg_payloads:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -476,7 +476,7 @@ class TestXSSSecurity:
         ]
 
         for payload in polyglot_payloads:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": f"Polyglot Test {int(time.time())}",
                 "notes": payload,
                 "email": "test@test.com"

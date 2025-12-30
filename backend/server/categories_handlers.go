@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -83,8 +83,8 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 			newValueJSON, _ := json.Marshal(category)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "category",
-				EntityID:      "unknown",
+				Resource:      "category",
+				ResourceID:    "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      nil,
@@ -107,8 +107,8 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 		newValueJSON, _ := json.Marshal(category)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "category",
-			EntityID:      id,
+			Resource:      "category",
+			ResourceID:    id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -205,8 +205,8 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request, ca
 			newValueJSON, _ := json.Marshal(category)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "category",
-				EntityID:      categoryID,
+				Resource:      "category",
+				ResourceID:    categoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -228,8 +228,8 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request, ca
 		newValueJSON, _ := json.Marshal(category)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "category",
-			EntityID:      categoryID,
+			Resource:      "category",
+			ResourceID:    categoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -258,8 +258,8 @@ func (s *Server) handleDeleteCategory(w http.ResponseWriter, r *http.Request, ca
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Entity:        "category",
-				EntityID:      categoryID,
+				Resource:      "category",
+				ResourceID:    categoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -280,8 +280,8 @@ func (s *Server) handleDeleteCategory(w http.ResponseWriter, r *http.Request, ca
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "category",
-			EntityID:      categoryID,
+			Resource:      "category",
+			ResourceID:    categoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -355,8 +355,8 @@ func (s *Server) handleArchiveCategory(w http.ResponseWriter, r *http.Request, c
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "archive",
-				Entity:        "category",
-				EntityID:      categoryID,
+				Resource:      "category",
+				ResourceID:    categoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -377,8 +377,8 @@ func (s *Server) handleArchiveCategory(w http.ResponseWriter, r *http.Request, c
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "archive",
-			Entity:        "category",
-			EntityID:      categoryID,
+			Resource:      "category",
+			ResourceID:    categoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -407,8 +407,8 @@ func (s *Server) handleUnarchiveCategory(w http.ResponseWriter, r *http.Request,
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "unarchive",
-				Entity:        "category",
-				EntityID:      categoryID,
+				Resource:      "category",
+				ResourceID:    categoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -429,8 +429,8 @@ func (s *Server) handleUnarchiveCategory(w http.ResponseWriter, r *http.Request,
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "unarchive",
-			Entity:        "category",
-			EntityID:      categoryID,
+			Resource:      "category",
+			ResourceID:    categoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),

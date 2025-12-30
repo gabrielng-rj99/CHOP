@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import './fonts.css';
+import "./fonts.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>

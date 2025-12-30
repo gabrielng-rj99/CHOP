@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -48,9 +48,9 @@ func GetGlobalDB() *sql.DB {
 
 type Server struct {
 	userStore        *store.UserStore
-	agreementStore   *store.AgreementStore
-	entityStore      *store.EntityStore
-	subEntityStore   *store.SubEntityStore
+	contractStore    *store.ContractStore
+	clientStore      *store.ClientStore
+	affiliateStore   *store.AffiliateStore
 	categoryStore    *store.CategoryStore
 	subcategoryStore *store.SubcategoryStore
 	auditStore       *store.AuditStore
@@ -68,9 +68,9 @@ func NewServer(db *sql.DB) *Server {
 	// Only create stores if database is available
 	// This allows the server to start for initial setup/deploy panel
 	var userStore *store.UserStore
-	var agreementStore *store.AgreementStore
-	var entityStore *store.EntityStore
-	var subEntityStore *store.SubEntityStore
+	var contractStore *store.ContractStore
+	var clientStore *store.ClientStore
+	var affiliateStore *store.AffiliateStore
 	var categoryStore *store.CategoryStore
 	var subcategoryStore *store.SubcategoryStore
 	var auditStore *store.AuditStore
@@ -80,9 +80,9 @@ func NewServer(db *sql.DB) *Server {
 
 	if db != nil {
 		userStore = store.NewUserStore(db)
-		agreementStore = store.NewAgreementStore(db)
-		entityStore = store.NewEntityStore(db)
-		subEntityStore = store.NewSubEntityStore(db)
+		contractStore = store.NewContractStore(db)
+		clientStore = store.NewClientStore(db)
+		affiliateStore = store.NewAffiliateStore(db)
 		categoryStore = store.NewCategoryStore(db)
 		subcategoryStore = store.NewSubcategoryStore(db)
 		auditStore = store.NewAuditStore(db)
@@ -93,9 +93,9 @@ func NewServer(db *sql.DB) *Server {
 
 	return &Server{
 		userStore:        userStore,
-		agreementStore:   agreementStore,
-		entityStore:      entityStore,
-		subEntityStore:   subEntityStore,
+		contractStore:    contractStore,
+		clientStore:      clientStore,
+		affiliateStore:   affiliateStore,
 		categoryStore:    categoryStore,
 		subcategoryStore: subcategoryStore,
 		auditStore:       auditStore,
@@ -111,9 +111,9 @@ func NewServer(db *sql.DB) *Server {
 func (s *Server) InitializeStores(db *sql.DB) {
 	if db != nil {
 		s.userStore = store.NewUserStore(db)
-		s.agreementStore = store.NewAgreementStore(db)
-		s.entityStore = store.NewEntityStore(db)
-		s.subEntityStore = store.NewSubEntityStore(db)
+		s.contractStore = store.NewContractStore(db)
+		s.clientStore = store.NewClientStore(db)
+		s.affiliateStore = store.NewAffiliateStore(db)
 		s.categoryStore = store.NewCategoryStore(db)
 		s.subcategoryStore = store.NewSubcategoryStore(db)
 		s.auditStore = store.NewAuditStore(db)

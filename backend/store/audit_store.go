@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -42,8 +42,8 @@ func NewAuditStore(db DBInterface) *AuditStore {
 // AuditLogRequest contém todos os dados necessários para registrar uma operação
 type AuditLogRequest struct {
 	Operation       string
-	Entity          string
-	EntityID        string
+	Resource        string // Renamed from Client
+	ResourceID      string // Renamed from ClientID
 	AdminID         *string
 	AdminUsername   *string
 	OldValue        interface{}
@@ -73,14 +73,14 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		return "", fmt.Errorf("operação inválida: %s", req.Operation)
 	}
 
-	// Validar entity
-	validEntities := map[string]bool{
+	// Validar resource
+	validResources := map[string]bool{
 		"user":                 true,
-		"entity":               true,
-		"agreement":            true,
+		"client":               true, // Renamed from client
+		"contract":             true, // Renamed from contract
 		"subcategory":          true,
 		"category":             true,
-		"sub_entity":           true,
+		"affiliate":            true, // Renamed from affiliate
 		"audit_log":            true,
 		"auth":                 true,
 		"global_theme":         true,
@@ -99,8 +99,8 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		"theme_permissions":    true,
 		"system_config":        true,
 	}
-	if !validEntities[req.Entity] {
-		return "", fmt.Errorf("entidade inválida: %s", req.Entity)
+	if !validResources[req.Resource] {
+		return "", fmt.Errorf("recurso inválido: %s", req.Resource)
 	}
 
 	// Validar status
@@ -133,9 +133,10 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		}
 	}
 
+	// Note: We use "resource" and "resource_id" column names in SQL, assuming schema update
 	sqlStatement := `
 		INSERT INTO audit_logs (
-			id, timestamp, operation, entity, entity_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		) VALUES (
@@ -148,8 +149,8 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		id,
 		time.Now(),
 		req.Operation,
-		req.Entity,
-		req.EntityID,
+		req.Resource,
+		req.ResourceID,
 		req.AdminID,
 		req.AdminUsername,
 		oldValueStr,
@@ -174,19 +175,19 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 
 // AuditLogFilter contém filtros para buscar logs
 type AuditLogFilter struct {
-	Entity       *string
-	Operation    *string
-	AdminID      *string
-	AdminSearch  *string
-	EntityID     *string
-	EntitySearch *string
-	ChangedData  *string
-	Status       *string
-	IPAddress    *string
-	StartDate    *time.Time
-	EndDate      *time.Time
-	Limit        int
-	Offset       int
+	Resource       *string // Renamed from Client
+	Operation      *string
+	AdminID        *string
+	AdminSearch    *string
+	ResourceID     *string // Renamed from ClientID
+	ResourceSearch *string // Renamed from ClientSearch
+	ChangedData    *string
+	Status         *string
+	IPAddress      *string
+	StartDate      *time.Time
+	EndDate        *time.Time
+	Limit          int
+	Offset         int
 }
 
 // ListAuditLogs retorna logs de auditoria com filtros opcionais, ordenado por timestamp DESC
@@ -197,7 +198,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 
 	query := `
 		SELECT
-			id, timestamp, operation, entity, entity_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		FROM audit_logs
@@ -207,9 +208,9 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 	args := []interface{}{}
 	argNum := 1
 
-	if filter.Entity != nil && *filter.Entity != "" {
-		query += fmt.Sprintf(" AND entity = $%d", argNum)
-		args = append(args, *filter.Entity)
+	if filter.Resource != nil && *filter.Resource != "" {
+		query += fmt.Sprintf(" AND resource = $%d", argNum)
+		args = append(args, *filter.Resource)
 		argNum++
 	}
 
@@ -231,9 +232,9 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 		argNum += 2
 	}
 
-	if filter.EntitySearch != nil && *filter.EntitySearch != "" {
-		query += fmt.Sprintf(" AND (entity_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
-		args = append(args, *filter.EntitySearch, "%"+*filter.EntitySearch+"%", "%"+*filter.EntitySearch+"%")
+	if filter.ResourceSearch != nil && *filter.ResourceSearch != "" {
+		query += fmt.Sprintf(" AND (resource_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
+		args = append(args, *filter.ResourceSearch, "%"+*filter.ResourceSearch+"%", "%"+*filter.ResourceSearch+"%")
 		argNum += 3
 	}
 
@@ -243,9 +244,9 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 		argNum += 2
 	}
 
-	if filter.EntityID != nil && *filter.EntityID != "" {
-		query += fmt.Sprintf(" AND entity_id = $%d", argNum)
-		args = append(args, *filter.EntityID)
+	if filter.ResourceID != nil && *filter.ResourceID != "" {
+		query += fmt.Sprintf(" AND resource_id = $%d", argNum)
+		args = append(args, *filter.ResourceID)
 		argNum++
 	}
 
@@ -292,8 +293,8 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 			&log.ID,
 			&log.Timestamp,
 			&log.Operation,
-			&log.Entity,
-			&log.EntityID,
+			&log.Resource,   // Renamed
+			&log.ResourceID, // Renamed
 			&adminID,
 			&adminUsername,
 			&oldValue,
@@ -366,7 +367,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 	query := `
 		SELECT
-			id, timestamp, operation, entity, entity_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		FROM audit_logs
@@ -381,8 +382,8 @@ func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 		&log.ID,
 		&log.Timestamp,
 		&log.Operation,
-		&log.Entity,
-		&log.EntityID,
+		&log.Resource,
+		&log.ResourceID,
 		&adminID,
 		&adminUsername,
 		&oldValue,
@@ -447,17 +448,17 @@ func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 	return &log, nil
 }
 
-// GetAuditLogsByEntity retorna todos os logs para uma entidade específica
-func (s *AuditStore) GetAuditLogsByEntity(entity, entityID string, limit, offset int) ([]domain.AuditLog, error) {
+// GetAuditLogsByResource retorna todos os logs para um recurso específico
+func (s *AuditStore) GetAuditLogsByResource(resource, resourceID string, limit, offset int) ([]domain.AuditLog, error) {
 	if limit == 0 || limit > 1000 {
 		limit = 100
 	}
 
 	filter := AuditLogFilter{
-		Entity:   &entity,
-		EntityID: &entityID,
-		Limit:    limit,
-		Offset:   offset,
+		Resource:   &resource,
+		ResourceID: &resourceID,
+		Limit:      limit,
+		Offset:     offset,
 	}
 
 	return s.ListAuditLogs(filter)
@@ -484,9 +485,9 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 	args := []interface{}{}
 	argNum := 1
 
-	if filter.Entity != nil && *filter.Entity != "" {
-		query += fmt.Sprintf(" AND entity = $%d", argNum)
-		args = append(args, *filter.Entity)
+	if filter.Resource != nil && *filter.Resource != "" {
+		query += fmt.Sprintf(" AND resource = $%d", argNum)
+		args = append(args, *filter.Resource)
 		argNum++
 	}
 
@@ -508,9 +509,9 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 		argNum += 2
 	}
 
-	if filter.EntitySearch != nil && *filter.EntitySearch != "" {
-		query += fmt.Sprintf(" AND (entity_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
-		args = append(args, *filter.EntitySearch, "%"+*filter.EntitySearch+"%", "%"+*filter.EntitySearch+"%")
+	if filter.ResourceSearch != nil && *filter.ResourceSearch != "" {
+		query += fmt.Sprintf(" AND (resource_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
+		args = append(args, *filter.ResourceSearch, "%"+*filter.ResourceSearch+"%", "%"+*filter.ResourceSearch+"%")
 		argNum += 3
 	}
 
@@ -520,9 +521,9 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 		argNum += 2
 	}
 
-	if filter.EntityID != nil && *filter.EntityID != "" {
-		query += fmt.Sprintf(" AND entity_id = $%d", argNum)
-		args = append(args, *filter.EntityID)
+	if filter.ResourceID != nil && *filter.ResourceID != "" {
+		query += fmt.Sprintf(" AND resource_id = $%d", argNum)
+		args = append(args, *filter.ResourceID)
 		argNum++
 	}
 
@@ -560,7 +561,6 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 }
 
 // DeleteOldAuditLogs remove logs de auditoria mais antigos que o número de dias especificado
-// Retorna o número de linhas deletadas
 func (s *AuditStore) DeleteOldAuditLogs(daysOld int) (int64, error) {
 	if daysOld < 1 {
 		return 0, errors.New("daysOld deve ser maior que 0")

@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -41,15 +41,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
 
     // Helper to extract filters from URL
     const getFiltersFromUrl = () => ({
-        entity: searchParams.get("entity") || "",
+        client: searchParams.get("client") || "",
         operation: searchParams.get("operation") || "",
         adminId: searchParams.get("adminId") || "",
         adminSearch: searchParams.get("adminSearch") || "",
-        entitySearch: searchParams.get("entitySearch") || "",
+        clientSearch: searchParams.get("clientSearch") || "",
         changedData: searchParams.get("changedData") || "",
         status: searchParams.get("status") || "",
         ipAddress: searchParams.get("ipAddress") || "",
-        entityId: searchParams.get("entityId") || "",
+        clientId: searchParams.get("clientId") || "",
         startDate: searchParams.get("startDate") || "",
         endDate: searchParams.get("endDate") || "",
     });
@@ -95,15 +95,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             const currentUrlFilters = getFiltersFromUrl();
 
             const filterParams = {
-                entity: currentUrlFilters.entity || undefined,
+                client: currentUrlFilters.client || undefined,
                 operation: currentUrlFilters.operation || undefined,
                 admin_id: currentUrlFilters.adminId || undefined,
                 admin_search: currentUrlFilters.adminSearch || undefined,
-                entity_search: currentUrlFilters.entitySearch || undefined,
+                client_search: currentUrlFilters.clientSearch || undefined,
                 changed_data: currentUrlFilters.changedData || undefined,
                 status: currentUrlFilters.status || undefined,
                 ip_address: currentUrlFilters.ipAddress || undefined,
-                entity_id: currentUrlFilters.entityId || undefined,
+                client_id: currentUrlFilters.clientId || undefined,
                 start_date: currentUrlFilters.startDate
                     ? new Date(currentUrlFilters.startDate).toISOString()
                     : undefined,
@@ -175,11 +175,11 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             // Use current URL filters for export too
             const currentUrlFilters = getFiltersFromUrl();
             const filterParams = {
-                entity: currentUrlFilters.entity || undefined,
+                client: currentUrlFilters.client || undefined,
                 operation: currentUrlFilters.operation || undefined,
                 admin_id: currentUrlFilters.adminId || undefined,
                 admin_search: currentUrlFilters.adminSearch || undefined,
-                entity_search: currentUrlFilters.entitySearch || undefined,
+                client_search: currentUrlFilters.clientSearch || undefined,
                 changed_data: currentUrlFilters.changedData || undefined,
             };
 

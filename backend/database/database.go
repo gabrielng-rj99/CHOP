@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -66,63 +67,46 @@ func ConnectDB() (*sql.DB, error) {
 	return nil, fmt.Errorf("failed to connect to database after retries: %v", err)
 }
 
+// InitDB initializes the database by executing all schema files in order.
+// The schema directory contains modular SQL files that are executed alphabetically.
 func InitDB(db *sql.DB) error {
 	cfg := config.GetConfig()
-	sqlFilePath := cfg.Paths.SchemaFile
+	schemaDir := cfg.Paths.SchemaDir
 
-	script, err := os.ReadFile(sqlFilePath)
+	// Read all files in schema directory
+	entries, err := os.ReadDir(schemaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read schema directory: %v", err)
 	}
 
-	_, err = db.Exec(string(script))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ApplySeeds applies all seed files in order after schema initialization
-func ApplySeeds(db *sql.DB) error {
-	cfg := config.GetConfig()
-	// Use seeds directory relative to schema file location
-	seedsDir := strings.Replace(cfg.Paths.SchemaFile, "schema.sql", "seeds", 1)
-
-	// Read all files in seeds directory
-	entries, err := os.ReadDir(seedsDir)
-	if err != nil {
-		return fmt.Errorf("failed to read seeds directory: %v", err)
-	}
-
-	// Filter and collect SQL files
-	var seedFiles []string
+	// Filter and collect SQL files (excluding init.sql which is for psql CLI)
+	var schemaFiles []string
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
-			seedFiles = append(seedFiles, entry.Name())
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") && entry.Name() != "init.sql" {
+			schemaFiles = append(schemaFiles, entry.Name())
 		}
 	}
 
-	// Sort files by name (which includes the numeric prefix)
-	sort.Strings(seedFiles)
+	// Sort files by name (which includes the numeric prefix: 01_, 02_, etc.)
+	sort.Strings(schemaFiles)
 
-	// Apply seeds in order
-	for _, seedFile := range seedFiles {
-		seedPath := fmt.Sprintf("%s/%s", seedsDir, seedFile)
+	// Execute each schema file in order
+	for _, schemaFile := range schemaFiles {
+		schemaPath := filepath.Join(schemaDir, schemaFile)
 
-		fmt.Printf("🌱 Applying seed: %s\n", seedFile)
+		fmt.Printf("📦 Applying schema: %s\n", schemaFile)
 
-		script, err := os.ReadFile(seedPath)
+		script, err := os.ReadFile(schemaPath)
 		if err != nil {
-			return fmt.Errorf("failed to read seed file %s: %v", seedFile, err)
+			return fmt.Errorf("failed to read schema file %s: %v", schemaFile, err)
 		}
 
 		_, err = db.Exec(string(script))
 		if err != nil {
-			return fmt.Errorf("failed to execute seed file %s: %v", seedFile, err)
+			return fmt.Errorf("failed to execute schema file %s: %v", schemaFile, err)
 		}
 
-		fmt.Printf("✅ Seed applied: %s\n", seedFile)
+		fmt.Printf("✅ Schema applied: %s\n", schemaFile)
 	}
 
 	return nil

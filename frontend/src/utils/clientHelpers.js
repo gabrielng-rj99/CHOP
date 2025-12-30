@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -70,7 +70,7 @@ export const getInitialFormData = () => ({
     tags: "",
 });
 
-export const getInitialDependentForm = () => ({
+export const getInitialAffiliateForm = () => ({
     name: "",
     relationship: "",
     birth_date: "",
@@ -90,9 +90,9 @@ export const formatClientForEdit = (client) => ({
     tags: client.tags || "",
 });
 
-export const formatDependentForEdit = (dependent) => ({
-    name: dependent.name || "",
-    relationship: dependent.relationship || "",
-    birth_date: dependent.birth_date ? dependent.birth_date.split("T")[0] : "",
-    phone: dependent.phone || "",
+export const formatAffiliateForEdit = (affiliate) => ({
+    name: affiliate.name || "",
+    relationship: affiliate.relationship || "",
+    birth_date: affiliate.birth_date ? affiliate.birth_date.split("T")[0] : "",
+    phone: affiliate.phone || "",
 });

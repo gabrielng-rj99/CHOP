@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -441,7 +441,7 @@
     background: linear-gradient(135deg,
             var(--content-bg, white) 0%,
             rgba(52, 152, 219, 0.05) 100%);
-    border-left: 4px solid var(--primary-color, #3498db);
+    /* border-left: 4px solid var(--primary-color, #3498db); */
 }
 
 .permissions-section h2 {
@@ -517,7 +517,7 @@
     background: linear-gradient(135deg,
             var(--content-bg, white) 0%,
             rgba(231, 76, 60, 0.05) 100%);
-    border-left: 4px solid #e74c3c;
+    /* border-left: 4px solid #e74c3c; */
 }
 
 .theme-lists-wrapper {
@@ -708,7 +708,7 @@
     background: linear-gradient(135deg,
             var(--content-bg, white) 0%,
             rgba(155, 89, 182, 0.05) 100%);
-    border-left: 4px solid #9b59b6;
+    /* border-left: 4px solid #9b59b6; */
 }
 
 .global-theme-info {

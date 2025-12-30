@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -109,7 +109,7 @@ func TestLoginHandler(t *testing.T) {
 	}
 }
 
-func TestListEntitiesHandler(t *testing.T) {
+func TestListClientsHandler(t *testing.T) {
 	s, db := setupTestServer(t)
 
 	// Create user and get token
@@ -136,12 +136,12 @@ func TestListEntitiesHandler(t *testing.T) {
 	}
 
 	// Case 1: No Auth
-	req := httptest.NewRequest("GET", "/api/entities", nil)
+	req := httptest.NewRequest("GET", "/api/clients", nil)
 	w := httptest.NewRecorder()
 
 	// Test the specific handler wrapper
 	handler := s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		s.handleListEntities(w, r)
+		s.handleListClients(w, r)
 	}))
 
 	handler.ServeHTTP(w, req) // No auth header
@@ -150,7 +150,7 @@ func TestListEntitiesHandler(t *testing.T) {
 	}
 
 	// Case 2: With Auth
-	req = httptest.NewRequest("GET", "/api/entities", nil)
+	req = httptest.NewRequest("GET", "/api/clients", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)

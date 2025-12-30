@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -88,7 +88,7 @@ export default function AuditLogsTable({
         return status === "success" ? "Sucesso" : "Erro";
     };
 
-    const getEntityLabel = (entity) => {
+    const getClientLabel = (client) => {
         const labels = {
             auth: "Autenticação",
             user: "Usuário",
@@ -96,9 +96,9 @@ export default function AuditLogsTable({
             agreement: "Acordo",
             line: "Linha",
             category: "Categoria",
-            dependent: "Dependente",
+            affiliate: "Afiliado",
         };
-        return labels[entity] || entity;
+        return labels[client] || client;
     };
 
     const formatDate = (dateString) => {
@@ -214,11 +214,11 @@ export default function AuditLogsTable({
 
     // NOVA FUNÇÃO: resolve objeto pelo usuário
     const getObjectLabel = (log) => {
-        // Verifica entity_id com diferentes possibilidades de nome de campo
-        const entityId = log.entity_id || log.entityId || log.EntityID;
+        // Verifica client_id com diferentes possibilidades de nome de campo
+        const clientId = log.client_id || log.clientId || log.ClientID;
 
         // Se for entidade usuário, tenta várias formas de resolver
-        if (log.entity === "user") {
+        if (log.client === "user") {
             // Primeiro tenta extrair do old_value ou new_value (mais confiável)
             try {
                 const oldValue =
@@ -241,19 +241,19 @@ export default function AuditLogsTable({
                 // Ignora erro de parse
             }
 
-            // Se tiver entity_id, tenta buscar na lista de users
-            if (entityId) {
-                const user = users.find((u) => u.id === entityId);
+            // Se tiver client_id, tenta buscar na lista de users
+            if (clientId) {
+                const user = users.find((u) => u.id === clientId);
                 if (user) {
-                    return user.username || user.display_name || entityId;
+                    return user.username || user.display_name || clientId;
                 }
                 // Se não encontrou, retorna o UUID
-                return entityId.substring(0, 8) + "...";
+                return clientId.substring(0, 8) + "...";
             }
         }
 
         // Para entidade auth (login)
-        if (log.entity === "auth") {
+        if (log.client === "auth") {
             return "N/A";
         }
 
@@ -396,7 +396,7 @@ export default function AuditLogsTable({
                                     </span>
                                 </td>
                                 <td style={rowStyle}>
-                                    {getEntityLabel(log.entity)}
+                                    {getClientLabel(log.client)}
                                 </td>
                                 <td style={rowStyle}>{getObjectLabel(log)}</td>
                             </tr>

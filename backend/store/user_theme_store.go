@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -296,7 +297,6 @@ func (s *UserThemeStore) GetUserThemeSettings(userID string) (*UserThemeSettings
 	query := `
 		SELECT id, user_id, theme_preset, theme_mode, layout_mode,
 			   primary_color, secondary_color, background_color,
-			   primary_color, secondary_color, background_color,
 			   surface_color, text_color, text_secondary_color, border_color,
 			   high_contrast, color_blind_mode, dyslexic_font, font_general, font_title,
 			   font_table_title, created_at, updated_at
@@ -467,9 +467,12 @@ func (s *UserThemeStore) UpdateUserThemeSettings(settings *UserThemeSettings) er
 
 // UpsertUserThemeSettings creates or updates theme settings for a user
 func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) error {
+	log.Printf("🔍 DEBUG UpsertUserThemeSettings: Starting validation for user %s", settings.UserID)
 	if err := ValidateUserThemeSettings(settings); err != nil {
+		log.Printf("❌ DEBUG UpsertUserThemeSettings: Validation failed: %v", err)
 		return err
 	}
+	log.Printf("✅ DEBUG UpsertUserThemeSettings: Validation passed")
 
 	// Sanitize string inputs
 	settings.ThemePreset = sanitizeString(settings.ThemePreset)
@@ -528,8 +531,10 @@ func (s *UserThemeStore) UpsertUserThemeSettings(settings *UserThemeSettings) er
 	).Scan(&settings.ID, &settings.CreatedAt)
 
 	if err != nil {
+		log.Printf("❌ DEBUG UpsertUserThemeSettings: DB error: %v", err)
 		return fmt.Errorf("failed to upsert user theme settings: %w", err)
 	}
+	log.Printf("✅ DEBUG UpsertUserThemeSettings: Successfully saved to DB")
 
 	settings.UpdatedAt = now
 	return nil

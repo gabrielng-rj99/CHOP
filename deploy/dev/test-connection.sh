@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Connection Test Script
+# Client Hub - Connection Test Script
 # Tests if backend and frontend are properly connected
 
 set -e
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-echo -e "${BLUE}🧪 Testing Entity Hub Connection${NC}"
+echo -e "${BLUE}🧪 Testing Client Hub Connection${NC}"
 echo -e "${BLUE}=================================${NC}"
 echo ""
 

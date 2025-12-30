@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -89,8 +89,8 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "user",
-			EntityID:      "unknown",
+			Resource:        "user",
+			ResourceID:      "unknown",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -115,8 +115,8 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "create",
-		Entity:        "user",
-		EntityID:      id,
+		Resource:        "user",
+		ResourceID:      id,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      nil,
@@ -187,8 +187,8 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 			errMsg := err.Error()
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Entity:        "user",
-				EntityID:      userID,
+				Resource:        "user",
+				ResourceID:      userID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      oldUserData,
@@ -207,8 +207,8 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 		// Log successful deletion
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "user",
-			EntityID:      userID,
+			Resource:        "user",
+			ResourceID:      userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldUserData,
@@ -369,8 +369,8 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	// Log successful update
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Entity:        "user",
-		EntityID:      userID,
+		Resource:        "user",
+		ResourceID:      userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      oldUserData,
@@ -444,8 +444,8 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "user",
-			EntityID:      userID,
+			Resource:        "user",
+			ResourceID:      userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      map[string]interface{}{"status": "active", "username": username},
@@ -464,8 +464,8 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 	// Log successful block
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Entity:        "user",
-		EntityID:      userID,
+		Resource:        "user",
+		ResourceID:      userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      map[string]interface{}{"status": "active", "username": username},
@@ -527,8 +527,8 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "user",
-			EntityID:      userID,
+			Resource:        "user",
+			ResourceID:      userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      map[string]interface{}{"status": "locked", "username": username},
@@ -547,8 +547,8 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 	// Log successful unlock
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Entity:        "user",
-		EntityID:      userID,
+		Resource:        "user",
+		ResourceID:      userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      map[string]interface{}{"status": "locked", "username": username},

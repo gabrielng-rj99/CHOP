@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,12 +26,12 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const { config, getPersistentFilter, setPersistentFilter } = useConfig();
     const {
         fetchAgreements,
-        fetchEntities,
+        fetchClients,
         fetchCategories,
         fetchSubcategories,
     } = useData();
     const [contracts, setAgreements] = useState([]);
-    const [clients, setEntities] = useState([]);
+    const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -105,12 +105,12 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             const [contractsData, clientsData, categoriesData] =
                 await Promise.all([
                     fetchAgreements({}, forceRefresh),
-                    fetchEntities({}, forceRefresh),
+                    fetchClients({}, forceRefresh),
                     fetchCategories(forceRefresh),
                 ]);
 
             setAgreements(contractsData.data || []);
-            setEntities(clientsData.data || []);
+            setClients(clientsData.data || []);
             setCategories(categoriesData.data || []);
 
             // Load all lines for all categories

@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -390,8 +390,8 @@ func (s *Server) HandleUpdateRoleSessionPolicy(w http.ResponseWriter, r *http.Re
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "role_session_policy",
-			EntityID:      roleID,
+			Resource:        "role_session_policy",
+			ResourceID:      roleID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldPolicy,

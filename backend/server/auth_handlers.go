@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -55,8 +55,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "login",
-			Entity:        "auth",
-			EntityID:      req.Username,
+			Resource:      "auth",
+			ResourceID:    req.Username,
 			AdminID:       nil,
 			AdminUsername: &req.Username,
 			OldValue:      nil,
@@ -108,8 +108,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Log successful login
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "login",
-		Entity:        "auth",
-		EntityID:      user.ID,
+		Resource:      "auth",
+		ResourceID:    user.ID,
 		AdminID:       &user.ID,
 		AdminUsername: &username,
 		OldValue:      nil,
@@ -167,8 +167,8 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "login",
-			Entity:        "auth",
-			EntityID:      "",
+			Resource:      "auth",
+			ResourceID:    "",
 			AdminID:       nil,
 			AdminUsername: nil,
 			OldValue:      nil,
@@ -201,8 +201,8 @@ func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "login",
-			Entity:        "auth",
-			EntityID:      claims.UserID,
+			Resource:      "auth",
+			ResourceID:    claims.UserID,
 			AdminID:       nil,
 			AdminUsername: usernamePtr,
 			OldValue:      nil,

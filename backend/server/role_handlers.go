@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -371,8 +371,8 @@ func (s *Server) HandleCreateRole(w http.ResponseWriter, r *http.Request) {
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "role",
-			EntityID:      role.ID,
+			Resource:      "role",
+			ResourceID:    role.ID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -458,8 +458,8 @@ func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "role",
-			EntityID:      role.ID,
+			Resource:      "role",
+			ResourceID:    role.ID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue: map[string]interface{}{
@@ -534,8 +534,8 @@ func (s *Server) HandleDeleteRole(w http.ResponseWriter, r *http.Request, roleID
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "role",
-			EntityID:      role.ID,
+			Resource:      "role",
+			ResourceID:    role.ID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue: map[string]interface{}{
@@ -735,8 +735,8 @@ func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "role_permissions",
-			EntityID:      role.ID,
+			Resource:      "role_permissions",
+			ResourceID:    role.ID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue: map[string]interface{}{

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Monolith Mode Startup Script
+# Client Hub - Monolith Mode Startup Script
 # This script reads monolith.ini, generates secure passwords if needed,
 # builds the application (Backend & Frontend), and starts all services.
 
@@ -44,7 +44,7 @@ update_ini_value() {
     sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$file"
 }
 
-echo -e "${BLUE}🚀 Starting Entity Hub (Monolith Mode)${NC}"
+echo -e "${BLUE}🚀 Starting Client Hub (Monolith Mode)${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -229,21 +229,21 @@ if [ -f "$PROJECT_ROOT/deploy/generate-ssl.sh" ]; then
          openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
              -keyout "$SSL_DIR/server.key" \
              -out "$SSL_DIR/server.crt" \
-             -subj "/C=US/ST=State/L=City/O=EntityHub/CN=localhost" 2>/dev/null
+             -subj "/C=US/ST=State/L=City/O=ClientHub/CN=localhost" 2>/dev/null
     }
 else
     echo "Generating self-signed certificate..."
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout "$SSL_DIR/server.key" \
         -out "$SSL_DIR/server.crt" \
-        -subj "/C=US/ST=State/L=City/O=EntityHub/CN=localhost" 2>/dev/null
+        -subj "/C=US/ST=State/L=City/O=ClientHub/CN=localhost" 2>/dev/null
 fi
 echo -e "${GREEN}✓ SSL certificates ready${NC}"
 
 # Create nginx config in project directory
 NGINX_CONF="$PROJECT_ROOT/deploy/monolith/nginx-runtime.conf"
 cat > "$NGINX_CONF" << 'NGINX_EOF'
-# Entity Hub Monolith Nginx Config
+# Client Hub Monolith Nginx Config
 events {
     worker_connections 1024;
 }

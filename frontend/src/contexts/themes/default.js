@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,35 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// DEFAULT THEME - Oceano Profundo (Enhanced Deep Ocean - Project Default)
+// DEFAULT THEME - Tema Padrão (formerly standard blue)
 export const defaultTheme = {
     default: {
-        name: "Oceano (Padrão)",
+        name: "Tema Padrão",
         light: {
-            buttonPrimary: "#0284c7",
-            buttonSecondary: "#0369a1",
-            bgPage: "#f0f9ff",
+            buttonPrimary: "#3498db",
+            buttonSecondary: "#2c3e50",
+            bgPage: "#f8f9fa",
             bgCard: "#ffffff",
-            textPrimary: "#0c4a6e",
-            textSecondary: "#475569",
-            borderDefault: "#7dd3fc",
+            textPrimary: "#333333",
+            textSecondary: "#666666",
+            borderDefault: "#cbd5e0",
             textNav: "#ffffff",
-            bgNavbar: "#e0f2fe",
-            textTitle: "#0369a1",
-            textNavActive: "#f0f9ff",
+            bgNavbar: "#3498db",
+            textTitle: "#2c3e50",
+            textNavActive: "#f8f9fa",
         },
         dark: {
-            buttonPrimary: "#38bdf8",
-            buttonSecondary: "#0ea5e9",
-            bgPage: "#0c1929",
-            bgCard: "#0f2942",
-            textPrimary: "#e0f2fe",
-            textSecondary: "#7dd3fc",
-            borderDefault: "#075985",
+            buttonPrimary: "#3498db",
+            buttonSecondary: "#1a252f",
+            bgPage: "#1a202c",
+            bgCard: "#2d3748",
+            textPrimary: "#f7fafc",
+            textSecondary: "#a0aec0",
+            borderDefault: "#4a5568",
             textNav: "#ffffff",
-            bgNavbar: "#082f49",
-            textTitle: "#38bdf8",
-            textNavActive: "#ffffff",
+            bgNavbar: "#1a202c",
+            textTitle: "#3498db",
+            textNavActive: "#f7fafc",
         },
     },
 };

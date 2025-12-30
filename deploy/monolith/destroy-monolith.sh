@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Destroy Monolith Environment Script
+# Client Hub - Destroy Monolith Environment Script
 # ⚠️  WARNING: This script completely destroys the monolith environment:
 # - Stops all services
 # - Drops the database and user
@@ -221,8 +221,8 @@ if [ -f "$SCRIPT_DIR/nginx-runtime.conf" ]; then
 fi
 
 # Temporary nginx config
-if [ -f "/tmp/entity-hub-monolith.conf" ]; then
-    sudo rm -f /tmp/entity-hub-monolith.conf 2>/dev/null || true
+if [ -f "/tmp/Client-Hub-monolith.conf" ]; then
+    sudo rm -f /tmp/Client-Hub-monolith.conf 2>/dev/null || true
     echo -e "${GREEN}✓ Removed temporary nginx config${NC}"
 fi
 

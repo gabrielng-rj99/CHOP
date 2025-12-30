@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -45,8 +45,8 @@ export const getInitialFormData = () => ({
     item_key: "",
     start_date: "",
     end_date: "",
-    entity_id: "",
-    sub_entity_id: "",
+    client_id: "",
+    affiliate_id: "",
     category_id: "",
     subcategory_id: "",
 });
@@ -58,8 +58,8 @@ export const formatContractForEdit = (contract) => ({
         ? convertDateToDisplay(contract.start_date)
         : "",
     end_date: contract.end_date ? convertDateToDisplay(contract.end_date) : "",
-    entity_id: contract.entity_id || "",
-    sub_entity_id: contract.sub_entity_id || "",
+    client_id: contract.client_id || "",
+    affiliate_id: contract.affiliate_id || "",
     category_id: contract.line?.category_id || "",
     subcategory_id: contract.subcategory_id || "",
 });
@@ -138,7 +138,7 @@ export const filterContracts = (
             (filter === "archived" && isArchived) ||
             (filter === "all" && !isArchived);
 
-        const client = clients.find((c) => c.id === contract.entity_id);
+        const client = clients.find((c) => c.id === contract.client_id);
         const category = categories.find((cat) =>
             cat.lines?.some((line) => line.id === contract.subcategory_id),
         );

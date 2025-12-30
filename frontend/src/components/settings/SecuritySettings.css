@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -327,9 +327,11 @@
     height: 8px;
     -webkit-appearance: none;
     appearance: none;
-    background: linear-gradient(to right,
-            #e0e0e0,
-            var(--primary-color, #4a6cf7));
+    background: linear-gradient(
+        to right,
+        #e0e0e0,
+        var(--primary-color, #4a6cf7)
+    );
     border-radius: 4px;
     outline: none;
 }
@@ -405,11 +407,11 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.toggle-label input:checked+.toggle-switch {
+.toggle-label input:checked + .toggle-switch {
     background: var(--primary-color, #4a6cf7);
 }
 
-.toggle-label input:checked+.toggle-switch::after {
+.toggle-label input:checked + .toggle-switch::after {
     transform: translateX(24px);
 }
 
@@ -601,7 +603,7 @@
     margin-bottom: 8px;
 }
 
-.audit-card>p {
+.audit-card > p {
     color: var(--text-secondary, #666);
     font-size: 0.9rem;
     margin-bottom: 16px;
@@ -660,7 +662,7 @@
     margin-bottom: 8px;
 }
 
-.notifications-section>p {
+.notifications-section > p {
     color: var(--text-secondary, #666);
     font-size: 0.9rem;
     margin-bottom: 16px;
@@ -718,9 +720,11 @@
 }
 
 .security-save-button {
-    background: linear-gradient(135deg,
-            var(--primary-color, #4a6cf7) 0%,
-            #3b5bdb 100%);
+    background: linear-gradient(
+        135deg,
+        var(--primary-color, #4a6cf7) 0%,
+        #3b5bdb 100%
+    );
     color: white;
     border: none;
     padding: 14px 40px;

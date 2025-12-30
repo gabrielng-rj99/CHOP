@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@
 """
 AGPL-3.0 Compliance Verification Tests
 
-This test suite verifies that the entire Entity Hub Open Project is properly
+This test suite verifies that the entire Client Hub Open Project is properly
 protected under the GNU Affero General Public License v3.0.
 
 Tests verify:
@@ -83,7 +83,7 @@ class TestAGPLLicenseFiles:
         with open(notice_file, 'r') as f:
             content = f.read()
 
-        assert 'Entity Hub' in content
+        assert 'Client Hub' in content
         assert 'Copyright' in content
 
     def test_license_information_file_exists(self):
@@ -125,7 +125,7 @@ class TestSourceFileHeaders:
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read(500)  # Check first 500 chars
 
-                if 'Entity Hub Open Project' in content or 'GNU Affero General Public License' in content:
+                if 'Client Hub Open Project' in content or 'GNU Affero General Public License' in content:
                     files_with_headers += 1
                 else:
                     files_without_headers.append(str(filepath.relative_to(PROJECT_ROOT)))
@@ -252,7 +252,7 @@ class TestHeaderConsistency:
                 with open(filepath, 'r') as f:
                     content = f.read(300)
 
-                if 'Entity Hub Open Project' in content:
+                if 'Client Hub Open Project' in content:
                     assert content.startswith('/*'), "Go file header should start with /*"
                     assert 'GNU Affero General Public License' in content
 
@@ -265,7 +265,7 @@ class TestHeaderConsistency:
                 with open(filepath, 'r') as f:
                     content = f.read(600)
 
-                if 'Entity Hub Open Project' in content:
+                if 'Client Hub Open Project' in content:
                     assert 'GNU Affero General Public License' in content
                     assert '#' in content[:10]
 
@@ -280,7 +280,7 @@ class TestHeaderConsistency:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         content = f.read(300)
 
-                    if 'Entity Hub Open Project' in content:
+                    if 'Client Hub Open Project' in content:
                         assert 'GNU Affero General Public License' in content
                         assert '/*' in content[:50]
                 except Exception:
@@ -329,7 +329,7 @@ class TestComplianceIntegration:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read(500)
 
-                assert 'Entity Hub Open Project' in content or 'GNU Affero' in content, \
+                assert 'Client Hub Open Project' in content or 'GNU Affero' in content, \
                     f"Critical file missing license header: {filepath.relative_to(PROJECT_ROOT)}"
 
     def test_overall_project_compliance(self):

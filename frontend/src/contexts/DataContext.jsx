@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import cacheManager from '../utils/cacheManager';
+import React, {
+    createContext,
+    useContext,
+    useState,
+    useCallback,
+    useRef,
+} from "react";
+import cacheManager from "../utils/cacheManager";
 
 const DataContext = createContext();
 
 export const useData = () => {
     const context = useContext(DataContext);
     if (!context) {
-        throw new Error('useData must be used within a DataProvider');
+        throw new Error("useData must be used within a DataProvider");
     }
     return context;
 };
@@ -37,229 +43,350 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
     /**
      * Generic fetch with cache support
      */
-    const fetchWithCache = useCallback(async (
-        endpoint,
-        options = {},
-        cacheKey = null,
-        ttl = 5 * 60 * 1000,
-        forceRefresh = false
-    ) => {
-        const key = cacheKey || cacheManager.generateKey(endpoint, options.params);
+    const fetchWithCache = useCallback(
+        async (
+            endpoint,
+            options = {},
+            cacheKey = null,
+            ttl = 5 * 60 * 1000,
+            forceRefresh = false,
+        ) => {
+            const key =
+                cacheKey || cacheManager.generateKey(endpoint, options.params);
 
-        // Check if there's already a request in progress for this key
-        if (requestInProgressRef.current.has(key)) {
-            return requestInProgressRef.current.get(key);
-        }
-
-        // Check cache first (unless force refresh)
-        if (!forceRefresh) {
-            const cachedData = cacheManager.get(key, ttl);
-            if (cachedData !== null) {
-                return cachedData;
+            // Check if there's already a request in progress for this key
+            if (requestInProgressRef.current.has(key)) {
+                return requestInProgressRef.current.get(key);
             }
-        }
 
-        // Create the fetch promise
-        const fetchPromise = (async () => {
-            try {
-                setLoading(prev => ({ ...prev, [key]: true }));
-                setErrors(prev => ({ ...prev, [key]: null }));
-
-                const headers = {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                };
-
-                const url = new URL(`${apiUrl}${endpoint}`);
-                if (options.params) {
-                    Object.keys(options.params).forEach(key =>
-                        url.searchParams.append(key, options.params[key])
-                    );
+            // Check cache first (unless force refresh)
+            if (!forceRefresh) {
+                const cachedData = cacheManager.get(key, ttl);
+                if (cachedData !== null) {
+                    return cachedData;
                 }
-
-                const response = await fetch(url.toString(), {
-                    ...options,
-                    headers,
-                });
-
-                // Check for 401 (token expired)
-                if (response.status === 401) {
-                    onTokenExpired?.();
-                    throw new Error('Token inválido ou expirado. Faça login novamente.');
-                }
-
-                // Check for 429 (rate limit)
-                if (response.status === 429) {
-                    throw new Error('Muitas requisições. Por favor, aguarde um momento.');
-                }
-
-                if (!response.ok) {
-                    throw new Error(`Erro ao carregar dados: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-
-                // Cache the response
-                cacheManager.set(key, data);
-
-                return data;
-            } catch (error) {
-                setErrors(prev => ({ ...prev, [key]: error.message }));
-                throw error;
-            } finally {
-                setLoading(prev => ({ ...prev, [key]: false }));
-                requestInProgressRef.current.delete(key);
             }
-        })();
 
-        // Store the promise so duplicate requests can use it
-        requestInProgressRef.current.set(key, fetchPromise);
+            // Create the fetch promise
+            const fetchPromise = (async () => {
+                try {
+                    setLoading((prev) => ({ ...prev, [key]: true }));
+                    setErrors((prev) => ({ ...prev, [key]: null }));
 
-        return fetchPromise;
-    }, [token, apiUrl, onTokenExpired]);
+                    const headers = {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                        ...options.headers,
+                    };
+
+                    const url = new URL(`${apiUrl}${endpoint}`);
+                    if (options.params) {
+                        Object.keys(options.params).forEach((key) =>
+                            url.searchParams.append(key, options.params[key]),
+                        );
+                    }
+
+                    const response = await fetch(url.toString(), {
+                        ...options,
+                        headers,
+                    });
+
+                    // Check for 401 (token expired)
+                    if (response.status === 401) {
+                        onTokenExpired?.();
+                        throw new Error(
+                            "Token inválido ou expirado. Faça login novamente.",
+                        );
+                    }
+
+                    // Check for 429 (rate limit)
+                    if (response.status === 429) {
+                        throw new Error(
+                            "Muitas requisições. Por favor, aguarde um momento.",
+                        );
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `Erro ao carregar dados: ${response.statusText}`,
+                        );
+                    }
+
+                    const data = await response.json();
+
+                    // Cache the response
+                    cacheManager.set(key, data);
+
+                    return data;
+                } catch (error) {
+                    setErrors((prev) => ({ ...prev, [key]: error.message }));
+                    throw error;
+                } finally {
+                    setLoading((prev) => ({ ...prev, [key]: false }));
+                    requestInProgressRef.current.delete(key);
+                }
+            })();
+
+            // Store the promise so duplicate requests can use it
+            requestInProgressRef.current.set(key, fetchPromise);
+
+            return fetchPromise;
+        },
+        [token, apiUrl, onTokenExpired],
+    );
 
     /**
      * Fetch agreements
      */
-    const fetchAgreements = useCallback(async (params = {}, forceRefresh = false) => {
-        return fetchWithCache('/agreements', { params }, null, 5 * 60 * 1000, forceRefresh);
-    }, [fetchWithCache]);
+    const fetchAgreements = useCallback(
+        async (params = {}, forceRefresh = false) => {
+            return fetchWithCache(
+                "/agreements",
+                { params },
+                null,
+                5 * 60 * 1000,
+                forceRefresh,
+            );
+        },
+        [fetchWithCache],
+    );
 
     /**
-     * Fetch entities
+     * Fetch clients
      */
-    const fetchEntities = useCallback(async (params = {}, forceRefresh = false) => {
-        return fetchWithCache('/entities', { params }, null, 5 * 60 * 1000, forceRefresh);
-    }, [fetchWithCache]);
+    const fetchClients = useCallback(
+        async (params = {}, forceRefresh = false) => {
+            return fetchWithCache(
+                "/clients",
+                { params },
+                null,
+                5 * 60 * 1000,
+                forceRefresh,
+            );
+        },
+        [fetchWithCache],
+    );
 
     /**
      * Fetch categories
      */
-    const fetchCategories = useCallback(async (forceRefresh = false) => {
-        return fetchWithCache('/categories', {}, null, 5 * 60 * 1000, forceRefresh);
-    }, [fetchWithCache]);
+    const fetchCategories = useCallback(
+        async (forceRefresh = false) => {
+            return fetchWithCache(
+                "/categories",
+                {},
+                null,
+                5 * 60 * 1000,
+                forceRefresh,
+            );
+        },
+        [fetchWithCache],
+    );
 
     /**
      * Fetch subcategories for a category
      */
-    const fetchSubcategories = useCallback(async (categoryId, forceRefresh = false) => {
-        return fetchWithCache(
-            `/categories/${categoryId}/subcategories`,
-            {},
-            null,
-            5 * 60 * 1000,
-            forceRefresh
-        );
-    }, [fetchWithCache]);
+    const fetchSubcategories = useCallback(
+        async (categoryId, forceRefresh = false) => {
+            return fetchWithCache(
+                `/categories/${categoryId}/subcategories`,
+                {},
+                null,
+                5 * 60 * 1000,
+                forceRefresh,
+            );
+        },
+        [fetchWithCache],
+    );
 
     /**
      * Create/Update operations that invalidate cache
      */
-    const createAgreement = useCallback(async (data) => {
-        const response = await fetchWithCache('/agreements', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const createAgreement = useCallback(
+        async (data) => {
+            const response = await fetchWithCache(
+                "/agreements",
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate agreements cache
-        cacheManager.invalidateResource('agreements');
+            // Invalidate agreements cache
+            cacheManager.invalidateResource("agreements");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const updateAgreement = useCallback(async (id, data) => {
-        const response = await fetchWithCache(`/agreements/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const updateAgreement = useCallback(
+        async (id, data) => {
+            const response = await fetchWithCache(
+                `/agreements/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate agreements cache
-        cacheManager.invalidateResource('agreements');
+            // Invalidate agreements cache
+            cacheManager.invalidateResource("agreements");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const deleteAgreement = useCallback(async (id) => {
-        const response = await fetchWithCache(`/agreements/${id}`, {
-            method: 'DELETE',
-        }, null, 0, true);
+    const deleteAgreement = useCallback(
+        async (id) => {
+            const response = await fetchWithCache(
+                `/agreements/${id}`,
+                {
+                    method: "DELETE",
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate agreements cache
-        cacheManager.invalidateResource('agreements');
+            // Invalidate agreements cache
+            cacheManager.invalidateResource("agreements");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const createEntity = useCallback(async (data) => {
-        const response = await fetchWithCache('/entities', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const createClient = useCallback(
+        async (data) => {
+            const response = await fetchWithCache(
+                "/clients",
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate entities cache
-        cacheManager.invalidateResource('entities');
+            // Invalidate clients cache
+            cacheManager.invalidateResource("clients");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const updateEntity = useCallback(async (id, data) => {
-        const response = await fetchWithCache(`/entities/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const updateClient = useCallback(
+        async (id, data) => {
+            const response = await fetchWithCache(
+                `/clients/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate entities cache
-        cacheManager.invalidateResource('entities');
+            // Invalidate clients cache
+            cacheManager.invalidateResource("clients");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const deleteEntity = useCallback(async (id) => {
-        const response = await fetchWithCache(`/entities/${id}`, {
-            method: 'DELETE',
-        }, null, 0, true);
+    const deleteClient = useCallback(
+        async (id) => {
+            const response = await fetchWithCache(
+                `/clients/${id}`,
+                {
+                    method: "DELETE",
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate entities cache
-        cacheManager.invalidateResource('entities');
+            // Invalidate clients cache
+            cacheManager.invalidateResource("clients");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const createCategory = useCallback(async (data) => {
-        const response = await fetchWithCache('/categories', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const createCategory = useCallback(
+        async (data) => {
+            const response = await fetchWithCache(
+                "/categories",
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate categories cache
-        cacheManager.invalidateResource('categories');
+            // Invalidate categories cache
+            cacheManager.invalidateResource("categories");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const updateCategory = useCallback(async (id, data) => {
-        const response = await fetchWithCache(`/categories/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }, null, 0, true);
+    const updateCategory = useCallback(
+        async (id, data) => {
+            const response = await fetchWithCache(
+                `/categories/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(data),
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate categories cache
-        cacheManager.invalidateResource('categories');
+            // Invalidate categories cache
+            cacheManager.invalidateResource("categories");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
-    const deleteCategory = useCallback(async (id) => {
-        const response = await fetchWithCache(`/categories/${id}`, {
-            method: 'DELETE',
-        }, null, 0, true);
+    const deleteCategory = useCallback(
+        async (id) => {
+            const response = await fetchWithCache(
+                `/categories/${id}`,
+                {
+                    method: "DELETE",
+                },
+                null,
+                0,
+                true,
+            );
 
-        // Invalidate categories cache
-        cacheManager.invalidateResource('categories');
+            // Invalidate categories cache
+            cacheManager.invalidateResource("categories");
 
-        return response;
-    }, [fetchWithCache]);
+            return response;
+        },
+        [fetchWithCache],
+    );
 
     /**
      * Manual cache invalidation
@@ -282,7 +409,7 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
     const value = {
         // Fetch methods
         fetchAgreements,
-        fetchEntities,
+        fetchClients,
         fetchCategories,
         fetchSubcategories,
         fetchWithCache,
@@ -291,9 +418,9 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
         createAgreement,
         updateAgreement,
         deleteAgreement,
-        createEntity,
-        updateEntity,
-        deleteEntity,
+        createClient,
+        updateClient,
+        deleteClient,
         createCategory,
         updateCategory,
         deleteCategory,
@@ -308,8 +435,6 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
     };
 
     return (
-        <DataContext.Provider value={value}>
-            {children}
-        </DataContext.Provider>
+        <DataContext.Provider value={value}>{children}</DataContext.Provider>
     );
 };

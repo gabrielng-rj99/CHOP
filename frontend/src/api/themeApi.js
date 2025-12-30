@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -43,12 +43,16 @@ const themeApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Erro ao carregar configurações de tema");
+            throw new Error(
+                errorData.error || "Erro ao carregar configurações de tema",
+            );
         }
 
         return await response.json();
@@ -68,7 +72,7 @@ const themeApi = {
         }
 
         // Validate required fields
-        if (!themeSettings || typeof themeSettings !== 'object') {
+        if (!themeSettings || typeof themeSettings !== "object") {
             throw new Error("Configurações de tema inválidas");
         }
 
@@ -86,11 +90,15 @@ const themeApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (response.status === 403) {
-            throw new Error("Você não tem permissão para alterar configurações de tema");
+            throw new Error(
+                "Você não tem permissão para alterar configurações de tema",
+            );
         }
 
         if (response.status === 400) {
@@ -100,7 +108,9 @@ const themeApi = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Erro ao salvar configurações de tema");
+            throw new Error(
+                errorData.error || "Erro ao salvar configurações de tema",
+            );
         }
 
         return await response.json();
@@ -128,16 +138,22 @@ const themeApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (response.status === 403) {
-            throw new Error("Apenas usuários root podem acessar permissões de tema");
+            throw new Error(
+                "Apenas usuários root podem acessar permissões de tema",
+            );
         }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Erro ao carregar permissões de tema");
+            throw new Error(
+                errorData.error || "Erro ao carregar permissões de tema",
+            );
         }
 
         return await response.json();
@@ -153,12 +169,17 @@ const themeApi = {
      * @param {function} onTokenExpired - Callback for expired token
      * @returns {Promise<Object>} Updated permissions
      */
-    updateThemePermissions: async (apiUrl, token, permissions, onTokenExpired) => {
+    updateThemePermissions: async (
+        apiUrl,
+        token,
+        permissions,
+        onTokenExpired,
+    ) => {
         if (!token) {
             throw new Error("Token não fornecido");
         }
 
-        if (!permissions || typeof permissions !== 'object') {
+        if (!permissions || typeof permissions !== "object") {
             throw new Error("Permissões inválidas");
         }
 
@@ -170,22 +191,30 @@ const themeApi = {
             },
             body: JSON.stringify({
                 users_can_edit_theme: Boolean(permissions.users_can_edit_theme),
-                admins_can_edit_theme: Boolean(permissions.admins_can_edit_theme),
+                admins_can_edit_theme: Boolean(
+                    permissions.admins_can_edit_theme,
+                ),
             }),
         });
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (response.status === 403) {
-            throw new Error("Apenas usuários root podem alterar permissões de tema");
+            throw new Error(
+                "Apenas usuários root podem alterar permissões de tema",
+            );
         }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Erro ao atualizar permissões de tema");
+            throw new Error(
+                errorData.error || "Erro ao atualizar permissões de tema",
+            );
         }
 
         return await response.json();
@@ -201,24 +230,31 @@ const themeApi = {
 
         // Theme preset - sanitize string
         if (settings.theme_preset !== undefined) {
-            sanitized.theme_preset = String(settings.theme_preset || 'default')
+            sanitized.theme_preset = String(settings.theme_preset || "default")
                 .trim()
                 .substring(0, 100)
-                .replace(/[<>]/g, ''); // Remove potential XSS characters
+                .replace(/[<>]/g, ""); // Remove potential XSS characters
         }
 
         // Theme mode - validate enum
-        const validModes = ['light', 'dark', 'system'];
+        const validModes = ["light", "dark", "system"];
         if (settings.theme_mode !== undefined) {
             const mode = String(settings.theme_mode).toLowerCase().trim();
-            sanitized.theme_mode = validModes.includes(mode) ? mode : 'system';
+            sanitized.theme_mode = validModes.includes(mode) ? mode : "system";
         }
 
         // Color blind mode - validate enum
-        const validColorBlindModes = ['none', 'protanopia', 'deuteranopia', 'tritanopia'];
+        const validColorBlindModes = [
+            "none",
+            "protanopia",
+            "deuteranopia",
+            "tritanopia",
+        ];
         if (settings.color_blind_mode !== undefined) {
             const mode = String(settings.color_blind_mode).toLowerCase().trim();
-            sanitized.color_blind_mode = validColorBlindModes.includes(mode) ? mode : 'none';
+            sanitized.color_blind_mode = validColorBlindModes.includes(mode)
+                ? mode
+                : "none";
         }
 
         // High contrast - boolean
@@ -231,34 +267,56 @@ const themeApi = {
             sanitized.dyslexic_font = Boolean(settings.dyslexic_font);
         }
 
-        // Font fields - sanitize string
-        const fontFields = ['font_general', 'font_title', 'font_table_title'];
-        fontFields.forEach(field => {
+        // Layout mode - validate enum
+        const validLayoutModes = ["standard", "full", "centralized"];
+        if (settings.layout_mode !== undefined) {
+            const mode = String(settings.layout_mode || "standard")
+                .toLowerCase()
+                .trim();
+            sanitized.layout_mode = validLayoutModes.includes(mode)
+                ? mode
+                : "standard";
+        }
+
+        // Font fields - sanitize string, properly handle null values
+        const fontFields = ["font_general", "font_title", "font_table_title"];
+        fontFields.forEach((field) => {
             if (settings[field] !== undefined) {
-                sanitized[field] = String(settings[field]).trim().replace(/[<>]/g, '');
+                // If value is null, empty, or the string "null", set to null/undefined (don't send)
+                if (
+                    settings[field] === null ||
+                    settings[field] === "" ||
+                    settings[field] === "null"
+                ) {
+                    // Do not include in sanitized object if null/empty
+                } else {
+                    sanitized[field] = String(settings[field])
+                        .trim()
+                        .replace(/[<>]/g, "");
+                }
             }
         });
 
         // Color fields - validate hex format
         const colorFields = [
-            'primary_color',
-            'secondary_color',
-            'background_color',
-            'surface_color',
-            'text_color',
-            'text_secondary_color',
-            'border_color'
+            "primary_color",
+            "secondary_color",
+            "background_color",
+            "surface_color",
+            "text_color",
+            "text_secondary_color",
+            "border_color",
         ];
 
         const hexColorRegex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
-        colorFields.forEach(field => {
+        colorFields.forEach((field) => {
             if (settings[field] !== undefined && settings[field] !== null) {
                 const color = String(settings[field]).trim();
-                if (color === '' || hexColorRegex.test(color)) {
-                    sanitized[field] = color || null;
+                if (color !== "" && hexColorRegex.test(color)) {
+                    sanitized[field] = color;
                 }
-                // Invalid colors are silently ignored (not included in sanitized)
+                // If invalid or empty, do not include
             }
         });
 
@@ -271,7 +329,7 @@ const themeApi = {
      * @returns {boolean} True if valid hex color
      */
     isValidHexColor: (color) => {
-        if (!color || typeof color !== 'string') return false;
+        if (!color || typeof color !== "string") return false;
         return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color.trim());
     },
 
@@ -284,8 +342,8 @@ const themeApi = {
         if (!apiSettings) return null;
 
         return {
-            preset: apiSettings.theme_preset || 'default',
-            mode: apiSettings.theme_mode || 'system',
+            preset: apiSettings.theme_preset || "default",
+            mode: apiSettings.theme_mode || "system",
             primaryColor: apiSettings.primary_color || null,
             secondaryColor: apiSettings.secondary_color || null,
             backgroundColor: apiSettings.background_color || null,
@@ -294,11 +352,11 @@ const themeApi = {
             textSecondaryColor: apiSettings.text_secondary_color || null,
             borderColor: apiSettings.border_color || null,
             highContrast: apiSettings.high_contrast || false,
-            colorBlindMode: apiSettings.color_blind_mode || 'none',
+            colorBlindMode: apiSettings.color_blind_mode || "none",
             dyslexicFont: apiSettings.dyslexic_font || false,
-            fontGeneral: apiSettings.font_general || 'System',
-            fontTitle: apiSettings.font_title || 'System',
-            fontTableTitle: apiSettings.font_table_title || 'System',
+            fontGeneral: apiSettings.font_general || "System",
+            fontTitle: apiSettings.font_title || "System",
+            fontTableTitle: apiSettings.font_table_title || "System",
         };
     },
 
@@ -311,8 +369,9 @@ const themeApi = {
         if (!frontendSettings) return null;
 
         return {
-            theme_preset: frontendSettings.preset || 'default',
-            theme_mode: frontendSettings.mode || 'system',
+            theme_preset: frontendSettings.preset || "default",
+            theme_mode: frontendSettings.mode || "system",
+            layout_mode: frontendSettings.layoutMode || "standard",
             primary_color: frontendSettings.primaryColor || null,
             secondary_color: frontendSettings.secondaryColor || null,
             background_color: frontendSettings.backgroundColor || null,
@@ -321,8 +380,7 @@ const themeApi = {
             text_secondary_color: frontendSettings.textSecondaryColor || null,
             border_color: frontendSettings.borderColor || null,
             high_contrast: frontendSettings.highContrast || false,
-            high_contrast: frontendSettings.highContrast || false,
-            color_blind_mode: frontendSettings.colorBlindMode || 'none',
+            color_blind_mode: frontendSettings.colorBlindMode || "none",
             dyslexic_font: frontendSettings.dyslexicFont || false,
             font_general: frontendSettings.fontGeneral || null,
             font_title: frontendSettings.fontTitle || null,

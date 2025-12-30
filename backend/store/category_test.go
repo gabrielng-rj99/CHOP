@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -192,18 +192,18 @@ func TestDeleteCategoryWithLinesAssociated(t *testing.T) {
 		t.Fatalf("Failed to create line: %v", err)
 	}
 
-	// Insert test entity for agreement
-	entityID, err := InsertTestEntity(db, "Test Entity Protection", "12.345.678/0001-90")
+	// Insert test client for contract
+	clientID, err := InsertTestClient(db, "Test Client Protection", "12.345.678/0001-90")
 	if err != nil {
-		t.Fatalf("Failed to insert test entity: %v", err)
+		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	// Add an agreement to check protection
-	agreementStore := NewAgreementStore(db)
-	_, err = agreementStore.CreateAgreement(domain.Agreement{
+	// Add an contract to check protection
+	contractStore := NewContractStore(db)
+	_, err = contractStore.CreateContract(domain.Contract{
 		Model:         "Protection Test",
 		SubcategoryID: lineID,
-		EntityID:      entityID,
+		ClientID:      clientID,
 	})
 	// Need to fix code above to capture ID.
 
@@ -530,7 +530,7 @@ func TestUpdateCategoryStatus(t *testing.T) {
 		t.Fatalf("Failed to insert category: %v", err)
 	}
 
-	// Update status (should be inactive as no agreements)
+	// Update status (should be inactive as no contracts)
 	err = categoryStore.UpdateCategoryStatus(categoryID)
 	if err != nil {
 		t.Fatalf("Failed to update status: %v", err)
@@ -542,25 +542,25 @@ func TestUpdateCategoryStatus(t *testing.T) {
 		t.Fatalf("Failed to query category status: %v", err)
 	}
 	if status != "inativo" {
-		t.Errorf("Expected status 'inativo' for category with no agreements, got '%s'", status)
+		t.Errorf("Expected status 'inativo' for category with no contracts, got '%s'", status)
 	}
 
-	// Add an active agreement
+	// Add an active contract
 	subcategoryID, _ := InsertTestSubcategory(db, "Line 1", categoryID)
-	entityID, _ := InsertTestEntity(db, "Entity 1", "55.723.174/0001-10")
-	agreementStore := NewAgreementStore(db)
+	clientID, _ := InsertTestClient(db, "Client 1", "55.723.174/0001-10")
+	contractStore := NewContractStore(db)
 	startDate := timePtr(time.Now().AddDate(0, 0, -10))
 	endDate := timePtr(time.Now().AddDate(0, 0, 10))
-	_, err = agreementStore.CreateAgreement(domain.Agreement{
-		Model:         "Agreement 1",
+	_, err = contractStore.CreateContract(domain.Contract{
+		Model:         "Contract 1",
 		ItemKey:       "KEY-1",
 		StartDate:     startDate,
 		EndDate:       endDate,
 		SubcategoryID: subcategoryID,
-		EntityID:      entityID,
+		ClientID:      clientID,
 	})
 	if err != nil {
-		t.Fatalf("Failed to create agreement: %v", err)
+		t.Fatalf("Failed to create contract: %v", err)
 	}
 
 	// Update status (should be active)
@@ -574,7 +574,7 @@ func TestUpdateCategoryStatus(t *testing.T) {
 		t.Fatalf("Failed to query category status: %v", err)
 	}
 	if status != "ativo" {
-		t.Errorf("Expected status 'ativo' for category with active agreements, got '%s'", status)
+		t.Errorf("Expected status 'ativo' for category with active contracts, got '%s'", status)
 	}
 }
 

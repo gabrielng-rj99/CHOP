@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -54,11 +54,11 @@ type InitializeAdminResponse struct {
 func isDatabaseEmpty(db *sql.DB) (bool, error) {
 	tables := []string{
 		"users",
-		"entities",
-		"sub_entities",
+		"clients",
+		"affiliates",
 		"categories",
 		"subcategories",
-		"agreements",
+		"contracts",
 	}
 
 	for _, table := range tables {
@@ -216,9 +216,9 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 	// Reinitialize server stores with the database connection
 	// This makes the server fully operational after admin creation
 	s.userStore = store.NewUserStore(db)
-	s.agreementStore = store.NewAgreementStore(db)
-	s.entityStore = store.NewEntityStore(db)
-	s.subEntityStore = store.NewSubEntityStore(db)
+	s.contractStore = store.NewContractStore(db)
+	s.clientStore = store.NewClientStore(db)
+	s.affiliateStore = store.NewAffiliateStore(db)
 	s.categoryStore = store.NewCategoryStore(db)
 	s.subcategoryStore = store.NewSubcategoryStore(db)
 	s.auditStore = store.NewAuditStore(db)

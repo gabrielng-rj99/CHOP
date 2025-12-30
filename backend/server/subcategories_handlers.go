@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -77,8 +77,8 @@ func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request)
 			newValueJSON, _ := json.Marshal(line)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "create",
-				Entity:        "subcategory",
-				EntityID:      "unknown",
+				Resource:      "subcategory",
+				ResourceID:    "unknown",
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      nil,
@@ -101,8 +101,8 @@ func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request)
 		newValueJSON, _ := json.Marshal(line)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Entity:        "subcategory",
-			EntityID:      id,
+			Resource:      "subcategory",
+			ResourceID:    id,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -208,8 +208,8 @@ func (s *Server) handleUpdateSubcategory(w http.ResponseWriter, r *http.Request,
 			newValueJSON, _ := json.Marshal(line)
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "update",
-				Entity:        "subcategory",
-				EntityID:      subcategoryID,
+				Resource:      "subcategory",
+				ResourceID:    subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -231,8 +231,8 @@ func (s *Server) handleUpdateSubcategory(w http.ResponseWriter, r *http.Request,
 		newValueJSON, _ := json.Marshal(line)
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "subcategory",
-			EntityID:      subcategoryID,
+			Resource:      "subcategory",
+			ResourceID:    subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -261,8 +261,8 @@ func (s *Server) handleDeleteSubcategory(w http.ResponseWriter, r *http.Request,
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Entity:        "subcategory",
-				EntityID:      subcategoryID,
+				Resource:      "subcategory",
+				ResourceID:    subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -283,8 +283,8 @@ func (s *Server) handleDeleteSubcategory(w http.ResponseWriter, r *http.Request,
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Entity:        "subcategory",
-			EntityID:      subcategoryID,
+			Resource:      "subcategory",
+			ResourceID:    subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -313,8 +313,8 @@ func (s *Server) handleArchiveSubcategory(w http.ResponseWriter, r *http.Request
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "archive",
-				Entity:        "subcategory",
-				EntityID:      subcategoryID,
+				Resource:      "subcategory",
+				ResourceID:    subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -335,8 +335,8 @@ func (s *Server) handleArchiveSubcategory(w http.ResponseWriter, r *http.Request
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "archive",
-			Entity:        "subcategory",
-			EntityID:      subcategoryID,
+			Resource:      "subcategory",
+			ResourceID:    subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),
@@ -365,8 +365,8 @@ func (s *Server) handleUnarchiveSubcategory(w http.ResponseWriter, r *http.Reque
 		if claims != nil {
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "unarchive",
-				Entity:        "subcategory",
-				EntityID:      subcategoryID,
+				Resource:      "subcategory",
+				ResourceID:    subcategoryID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      bytesToStringPtr(oldValueJSON),
@@ -387,8 +387,8 @@ func (s *Server) handleUnarchiveSubcategory(w http.ResponseWriter, r *http.Reque
 	if claims != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "unarchive",
-			Entity:        "subcategory",
-			EntityID:      subcategoryID,
+			Resource:      "subcategory",
+			ResourceID:    subcategoryID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      bytesToStringPtr(oldValueJSON),

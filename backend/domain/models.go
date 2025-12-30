@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -22,15 +22,15 @@ import (
 	"time"
 )
 
-// Entity representa a tabela 'entities'
-type Entity struct {
+// Client representa a tabela 'clients'
+type Client struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
 	RegistrationID    *string    `json:"registration_id,omitempty"`    // CPF/CNPJ (opcional)
 	Nickname          *string    `json:"nickname,omitempty"`           // Apelido/Nome fantasia (opcional)
 	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
-	Email             *string    `json:"email,omitempty"`              // Email da entidade (opcional)
-	Phone             *string    `json:"phone,omitempty"`              // Telefone da entidade (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email do cliente (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone do cliente (opcional)
 	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
 	Notes             *string    `json:"notes,omitempty"`              // Observações gerais (opcional)
 	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
@@ -43,15 +43,15 @@ type Entity struct {
 	ArchivedAt        *time.Time `json:"archived_at"`                  // Soft delete via archived_at
 }
 
-// SubEntity representa a tabela 'sub_entities' (Sub-entidades, como unidades, filhos, parentes)
-type SubEntity struct {
+// Affiliate representa a tabela 'affiliates'
+type Affiliate struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
-	EntityID          string     `json:"entity_id"`
+	ClientID          string     `json:"client_id"`
 	Description       *string    `json:"description,omitempty"`        // Descrição livre (opcional)
 	BirthDate         *time.Time `json:"birth_date,omitempty"`         // Data de nascimento/fundação (opcional)
-	Email             *string    `json:"email,omitempty"`              // Email da sub-entidade (opcional)
-	Phone             *string    `json:"phone,omitempty"`              // Telefone da sub-entidade (opcional)
+	Email             *string    `json:"email,omitempty"`              // Email do afiliado (opcional)
+	Phone             *string    `json:"phone,omitempty"`              // Telefone do afiliado (opcional)
 	Address           *string    `json:"address,omitempty"`            // Endereço (opcional)
 	Notes             *string    `json:"notes,omitempty"`              // Observações (opcional)
 	Status            string     `json:"status"`                       // Status: ativo, inativo, etc.
@@ -76,16 +76,16 @@ type Subcategory struct {
 	ArchivedAt *time.Time `json:"archived_at"`
 }
 
-// Agreement representa a tabela 'agreements'
-type Agreement struct {
+// Contract representa a tabela 'contracts'
+type Contract struct {
 	ID            string     `json:"id"`
 	Model         string     `json:"model" db:"name"`
 	ItemKey       string     `json:"item_key"`
 	StartDate     *time.Time `json:"start_date,omitempty"`
 	EndDate       *time.Time `json:"end_date,omitempty"`
 	SubcategoryID string     `json:"subcategory_id"`
-	EntityID      string     `json:"entity_id"`
-	SubEntityID   *string    `json:"sub_entity_id"` // Usamos um ponteiro para que possa ser nulo
+	ClientID      string     `json:"client_id"`
+	AffiliateID   *string    `json:"affiliate_id"` // Usamos um ponteiro para que possa ser nulo
 	ArchivedAt    *time.Time `json:"archived_at"`
 }
 
@@ -107,28 +107,28 @@ type User struct {
 
 // GetEffectiveStartDate retorna a data de início efetiva para cálculos.
 // Se StartDate for nil, retorna time.Time{} (infinito inferior) para indicar que começou "sempre".
-func (a *Agreement) GetEffectiveStartDate() time.Time {
-	if a.StartDate == nil {
+func (c *Contract) GetEffectiveStartDate() time.Time {
+	if c.StartDate == nil {
 		return time.Time{}
 	}
-	return *a.StartDate
+	return *c.StartDate
 }
 
 // GetEffectiveEndDate retorna a data de fim efetiva para cálculos.
 // Se EndDate for nil, retorna uma data muito distante no futuro (infinito superior) para indicar que nunca expira.
-func (a *Agreement) GetEffectiveEndDate() time.Time {
-	if a.EndDate == nil {
+func (c *Contract) GetEffectiveEndDate() time.Time {
+	if c.EndDate == nil {
 		return time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
 	}
-	return *a.EndDate
+	return *c.EndDate
 }
 
-// IsActive verifica se o agreement está ativo no momento especificado.
+// IsActive verifica se o contrato está ativo no momento especificado.
 // StartDate nil = começou sempre (infinito inferior)
 // EndDate nil = nunca expira (infinito superior)
-func (a *Agreement) IsActive(at time.Time) bool {
-	effectiveStart := a.GetEffectiveStartDate()
-	effectiveEnd := a.GetEffectiveEndDate()
+func (c *Contract) IsActive(at time.Time) bool {
+	effectiveStart := c.GetEffectiveStartDate()
+	effectiveEnd := c.GetEffectiveEndDate()
 
 	// Se StartDate é nil (infinito inferior), sempre começou
 	startedAlready := effectiveStart.IsZero() || !at.Before(effectiveStart)
@@ -139,16 +139,16 @@ func (a *Agreement) IsActive(at time.Time) bool {
 	return startedAlready && notExpired
 }
 
-// Status calcula e retorna o estado atual do agreement (Ativo, Expirando, Expirado).
-func (a *Agreement) Status() string {
+// Status calcula e retorna o estado atual do contrato (Ativo, Expirando, Expirado).
+func (c *Contract) Status() string {
 	now := time.Now()
 
 	// EndDate nil = nunca expira, sempre "Ativo"
-	if a.EndDate == nil {
+	if c.EndDate == nil {
 		return "Ativo"
 	}
 
-	effectiveEnd := a.GetEffectiveEndDate()
+	effectiveEnd := c.GetEffectiveEndDate()
 
 	if effectiveEnd.Before(now) {
 		return "Expirado"
@@ -168,8 +168,8 @@ type AuditLog struct {
 	ID              string    `json:"id"`
 	Timestamp       time.Time `json:"timestamp"`
 	Operation       string    `json:"operation"` // 'create', 'update', 'delete', 'read'
-	Entity          string    `json:"entity"`    // 'entity', 'agreement', 'user', 'subcategory', 'category', 'sub_entity'
-	EntityID        string    `json:"entity_id"`
+	Resource        string    `json:"resource"`  // 'client', 'contract', 'user', 'subcategory', 'category', 'affiliate'
+	ResourceID      string    `json:"resource_id"`
 	AdminID         *string   `json:"admin_id,omitempty"`
 	AdminUsername   *string   `json:"admin_username,omitempty"`
 	OldValue        *string   `json:"old_value,omitempty"` // JSON string com valores antigos
@@ -179,7 +179,7 @@ type AuditLog struct {
 	IPAddress       *string   `json:"ip_address,omitempty"`
 	UserAgent       *string   `json:"user_agent,omitempty"`
 	RequestMethod   *string   `json:"request_method,omitempty"`    // GET, POST, PUT, DELETE
-	RequestPath     *string   `json:"request_path,omitempty"`      // /api/users, /api/entities, etc
+	RequestPath     *string   `json:"request_path,omitempty"`      // /api/users, /api/clients, etc
 	RequestID       *string   `json:"request_id,omitempty"`        // Correlação entre requisições
 	ResponseCode    *int      `json:"response_code,omitempty"`     // HTTP status code
 	ExecutionTimeMs *int      `json:"execution_time_ms,omitempty"` // Tempo de execução em ms

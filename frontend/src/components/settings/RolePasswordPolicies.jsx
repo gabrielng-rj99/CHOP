@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -1009,7 +1009,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                                     0,
                                                     parseInt(
                                                         editingPolicy.min_length ||
-                                                        8,
+                                                            8,
                                                     ) - 4,
                                                 ),
                                             )}

@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -29,8 +29,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
-// Use o nome do seu módulo
 
 // CategoryStore é a nossa "caixa de ferramentas" para operações com a tabela categories.
 type CategoryStore struct {
@@ -240,19 +238,19 @@ func (s *CategoryStore) DeleteCategory(id string) error {
 		return errors.New("category does not exist")
 	}
 
-	// Check if any subcategories are used in active agreements
-	var agreementsCount int
+	// Check if any subcategories are used in active contracts
+	var contractsCount int
 	err = s.db.QueryRow(`
-		SELECT COUNT(*)
-		FROM agreements c
+		SELECT COUNT(DISTINCT c.id)
+		FROM contracts c
 		INNER JOIN subcategories l ON c.subcategory_id = l.id
 		WHERE l.category_id = $1
-	`, id).Scan(&agreementsCount)
+	`, id).Scan(&contractsCount)
 	if err != nil {
 		return err
 	}
-	if agreementsCount > 0 {
-		return errors.New("cannot delete category: it has subcategories associated with active agreements")
+	if contractsCount > 0 {
+		return errors.New("cannot delete category: it has subcategories associated with active contracts")
 	}
 
 	// Delete all subcategories associated with this category first
@@ -358,25 +356,25 @@ func (s *CategoryStore) UpdateCategoryStatus(categoryID string) error {
 		return nil // Don't update status for archived categories
 	}
 
-	// Check if category has any subcategories associated with active agreements
+	// Check if category has any subcategories associated with active contracts
 	// Active = not archived and (no end_date or end_date in future)
-	var activeAgreements int
+	var activeContracts int
 	now := time.Now()
 	err = s.db.QueryRow(`
 		SELECT COUNT(DISTINCT c.id)
-		FROM agreements c
+		FROM contracts c
 		INNER JOIN subcategories l ON c.subcategory_id = l.id
 		WHERE l.category_id = $1
 		AND c.archived_at IS NULL
 		AND (c.end_date IS NULL OR c.end_date > $2)
-	`, categoryID, now).Scan(&activeAgreements)
+	`, categoryID, now).Scan(&activeContracts)
 	if err != nil {
 		return err
 	}
 
-	// Set status based on usage in active agreements
+	// Set status based on usage in active contracts
 	var newStatus string
-	if activeAgreements > 0 {
+	if activeContracts > 0 {
 		newStatus = "ativo"
 	} else {
 		newStatus = "inativo"

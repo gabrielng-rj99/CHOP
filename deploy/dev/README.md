@@ -1,6 +1,6 @@
-# Entity Hub - Development Mode
+# Client Hub - Development Mode
 
-Fast development environment with hot reload for Entity Hub.
+Fast development environment with hot reload for Client Hub.
 
 ## 📋 Overview
 
@@ -397,8 +397,8 @@ curl -X POST http://localhost:3000/api/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"password"}'
 
-# Get entities (with token)
-curl http://localhost:3000/api/entities \
+# Get clients (with token)
+curl http://localhost:3000/api/clients \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

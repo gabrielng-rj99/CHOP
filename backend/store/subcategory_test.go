@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -214,15 +214,15 @@ func TestDeleteSubcategoryCritical(t *testing.T) {
 	}
 }
 
-// TestDeleteSubcategoryWithActiveAgreements tests that deletion fails with associated agreements
-func TestDeleteSubcategoryWithActiveAgreements(t *testing.T) {
+// TestDeleteSubcategoryWithActiveContracts tests that deletion fails with associated contracts
+func TestDeleteSubcategoryWithActiveContracts(t *testing.T) {
 	db := setupLineTestDB(t)
 	defer CloseDB(db)
 
 	subcategoryStore := NewSubcategoryStore(db)
 
 	// Insert test data
-	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestDeleteSubcategoryWithActiveAgreements(t *testing.T) {
 
 	// Insert a license for this line
 	now := time.Now()
-	_, err = InsertTestAgreement(db, "Test License", "TEST-KEY", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), subcategoryID, entityID, nil)
+	_, err = InsertTestContract(db, "Test License", "TEST-KEY", timePtr(now.AddDate(0, 0, -10)), timePtr(now.AddDate(0, 0, 30)), subcategoryID, clientID, nil)
 	if err != nil {
 		t.Fatalf("Failed to insert test license: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestDeleteSubcategoryWithActiveAgreements(t *testing.T) {
 	// Try to delete - should fail
 	err = subcategoryStore.DeleteSubcategory(subcategoryID)
 	if err == nil {
-		t.Error("Expected error deleting line with associated agreements")
+		t.Error("Expected error deleting line with associated contracts")
 	}
 
 	// Verify line still exists
@@ -1011,8 +1011,8 @@ func TestUpdateSubcategoryWithInvalidData(t *testing.T) {
 	}
 }
 
-// TestCreateSubEntityWithInvalidNames tests various invalid dependent name formats
-func TestCreateSubEntityWithInvalidNames(t *testing.T) {
+// TestCreateAffiliateWithInvalidNames tests various invalid affiliate name formats
+func TestCreateAffiliateWithInvalidNames(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -1024,12 +1024,12 @@ func TestCreateSubEntityWithInvalidNames(t *testing.T) {
 	}
 
 	// Create test client first
-	entityID, err := InsertTestEntity(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
+	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	subEntityStore := NewSubEntityStore(db)
+	subClientStore := NewAffiliateStore(db)
 
 	// Generate long names
 	longName := strings.Repeat("a", 256)
@@ -1037,63 +1037,63 @@ func TestCreateSubEntityWithInvalidNames(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		dependentName string
+		affiliateName string
 		expectError   bool
 		description   string
 	}{
 		{
 			name:          "invalid - name too long (256 chars)",
-			dependentName: longName,
+			affiliateName: longName,
 			expectError:   true,
-			description:   "SubEntity name with 256 characters should be rejected",
+			description:   "Affiliate name with 256 characters should be rejected",
 		},
 		{
 			name:          "invalid - name way too long (1000 chars)",
-			dependentName: veryLongName,
+			affiliateName: veryLongName,
 			expectError:   true,
-			description:   "SubEntity name with 1000 characters should be rejected",
+			description:   "Affiliate name with 1000 characters should be rejected",
 		},
 		{
 			name:          "invalid - name with only spaces",
-			dependentName: "     ",
+			affiliateName: "     ",
 			expectError:   true,
-			description:   "SubEntity name with only whitespace should be rejected",
+			description:   "Affiliate name with only whitespace should be rejected",
 		},
 		{
 			name:          "valid - name at max length (255 chars)",
-			dependentName: strings.Repeat("a", 255),
+			affiliateName: strings.Repeat("a", 255),
 			expectError:   false,
-			description:   "SubEntity name with exactly 255 characters should be allowed",
+			description:   "Affiliate name with exactly 255 characters should be allowed",
 		},
 		{
 			name:          "valid - name with special characters",
-			dependentName: "Unit A - Building 2",
+			affiliateName: "Unit A - Building 2",
 			expectError:   false,
-			description:   "SubEntity name with special characters should be allowed",
+			description:   "Affiliate name with special characters should be allowed",
 		},
 		{
 			name:          "valid - name with accents",
-			dependentName: "Unidade São Paulo",
+			affiliateName: "Unidade São Paulo",
 			expectError:   false,
-			description:   "SubEntity name with Portuguese accents should be allowed",
+			description:   "Affiliate name with Portuguese accents should be allowed",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear sub_entities table between tests
-			_, err = db.Exec("DELETE FROM sub_entities")
+			// Clear affiliates table between tests
+			_, err = db.Exec("DELETE FROM affiliates")
 			if err != nil {
-				t.Fatalf("Failed to clear sub_entities: %v", err)
+				t.Fatalf("Failed to clear affiliates: %v", err)
 			}
 
-			dependent := domain.SubEntity{
-				Name:     tt.dependentName,
-				EntityID: entityID,
+			affiliate := domain.Affiliate{
+				Name:     tt.affiliateName,
+				ClientID: clientID,
 				Status:   "ativo",
 			}
 
-			_, err = subEntityStore.CreateSubEntity(dependent)
+			_, err = subClientStore.CreateAffiliate(affiliate)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1105,45 +1105,45 @@ func TestCreateSubEntityWithInvalidNames(t *testing.T) {
 	}
 }
 
-// TestCreateSubEntityWithInvalidClient tests dependent creation with invalid client
-func TestCreateSubEntityWithInvalidClient(t *testing.T) {
+// TestCreateAffiliateWithInvalidClient tests affiliate creation with invalid client
+func TestCreateAffiliateWithInvalidClient(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	subEntityStore := NewSubEntityStore(db)
+	subClientStore := NewAffiliateStore(db)
 
 	tests := []struct {
 		name        string
-		entityID    string
+		clientID    string
 		expectError bool
 		description string
 	}{
 		{
 			name:        "invalid - non-existent client",
-			entityID:    "non-existent-client-id",
+			clientID:    "non-existent-client-id",
 			expectError: true,
-			description: "SubEntity with non-existent client should be rejected",
+			description: "Affiliate with non-existent client should be rejected",
 		},
 		{
-			name:        "invalid - empty entity ID",
-			entityID:    "",
+			name:        "invalid - empty client ID",
+			clientID:    "",
 			expectError: true,
-			description: "SubEntity with empty entity ID should be rejected",
+			description: "Affiliate with empty client ID should be rejected",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dependent := domain.SubEntity{
-				Name:     "Test SubEntity",
-				EntityID: tt.entityID,
+			affiliate := domain.Affiliate{
+				Name:     "Test Affiliate",
+				ClientID: tt.clientID,
 				Status:   "ativo",
 			}
 
-			_, err := subEntityStore.CreateSubEntity(dependent)
+			_, err := subClientStore.CreateAffiliate(affiliate)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1155,41 +1155,41 @@ func TestCreateSubEntityWithInvalidClient(t *testing.T) {
 	}
 }
 
-// TestUpdateSubEntityWithInvalidData tests update operations with invalid data
-func TestUpdateSubEntityWithInvalidData(t *testing.T) {
+// TestUpdateAffiliateWithInvalidData tests update operations with invalid data
+func TestUpdateAffiliateWithInvalidData(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
 	}
 	defer CloseDB(db)
 
-	subEntityStore := NewSubEntityStore(db)
+	subClientStore := NewAffiliateStore(db)
 
-	// Create client and dependent
-	entityID, err := InsertTestEntity(db, "Test Entity", "45.723.174/0001-10")
+	// Create client and affiliate
+	clientID, err := InsertTestClient(db, "Test Client", "45.723.174/0001-10")
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	subEntityID := uuid.New().String()
-	_, err = db.Exec("INSERT INTO sub_entities (id, name, entity_id) VALUES ($1, $2, $3)",
-		subEntityID, "Original SubEntity", entityID)
+	subClientID := uuid.New().String()
+	_, err = db.Exec("INSERT INTO affiliates (id, name, client_id) VALUES ($1, $2, $3)",
+		subClientID, "Original Affiliate", clientID)
 	if err != nil {
-		t.Fatalf("Failed to insert test dependent: %v", err)
+		t.Fatalf("Failed to insert test affiliate: %v", err)
 	}
 
 	tests := []struct {
 		name        string
-		dependent   domain.SubEntity
+		affiliate   domain.Affiliate
 		expectError bool
 		description string
 	}{
 		{
 			name: "invalid - update with name too long",
-			dependent: domain.SubEntity{
-				ID:       subEntityID,
+			affiliate: domain.Affiliate{
+				ID:       subClientID,
 				Name:     strings.Repeat("a", 256),
-				EntityID: entityID,
+				ClientID: clientID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1197,10 +1197,10 @@ func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with only whitespace",
-			dependent: domain.SubEntity{
-				ID:       subEntityID,
+			affiliate: domain.Affiliate{
+				ID:       subClientID,
 				Name:     "    ",
-				EntityID: entityID,
+				ClientID: clientID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1208,10 +1208,10 @@ func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "invalid - update with empty name",
-			dependent: domain.SubEntity{
-				ID:       subEntityID,
+			affiliate: domain.Affiliate{
+				ID:       subClientID,
 				Name:     "",
-				EntityID: entityID,
+				ClientID: clientID,
 				Status:   "ativo",
 			},
 			expectError: true,
@@ -1219,10 +1219,10 @@ func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 		},
 		{
 			name: "valid - update with valid name",
-			dependent: domain.SubEntity{
-				ID:       subEntityID,
-				Name:     "Updated SubEntity Name",
-				EntityID: entityID,
+			affiliate: domain.Affiliate{
+				ID:       subClientID,
+				Name:     "Updated Affiliate Name",
+				ClientID: clientID,
 				Status:   "ativo",
 			},
 			expectError: false,
@@ -1232,7 +1232,7 @@ func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := subEntityStore.UpdateSubEntity(tt.dependent)
+			err := subClientStore.UpdateAffiliate(tt.affiliate)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -1244,8 +1244,8 @@ func TestUpdateSubEntityWithInvalidData(t *testing.T) {
 	}
 }
 
-// TestDependentNameTrimming tests that whitespace is properly handled for sub_entities
-func TestDependentNameTrimming(t *testing.T) {
+// TestAffiliateNameTrimming tests that whitespace is properly handled for affiliates
+func TestAffiliateNameTrimming(t *testing.T) {
 	db, err := SetupTestDB()
 	if err != nil {
 		t.Fatalf("Failed to setup test database: %v", err)
@@ -1257,12 +1257,12 @@ func TestDependentNameTrimming(t *testing.T) {
 	}
 
 	// Create test client first
-	entityID, err := InsertTestEntity(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
+	clientID, err := InsertTestClient(db, "TestClient-"+uuid.New().String()[:8], generateUniqueCNPJ())
 	if err != nil {
 		t.Fatalf("Failed to insert test client: %v", err)
 	}
 
-	subEntityStore := NewSubEntityStore(db)
+	subClientStore := NewAffiliateStore(db)
 
 	tests := []struct {
 		name         string
@@ -1297,19 +1297,19 @@ func TestDependentNameTrimming(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear sub_entities between tests
-			_, err := db.Exec("DELETE FROM sub_entities")
+			// Clear affiliates between tests
+			_, err := db.Exec("DELETE FROM affiliates")
 			if err != nil {
-				t.Fatalf("Failed to clear sub_entities: %v", err)
+				t.Fatalf("Failed to clear affiliates: %v", err)
 			}
 
-			dependent := domain.SubEntity{
+			affiliate := domain.Affiliate{
 				Name:     tt.inputName,
-				EntityID: entityID,
+				ClientID: clientID,
 				Status:   "ativo",
 			}
 
-			id, err := subEntityStore.CreateSubEntity(dependent)
+			id, err := subClientStore.CreateAffiliate(affiliate)
 
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
@@ -1320,12 +1320,12 @@ func TestDependentNameTrimming(t *testing.T) {
 
 			// If creation succeeded, verify the name was trimmed
 			if !tt.expectError && err == nil {
-				retrievedDependent, err := subEntityStore.GetSubEntityByID(id)
+				retrievedAffiliate, err := subClientStore.GetAffiliateByID(id)
 				if err != nil {
-					t.Errorf("Failed to retrieve dependent: %v", err)
+					t.Errorf("Failed to retrieve affiliate: %v", err)
 				}
-				if retrievedDependent != nil && retrievedDependent.Name != tt.expectedName {
-					t.Errorf("Expected name '%s', got '%s'", tt.expectedName, retrievedDependent.Name)
+				if retrievedAffiliate != nil && retrievedAffiliate.Name != tt.expectedName {
+					t.Errorf("Expected name '%s', got '%s'", tt.expectedName, retrievedAffiliate.Name)
 				}
 			}
 		})

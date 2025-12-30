@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -380,7 +380,7 @@ class TestRateLimiting:
                 http_client.get(f"{api_url}/users", headers=headers).status_code
             )
             clients_responses.append(
-                http_client.get(f"{api_url}/entities", headers=headers).status_code
+                http_client.get(f"{api_url}/clients", headers=headers).status_code
             )
 
         # Não deve causar erro interno em nenhum
@@ -428,7 +428,7 @@ class TestBlockedUserBehavior:
         user_headers = {"Authorization": f"Bearer {user_token}"}
 
         # Verificar que token funciona
-        pre_block = http_client.get(f"{api_url}/entities", headers=user_headers)
+        pre_block = http_client.get(f"{api_url}/clients", headers=user_headers)
 
         # Bloquear usuário
         block_response = http_client.post(
@@ -440,7 +440,7 @@ class TestBlockedUserBehavior:
             pytest.skip("Endpoint de bloqueio não disponível")
 
         # Token antigo não deve mais funcionar
-        post_block = http_client.get(f"{api_url}/entities", headers=user_headers)
+        post_block = http_client.get(f"{api_url}/clients", headers=user_headers)
         assert post_block.status_code in [401, 403, 423], \
             "Token de usuário bloqueado não deve funcionar"
 
@@ -531,8 +531,8 @@ class TestBlockedUserBehavior:
 
         # Tentar várias operações com token do usuário bloqueado
         operations = [
-            ("GET", f"{api_url}/entities"),
-            ("POST", f"{api_url}/entities"),
+            ("GET", f"{api_url}/clients"),
+            ("POST", f"{api_url}/clients"),
             ("GET", f"{api_url}/categories"),
         ]
 

@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -444,16 +444,16 @@ export default function RolesPermissions({ token, apiUrl }) {
                     <h3>Nenhum papel encontrado</h3>
                     <p>
                         Os papéis padrão (root, admin, user) não foram
-                        encontrados no sistema. Isso pode indicar que os seeds
-                        do banco de dados não foram aplicados.
+                        encontrados no sistema. Isso pode indicar que o schema
+                        do banco de dados não foi aplicado.
                     </p>
                     <div className="empty-state-instructions">
                         <p>
                             <strong>Para corrigir, execute no terminal:</strong>
                         </p>
                         <code>
-                            psql -d ehopdb_dev -f
-                            backend/database/seeds/01_roles_permissions.sql
+                            cd backend/database/schema && psql -d ehopdb_dev -f
+                            init.sql
                         </code>
                     </div>
                     <button className="retry-btn" onClick={() => loadData()}>
@@ -599,13 +599,14 @@ export default function RolesPermissions({ token, apiUrl }) {
                                         const enabledCount = perms.filter(
                                             (p) =>
                                                 rolePermissions[
-                                                selectedRole.id
+                                                    selectedRole.id
                                                 ]?.[p.id],
                                         ).length;
                                         const totalCount = perms.length;
                                         const isAllEnabled =
                                             enabledCount === totalCount;
-                                        const isNoneEnabled = enabledCount === 0;
+                                        const isNoneEnabled =
+                                            enabledCount === 0;
 
                                         return (
                                             <div
@@ -633,7 +634,9 @@ export default function RolesPermissions({ token, apiUrl }) {
                                                                 </span>
                                                             ) : (
                                                                 <span className="status-badge partial">
-                                                                    {enabledCount}
+                                                                    {
+                                                                        enabledCount
+                                                                    }
                                                                     /
                                                                     {totalCount}
                                                                 </span>
@@ -729,17 +732,18 @@ export default function RolesPermissions({ token, apiUrl }) {
                             {activeCategory.perms.map((perm) => (
                                 <label
                                     key={perm.id}
-                                    className={`permission-item ${selectedRole.name === "root"
-                                        ? "disabled"
-                                        : ""
-                                        }`}
+                                    className={`permission-item ${
+                                        selectedRole.name === "root"
+                                            ? "disabled"
+                                            : ""
+                                    }`}
                                 >
                                     <input
                                         type="checkbox"
                                         checked={
                                             selectedRole.name === "root" ||
                                             !!rolePermissions[
-                                            selectedRole.id
+                                                selectedRole.id
                                             ]?.[perm.id]
                                         }
                                         onChange={() =>
@@ -884,7 +888,8 @@ export default function RolesPermissions({ token, apiUrl }) {
                         </div>
 
                         <div className="modal-actions">
-                            <button className="modal-cancel"
+                            <button
+                                className="modal-cancel"
                                 onClick={() => setShowCreateModal(false)}
                             >
                                 Cancelar

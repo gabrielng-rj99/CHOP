@@ -1,5 +1,5 @@
 // =============================================================================
-// Entity Hub Open Project
+// Client Hub Open Project
 // Licensed under GNU Affero General Public License v3.0
 //
 // DEPENDENCY LICENSE COMPATIBILITY VERIFICATION:

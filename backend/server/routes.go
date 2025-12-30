@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -182,57 +182,59 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	}))))
 
-	// Clients
-	mux.HandleFunc("/api/entities/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	// Clients (Clients)
+	// /api/clients -> /api/clients
+	mux.HandleFunc("/api/clients/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
-			s.handleEntityArchive(w, r)
+			s.handleClientArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-			s.handleEntityUnarchive(w, r)
-		} else if strings.Contains(r.URL.Path, "/sub_entities") {
-			s.handleEntitySubEntities(w, r)
+			s.handleClientUnarchive(w, r)
+		} else if strings.Contains(r.URL.Path, "/affiliates") {
+			s.handleClientAffiliates(w, r)
 		} else {
-			s.handleEntityByID(w, r)
+			s.handleClientByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/entities", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/entities" {
-			s.handleEntities(w, r)
+	mux.HandleFunc("/api/clients", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/clients" {
+			s.handleClients(w, r)
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/archive") {
-				s.handleEntityArchive(w, r)
+				s.handleClientArchive(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-				s.handleEntityUnarchive(w, r)
-			} else if strings.Contains(r.URL.Path, "/sub_entities") {
-				s.handleEntitySubEntities(w, r)
+				s.handleClientUnarchive(w, r)
+			} else if strings.Contains(r.URL.Path, "/affiliates") {
+				s.handleClientAffiliates(w, r)
 			} else {
-				s.handleEntityByID(w, r)
+				s.handleClientByID(w, r)
 			}
 		}
 	})))
 
-	// Dependents
-	mux.HandleFunc("/api/sub-entities/", s.standardMiddleware(s.authMiddleware(s.handleSubEntityByID)))
+	// Affiliates
+	// /api/affiliates
+	mux.HandleFunc("/api/affiliates/", s.standardMiddleware(s.authMiddleware(s.handleAffiliateByID)))
 
-	// Agreements
+	// Contracts (Agreements)
 	mux.HandleFunc("/api/agreements/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
-			s.handleAgreementArchive(w, r)
+			s.handleContractArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-			s.handleAgreementUnarchive(w, r)
+			s.handleContractUnarchive(w, r)
 		} else {
-			s.handleAgreementByID(w, r)
+			s.handleContractByID(w, r)
 		}
 	})))
 	mux.HandleFunc("/api/agreements", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/agreements" {
-			s.handleAgreements(w, r)
+			s.handleContracts(w, r)
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/archive") {
-				s.handleAgreementArchive(w, r)
+				s.handleContractArchive(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
-				s.handleAgreementUnarchive(w, r)
+				s.handleContractUnarchive(w, r)
 			} else {
-				s.handleAgreementByID(w, r)
+				s.handleContractByID(w, r)
 			}
 		}
 	})))
@@ -257,7 +259,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	})))
 
-	// Lines
+	// Subcategories (Lines)
 	mux.HandleFunc("/api/subcategories/", s.standardMiddleware(s.authMiddleware(s.handleSubcategoryByID)))
 	mux.HandleFunc("/api/subcategories", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/subcategories" {
@@ -278,8 +280,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 		if strings.HasSuffix(r.URL.Path, "/export") {
 			s.handleAuditLogsExport(w, r)
-		} else if strings.Contains(r.URL.Path, "/entity/") {
-			s.handleAuditLogsByEntity(w, r)
+		} else if strings.Contains(r.URL.Path, "/resource/") {
+			// client -> resource
+			s.handleAuditLogsByResource(w, r)
 		} else {
 			s.handleAuditLogDetail(w, r)
 		}
@@ -297,8 +300,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/export") {
 				s.handleAuditLogsExport(w, r)
-			} else if strings.Contains(r.URL.Path, "/entity/") {
-				s.handleAuditLogsByEntity(w, r)
+			} else if strings.Contains(r.URL.Path, "/resource/") {
+				s.handleAuditLogsByResource(w, r)
 			} else {
 				s.handleAuditLogDetail(w, r)
 			}

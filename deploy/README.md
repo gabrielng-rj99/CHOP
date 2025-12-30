@@ -1,23 +1,26 @@
-# Entity Hub - Deploy
+# Client Hub - Deployment Guide
 
-Deployment configurations for Entity Hub.
+Deployment configurations for Client Hub.
 
-## 🎯 Modos de Deploy
+## 🎯 Deployment Modes
 
-Este projeto oferece **3 modos** de deploy:
+This project offers **3 deployment modes**:
 
-### 1. 🐳 Docker (Recomendado para Produção)
-Tudo em containers isolados. Mais fácil, seguro e portável.
+### 1. 🐳 Docker (Recommended for Production)
 
-### 2. 🖥️ Monolith (Produção Local)
-Backend + Frontend (build estático via Nginx) no host. Simula ambiente de produção.
+Everything in isolated containers. Easier, safer, and more portable.
 
-### 3. 🔧 Development (Para Desenvolvedores)
-Backend + Vite dev server com hot reload. Perfeito para desenvolver.
+### 2. 🖥️ Monolith (Local Production)
+
+Backend + Frontend (static build via Nginx) on the host. Simulates a production environment.
+
+### 3. 🔧 Development (For Developers)
+
+Backend + Vite dev server with hot reload. Perfect for development.
 
 ---
 
-## 📁 Estrutura
+## 📁 Structure
 
 ```
 deploy/
@@ -28,61 +31,61 @@ deploy/
 │   ├── Dockerfile.frontend
 │   └── nginx.conf
 │
-├── monolith/                 # Deploy local (produção-like)
+├── monolith/                 # Local deploy (production-like)
 │   ├── start-monolith.sh
 │   ├── stop-monolith.sh
 │   ├── install-monolith.sh
 │   ├── monolith.ini
 │   └── versions.ini
 │
-├── dev/                      # Ambiente de desenvolvimento
+├── dev/                      # Development environment
 │   ├── start-dev.sh
 │   ├── stop-dev.sh
 │   └── dev.ini
 │
-├── certs/                    # Certificados SSL
+├── certs/                    # SSL Certificates
 │   └── ssl/
 │
-├── generate-ssl.sh           # Script para gerar certificados
-├── certs-config.ini          # Configuração para certificados
-└── README.md                 # Este arquivo
+├── generate-ssl.sh           # Script to generate certificates
+├── certs-config.ini          # Configuration for certificates
+└── README.md                 # This file
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### Docker (Recomendado)
+### Docker (Recommended)
 
 ```bash
 cd deploy/docker
 
-# 1. Configure as variáveis
+# 1. Configure variables
 cp .env.example .env
-nano .env  # Edite DB_PASSWORD e JWT_SECRET
+nano .env  # Edit DB_PASSWORD and JWT_SECRET
 
-# 2. Suba os containers
+# 2. Start containers
 docker-compose up -d
 
-# 3. Acesse
-# https://localhost (ou sua porta configurada)
+# 3. Access
+# https://localhost (or your configured port)
 ```
 
-### Monolith (Produção Local)
+### Monolith (Local Production)
 
 ```bash
 cd deploy/monolith
 
-# 1. Instale dependências (apenas primeira vez)
+# 1. Install dependencies (first time only)
 ./install-monolith.sh
 
 # 2. Configure
-nano monolith.ini  # Deixe DB_PASSWORD e JWT_SECRET vazios para auto-gerar
+nano monolith.ini  # Leave DB_PASSWORD and JWT_SECRET empty to auto-generate
 
-# 3. Inicie
+# 3. Start
 ./start-monolith.sh
 
-# 4. Acesse
+# 4. Access
 # https://localhost
 # http://localhost:80
 ```
@@ -93,65 +96,66 @@ nano monolith.ini  # Deixe DB_PASSWORD e JWT_SECRET vazios para auto-gerar
 cd deploy/dev
 
 # 1. Configure
-nano dev.ini  # Deixe DB_PASSWORD e JWT_SECRET vazios para auto-gerar
+nano dev.ini  # Leave DB_PASSWORD and JWT_SECRET empty to auto-generate
 
-# 2. Inicie
+# 2. Start
 ./start-dev.sh
 
-# 3. Acesse
+# 3. Access
 # http://localhost:5173  (Vite dev server)
 ```
 
 ---
 
-## 🔍 Comparação dos Modos
+## 🔍 Modes Comparison
 
-| Característica        | Docker          | Monolith         | Development      |
+| Feature               | Docker          | Monolith         | Development      |
 |-----------------------|-----------------|------------------|------------------|
-| **Isolamento**        | ✅ Containers   | ❌ Host          | ❌ Host          |
-| **Facilidade**        | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐          | ⭐⭐⭐           |
-| **Produção**          | ✅ Sim          | ✅ Sim           | ❌ Não           |
-| **Hot Reload**        | ❌ Não          | ❌ Não           | ✅ Sim           |
-| **Performance**       | Alta            | Alta             | Média            |
+| **Isolation**         | ✅ Containers   | ❌ Host          | ❌ Host          |
+| **Ease of Use**       | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐          | ⭐⭐⭐           |
+| **Production**        | ✅ Yes          | ✅ Yes           | ❌ No            |
+| **Hot Reload**        | ❌ No           | ❌ No            | ✅ Yes           |
+| **Performance**       | High            | High             | Medium           |
 | **Frontend**          | Nginx (build)   | Nginx (build)    | Vite dev server  |
-| **SSL**               | ✅ Auto         | ✅ Auto          | ❌ Opcional      |
-| **Portabilidade**     | ✅ Máxima       | ⚠️ Requer deps  | ⚠️ Requer deps  |
+| **SSL**               | ✅ Auto         | ✅ Auto          | ❌ Optional      |
+| **Portability**       | ✅ Max          | ⚠️ Requires deps | ⚠️ Requires deps |
 
 ---
 
 ## 🐳 Docker
 
-### Comandos
+### Commands
 
 ```bash
 cd deploy/docker
 
-# Iniciar
+# Start
 docker-compose up -d
 
-# Ver logs
+# View logs
 docker-compose logs -f
 
-# Reiniciar
+# Restart
 docker-compose restart
 
-# Parar
+# Stop
 docker-compose down
 
-# Limpar tudo (remove volumes/dados)
+# Clean all (removes volumes/data)
 docker-compose down -v
 ```
 
-### Arquivo .env
+### .env File
 
 ```bash
-# Exemplo mínimo
+# Minimal Example
 DB_PASSWORD=your_secure_password_here
 JWT_SECRET=your_jwt_secret_min_64_chars
 SSL_DOMAIN=localhost
 ```
 
-Gere senhas seguras:
+Generate secure passwords:
+
 ```bash
 # DB Password (64 chars)
 openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
@@ -164,7 +168,7 @@ openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
 
 ## 🖥️ Monolith
 
-### Requisitos
+### Requirements
 
 - Go 1.21+
 - Node.js 20+
@@ -172,58 +176,58 @@ openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
 - Nginx
 - OpenSSL
 
-### Instalação
+### Installation
 
 ```bash
 cd deploy/monolith
 ./install-monolith.sh
 ```
 
-Este script instala automaticamente todas as dependências (Go, Node, PostgreSQL, Nginx).
+This script automatically installs all dependencies (Go, Node, PostgreSQL, Nginx).
 
-### Configuração
+### Configuration
 
-Edite `monolith.ini`:
+Edit `monolith.ini`:
 
 ```ini
 # Database
 DB_USER=ehopuser
 DB_NAME=ehopdb
-DB_PASSWORD=          # Deixe vazio para auto-gerar
+DB_PASSWORD=          # Leave empty to auto-generate
 
 # Backend
-JWT_SECRET=           # Deixe vazio para auto-gerar
+JWT_SECRET=           # Leave empty to auto-generate
 
-# Portas
+# Ports
 API_PORT=3000
 FRONTEND_PORT=80
 FRONTEND_HTTPS_PORT=443
 ```
 
-### Uso
+### Usage
 
 ```bash
-# Iniciar
+# Start
 ./start-monolith.sh
 
-# Parar
+# Stop
 ./stop-monolith.sh
 
-# Destruir tudo (remove banco, etc)
+# Destroy all (removes data, etc)
 ./destroy-monolith.sh
 ```
 
-### O que acontece no start:
+### What happens at start
 
-1. ✅ Carrega `monolith.ini`
-2. ✅ Gera senhas se vazias (salva no .ini)
-3. ✅ Verifica PostgreSQL
-4. ✅ Cria banco e usuário
-5. ✅ Compila backend (Go)
-6. ✅ Compila frontend (Vite build → dist/)
-7. ✅ Gera certificados SSL
-8. ✅ Configura e inicia Nginx
-9. ✅ Inicia backend API
+1. ✅ Loads `monolith.ini`
+2. ✅ Generates passwords if empty (saves to .ini)
+3. ✅ Checks PostgreSQL
+4. ✅ Creates database and user
+5. ✅ Compiles backend (Go)
+6. ✅ Compiles frontend (Vite build → dist/)
+7. ✅ Generates SSL certificates
+8. ✅ Configures and starts Nginx
+9. ✅ Starts backend API
 
 ### Logs
 
@@ -234,56 +238,56 @@ FRONTEND_HTTPS_PORT=443
 
 ## 🔧 Development
 
-### Requisitos
+### Requirements
 
-Mesmos do Monolith (Go, Node, PostgreSQL).
+Same as Monolith (Go, Node, PostgreSQL).
 
-### Configuração
+### Configuration
 
-Edite `dev.ini`:
+Edit `dev.ini`:
 
 ```ini
-# Database (usa banco separado: ehopdb_dev)
+# Database (uses separate DB: ehopdb_dev)
 DB_USER=ehopuser
 DB_NAME=ehopdb_dev
-DB_PASSWORD=          # Deixe vazio para auto-gerar
+DB_PASSWORD=          # Leave empty to auto-generate
 
 # Backend
-JWT_SECRET=           # Deixe vazio para auto-gerar
+JWT_SECRET=           # Leave empty to auto-generate
 
-# Portas
+# Ports
 API_PORT=3000
 VITE_PORT=5173
 ```
 
-### Uso
+### Usage
 
 ```bash
 cd deploy/dev
 
-# Iniciar
+# Start
 ./start-dev.sh
 
-# Parar
+# Stop
 ./stop-dev.sh
 ```
 
-### O que acontece no start:
+### What happens at start
 
-1. ✅ Carrega `dev.ini`
-2. ✅ Gera senhas se vazias (salva no .ini)
-3. ✅ Verifica PostgreSQL
-4. ✅ Cria banco e usuário (separado: `ehopdb_dev`)
-5. ✅ Compila backend (Go)
-6. ✅ Inicia backend API
-7. ✅ Inicia Vite dev server (hot reload)
+1. ✅ Loads `dev.ini`
+2. ✅ Generates passwords if empty (saves to .ini)
+3. ✅ Checks PostgreSQL
+4. ✅ Creates database and user (separate: `ehopdb_dev`)
+5. ✅ Compiles backend (Go)
+6. ✅ Starts backend API
+7. ✅ Starts Vite dev server (hot reload)
 
-### Vantagens
+### Advantages
 
-- ⚡ **Hot Reload**: Edite código e veja mudanças instantaneamente
-- 🐛 **Debug**: React DevTools, logs detalhados
-- 🗄️ **Banco separado**: Não afeta dados de produção
-- 🔄 **Rápido**: Sem rebuild de imagens Docker
+- ⚡ **Hot Reload**: Edit code and see changes instantly
+- 🐛 **Debug**: React DevTools, detailed logs
+- 🗄️ **Separate DB**: Does not affect production data
+- 🔄 **Fast**: No Docker image rebuilds
 
 ### Logs
 
@@ -292,20 +296,20 @@ cd deploy/dev
 
 ---
 
-## 🔐 SSL e Certificados
+## 🔐 SSL and Certificates
 
-Todos os modos geram certificados SSL automaticamente usando `generate-ssl.sh`.
+All modes generate SSL certificates automatically using `generate-ssl.sh`.
 
-### Personalizar Certificados
+### Customize Certificates
 
-Edite `certs-config.ini`:
+Edit `certs-config.ini`:
 
 ```ini
 [certificate]
 country=BR
 state=Sao Paulo
 locality=Sao Paulo
-organization=Entity Hub
+organization=Client Hub
 organizational_unit=IT
 common_name=ehop.home.arpa
 email=admin@ehop.home.arpa
@@ -313,29 +317,32 @@ days_valid=365
 key_size=2048
 ```
 
-### Gerar Manualmente
+### Generate Manually
 
 ```bash
 ./generate-ssl.sh ./certs/ssl
 ```
 
-### Domínio Customizado
+### Custom Domain
 
-Se usar domínio customizado (ex: `ehop.home.arpa`):
+If using a custom domain (e.g., `ehop.home.arpa`):
 
-1. Configure no arquivo .ini:
+1. Configure in .ini file:
+
    ```ini
    SSL_DOMAIN=ehop.home.arpa
    CORS_ALLOWED_ORIGINS=https://ehop.home.arpa
    VITE_API_URL=/api
    ```
 
-2. Adicione ao `/etc/hosts`:
+2. Add to `/etc/hosts`:
+
    ```bash
    127.0.0.1 ehop.home.arpa
    ```
 
-3. Importe o certificado no navegador ou use mkcert:
+3. Import certificate in browser or use mkcert:
+
    ```bash
    mkcert -install
    mkcert ehop.home.arpa localhost 127.0.0.1
@@ -345,7 +352,7 @@ Se usar domínio customizado (ex: `ehop.home.arpa`):
 
 ## 🔧 Troubleshooting
 
-### PostgreSQL não está rodando
+### PostgreSQL is not running
 
 ```bash
 # Linux
@@ -356,58 +363,61 @@ sudo systemctl status postgresql
 brew services start postgresql
 ```
 
-### Porta em uso
+### Port in use
 
 ```bash
-# Ver o que está usando a porta
+# See what is using the port
 sudo lsof -i :80
 sudo lsof -i :443
 sudo lsof -i :3000
 
-# Matar processo
+# Kill process
 sudo kill -9 <PID>
 ```
 
-### Erro de permissão no Nginx
+### Permission error in Nginx
 
 ```bash
-# Nginx precisa de sudo para portas 80/443
-# Se erro, limpe processos:
+# Nginx needs sudo for ports 80/443
+# If error, clear processes:
 sudo pkill -9 nginx
 ```
 
-### Frontend não carrega
+### Frontend does not load
 
-1. Verifique se o build foi criado: `ls frontend/dist/`
-2. Veja logs do Nginx: `tail -f /tmp/ehop_error.log`
-3. Verifique permissões: `ls -la frontend/dist/`
+1. Check if build was created: `ls frontend/dist/`
+2. View Nginx logs: `tail -f /tmp/ehop_error.log`
+3. Check permissions: `ls -la frontend/dist/`
 
-### Backend não conecta ao banco
+### Backend cannot connect to database
 
-1. Verifique se PostgreSQL está rodando
-2. Teste conexão:
+1. Verify PostgreSQL is running
+2. Test connection:
+
    ```bash
    psql -h localhost -p 5432 -U ehopuser -d ehopdb
    ```
-3. Verifique variáveis exportadas:
+
+3. Check exported variables:
+
    ```bash
    echo $DB_PASSWORD
    echo $DB_NAME
    ```
 
-### Erro CORS
+### CORS Error
 
-Se ver erro de CORS no console do navegador:
+If you see CORS error in browser console:
 
-1. Verifique `CORS_ALLOWED_ORIGINS` no .ini
-2. Use `/api` em `VITE_API_URL` (não `http://localhost:3000/api`)
-3. Se usar domínio customizado, configure corretamente
+1. Check `CORS_ALLOWED_ORIGINS` in .ini
+2. Use `/api` in `VITE_API_URL` (not `http://localhost:3000/api`)
+3. If using custom domain, configure correctly
 
 ---
 
-## 📊 Portas Padrão
+## 📊 Default Ports
 
-| Serviço           | Docker | Monolith | Development |
+| Service           | Docker | Monolith | Development |
 |-------------------|--------|----------|-------------|
 | Frontend          | 443    | 443      | 5173        |
 | Frontend (HTTP)   | -      | 80       | -           |
@@ -416,15 +426,15 @@ Se ver erro de CORS no console do navegador:
 
 ---
 
-## 🗄️ Banco de Dados
+## 🗄️ Database
 
-### Inicialização
+### Initialization
 
-Quando o banco está vazio, o sistema entra em modo de setup:
+When the database is empty, the system enters setup mode:
 
-1. Acesse `/api/initialize/status` para verificar
-2. Use `/api/initialize/admin` para criar o primeiro usuário admin
-3. Documentação completa em: `http://localhost:3000/docs`
+1. Access `/api/initialize/status` to check
+2. Use `/api/initialize/admin` to create the first admin user
+3. Complete documentation at: `http://localhost:3000/docs`
 
 ### Backup (Monolith/Dev)
 
@@ -448,47 +458,47 @@ docker exec -i ehop_db psql -U ehopuser ehopdb < backup.sql
 
 ---
 
-## 🔒 Segurança
+## 🔒 Security
 
 ### Checklist
 
-- ✅ Use senhas de 64 caracteres (use os comandos de geração)
-- ✅ Nunca commite arquivos `.env` ou `.ini` com senhas
-- ✅ Mude senhas default antes de produção
-- ✅ Use HTTPS sempre (certificados SSL)
-- ✅ Configure CORS corretamente (não use `*`)
-- ✅ Mantenha dependências atualizadas
-- ✅ Faça backups regulares
+- ✅ Use 64-character passwords (use generation commands)
+- ✅ Never commit `.env` or `.ini` files with passwords
+- ✅ Change default passwords before production
+- ✅ Always use HTTPS (SSL certificates)
+- ✅ Configure CORS correctly (do not use `*`)
+- ✅ Keep dependencies updated
+- ✅ Perform regular backups
 
-### Gerar Senhas Seguras
+### Generate Secure Passwords
 
 ```bash
-# Senha de 64 caracteres
+# 64-character password
 openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
 
-# Ou deixe vazio no .ini para auto-gerar
+# Or leave empty in .ini to auto-generate
 ```
 
 ---
 
-## 📚 Mais Informações
+## 📚 More Information
 
 - **Backend**: `../backend/README.md`
 - **Frontend**: `../frontend/README.md`
-- **Schema SQL**: `../backend/database/schema.sql`
-- **API Docs**: `http://localhost:3000/docs` (quando rodando)
+- **SQL Schema**: `../backend/database/schema/` (modular)
+- **API Docs**: `http://localhost:3000/docs` (when running)
 
 ---
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Ao adicionar features de deploy:
+When adding deploy features:
 
-1. Mantenha os 3 modos sincronizados
-2. Documente mudanças neste README
-3. Teste em todos os modos
-4. Atualize `versions.ini` se mudar dependências
+1. Keep the 3 modes synchronized
+2. Document changes in this README
+3. Test in all modes
+4. Update `versions.ini` if dependencies change
 
 ---
 
-**Dúvidas?** Abra uma issue ou veja os logs primeiro! 🚀
+**Questions?** Open an issue or check the logs first! 🚀

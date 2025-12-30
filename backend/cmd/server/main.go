@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -73,20 +73,8 @@ func main() {
 				db = nil
 				server.SetGlobalDB(nil)
 			} else {
-				log.Printf("✅ Database schema initialized\n")
-				fmt.Printf("✅ Database schema initialized\n")
-
-				// Apply seeds after schema initialization
-				log.Printf("🌱 Applying database seeds...\n")
-				fmt.Printf("🌱 Applying database seeds...\n")
-				if err := database.ApplySeeds(db); err != nil {
-					log.Printf("❌ Failed to apply database seeds: %v\n", err)
-					fmt.Printf("❌ Failed to apply database seeds: %v\n", err)
-					// Don't fail the startup, just warn
-				} else {
-					log.Printf("✅ Database seeds applied\n")
-					fmt.Printf("✅ Database seeds applied\n")
-				}
+				log.Printf("✅ Database schema initialized (includes essential data)\n")
+				fmt.Printf("✅ Database schema initialized (includes essential data)\n")
 			}
 		}
 	}

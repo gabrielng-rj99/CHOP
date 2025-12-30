@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -160,7 +160,7 @@ class TestSQLInjection:
         ]
 
         for payload in dangerous_payloads:
-            response = http_client.post(f"{api_url}/entities", json={
+            response = http_client.post(f"{api_url}/clients", json={
                 "name": payload,
                 "email": "test@test.com"
             }, headers=headers)
@@ -169,7 +169,7 @@ class TestSQLInjection:
             assert response.status_code in [200, 201, 400], "Não deve causar erro de SQL"
 
             # Verificar que tabela não foi dropada tentando buscar clientes
-            check_response = http_client.get(f"{api_url}/entities", headers=headers)
+            check_response = http_client.get(f"{api_url}/clients", headers=headers)
             assert check_response.status_code == 200, "Tabela de clientes não deve ser afetada"
 
     def test_sql_injection_in_user_creation(self, http_client, api_url, root_user, timer):

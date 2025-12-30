@@ -187,7 +187,7 @@
             <mxRectangle width="60" height="30" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="NoqnLrJ14qfGqcGd-8BD-85" value="&lt;b&gt;&lt;u&gt;entity_id: entities.id&lt;/u&gt;&lt;/b&gt;" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="NoqnLrJ14qfGqcGd-8BD-83">
+        <mxCell id="NoqnLrJ14qfGqcGd-8BD-85" value="&lt;b&gt;&lt;u&gt;client_id: entities.id&lt;/u&gt;&lt;/b&gt;" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="NoqnLrJ14qfGqcGd-8BD-83">
           <mxGeometry x="60" width="220" height="30" as="geometry">
             <mxRectangle width="220" height="30" as="alternateBounds" />
           </mxGeometry>

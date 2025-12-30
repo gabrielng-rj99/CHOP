@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -59,7 +59,7 @@ export default function AgreementsTable({
             <thead>
                 <tr>
                     <th>{labels.model || "Modelo"}</th>
-                    <th>{labels.entity || "Cliente"}</th>
+                    <th>{labels.client || "Cliente"}</th>
                     <th>{labels.category || "Categoria"}</th>
                     <th>Vencimento</th>
                     <th className="status">Status</th>
@@ -87,10 +87,10 @@ export default function AgreementsTable({
                                 )}
                             </td>
                             <td>
-                                {getClientName(contract.entity_id, clients)}
-                                {contract.dependent && (
-                                    <div className="agreements-table-dependent">
-                                        Dep: {contract.dependent.name}
+                                {getClientName(contract.client_id, clients)}
+                                {contract.affiliate && (
+                                    <div className="agreements-table-affiliate">
+                                        Dep: {contract.affiliate.name}
                                     </div>
                                 )}
                             </td>

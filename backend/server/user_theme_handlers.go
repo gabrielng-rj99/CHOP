@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -284,6 +284,36 @@ func (s *Server) HandleGetUserTheme(w http.ResponseWriter, r *http.Request) {
 		response["settings"] = nil
 	}
 
+	// Include allowed_themes in the response (for all users)
+	if s.settingsStore != nil {
+		systemSettings, err := s.settingsStore.GetSystemSettings()
+		if err == nil {
+			var allowedThemes []string
+			if value, exists := systemSettings["allowed_themes"]; exists && value != "" {
+				allowedThemes = strings.Split(value, ",")
+			}
+			// Default: all themes allowed
+			if len(allowedThemes) == 0 {
+				allowedThemes = []string{"default", "ocean", "forest", "sunset", "purple", "monochrome", "custom"}
+			}
+			response["allowed_themes"] = allowedThemes
+
+			// Include global_theme for root users only
+			if claims.Role == "root" {
+				globalTheme := make(map[string]interface{})
+				for key, value := range systemSettings {
+					if strings.HasPrefix(key, "global_theme.") {
+						shortKey := strings.TrimPrefix(key, "global_theme.")
+						globalTheme[shortKey] = value
+					}
+				}
+				if len(globalTheme) > 0 {
+					response["global_theme"] = globalTheme
+				}
+			}
+		}
+	}
+
 	respondJSON(w, http.StatusOK, response)
 }
 
@@ -401,10 +431,18 @@ func (s *Server) HandleUpdateUserTheme(w http.ResponseWriter, r *http.Request) {
 		FontTableTitle:     req.FontTableTitle,
 	}
 
+	// DEBUG: Log the full request and settings being saved
+	log.Printf("🔍 DEBUG: Received theme update from user %s: preset=%s, mode=%s, layout=%s, cbm=%s",
+		claims.Username, req.ThemePreset, req.ThemeMode, req.LayoutMode, req.ColorBlindMode)
+	log.Printf("🔍 DEBUG: Settings object: UserID=%s, Preset=%s, Mode=%s, Layout=%s",
+		settings.UserID, settings.ThemePreset, settings.ThemeMode, settings.LayoutMode)
+
 	// Upsert settings
 	if err := s.userThemeStore.UpsertUserThemeSettings(settings); err != nil {
 		log.Printf("❌ Error saving user theme settings for user %s: %v", claims.Username, err)
-		respondError(w, http.StatusInternalServerError, "Erro ao salvar configurações de tema")
+		log.Printf("❌ DEBUG: Full error type: %T, error: %+v", err, err)
+		// DEBUG: Return detailed error for troubleshooting
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao salvar configurações de tema: %v", err))
 		return
 	}
 
@@ -770,8 +808,8 @@ func (s *Server) HandleUpdateGlobalTheme(w http.ResponseWriter, r *http.Request)
 
 		_, auditErr := s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "global_theme",
-			EntityID:      "system",
+			Resource:      "global_theme",
+			ResourceID:    "system",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -923,8 +961,8 @@ func (s *Server) HandleUpdateAllowedThemes(w http.ResponseWriter, r *http.Reques
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "allowed_themes",
-			EntityID:      "system",
+			Resource:      "allowed_themes",
+			ResourceID:    "system",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -1100,8 +1138,8 @@ func (s *Server) HandleUpdateSystemConfig(w http.ResponseWriter, r *http.Request
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "system_config",
-			EntityID:      "system",
+			Resource:      "system_config",
+			ResourceID:    "system",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,

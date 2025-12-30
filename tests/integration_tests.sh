@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Entity-Hub Integration Tests
+# Client-Hub Integration Tests
 # ============================================================================
 # Comprehensive test suite for backend API endpoints
 # ============================================================================
@@ -141,7 +141,7 @@ test_database_connection() {
             fi
 
             # Test each expected table
-            for table in users clients dependents contracts categories lines audit_logs; do
+            for table in users clients affiliates contracts categories lines audit_logs; do
                 if docker exec ehop_db psql -U ehopuser -d ehopdb -t -c "SELECT 1 FROM pg_tables WHERE tablename='$table' LIMIT 1;" 2>/dev/null | grep -q 1; then
                     log_success "Table '$table' exists"
                 else
@@ -177,7 +177,7 @@ test_initialize_admin() {
             \"username\": \"$ADMIN_USERNAME\",
             \"password\": \"$ADMIN_PASSWORD\",
             \"display_name\": \"System Administrator\",
-            \"email\": \"admin@entityhub.local\"
+            \"email\": \"admin@clienthub.local\"
         }"
 
         local response=$(test_endpoint \
@@ -531,7 +531,7 @@ test_error_handling() {
 # ============================================================================
 
 main() {
-    log_section "Entity-Hub Integration Tests"
+    log_section "Client-Hub Integration Tests"
     log_info "Backend URL: $BACKEND_URL"
     echo ""
 

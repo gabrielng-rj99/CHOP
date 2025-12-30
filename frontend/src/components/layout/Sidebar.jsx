@@ -59,7 +59,7 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                 <h2
                     className={`app-nav-title${sidebarCollapsed ? " hidden-title" : ""}`}
                 >
-                    {branding.appName || "Entity Hub"}
+                    {branding.appName || "Client Hub"}
                 </h2>
                 <button onClick={toggleSidebar} className="app-nav-toggle">
                     {sidebarCollapsed ? "☰" : "←"}
@@ -98,14 +98,14 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                 <button
                     onClick={() => navigate("/clients")}
                     className={`app-nav-button ${currentPath === "clients" ? "active" : ""}`}
-                    title={labels.entities || "Clientes"}
+                    title={labels.clients || "Clientes"}
                 >
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faUserGroup} />
                     </span>
                     {!sidebarCollapsed && (
                         <span className="app-nav-text">
-                            {labels.entities || "Clientes"}
+                            {labels.clients || "Clientes"}
                         </span>
                     )}
                 </button>

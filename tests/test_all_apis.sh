@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Entity-Hub Complete API Test Suite
+# Client-Hub Complete API Test Suite
 # ============================================================================
 # Tests ALL API endpoints with authentication
 # ============================================================================
@@ -235,40 +235,40 @@ test_clients_api() {
     # Unarchive client
     test_endpoint "POST" "/api/clients/$TEST_CLIENT_ID/unarchive" "200" "" "$TOKEN" "POST /api/clients/{id}/unarchive - Unarchive client"
 
-    # Get client dependents
-    test_endpoint "GET" "/api/clients/$TEST_CLIENT_ID/dependents" "200" "" "$TOKEN" "GET /api/clients/{id}/dependents - List dependents"
+    # Get client affiliates
+    test_endpoint "GET" "/api/clients/$TEST_CLIENT_ID/affiliates" "200" "" "$TOKEN" "GET /api/clients/{id}/affiliates - List affiliates"
 
-    # Create dependent
-    local dependent_data='{
-        "name": "Test Dependent",
+    # Create affiliate
+    local affiliate_data='{
+        "name": "Test Affiliate",
         "cpf": "98765432100",
         "relationship": "Filho"
     }'
 
-    log_test "POST /api/clients/{id}/dependents - Create dependent"
+    log_test "POST /api/clients/{id}/affiliates - Create affiliate"
     TESTS_RUN=$((TESTS_RUN + 1))
 
     response=$(curl -s -X POST \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $TOKEN" \
-        -d "$dependent_data" \
-        "$BACKEND_URL/api/clients/$TEST_CLIENT_ID/dependents")
+        -d "$affiliate_data" \
+        "$BACKEND_URL/api/clients/$TEST_CLIENT_ID/affiliates")
 
-    dependent_id=$(echo "$response" | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+    affiliate_id=$(echo "$response" | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
 
-    if [ -n "$dependent_id" ]; then
-        log_success "Dependent created - ID: $dependent_id"
+    if [ -n "$affiliate_id" ]; then
+        log_success "Affiliate created - ID: $affiliate_id"
 
-        # Update dependent
+        # Update affiliate
         local update_dep='{
-            "name": "Test Dependent Updated"
+            "name": "Test Affiliate Updated"
         }'
-        test_endpoint "PUT" "/api/dependents/$dependent_id" "200" "$update_dep" "$TOKEN" "PUT /api/dependents/{id} - Update dependent"
+        test_endpoint "PUT" "/api/affiliates/$affiliate_id" "200" "$update_dep" "$TOKEN" "PUT /api/affiliates/{id} - Update affiliate"
 
-        # Delete dependent
-        test_endpoint "DELETE" "/api/dependents/$dependent_id" "200" "" "$TOKEN" "DELETE /api/dependents/{id} - Delete dependent"
+        # Delete affiliate
+        test_endpoint "DELETE" "/api/affiliates/$affiliate_id" "200" "" "$TOKEN" "DELETE /api/affiliates/{id} - Delete affiliate"
     else
-        log_fail "Failed to create dependent"
+        log_fail "Failed to create affiliate"
     fi
 
     # Delete client (cleanup)
@@ -505,7 +505,7 @@ main() {
     echo ""
     echo -e "${CYAN}╔════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${CYAN}║                                                                ║${NC}"
-    echo -e "${CYAN}║        Entity-Hub Complete API Test Suite                     ║${NC}"
+    echo -e "${CYAN}║        Client-Hub Complete API Test Suite                     ║${NC}"
     echo -e "${CYAN}║                                                                ║${NC}"
     echo -e "${CYAN}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""

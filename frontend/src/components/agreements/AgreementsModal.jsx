@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,7 @@ export default function AgreementModal({
     clients,
     categories,
     lines,
-    dependents,
+    affiliates,
     onSubmit,
     onClose,
     onCategoryChange,
@@ -165,12 +165,12 @@ export default function AgreementModal({
                                 Cliente *
                             </label>
                             <select
-                                value={formData.entity_id}
+                                value={formData.client_id}
                                 onChange={(e) => {
                                     setFormData({
                                         ...formData,
-                                        entity_id: e.target.value,
-                                        sub_entity_id: "",
+                                        client_id: e.target.value,
+                                        affiliate_id: "",
                                     });
                                     onClientChange(e.target.value);
                                 }}
@@ -195,7 +195,7 @@ export default function AgreementModal({
                             </select>
                         </div>
 
-                        {/* Dependente */}
+                        {/* Afiliado */}
                         <div>
                             <label
                                 style={{
@@ -206,19 +206,19 @@ export default function AgreementModal({
                                     color: "#495057",
                                 }}
                             >
-                                Dependente (Opcional)
+                                Afiliado (Opcional)
                             </label>
                             <select
-                                value={formData.sub_entity_id}
+                                value={formData.affiliate_id}
                                 onChange={(e) =>
                                     setFormData({
                                         ...formData,
-                                        sub_entity_id: e.target.value,
+                                        affiliate_id: e.target.value,
                                     })
                                 }
                                 disabled={
-                                    !formData.entity_id ||
-                                    dependents.length === 0
+                                    !formData.client_id ||
+                                    affiliates.length === 0
                                 }
                                 style={{
                                     width: "100%",
@@ -228,14 +228,14 @@ export default function AgreementModal({
                                     fontSize: "14px",
                                     boxSizing: "border-box",
                                     opacity:
-                                        !formData.entity_id ||
-                                        dependents.length === 0
+                                        !formData.client_id ||
+                                        affiliates.length === 0
                                             ? 0.6
                                             : 1,
                                 }}
                             >
-                                <option value="">Nenhum dependente</option>
-                                {dependents.map((dep) => (
+                                <option value="">Nenhum afiliado</option>
+                                {affiliates.map((dep) => (
                                     <option key={dep.id} value={dep.id}>
                                         {dep.name}
                                     </option>

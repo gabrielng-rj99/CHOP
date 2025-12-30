@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -340,7 +340,7 @@ class TestConcurrencySecurity:
         def make_request(endpoint):
             return http_client.get(f"{api_url}/{endpoint}", headers=headers)
 
-        endpoints = ["users", "entities", "categories", "agreements", "subcategories"]
+        endpoints = ["users", "clients", "categories", "agreements", "subcategories"]
 
         # Make concurrent requests to different endpoints
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

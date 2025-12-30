@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -50,7 +52,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -73,7 +77,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -95,7 +101,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -116,7 +124,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {
@@ -137,7 +147,9 @@ const usersApi = {
 
         if (response.status === 401) {
             onTokenExpired?.();
-            throw new Error("Token inválido ou expirado. Faça login novamente.");
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
         }
 
         if (!response.ok) {

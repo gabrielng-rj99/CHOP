@@ -1,6 +1,6 @@
 # =============================================================================
-# Entity Hub Open Project
-# Copyright (C) 2025 Entity Hub Contributors
+# Client Hub Open Project
+# Copyright (C) 2025 Client Hub Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -253,7 +253,7 @@ class TestDataLeakage:
         user_headers = {"Authorization": f"Bearer {regular_user['token']}"}
 
         # Admin cria cliente
-        create_response = http_client.post(f"{api_url}/entities", json={
+        create_response = http_client.post(f"{api_url}/clients", json={
             "name": f"Isolated Client {int(time.time())}",
             "email": "isolated@test.com",
             "notes": "Dados confidenciais aqui"
@@ -264,7 +264,7 @@ class TestDataLeakage:
 
         # Verificar que usuário comum pode ou não acessar
         # Comportamento depende das regras de negócio
-        user_response = http_client.get(f"{api_url}/entities", headers=user_headers)
+        user_response = http_client.get(f"{api_url}/clients", headers=user_headers)
 
         # Não deve causar erro interno
         assert user_response.status_code != 500, "Erro interno ao verificar isolamento"

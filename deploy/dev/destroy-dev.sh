@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Destroy Development Environment Script
+# Client Hub - Destroy Development Environment Script
 # ⚠️  WARNING: This script completely destroys the development environment:
 # - Stops all services (backend + Vite)
 # - Drops the development database and user

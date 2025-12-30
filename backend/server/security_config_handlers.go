@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -407,8 +407,8 @@ func (s *Server) HandleUpdateSecurityConfig(w http.ResponseWriter, r *http.Reque
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Entity:        "security_config",
-			EntityID:      "system",
+			Resource:        "security_config",
+			ResourceID:      "system",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldSettings,

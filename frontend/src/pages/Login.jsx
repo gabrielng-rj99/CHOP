@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -60,7 +60,7 @@ export default function Login({ onLogin }) {
         <div className="login-container">
             <div className="login-card">
                 <h1 className="login-title">
-                    Entity Hub<br></br>
+                    Client Hub<br></br>
                     Open Project
                 </h1>
                 <p className="login-subtitle">Gerenciador de Entidades FLOSS</p>

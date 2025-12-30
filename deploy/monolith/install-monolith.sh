@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub Monolith Installer
+# Client Hub Monolith Installer
 # One-click installation script for all dependencies and setup.
 # Reads compatible versions from deploy/versions.ini
 # Run with: curl -f https://your-domain/install-monolith.sh | sh
@@ -70,7 +70,7 @@ install_package() {
     if [ -z "$RHEL_PACKAGE_NAME" ]; then RHEL_PACKAGE_NAME=$PACKAGE_NAME; fi
 
     echo "Blocking until lock is released..."
-    
+
     case $PM in
         apt)
             $SUDO apt-get install -y -qq $PACKAGE_NAME
@@ -118,7 +118,7 @@ if [[ "$OSTYPE" != "linux-gnu"* ]]; then
     exit 1
 fi
 
-echo -e "${BOLD}${BLUE}🚀 Entity Hub Monolith Installer${NC}"
+echo -e "${BOLD}${BLUE}🚀 Client Hub Monolith Installer${NC}"
 echo -e "${BOLD}${BLUE}=================================${NC}"
 echo ""
 
@@ -201,7 +201,7 @@ fi
 if ! command_exists node; then
     print_step "Installing Node.js..."
     NODE_VERSION=$(get_version node)
-    
+
     if [[ "$PM" == "pacman" ]]; then
         install_package nodejs nodejs nodejs
         install_package npm npm npm
@@ -219,7 +219,7 @@ fi
 if ! command_exists psql; then
     print_step "Installing PostgreSQL..."
     PG_VERSION=$(get_version postgres)
-    
+
     case $PM in
         apt)
             install_package postgresql postgresql postgresql
@@ -271,7 +271,7 @@ print_success "All system dependencies installed!"
 echo ""
 
 # Setup project
-print_step "Setting up Entity Hub project..."
+print_step "Setting up Client Hub project..."
 
 # Assume we're in the project root or adjust path
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -312,7 +312,7 @@ if [ ! -f deploy/monolith/monolith.ini ]; then
 fi
 
 echo ""
-print_success "Entity Hub setup complete!"
+print_success "Client Hub setup complete!"
 echo ""
 echo -e "${BOLD}${YELLOW}Next steps:${NC}"
 echo "1. Edit deploy/monolith/monolith.ini with your settings"

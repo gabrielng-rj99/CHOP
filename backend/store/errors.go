@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -25,17 +25,16 @@ import "errors"
 
 // Domain-specific errors
 var (
-	ErrClientNotFound           = errors.New("entity not found")
+	ErrClientNotFound           = errors.New("client not found")
 	ErrClientHasActiveLicenses  = errors.New("client has active licenses")
 	ErrDuplicatedRegistrationID = errors.New("registration ID already registered")
-	ErrEntityNotFound           = errors.New("entity not found")
-	ErrEntityHasActiveLicenses  = errors.New("entity has active licenses")
-	ErrInvalidClientEntity      = errors.New("entity does not belong to the client")
-	ErrLineNotFound             = errors.New("license type not found")
-	ErrLicenseNotFound          = errors.New("license not found")
-	ErrLicenseOverlap           = errors.New("there is already a license of the same type in this period")
-	ErrArchivedClient           = errors.New("client is archived")
-	ErrNoRows                   = errors.New("no records found")
+
+	ErrInvalidClientClient = errors.New("client does not belong to the client")
+	ErrLineNotFound        = errors.New("license type not found")
+	ErrLicenseNotFound     = errors.New("license not found")
+	ErrLicenseOverlap      = errors.New("there is already a license of the same type in this period")
+	ErrArchivedClient      = errors.New("client is archived")
+	ErrNoRows              = errors.New("no records found")
 )
 
 // ValidationError represents an error that occurs when input validation fails.

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Stop Development Services Script
+# Client Hub - Stop Development Services Script
 # This script stops all running development services (backend + Vite).
 
 set -e
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-echo -e "${BLUE}🛑 Stopping Entity Hub (Development Mode)${NC}"
+echo -e "${BLUE}🛑 Stopping Client Hub (Development Mode)${NC}"
 echo -e "${BLUE}==========================================${NC}"
 echo ""
 

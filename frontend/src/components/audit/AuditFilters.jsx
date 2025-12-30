@@ -1,6 +1,6 @@
 /*
- * This file is part of Entity Hub Open Project.
- * Copyright (C) 2025 Entity Hub Contributors
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -38,14 +38,14 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
 
     const handleClear = () => {
         setFilters({
-            entity: "",
+            client: "",
             operation: "",
             adminId: "",
             adminSearch: "",
             status: "",
             ipAddress: "",
-            entityId: "",
-            entitySearch: "",
+            clientId: "",
+            clientSearch: "",
             changedData: "",
             startDate: "",
             endDate: "",
@@ -88,9 +88,9 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 Entidade
                             </label>
                             <select
-                                value={filters.entity}
+                                value={filters.client}
                                 onChange={(e) =>
-                                    handleChange("entity", e.target.value)
+                                    handleChange("client", e.target.value)
                                 }
                                 className="audit-filters-select"
                             >
@@ -101,7 +101,7 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 <option value="contract">Contratos</option>
                                 <option value="line">Linhas</option>
                                 <option value="category">Categorias</option>
-                                <option value="dependent">Dependentes</option>
+                                <option value="affiliate">Afiliados</option>
                             </select>
                         </div>
 
@@ -149,9 +149,9 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                             <input
                                 type="text"
                                 placeholder="UUID ou nome da entidade"
-                                value={filters.entitySearch}
+                                value={filters.clientSearch}
                                 onChange={(e) =>
-                                    handleChange("entitySearch", e.target.value)
+                                    handleChange("clientSearch", e.target.value)
                                 }
                                 className="audit-filters-input"
                             />

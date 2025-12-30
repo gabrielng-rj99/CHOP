@@ -1,6 +1,6 @@
 /*
- * Entity Hub Open Project
- * Copyright (C) 2025 Entity Hub Contributors
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -106,32 +106,32 @@ export const bonusThemes = {
         },
     },
     neon: {
-        name: "Neon",
+        name: "Cyberpunk",
         light: {
-            buttonPrimary: "#ff006e",
-            buttonSecondary: "#00f5ff",
-            bgPage: "#f0f4f8",
-            bgCard: "#ffffff",
-            textPrimary: "#1a1a1a",
-            textSecondary: "#4a4a4a",
-            borderDefault: "#ff71ce",
-            textNav: "#1a1a1a",
-            bgNavbar: "#ff006e",
-            textTitle: "#c4004f",
-            textNavActive: "#f0f4f8",
+            buttonPrimary: "#FF003C",
+            buttonSecondary: "#FCEE0A",
+            bgPage: "#131313",
+            bgCard: "#1a1a1a",
+            textPrimary: "#00F0FF",
+            textSecondary: "#FCEE0A",
+            borderDefault: "#00F0FF",
+            textNav: "#00F0FF",
+            bgNavbar: "#131313",
+            textTitle: "#FF003C",
+            textNavActive: "#FCEE0A",
         },
         dark: {
-            buttonPrimary: "#ff006e",
-            buttonSecondary: "#00f5ff",
-            bgPage: "#0a0014",
-            bgCard: "#1a0028",
-            textPrimary: "#ff71ce",
-            textSecondary: "#01cdfe",
-            borderDefault: "#b967ff",
-            textNav: "#ffffff",
-            bgNavbar: "#0a0014",
-            textTitle: "#ff006e",
-            textNavActive: "#ff71ce",
+            buttonPrimary: "#FF003C",
+            buttonSecondary: "#FCEE0A",
+            bgPage: "#131313",
+            bgCard: "#1a1a1a",
+            textPrimary: "#00F0FF",
+            textSecondary: "#FCEE0A",
+            borderDefault: "#00F0FF",
+            textNav: "#00F0FF",
+            bgNavbar: "#131313",
+            textTitle: "#FF003C",
+            textNavActive: "#FCEE0A",
         },
     },
     pastel: {

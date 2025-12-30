@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Entity Hub - Stop Monolith Services Script
+# Client Hub - Stop Monolith Services Script
 # This script stops all running monolith services.
 
 set -e
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-echo -e "${BLUE}🛑 Stopping Entity Hub (Monolith Mode)${NC}"
+echo -e "${BLUE}🛑 Stopping Client Hub (Monolith Mode)${NC}"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 
