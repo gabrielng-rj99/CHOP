@@ -198,24 +198,14 @@ if [ -f "/tmp/ehop-vite-dev.pid" ]; then
     echo -e "${GREEN}✓ Removed old Vite PID file${NC}"
 fi
 
-# Clear passwords from dev.ini
-echo "🔐 Clearing passwords from configuration..."
-if [ -f "$CONFIG_FILE" ]; then
-    # Reset DB_PASSWORD to empty
-    sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=/' "$CONFIG_FILE"
-    echo -e "${GREEN}✓ Cleared DB_PASSWORD from dev.ini${NC}"
 
-    # Reset JWT_SECRET to empty
-    sed -i 's/^JWT_SECRET=.*/JWT_SECRET=/' "$CONFIG_FILE"
-    echo -e "${GREEN}✓ Cleared JWT_SECRET from dev.ini${NC}"
-fi
 
 echo ""
 echo -e "${GREEN}${BOLD}✅ Development environment completely destroyed!${NC}"
 echo ""
 echo -e "${BLUE}The following was preserved:${NC}"
 echo -e "  ✓ Source code (backend/ and frontend/)"
-echo -e "  ✓ Configuration file (dev.ini) - passwords cleared"
+echo -e "  ✓ Configuration file (dev.ini)"
 echo -e "  ✓ Node modules (frontend/node_modules/)"
 echo -e "  ✓ Go modules cache"
 echo -e "  ✓ Database user (${DB_USER}) - might be shared"
@@ -224,5 +214,4 @@ echo -e "  ✓ Production environment files"
 echo ""
 echo -e "${YELLOW}To recreate the development environment, run:${NC}"
 echo -e "  ${BOLD}./start-dev.sh${NC}"
-echo -e "${BLUE}(New passwords will be auto-generated)${NC}"
 echo ""
