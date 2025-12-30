@@ -1,0 +1,119 @@
+/*
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+-- ============================================
+-- USERS MODULE
+-- ============================================
+-- Este arquivo contém tabelas relacionadas a usuários:
+-- - users: Usuários do sistema
+-- - user_theme_settings: Preferências de tema por usuário
+--
+-- Deve ser executado após 03_security.sql
+
+-- ============================================
+-- USERS
+-- ============================================
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    username CITEXT UNIQUE,
+    display_name VARCHAR(255),
+    password_hash VARCHAR(255),
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    -- Role (legacy string + new FK)
+    role VARCHAR(50),
+    role_id UUID REFERENCES roles(id) ON DELETE SET NULL,
+
+    -- Security: login attempts and locks
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    lock_level INTEGER NOT NULL DEFAULT 0,
+    locked_until TIMESTAMP,
+    auth_secret VARCHAR(64),
+
+    -- Security: tracking
+    last_login_at TIMESTAMP,
+    last_login_ip VARCHAR(45),
+    password_changed_at TIMESTAMP,
+    must_change_password BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_deleted ON users(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+-- ============================================
+-- FK: password_history -> users
+-- ============================================
+-- A tabela password_history foi criada em 03_security.sql
+-- Agora que users existe, adicionamos a FK
+
+ALTER TABLE password_history
+    DROP CONSTRAINT IF EXISTS fk_password_history_user;
+ALTER TABLE password_history
+    ADD CONSTRAINT fk_password_history_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- ============================================
+-- USER THEME SETTINGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_theme_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE,
+
+    -- Theme preset (name of predefined theme or 'custom')
+    theme_preset VARCHAR(100) NOT NULL DEFAULT 'default',
+
+    -- Theme mode preference
+    theme_mode VARCHAR(20) NOT NULL DEFAULT 'system' CHECK (theme_mode IN ('light', 'dark', 'system')),
+
+    -- Layout mode preference
+    layout_mode VARCHAR(20) NOT NULL DEFAULT 'standard' CHECK (layout_mode IN ('centralized', 'standard', 'full', 'compact', 'spacious', 'comfortable', 'wide')),
+
+    -- Custom colors (only used when theme_preset = 'custom')
+    -- All colors must be valid hex format (#RGB or #RRGGBB)
+    primary_color VARCHAR(7) CHECK (primary_color IS NULL OR primary_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    secondary_color VARCHAR(7) CHECK (secondary_color IS NULL OR secondary_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    background_color VARCHAR(7) CHECK (background_color IS NULL OR background_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    surface_color VARCHAR(7) CHECK (surface_color IS NULL OR surface_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    text_color VARCHAR(7) CHECK (text_color IS NULL OR text_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    text_secondary_color VARCHAR(7) CHECK (text_secondary_color IS NULL OR text_secondary_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+    border_color VARCHAR(7) CHECK (border_color IS NULL OR border_color ~ '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$'),
+
+    -- Accessibility settings
+    high_contrast BOOLEAN NOT NULL DEFAULT FALSE,
+    color_blind_mode VARCHAR(20) NOT NULL DEFAULT 'none' CHECK (color_blind_mode IN ('none', 'protanopia', 'deuteranopia', 'tritanopia')),
+    dyslexic_font BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Font settings
+    font_general VARCHAR(100) DEFAULT 'System',
+    font_title VARCHAR(100) DEFAULT 'System',
+    font_table_title VARCHAR(100) DEFAULT 'System',
+
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- Foreign key constraint
+    CONSTRAINT fk_user_theme_settings_user FOREIGN KEY (user_id)
+        REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_theme_settings_user_id ON user_theme_settings(user_id);
