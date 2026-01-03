@@ -6,7 +6,7 @@ Technical overview of the system, design patterns, and development guidelines.
 
 Client Hub is a flexible client management system with a Go backend API and React frontend. The architecture follows a layered approach with clear separation of concerns.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                      Frontend (React)                        │
 │                  TypeScript + Vite + TailwindCSS             │
@@ -36,7 +36,7 @@ Client Hub is a flexible client management system with a Go backend API and Reac
 
 ## Directory Structure
 
-```
+```text
 Client-Hub-Open-Project/
 ├── backend/
 │   ├── cmd/
@@ -111,7 +111,7 @@ Each entity has a dedicated store that handles:
 
 ### Entity Relationships
 
-```
+```text
 ┌──────────────┐
 │   Users      │ ─── Authentication & Authorization
 └──────────────┘

@@ -48,9 +48,9 @@ Base URL: `/` (Most endpoints use the `/api` prefix)
 | `PUT` | `/api/affiliates/{id}` | Authenticated | `name`, `description`, `email`, `tags`, `contact_preference` | `id`, `name` |
 | `DELETE` | `/api/affiliates/{id}` | Authenticated | N/A | `message` |
 
-## Contracts (Formerly Agreements)
+## Contracts
 
-*Contracts or agreements signed with Clients.*
+*Contracts signed with Clients.*
 
 | Method | Endpoint | Authentication | Required Parameters | Response Fields |
 | :--- | :--- | :--- | :--- | :--- |
