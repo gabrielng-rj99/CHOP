@@ -413,7 +413,7 @@ export default function UserModal({
         const icons = {
             Entidades: "🏢",
             "Sub-entidades": "🏠",
-            Acordos: "📄",
+            Contratos: "📄",
             Categorias: "🏷️",
             Usuários: "👤",
             Auditoria: "📋",
@@ -872,7 +872,7 @@ export default function UserModal({
                                                         (p) =>
                                                             customRoleData
                                                                 .permissions[
-                                                                p.id
+                                                            p.id
                                                             ],
                                                     )
                                                         ? "Desmarcar"
@@ -892,7 +892,7 @@ export default function UserModal({
                                                             checked={
                                                                 customRoleData
                                                                     .permissions[
-                                                                    perm.id
+                                                                perm.id
                                                                 ] || false
                                                             }
                                                             onChange={() =>

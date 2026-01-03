@@ -119,9 +119,9 @@ const defaultSettings = {
         client: "Cliente",
         client_gender: "M",
         clients: "Clientes",
-        agreement: "Contrato",
-        agreement_gender: "M",
-        agreements: "Contratos",
+        contract: "Contrato",
+        contract_gender: "M",
+        contracts: "Contratos",
         category: "Categoria",
         category_gender: "F",
         categories: "Categorias",
@@ -156,9 +156,9 @@ const defaultLabels = {
     client: "Cliente",
     client_gender: "M",
     clients: "Clientes",
-    agreement: "Contrato",
-    agreement_gender: "M",
-    agreements: "Contratos",
+    contract: "Contrato",
+    contract_gender: "M",
+    contracts: "Contratos",
     category: "Categoria",
     category_gender: "F",
     categories: "Categorias",
@@ -1496,16 +1496,7 @@ export const ConfigProvider = ({ children }) => {
         saveThemePermissions,
         allowedThemes,
         globalTheme,
-        updateSettings: async (newSettings) => {
-            // ... strict subset of settings update ...
-            // This is kept for backward compatibility if needed,
-            // but we encourage using saveUserTheme for theme settings
-            // and separate API calls for system settings.
-
-            // For now, we reuse the save logic inside Appearance.jsx
-            // which calls specific API endpoints.
-            throw new Error("Use specific update functions");
-        },
+        updateSettings,
         getPersistentFilter,
         setPersistentFilter,
         getGenderHelpers,

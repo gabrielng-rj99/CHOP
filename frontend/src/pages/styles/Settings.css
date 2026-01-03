@@ -412,15 +412,15 @@
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--primary-color, #3498db);
 }
 
-input:focus + .slider {
+input:focus+.slider {
     box-shadow: 0 0 1px var(--primary-color, #3498db);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     -webkit-transform: translateX(20px);
     -ms-transform: translateX(20px);
     transform: translateX(20px);
@@ -430,12 +430,21 @@ input:checked + .slider:before {
     max-width: 200px;
     height: auto;
     max-height: 80px;
+    border: 1px solid var(--border-color, #ccc);
+    background: #fff;
+    padding: 4px;
+    border-radius: 4px;
 }
 
 .logo-preview.square {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     object-fit: contain;
+    border: 1px solid var(--border-color, #ccc);
+    background: #fff;
+    padding: 4px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Dark Mode Styles */
@@ -513,11 +522,9 @@ input:checked + .slider:before {
    ============================================ */
 
 .permissions-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(52, 152, 219, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(52, 152, 219, 0.05) 100%);
     border-left: 4px solid var(--primary-color, #3498db);
 }
 
@@ -679,11 +686,9 @@ input:checked + .slider:before {
 
 /* Dark Mode - Permissions Section */
 .dark-mode .permissions-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, #2d3748) 0%,
-        rgba(52, 152, 219, 0.1) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, #2d3748) 0%,
+            rgba(52, 152, 219, 0.1) 100%);
 }
 
 .dark-mode .permission-item {
@@ -739,11 +744,9 @@ input:checked + .slider:before {
    ============================================ */
 
 .system-config-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, white) 0%,
-        rgba(46, 204, 113, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, white) 0%,
+            rgba(46, 204, 113, 0.05) 100%);
     border-left: 4px solid #27ae60;
     margin-top: 2rem;
 }
@@ -871,11 +874,9 @@ input:checked + .slider:before {
 
 /* Dark Mode - System Config */
 .dark-mode .system-config-section {
-    background: linear-gradient(
-        135deg,
-        var(--content-bg, #2d3748) 0%,
-        rgba(46, 204, 113, 0.1) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--content-bg, #2d3748) 0%,
+            rgba(46, 204, 113, 0.1) 100%);
 }
 
 .dark-mode .config-item {
@@ -925,6 +926,7 @@ input:checked + .slider:before {
 
 /* Responsive - System Config */
 @media (max-width: 768px) {
+
     .config-item input[type="number"],
     .config-item input[type="email"],
     .config-item input[type="tel"] {
@@ -1112,7 +1114,7 @@ input:checked + .slider:before {
     bottom: 2px;
 }
 
-.switch.small input:checked + .slider:before {
+.switch.small input:checked+.slider:before {
     transform: translateX(16px);
 }
 

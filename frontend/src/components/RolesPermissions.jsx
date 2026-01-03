@@ -412,7 +412,7 @@ export default function RolesPermissions({ token, apiUrl }) {
         const icons = {
             Entidades: "👤",
             "Sub-entidades": "👥",
-            Acordos: "📝",
+            Contratos: "📝",
             Categorias: "📁",
             Usuários: "👤",
             Auditoria: "📋",
@@ -599,7 +599,7 @@ export default function RolesPermissions({ token, apiUrl }) {
                                         const enabledCount = perms.filter(
                                             (p) =>
                                                 rolePermissions[
-                                                    selectedRole.id
+                                                selectedRole.id
                                                 ]?.[p.id],
                                         ).length;
                                         const totalCount = perms.length;
@@ -732,18 +732,17 @@ export default function RolesPermissions({ token, apiUrl }) {
                             {activeCategory.perms.map((perm) => (
                                 <label
                                     key={perm.id}
-                                    className={`permission-item ${
-                                        selectedRole.name === "root"
+                                    className={`permission-item ${selectedRole.name === "root"
                                             ? "disabled"
                                             : ""
-                                    }`}
+                                        }`}
                                 >
                                     <input
                                         type="checkbox"
                                         checked={
                                             selectedRole.name === "root" ||
                                             !!rolePermissions[
-                                                selectedRole.id
+                                            selectedRole.id
                                             ]?.[perm.id]
                                         }
                                         onChange={() =>

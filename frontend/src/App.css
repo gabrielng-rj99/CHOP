@@ -1,3 +1,13 @@
+:root {
+    --sidebar-width: 250px;
+    --transition-speed: 0.4s;
+    --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.collapsed {
+    --sidebar-width: 70px;
+}
+
 /*
  * Client Hub Open Project
  * Copyright (C) 2025 Client Hub Contributors
@@ -69,7 +79,7 @@ label,
 }
 
 .app-nav {
-    width: 250px;
+    width: var(--sidebar-width);
     background: var(--secondary-color);
     color: var(--nav-text-color, white);
     font-family: var(--font-table-title);
@@ -80,12 +90,10 @@ label,
     top: 0;
     left: 0;
     height: 100vh;
-    transition:
-        width 0.5s ease,
-        opacity 0.5s ease;
+    transition: width var(--transition-speed) var(--transition-curve);
     z-index: 1000;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
+    will-change: width;
 }
 
 /* ... existing styles ... */
@@ -105,9 +113,9 @@ label,
     /* Use text color for max contrast if border-color is low contrast */
 }
 
-.app-nav.collapsed {
-    width: 70px;
-    transition: width 0.5s ease;
+.app-nav.collapsed,
+html.collapsed .app-nav {
+    width: var(--sidebar-width);
 }
 
 .app-nav-header {
@@ -126,27 +134,31 @@ label,
     color: var(--nav-text-color, white);
     /* Ensure high contrast against sidebar bg */
     font-family: var(--font-title);
-}
-
-.app-nav-branding {
-    overflow: hidden;
-    transition: opacity 0.5s ease;
-}
-
-.app-nav-branding img {
-    transition:
-        opacity 0.5s ease,
-        transform 0.5s ease;
+    transition: all var(--transition-speed) var(--transition-curve);
+    display: inline-block;
     max-width: 100%;
-    height: auto;
 }
 
-.app-nav.collapsed .app-nav-branding img {
+.app-nav.collapsed .app-nav-title,
+html.collapsed .app-nav-title {
     opacity: 0;
+    width: 0;
+    max-width: 0;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
 }
 
-.hidden-title {
-    display: none;
+/* Handled in Sidebar.css */
+
+/* Handled in Sidebar.css */
+
+.app-nav-title.hidden-by-logo {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
 }
 
 .app-nav-toggle {
@@ -158,8 +170,8 @@ label,
     padding: 5px;
     border-radius: 4px;
     transition:
-        background 0.5s ease,
-        transform 0.5s ease;
+        background var(--transition-speed) var(--transition-curve),
+        transform var(--transition-speed) var(--transition-curve);
 }
 
 .app-nav-toggle:hover {
@@ -170,10 +182,11 @@ label,
     flex: 1;
     padding: 20px 10px;
     overflow-y: auto;
-    transition: padding 0.5s ease;
+    transition: padding var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-items {
+.app-nav.collapsed .app-nav-items,
+html.collapsed .app-nav-items {
     padding: 20px 0;
 }
 
@@ -195,16 +208,14 @@ label,
     white-space: nowrap;
     width: 100%;
     transition:
-        padding 0.5s ease,
-        justify-content 0.5s ease;
+        padding var(--transition-speed) var(--transition-curve),
+        justify-content var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-button {
+.app-nav.collapsed .app-nav-button,
+html.collapsed .app-nav-button {
     justify-content: center;
     padding: 12px 8px;
-    transition:
-        padding 0.5s ease,
-        justify-content 0.5s ease;
 }
 
 .app-nav-button:hover {
@@ -233,13 +244,12 @@ label,
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition:
-        opacity 0.5s ease,
-        width 0.5s ease;
+    transition: all var(--transition-speed) var(--transition-curve);
     max-width: 100%;
 }
 
-.app-nav.collapsed .app-nav-text {
+.app-nav.collapsed .app-nav-text,
+html.collapsed .app-nav-text {
     opacity: 0;
     width: 0;
 }
@@ -248,12 +258,14 @@ label,
     padding: 20px;
     border-top: 1px solid var(--secondary-light);
     margin-top: auto;
-    transition: padding 0.5s ease;
+    transition: padding var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-footer {
-    padding: 10px 5px;
+.app-nav.collapsed .app-nav-footer,
+html.collapsed .app-nav-footer {
+    padding: 20px 10px;
 }
+
 
 .app-nav-user-info {
     margin-bottom: 16px;
@@ -262,33 +274,40 @@ label,
 
 .app-nav-user-label {
     opacity: 0.7;
-    transition: opacity 0.5s ease;
+    transition: opacity var(--transition-speed) var(--transition-curve);
 }
 
 .app-nav.collapsed .app-nav-user-label,
-.app-nav.collapsed .app-nav-user-info {
+html.collapsed .app-nav-user-label,
+.app-nav.collapsed .app-nav-user-info,
+html.collapsed .app-nav-user-info {
     opacity: 0;
+    pointer-events: none;
 }
 
 .app-nav-user-name {
     font-weight: bold;
     word-break: break-word;
-    transition: opacity 0.5s ease;
+    transition: opacity var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-user-name {
+.app-nav.collapsed .app-nav-user-name,
+html.collapsed .app-nav-user-name {
     opacity: 0;
+    pointer-events: none;
 }
 
 .app-nav-user-role {
     opacity: 0.7;
     text-transform: capitalize;
     font-size: 12px;
-    transition: opacity 0.5s ease;
+    transition: opacity var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-user-role {
+.app-nav.collapsed .app-nav-user-role,
+html.collapsed .app-nav-user-role {
     opacity: 0;
+    pointer-events: none;
 }
 
 .app-nav-logout-button {
@@ -305,11 +324,12 @@ label,
     justify-content: center;
     gap: 8px;
     transition:
-        background 0.5s ease,
-        opacity 0.5s ease;
+        background var(--transition-speed) var(--transition-curve),
+        opacity var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-logout-button {
+.app-nav.collapsed .app-nav-logout-button,
+html.collapsed .app-nav-logout-button {
     padding: 10px 8px;
 }
 
@@ -319,37 +339,38 @@ label,
 
 .app-main {
     flex: 1;
-    margin-left: 250px;
+    margin-left: var(--sidebar-width);
     padding: 20px;
-    transition: margin-left 0.5s ease;
+    transition: margin-left var(--transition-speed) var(--transition-curve);
     overflow-y: auto;
     height: 100vh;
     box-sizing: border-box;
+    will-change: margin-left;
     /* Ensure padding doesn't affect calculation */
 }
 
 /* Layout Modes */
-.app-main.layout-mode-standard > * {
+.app-main.layout-mode-standard>* {
     max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
-.app-main.layout-mode-centralized > * {
+.app-main.layout-mode-centralized>* {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
-.app-main.layout-mode-full > * {
+.app-main.layout-mode-full>* {
     max-width: 100%;
 }
 
-.app-nav.collapsed ~ .app-main {
-    margin-left: 70px;
-    transition: margin-left 0.5s ease;
+.app-nav.collapsed~.app-main,
+html.collapsed .app-main {
+    margin-left: var(--sidebar-width);
 }
 
 /* Scrollbar customization */
@@ -758,29 +779,7 @@ th {
 }
 
 /* Sidebar Logo Animation Improvements */
-.app-nav-branding {
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Keep centered but allow full width usage */
-    width: 100%;
-    box-sizing: border-box;
-}
 
-/* Hide image immediately when collapsing starts */
-.app-nav.collapsed .app-nav-branding img {
-    opacity: 0;
-    transition: opacity 0.1s ease-out;
-    /* Fast fade out */
-}
-
-/* Show image with delay when expanding */
-.app-nav:not(.collapsed) .app-nav-branding img {
-    opacity: 1;
-    transition: opacity 0.3s ease-in 0.2s;
-    /* Wait for width transition */
-}
 
 /* Primary Button - Used for Create/New Actions */
 .primary-button {
@@ -928,12 +927,12 @@ th {
     margin-right: auto;
 }
 
-.layout-standard:not(.collapsed) .app-main {
-    margin-left: max(250px, calc((100vw - 1600px) / 2));
+html.layout-standard:not(.collapsed) .app-main {
+    margin-left: max(var(--sidebar-width), calc((100vw - 1600px) / 2));
 }
 
-.layout-standard.collapsed .app-main {
-    margin-left: max(70px, calc((100vw - 1600px) / 2));
+html.layout-standard.collapsed .app-main {
+    margin-left: max(var(--sidebar-width), calc((100vw - 1600px) / 2));
 }
 
 /* Centralized - Classic (1200px) */
@@ -942,12 +941,12 @@ th {
     margin-right: auto;
 }
 
-.layout-centralized:not(.collapsed) .app-main {
-    margin-left: max(250px, calc((100vw - 1200px) / 2));
+html.layout-centralized:not(.collapsed) .app-main {
+    margin-left: max(var(--sidebar-width), calc((100vw - 1200px) / 2));
 }
 
-.layout-centralized.collapsed .app-main {
-    margin-left: max(70px, calc((100vw - 1200px) / 2));
+html.layout-centralized.collapsed .app-main {
+    margin-left: max(var(--sidebar-width), calc((100vw - 1200px) / 2));
 }
 
 /* Full Width - 100% */
@@ -958,8 +957,8 @@ th {
 }
 
 /* Ensure full width for specific full-screen containers if needed */
-.layout-standard .app-main > .full-width-container,
-.layout-full .app-main > .full-width-container {
+.layout-standard .app-main>.full-width-container,
+.layout-full .app-main>.full-width-container {
     max-width: 100%;
     padding: 0;
 }
@@ -967,7 +966,7 @@ th {
 /* Layout Modes - Controlled by ConfigContext className on html root */
 
 /* Centralized: Narrow constraint (e.g. 1200px), centered */
-html.layout-centralized .app-main > * {
+html.layout-centralized .app-main>* {
     margin-left: auto;
     margin-right: auto;
     max-width: 1200px;
@@ -975,7 +974,7 @@ html.layout-centralized .app-main > * {
 }
 
 /* Standard (Padrão): Wider constraint (e.g. 1600px), centered */
-html.layout-standard .app-main > * {
+html.layout-standard .app-main>* {
     margin-left: auto;
     margin-right: auto;
     max-width: 1600px;
@@ -983,7 +982,7 @@ html.layout-standard .app-main > * {
 }
 
 /* Full: 100% width (Default behavior, but explicit here) */
-html.layout-full .app-main > * {
+html.layout-full .app-main>* {
     max-width: 100%;
 }
 
@@ -995,6 +994,7 @@ html.layout-standard .app-main {
 
 /* On mobile, standard padding */
 @media (max-width: 768px) {
+
     html.layout-centralized .app-main,
     html.layout-standard .app-main {
         padding-left: 20px;
@@ -1008,6 +1008,7 @@ html.layout-standard .app-main {
     .layout-standard .app-main {
         margin-left: max(70px, calc((100vw - 1600px) / 2));
     }
+
     .layout-centralized .app-main {
         margin-left: max(70px, calc((100vw - 1200px) / 2));
     }

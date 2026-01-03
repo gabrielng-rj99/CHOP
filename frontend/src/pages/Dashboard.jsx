@@ -25,12 +25,12 @@ import "./styles/Dashboard.css";
 export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const { config, getPersistentFilter, setPersistentFilter } = useConfig();
     const {
-        fetchAgreements,
+        fetchContracts,
         fetchClients,
         fetchCategories,
         fetchSubcategories,
     } = useData();
-    const [contracts, setAgreements] = useState([]);
+    const [contracts, setContracts] = useState([]);
     const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
@@ -51,7 +51,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         show_recent_activity: true,
         recent_activity_count: 10,
         show_statistics: true,
-        show_expiring_agreements: true,
+        show_expiring_contracts: true,
         expiring_days_ahead: 30,
         show_quick_actions: true,
     });
@@ -104,12 +104,12 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             // Fetch data using cache
             const [contractsData, clientsData, categoriesData] =
                 await Promise.all([
-                    fetchAgreements({}, forceRefresh),
+                    fetchContracts({}, forceRefresh),
                     fetchClients({}, forceRefresh),
                     fetchCategories(forceRefresh),
                 ]);
 
-            setAgreements(contractsData.data || []);
+            setContracts(contractsData.data || []);
             setClients(clientsData.data || []);
             setCategories(categoriesData.data || []);
 
@@ -295,7 +295,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                     <div className="dashboard-stat-card">
                         <div className="dashboard-stat-label">
-                            {config.labels.agreements || "Contratos"} Ativos
+                            {config.labels.contracts || "Contratos"} Ativos
                         </div>
                         <div className="dashboard-stat-value active">
                             {activeContracts.length}
@@ -313,7 +313,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                     <div className="dashboard-stat-card">
                         <div className="dashboard-stat-label">
-                            {config.labels.agreements || "Contratos"} Expirados
+                            {config.labels.contracts || "Contratos"} Expirados
                         </div>
                         <div className="dashboard-stat-value expired">
                             {expiredContracts.length}
@@ -545,15 +545,15 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 </>
             )}
 
-            {/* Expiring Agreements Section - controlled by show_expiring_agreements */}
-            {dashboardSettings.show_expiring_agreements && (
+            {/* Expiring Contracts Section - controlled by show_expiring_contracts */}
+            {dashboardSettings.show_expiring_contracts && (
                 <div
                     className="dashboard-content-grid"
                     style={{ marginTop: "20px" }}
                 >
                     <div className="dashboard-section-card">
                         <h2 className="dashboard-section-title">
-                            {config.labels.agreements || "Contratos"} Expirando
+                            {config.labels.contracts || "Contratos"} Expirando
                             em Breve (próximos{" "}
                             {dashboardSettings.expiring_days_ahead} dias)
                         </h2>
@@ -600,7 +600,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                     <div className="dashboard-section-card">
                         <h2 className="dashboard-section-title">
-                            {config.labels.agreements || "Contratos"} Expirados
+                            {config.labels.contracts || "Contratos"} Expirados
                         </h2>
                         {expiredContracts.length === 0 ? (
                             <p className="dashboard-section-empty">

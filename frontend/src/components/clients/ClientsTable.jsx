@@ -53,7 +53,7 @@ export default function ClientsTable({
                 {filteredClients.map((client) => {
                     const isArchived = !!client.archived_at;
                     const hasActiveContracts =
-                        (client.active_agreements || 0) > 0;
+                        (client.active_contracts || 0) > 0;
                     const effectiveStatus = hasActiveContracts
                         ? "ativo"
                         : client.status;
@@ -77,14 +77,14 @@ export default function ClientsTable({
                                     {isArchived ? "Arquivado" : effectiveStatus}
                                 </span>
                             </td>
-                            <td className="agreements-count">
-                                {client.active_agreements || 0}
+                            <td className="contracts-count">
+                                {client.active_contracts || 0}
                             </td>
-                            <td className="agreements-count">
-                                {client.expired_agreements || 0}
+                            <td className="contracts-count">
+                                {client.expired_contracts || 0}
                             </td>
-                            <td className="agreements-count">
-                                {client.archived_agreements || 0}
+                            <td className="contracts-count">
+                                {client.archived_contracts || 0}
                             </td>
                             <td className="actions">
                                 <div className="clients-table-actions">

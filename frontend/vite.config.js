@@ -35,6 +35,10 @@ export default defineConfig({
                 secure: false,
                 ws: true, // WebSocket support
             },
+            "/uploads": {
+                target: `http://localhost:${API_PORT}`,
+                changeOrigin: true,
+            },
         },
     },
     build: {

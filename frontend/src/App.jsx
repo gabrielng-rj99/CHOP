@@ -26,7 +26,7 @@ import {
 } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Contracts from "./pages/Agreements";
+import Contracts from "./pages/Contracts";
 import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
@@ -228,6 +228,14 @@ function App() {
     };
 
     useEffect(() => {
+        if (sidebarCollapsed) {
+            document.documentElement.classList.add("collapsed");
+        } else {
+            document.documentElement.classList.remove("collapsed");
+        }
+    }, [sidebarCollapsed]);
+
+    useEffect(() => {
         if (token && refreshToken) {
             const exp = getTokenExpiration(token);
             const now = Date.now();
@@ -314,7 +322,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/agreements"
+                        path="/contracts"
                         element={
                             <Contracts
                                 token={token}

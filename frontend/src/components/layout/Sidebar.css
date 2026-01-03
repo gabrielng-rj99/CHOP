@@ -1,53 +1,91 @@
+/* Sidebar Branding Container */
 .app-nav-branding {
-    height: 80px;
+    min-height: 80px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     border-bottom: 1px solid var(--secondary-light);
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 10px;
-}
-
-.sidebar-logo-collapsed {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sidebar-logo-collapsed img {
+    overflow: hidden;
     width: 100%;
-    height: 100%;
-    object-fit: contain;
+    background: rgba(0, 0, 0, 0.05);
+    /* Subtle background for debugging */
 }
 
-.sidebar-logo-collapsed .sidebar-logo-placeholder {
-    width: 100%;
-    height: 100%;
-    background: transparent;
+.app-nav-branding.hidden {
+    display: none;
 }
 
+/* Base style for both logo types */
+.sidebar-logo-collapsed,
 .sidebar-logo-expanded {
-    width: 180px;
-    height: 50px;
+    transition:
+        opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
-.sidebar-logo-expanded img {
+/* Expanded State Logo */
+.sidebar-logo-expanded {
+    width: 230px;
+    height: 60px;
+    opacity: 1;
+}
+
+/* Collapsed State Logo (Icon) */
+.sidebar-logo-collapsed {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    transform: scale(0.5);
+}
+
+/* Transitions when parent .app-nav is .collapsed */
+.app-nav.collapsed .sidebar-logo-expanded {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.app-nav.collapsed .sidebar-logo-collapsed {
+    width: 50px;
+    height: 60px;
+    opacity: 1;
+    transform: scale(1);
+    margin: 5px 0;
+}
+
+/* Image styles */
+.app-nav .sidebar-logo-collapsed img,
+.app-nav .sidebar-logo-expanded img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block;
+}
+
+.sidebar-logo-placeholder {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
 }
 
-.sidebar-logo-expanded .sidebar-logo-placeholder {
-    width: 100%;
-    height: 100%;
-    background: transparent;
-}
-
+/* Footer controls */
 .sidebar-footer-controls {
     margin-bottom: 10px;
     display: flex;

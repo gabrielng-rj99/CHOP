@@ -93,7 +93,7 @@ export default function AuditLogsTable({
             auth: "Autenticação",
             user: "Usuário",
             client: "Cliente",
-            agreement: "Acordo",
+            contract: "Acordo",
             line: "Linha",
             category: "Categoria",
             affiliate: "Afiliado",

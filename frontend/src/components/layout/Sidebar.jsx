@@ -13,14 +13,18 @@ import {
     faPalette,
     faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
+import logoWideDefault from "../../assets/images/placeholder-230x60.png";
+import logoSquareDefault from "../../assets/images/placeholder-50x60.png";
 import "./Sidebar.css";
 
-// We can move styles here or keep using App.css if classes match.
-// Assuming we keep App.css classes for now.
-
 const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
-    const { config } = useConfig();
-    const { branding, labels } = config;
+    const { config = {} } = useConfig();
+    const branding = config.branding || {};
+    const labels = config.labels || {};
+
+    // Normalize useCustomLogo to boolean
+    const useCustomLogo =
+        branding.useCustomLogo === true || branding.useCustomLogo === "true";
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -28,37 +32,43 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
     // e.g. /dashboard -> dashboard
     const currentPath = location.pathname.substring(1) || "dashboard";
 
+    const [logoWideError, setLogoWideError] = React.useState(false);
+    const [logoSquareError, setLogoSquareError] = React.useState(false);
+
     return (
         <nav className={`app-nav ${sidebarCollapsed ? "collapsed" : ""}`}>
             {/* Branding Section - ACIMA (Above) the header/toggle */}
-            {branding.useCustomLogo && (
-                <div className="app-nav-branding">
-                    {sidebarCollapsed ? (
-                        /* Collapsed State - Fixed 40x40 container */
-                        <div className="sidebar-logo-collapsed">
-                            {branding.logoSquareUrl ? (
-                                <img src={branding.logoSquareUrl} alt="Icon" />
-                            ) : (
-                                <div className="sidebar-logo-placeholder" />
-                            )}
-                        </div>
-                    ) : (
-                        /* Expanded State - Fixed 180x50 container to ensure no layout shift */
-                        <div className="sidebar-logo-expanded">
-                            {branding.logoWideUrl ? (
-                                <img src={branding.logoWideUrl} alt="Logo" />
-                            ) : (
-                                <div className="sidebar-logo-placeholder" />
-                            )}
-                        </div>
-                    )}
+            <div
+                className={`app-nav-branding ${useCustomLogo ? "visible" : "hidden"}`}
+            >
+                {/* Expanded State Logo */}
+                <div className="sidebar-logo-expanded">
+                    <img
+                        src={
+                            branding.logoWideUrl && !logoWideError
+                                ? branding.logoWideUrl
+                                : logoWideDefault
+                        }
+                        alt="Logo"
+                        onError={() => setLogoWideError(true)}
+                    />
                 </div>
-            )}
+                {/* Collapsed State Logo (Icon) */}
+                <div className="sidebar-logo-collapsed">
+                    <img
+                        src={
+                            branding.logoSquareUrl && !logoSquareError
+                                ? branding.logoSquareUrl
+                                : logoSquareDefault
+                        }
+                        alt="Icon"
+                        onError={() => setLogoSquareError(true)}
+                    />
+                </div>
+            </div>
 
             <div className="app-nav-header">
-                <h2
-                    className={`app-nav-title${sidebarCollapsed ? " hidden-title" : ""}`}
-                >
+                <h2 className="app-nav-title">
                     {branding.appName || "Client Hub"}
                 </h2>
                 <button onClick={toggleSidebar} className="app-nav-toggle">
@@ -75,24 +85,20 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faChartLine} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">Dashboard</span>
-                    )}
+                    <span className="app-nav-text">Dashboard</span>
                 </button>
 
                 <button
-                    onClick={() => navigate("/agreements")}
-                    className={`app-nav-button ${currentPath === "agreements" ? "active" : ""}`}
-                    title={labels.agreements || "Acordos"}
+                    onClick={() => navigate("/contracts")}
+                    className={`app-nav-button ${currentPath === "contracts" ? "active" : ""}`}
+                    title={labels.contracts || "Contratos"}
                 >
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faFileContract} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">
-                            {labels.agreements || "Contratos"}
-                        </span>
-                    )}
+                    <span className="app-nav-text">
+                        {labels.contracts || "Contratos"}
+                    </span>
                 </button>
 
                 <button
@@ -103,11 +109,9 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faUserGroup} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">
-                            {labels.clients || "Clientes"}
-                        </span>
-                    )}
+                    <span className="app-nav-text">
+                        {labels.clients || "Clientes"}
+                    </span>
                 </button>
 
                 <button
@@ -118,11 +122,9 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faTags} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">
-                            {labels?.categories || "Categorias"}
-                        </span>
-                    )}
+                    <span className="app-nav-text">
+                        {labels?.categories || "Categorias"}
+                    </span>
                 </button>
 
                 {(user.role === "admin" || user.role === "root") && (
@@ -134,11 +136,9 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                         <span className="app-nav-icon">
                             <FontAwesomeIcon icon={faUserGear} />
                         </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">
-                                {labels?.users || "Usuários"}
-                            </span>
-                        )}
+                        <span className="app-nav-text">
+                            {labels?.users || "Usuários"}
+                        </span>
                     </button>
                 )}
 
@@ -151,9 +151,7 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                         <span className="app-nav-icon">
                             <FontAwesomeIcon icon={faSearchPlus} />
                         </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Logs</span>
-                        )}
+                        <span className="app-nav-text">Logs</span>
                     </button>
                 )}
 
@@ -165,9 +163,7 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faPalette} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">Aparência</span>
-                    )}
+                    <span className="app-nav-text">Aparência</span>
                 </button>
 
                 {(user.role === "admin" || user.role === "root") && (
@@ -179,21 +175,17 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                         <span className="app-nav-icon">
                             <FontAwesomeIcon icon={faCog} />
                         </span>
-                        {!sidebarCollapsed && (
-                            <span className="app-nav-text">Configurações</span>
-                        )}
+                        <span className="app-nav-text">Configurações</span>
                     </button>
                 )}
             </div>
 
             <div className="app-nav-footer">
-                {!sidebarCollapsed && (
-                    <div className="app-nav-user-info">
-                        <div className="app-nav-user-label">Usuário:</div>
-                        <div className="user-name">{user.username}</div>
-                        <div className="user-role">{user.role}</div>
-                    </div>
-                )}
+                <div className="app-nav-user-info">
+                    <div className="app-nav-user-label">Usuário:</div>
+                    <div className="user-name">{user.username}</div>
+                    <div className="user-role">{user.role}</div>
+                </div>
                 <button
                     onClick={logout}
                     className="app-nav-logout-button"
@@ -202,9 +194,7 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-icon">
                         <FontAwesomeIcon icon={faRightFromBracket} />
                     </span>
-                    {!sidebarCollapsed && (
-                        <span className="app-nav-text">Sair</span>
-                    )}
+                    <span className="app-nav-text">Sair</span>
                 </button>
             </div>
         </nav>

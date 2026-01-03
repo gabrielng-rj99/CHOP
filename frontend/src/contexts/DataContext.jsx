@@ -136,12 +136,12 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
     );
 
     /**
-     * Fetch agreements
+     * Fetch contracts
      */
-    const fetchAgreements = useCallback(
+    const fetchContracts = useCallback(
         async (params = {}, forceRefresh = false) => {
             return fetchWithCache(
-                "/agreements",
+                "/contracts",
                 { params },
                 null,
                 5 * 60 * 1000,
@@ -202,10 +202,10 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
     /**
      * Create/Update operations that invalidate cache
      */
-    const createAgreement = useCallback(
+    const createContract = useCallback(
         async (data) => {
             const response = await fetchWithCache(
-                "/agreements",
+                "/contracts",
                 {
                     method: "POST",
                     body: JSON.stringify(data),
@@ -215,18 +215,18 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
                 true,
             );
 
-            // Invalidate agreements cache
-            cacheManager.invalidateResource("agreements");
+            // Invalidate contracts cache
+            cacheManager.invalidateResource("contracts");
 
             return response;
         },
         [fetchWithCache],
     );
 
-    const updateAgreement = useCallback(
+    const updateContract = useCallback(
         async (id, data) => {
             const response = await fetchWithCache(
-                `/agreements/${id}`,
+                `/contracts/${id}`,
                 {
                     method: "PUT",
                     body: JSON.stringify(data),
@@ -236,18 +236,18 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
                 true,
             );
 
-            // Invalidate agreements cache
-            cacheManager.invalidateResource("agreements");
+            // Invalidate contracts cache
+            cacheManager.invalidateResource("contracts");
 
             return response;
         },
         [fetchWithCache],
     );
 
-    const deleteAgreement = useCallback(
+    const deleteContract = useCallback(
         async (id) => {
             const response = await fetchWithCache(
-                `/agreements/${id}`,
+                `/contracts/${id}`,
                 {
                     method: "DELETE",
                 },
@@ -256,8 +256,8 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
                 true,
             );
 
-            // Invalidate agreements cache
-            cacheManager.invalidateResource("agreements");
+            // Invalidate contracts cache
+            cacheManager.invalidateResource("contracts");
 
             return response;
         },
@@ -408,16 +408,16 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
 
     const value = {
         // Fetch methods
-        fetchAgreements,
+        fetchContracts,
         fetchClients,
         fetchCategories,
         fetchSubcategories,
         fetchWithCache,
 
         // Create/Update/Delete methods
-        createAgreement,
-        updateAgreement,
-        deleteAgreement,
+        createContract,
+        updateContract,
+        deleteContract,
         createClient,
         updateClient,
         deleteClient,

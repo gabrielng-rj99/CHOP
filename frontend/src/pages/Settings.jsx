@@ -54,7 +54,7 @@ export default function Settings({ token, apiUrl }) {
         show_recent_activity: true,
         recent_activity_count: 10,
         show_statistics: true,
-        show_expiring_agreements: true,
+        show_expiring_contracts: true,
         expiring_days_ahead: 30,
         show_quick_actions: true,
     });
@@ -256,10 +256,11 @@ export default function Settings({ token, apiUrl }) {
             "image/png",
             "image/gif",
             "image/webp",
+            "image/svg+xml",
         ];
         if (!allowedTypes.includes(file.type)) {
             setBrandingError(
-                "Tipo de arquivo inválido. Permitidos: JPG, PNG, GIF, WEBP.",
+                "Tipo de arquivo inválido. Permitidos: JPG, PNG, GIF, WEBP, SVG.",
             );
             return;
         }
@@ -492,7 +493,7 @@ export default function Settings({ token, apiUrl }) {
                             {/* Acordos Próximos ao Vencimento */}
                             <div className="settings-card">
                                 <h3>
-                                    ⏰ {config.labels?.agreements || "Acordos"}{" "}
+                                    ⏰ {config.labels?.contracts || "Contratos"}{" "}
                                     Próximos
                                 </h3>
                                 <div className="card-content">
@@ -501,11 +502,11 @@ export default function Settings({ token, apiUrl }) {
                                             <input
                                                 type="checkbox"
                                                 checked={
-                                                    dashboardSettings.show_expiring_agreements
+                                                    dashboardSettings.show_expiring_contracts
                                                 }
                                                 onChange={(e) =>
                                                     handleDashboardChange(
-                                                        "show_expiring_agreements",
+                                                        "show_expiring_contracts",
                                                         e.target.checked,
                                                     )
                                                 }
@@ -514,7 +515,7 @@ export default function Settings({ token, apiUrl }) {
                                         </label>
                                         <span>Exibir Widget</span>
                                     </div>
-                                    {dashboardSettings.show_expiring_agreements && (
+                                    {dashboardSettings.show_expiring_contracts && (
                                         <div className="compact-input-row">
                                             <label>Alerta:</label>
                                             <input
@@ -654,7 +655,7 @@ export default function Settings({ token, apiUrl }) {
                                         Logo Horizontal (Barra Lateral Aberta)
                                     </label>
                                     <p className="form-hint">
-                                        Tamanho recomendado: 180x50 pixels
+                                        Tamanho recomendado: 230x60 pixels
                                     </p>
                                     <div className="image-upload-container">
                                         {formData.branding?.logoWideUrl && (
@@ -704,7 +705,7 @@ export default function Settings({ token, apiUrl }) {
                                         Minimizada)
                                     </label>
                                     <p className="form-hint">
-                                        Tamanho recomendado: 40x40 pixels
+                                        Tamanho recomendado: 50x60 pixels
                                     </p>
                                     <div className="image-upload-container">
                                         {formData.branding?.logoSquareUrl && (
@@ -813,16 +814,28 @@ export default function Settings({ token, apiUrl }) {
 
                             {[
                                 {
+                                    key: "user",
+                                    pluralKey: "users",
+                                    genderKey: "user_gender",
+                                    label: "Usuário",
+                                },
+                                {
                                     key: "client",
                                     pluralKey: "clients",
                                     genderKey: "client_gender",
-                                    label: "Entidade (Cliente)",
+                                    label: "Cliente",
                                 },
                                 {
-                                    key: "agreement",
-                                    pluralKey: "agreements",
-                                    genderKey: "agreement_gender",
-                                    label: "Acordo (Contrato)",
+                                    key: "affiliate",
+                                    pluralKey: "affiliates",
+                                    genderKey: "affiliate_gender",
+                                    label: "Afiliado",
+                                },
+                                {
+                                    key: "contract",
+                                    pluralKey: "contracts",
+                                    genderKey: "contract_gender",
+                                    label: "Contrato",
                                 },
                                 {
                                     key: "category",
@@ -835,18 +848,6 @@ export default function Settings({ token, apiUrl }) {
                                     pluralKey: "subcategories",
                                     genderKey: "subcategory_gender",
                                     label: "Subcategoria",
-                                },
-                                {
-                                    key: "affiliate",
-                                    pluralKey: "affiliates",
-                                    genderKey: "affiliate_gender",
-                                    label: "Afiliado",
-                                },
-                                {
-                                    key: "user",
-                                    pluralKey: "users",
-                                    genderKey: "user_gender",
-                                    label: "Usuário",
                                 },
                             ].map((item) => (
                                 <div key={item.key} className="label-row">
