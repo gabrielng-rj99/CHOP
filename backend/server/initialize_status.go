@@ -48,7 +48,7 @@ func checkDatabaseEmpty(db *sql.DB) (bool, []string, error) {
 		"affiliates",
 		"categories",
 		"subcategories",
-		"agreements",
+		"contracts",
 		"audit_logs",
 	}
 

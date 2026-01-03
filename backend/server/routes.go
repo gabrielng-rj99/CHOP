@@ -215,8 +215,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// /api/affiliates
 	mux.HandleFunc("/api/affiliates/", s.standardMiddleware(s.authMiddleware(s.handleAffiliateByID)))
 
-	// Contracts (Agreements)
-	mux.HandleFunc("/api/agreements/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	// Contracts (Contracts)
+	mux.HandleFunc("/api/contracts/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/archive") {
 			s.handleContractArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
@@ -225,8 +225,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleContractByID(w, r)
 		}
 	})))
-	mux.HandleFunc("/api/agreements", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/agreements" {
+	mux.HandleFunc("/api/contracts", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/contracts" {
 			s.handleContracts(w, r)
 		} else {
 			if strings.HasSuffix(r.URL.Path, "/archive") {

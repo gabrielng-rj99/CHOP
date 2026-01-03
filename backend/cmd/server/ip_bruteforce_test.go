@@ -63,7 +63,7 @@ func SetupTestDBIP(t *testing.T) (*sql.DB, func()) {
 		port = "5432"
 	}
 	if dbname == "" {
-		dbname = "agreements_manager_test"
+		dbname = "contracts_manager_test"
 	}
 	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 

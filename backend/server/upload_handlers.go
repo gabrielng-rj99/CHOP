@@ -16,18 +16,20 @@ import (
 
 // Allowed MIME types for image uploads
 var allowedMimeTypes = map[string]bool{
-	"image/jpeg": true,
-	"image/png":  true,
-	"image/gif":  true,
-	"image/webp": true,
+	"image/jpeg":    true,
+	"image/png":     true,
+	"image/gif":     true,
+	"image/webp":    true,
+	"image/svg+xml": true,
 }
 
 // Magic bytes for file type validation
 var imageMagicBytes = map[string][]byte{
-	"image/jpeg": {0xFF, 0xD8, 0xFF},
-	"image/png":  {0x89, 0x50, 0x4E, 0x47},
-	"image/gif":  {0x47, 0x49, 0x46},
-	"image/webp": {0x52, 0x49, 0x46, 0x46}, // RIFF header
+	"image/jpeg":    {0xFF, 0xD8, 0xFF},
+	"image/png":     {0x89, 0x50, 0x4E, 0x47},
+	"image/gif":     {0x47, 0x49, 0x46},
+	"image/webp":    {0x52, 0x49, 0x46, 0x46}, // RIFF header
+	"image/svg+xml": {0x3C, 0x73, 0x76, 0x67}, // <svg
 }
 
 // HandleUpload handles file uploads
@@ -77,16 +79,19 @@ func (s *Server) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate extension
 	ext := strings.ToLower(filepath.Ext(handler.Filename))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
-		respondError(w, http.StatusBadRequest, "Tipo de arquivo inválido (permitidos: jpg, png, gif, webp)")
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" && ext != ".svg" {
+		respondError(w, http.StatusBadRequest, "Tipo de arquivo inválido (permitidos: jpg, png, gif, webp, svg)")
 		return
 	}
 
 	// Validate MIME type from content (not just header)
 	detectedMime := http.DetectContentType(fileContent)
-	if !allowedMimeTypes[detectedMime] {
+
+	// Special handling for SVG which might be detected as text/xml or text/plain
+	isSVG := ext == ".svg" && (strings.Contains(detectedMime, "xml") || strings.Contains(detectedMime, "plain") || detectedMime == "image/svg+xml")
+
+	if !allowedMimeTypes[detectedMime] && !isSVG {
 		log.Printf("⚠️ Upload rejected: detected MIME type %s not allowed", detectedMime)
 		respondError(w, http.StatusBadRequest, "Tipo de arquivo inválido detectado")
 		return
@@ -104,6 +109,18 @@ func (s *Server) HandleUpload(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			break
+		}
+	}
+
+	// For SVG, we check if it contains <svg somewhere near the beginning if it didn't match prefix
+	if !validMagic && isSVG {
+		// Check first 1024 bytes for <svg
+		searchLen := 1024
+		if len(fileContent) < searchLen {
+			searchLen = len(fileContent)
+		}
+		if bytes.Contains(fileContent[:searchLen], []byte("<svg")) {
+			validMagic = true
 		}
 	}
 
@@ -142,8 +159,8 @@ func (s *Server) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "upload",
-			Resource:        "file",
-			ResourceID:      filename,
+			Resource:      "file",
+			ResourceID:    filename,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			NewValue: map[string]interface{}{

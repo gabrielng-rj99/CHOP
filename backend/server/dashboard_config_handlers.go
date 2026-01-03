@@ -29,14 +29,14 @@ import (
 
 // DashboardConfigRequest represents the dashboard configuration settings
 type DashboardConfigRequest struct {
-	ShowBirthdays          bool `json:"show_birthdays"`
-	BirthdaysDaysAhead     int  `json:"birthdays_days_ahead"`
-	ShowRecentActivity     bool `json:"show_recent_activity"`
-	RecentActivityCount    int  `json:"recent_activity_count"`
-	ShowStatistics         bool `json:"show_statistics"`
-	ShowExpiringAgreements bool `json:"show_expiring_agreements"`
-	ExpiringDaysAhead      int  `json:"expiring_days_ahead"`
-	ShowQuickActions       bool `json:"show_quick_actions"`
+	ShowBirthdays         bool `json:"show_birthdays"`
+	BirthdaysDaysAhead    int  `json:"birthdays_days_ahead"`
+	ShowRecentActivity    bool `json:"show_recent_activity"`
+	RecentActivityCount   int  `json:"recent_activity_count"`
+	ShowStatistics        bool `json:"show_statistics"`
+	ShowExpiringContracts bool `json:"show_expiring_contracts"`
+	ExpiringDaysAhead     int  `json:"expiring_days_ahead"`
+	ShowQuickActions      bool `json:"show_quick_actions"`
 }
 
 // HandleDashboardConfigRoute routes GET/PUT requests for dashboard config
@@ -81,14 +81,14 @@ func (s *Server) HandleGetDashboardConfig(w http.ResponseWriter, r *http.Request
 
 	// Build response with defaults
 	response := DashboardConfigRequest{
-		ShowBirthdays:          true,
-		BirthdaysDaysAhead:     7,
-		ShowRecentActivity:     true,
-		RecentActivityCount:    10,
-		ShowStatistics:         true,
-		ShowExpiringAgreements: true,
-		ExpiringDaysAhead:      30,
-		ShowQuickActions:       true,
+		ShowBirthdays:         true,
+		BirthdaysDaysAhead:    7,
+		ShowRecentActivity:    true,
+		RecentActivityCount:   10,
+		ShowStatistics:        true,
+		ShowExpiringContracts: true,
+		ExpiringDaysAhead:     30,
+		ShowQuickActions:      true,
 	}
 
 	// Parse settings from database
@@ -108,8 +108,8 @@ func (s *Server) HandleGetDashboardConfig(w http.ResponseWriter, r *http.Request
 			}
 		case "dashboard.show_statistics":
 			response.ShowStatistics = value == "true"
-		case "dashboard.show_expiring_agreements":
-			response.ShowExpiringAgreements = value == "true"
+		case "dashboard.show_expiring_contracts":
+			response.ShowExpiringContracts = value == "true"
 		case "dashboard.expiring_days_ahead":
 			if val, err := strconv.Atoi(value); err == nil {
 				response.ExpiringDaysAhead = val
@@ -174,14 +174,14 @@ func (s *Server) HandleUpdateDashboardConfig(w http.ResponseWriter, r *http.Requ
 
 	// Save settings
 	settingsToSave := map[string]string{
-		"dashboard.show_birthdays":           strconv.FormatBool(req.ShowBirthdays),
-		"dashboard.birthdays_days_ahead":     strconv.Itoa(req.BirthdaysDaysAhead),
-		"dashboard.show_recent_activity":     strconv.FormatBool(req.ShowRecentActivity),
-		"dashboard.recent_activity_count":    strconv.Itoa(req.RecentActivityCount),
-		"dashboard.show_statistics":          strconv.FormatBool(req.ShowStatistics),
-		"dashboard.show_expiring_agreements": strconv.FormatBool(req.ShowExpiringAgreements),
-		"dashboard.expiring_days_ahead":      strconv.Itoa(req.ExpiringDaysAhead),
-		"dashboard.show_quick_actions":       strconv.FormatBool(req.ShowQuickActions),
+		"dashboard.show_birthdays":          strconv.FormatBool(req.ShowBirthdays),
+		"dashboard.birthdays_days_ahead":    strconv.Itoa(req.BirthdaysDaysAhead),
+		"dashboard.show_recent_activity":    strconv.FormatBool(req.ShowRecentActivity),
+		"dashboard.recent_activity_count":   strconv.Itoa(req.RecentActivityCount),
+		"dashboard.show_statistics":         strconv.FormatBool(req.ShowStatistics),
+		"dashboard.show_expiring_contracts": strconv.FormatBool(req.ShowExpiringContracts),
+		"dashboard.expiring_days_ahead":     strconv.Itoa(req.ExpiringDaysAhead),
+		"dashboard.show_quick_actions":      strconv.FormatBool(req.ShowQuickActions),
 	}
 
 	for key, value := range settingsToSave {
