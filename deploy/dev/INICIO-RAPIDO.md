@@ -92,7 +92,7 @@ cd backend/database/schema
 \i backend/database/schema/03_security.sql
 \i backend/database/schema/04_users.sql
 \i backend/database/schema/05_clients.sql
-\i backend/database/schema/06_agreements.sql
+\i backend/database/schema/06_contracts.sql
 \i backend/database/schema/07_audit.sql
 
 # Saia
@@ -161,7 +161,7 @@ Client-Hub-Open-Project/
 │       ├── 03_security.sql
 │       ├── 04_users.sql
 │       ├── 05_clients.sql
-│       ├── 06_agreements.sql
+│       ├── 06_contracts.sql
 │       ├── 07_audit.sql
 │       └── init.sql
 ├── frontend/
