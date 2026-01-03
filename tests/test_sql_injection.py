@@ -213,7 +213,7 @@ class TestSQLInjection:
 
         for payload in self.SQL_PAYLOADS[:10]:
             response = http_client.get(
-                f"{api_url}/agreements",
+                f"{api_url}/contracts",
                 params={"item_key": payload},
                 headers=headers
             )

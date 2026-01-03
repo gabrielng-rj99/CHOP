@@ -351,7 +351,7 @@ class TestXSSSecurity:
 
         # Testar XSS no contrato
         for payload in self.XSS_PAYLOADS[:3]:
-            response = http_client.post(f"{api_url}/agreements", json={
+            response = http_client.post(f"{api_url}/contracts", json={
                 "model": payload,
                 "item_key": f"XSS-{int(time.time())}-{hash(payload) % 10000}",
                 "subcategory_id": subcategory_id,
@@ -382,7 +382,7 @@ class TestXSSSecurity:
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
-        endpoints = ["/users", "/clients", "/categories", "/agreements"]
+        endpoints = ["/users", "/clients", "/categories", "/contracts"]
 
         for endpoint in endpoints:
             response = http_client.get(f"{api_url}{endpoint}", headers=headers)

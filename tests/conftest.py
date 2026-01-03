@@ -36,7 +36,7 @@ test_data = {
     "tokens": {},
     "users": {},
     "clients": [],
-    "agreements": [],
+    "contracts": [],
     "categories": [],
     "subcategories": []
 }

@@ -340,7 +340,7 @@ class TestConcurrencySecurity:
         def make_request(endpoint):
             return http_client.get(f"{api_url}/{endpoint}", headers=headers)
 
-        endpoints = ["users", "clients", "categories", "agreements", "subcategories"]
+        endpoints = ["users", "clients", "categories", "contracts", "subcategories"]
 
         # Make concurrent requests to different endpoints
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

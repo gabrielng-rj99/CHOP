@@ -16,7 +16,7 @@ services:
             - ../backend/database/schema/03_security.sql:/docker-entrypoint-initdb.d/03_security.sql:ro
             - ../backend/database/schema/04_users.sql:/docker-entrypoint-initdb.d/04_users.sql:ro
             - ../backend/database/schema/05_clients.sql:/docker-entrypoint-initdb.d/05_clients.sql:ro
-            - ../backend/database/schema/06_agreements.sql:/docker-entrypoint-initdb.d/06_agreements.sql:ro
+            - ../backend/database/schema/06_contracts.sql:/docker-entrypoint-initdb.d/06_contracts.sql:ro
             - ../backend/database/schema/07_audit.sql:/docker-entrypoint-initdb.d/07_audit.sql:ro
             - postgres_test_data:/var/lib/postgresql/data
         healthcheck:

@@ -644,25 +644,25 @@ class TestSubcategoriesAPI:
 
 @pytest.mark.api
 @pytest.mark.security
-class TestAgreementsAPI:
+class TestContractsAPI:
     """Testes completos da API de contratos"""
 
-    def test_list_agreements_requires_auth(self, http_client, api_url, timer):
+    def test_list_contracts_requires_auth(self, http_client, api_url, timer):
         """Listar contratos requer autenticação"""
-        response = http_client.get(f"{api_url}/agreements")
+        response = http_client.get(f"{api_url}/contracts")
         assert response.status_code == 401, "Deve exigir autenticação"
 
-    def test_list_agreements_success(self, http_client, api_url, root_user, timer):
+    def test_list_contracts_success(self, http_client, api_url, root_user, timer):
         """Listar contratos com sucesso"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
 
         headers = {"Authorization": f"Bearer {root_user['token']}"}
-        response = http_client.get(f"{api_url}/agreements", headers=headers)
+        response = http_client.get(f"{api_url}/contracts", headers=headers)
 
         assert response.status_code == 200, "Deve listar contratos"
 
-    def test_create_agreement(self, http_client, api_url, root_user, timer):
+    def test_create_contract(self, http_client, api_url, root_user, timer):
         """Criar contrato"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
@@ -705,7 +705,7 @@ class TestAgreementsAPI:
         client_id = client_data.get("data", {}).get("id") or client_data.get("id")
 
         # Criar contrato
-        response = http_client.post(f"{api_url}/agreements", json={
+        response = http_client.post(f"{api_url}/contracts", json={
             "model": "Premium",
             "item_key": f"PK-{int(time.time())}",
             "subcategory_id": subcategory_id,
@@ -714,7 +714,7 @@ class TestAgreementsAPI:
 
         assert response.status_code in [200, 201], "Deve criar contrato"
 
-    def test_create_agreement_missing_required_fields(self, http_client, api_url, root_user, timer):
+    def test_create_contract_missing_required_fields(self, http_client, api_url, root_user, timer):
         """Criar contrato sem campos obrigatórios deve falhar"""
         if not root_user or "token" not in root_user:
             pytest.skip("Root user não disponível")
@@ -722,14 +722,14 @@ class TestAgreementsAPI:
         headers = {"Authorization": f"Bearer {root_user['token']}"}
 
         # Sem subcategory_id
-        response = http_client.post(f"{api_url}/agreements", json={
+        response = http_client.post(f"{api_url}/contracts", json={
             "client_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
 
         assert response.status_code in [400, 422], "Sem subcategory_id deve ser rejeitado"
 
         # Sem client_id
-        response = http_client.post(f"{api_url}/agreements", json={
+        response = http_client.post(f"{api_url}/contracts", json={
             "subcategory_id": "12345678-1234-1234-1234-123456789012"
         }, headers=headers)
 
@@ -773,7 +773,7 @@ class TestAgreementsAPI:
         client_id = client_response.json().get("data", {}).get("id") or client_response.json().get("id")
 
         # Criar contrato
-        contract_response = http_client.post(f"{api_url}/agreements", json={
+        contract_response = http_client.post(f"{api_url}/contracts", json={
             "item_key": f"ARCH-{int(time.time())}",
             "subcategory_id": subcategory_id,
             "client_id": client_id
@@ -785,7 +785,7 @@ class TestAgreementsAPI:
         contract_id = contract_response.json().get("data", {}).get("id") or contract_response.json().get("id")
 
         # Arquivar
-        archive_response = http_client.post(f"{api_url}/agreements/{contract_id}/archive", headers=headers)
+        archive_response = http_client.post(f"{api_url}/contracts/{contract_id}/archive", headers=headers)
         assert archive_response.status_code in [200, 204], "Deve permitir arquivamento"
 
 
