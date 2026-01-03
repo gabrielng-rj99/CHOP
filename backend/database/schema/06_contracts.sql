@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_subcategories_name ON subcategories(name);
 CREATE INDEX IF NOT EXISTS idx_subcategories_archived ON subcategories(archived_at) WHERE archived_at IS NULL;
 
 -- ============================================
--- CONTRACTS (Agreements)
+-- CONTRACTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS contracts (
     id UUID PRIMARY KEY,
