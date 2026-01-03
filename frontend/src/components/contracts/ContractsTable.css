@@ -1,0 +1,185 @@
+/*
+ * Client Hub Open Project
+ * Copyright (C) 2025 Client Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.contracts-table-empty {
+    padding: 32px;
+    text-align: center;
+    color: #333 !important;
+    height: 100px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.contracts-table-empty p {
+    font-size: 16px;
+    color: #333 !important;
+    margin: 0;
+}
+
+.contracts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contracts-table thead tr {
+    background: var(--content-bg, #f8f9fa);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+}
+
+.contracts-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color, #495057);
+}
+
+.contracts-table th.status,
+.contracts-table th.actions {
+    text-align: center;
+}
+
+.contracts-table th.actions {
+    width: 250px;
+}
+
+.contracts-table tbody tr {
+    border-bottom: 1px solid var(--border-color, #ecf0f1);
+}
+
+.contracts-table tbody tr.archived {
+    opacity: 0.6;
+}
+
+.contracts-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--text-color, #2c3e50);
+}
+
+.contracts-table td.status,
+.contracts-table td.actions {
+    text-align: center;
+}
+
+.contracts-table-model {
+    font-weight: 500;
+}
+
+.contracts-table-product-key {
+    font-size: 12px;
+    color: var(--text-secondary-color, #7f8c8d);
+    margin-top: 4px;
+}
+
+.contracts-table-affiliate {
+    font-size: 12px;
+    color: var(--text-secondary-color, #7f8c8d);
+    margin-top: 4px;
+}
+
+.contracts-table-line {
+    font-size: 12px;
+    color: var(--text-secondary-color, #7f8c8d);
+    margin-top: 4px;
+}
+
+.contracts-table-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.contracts-table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.contracts-table-button {
+    padding: 6px 12px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.contracts-table-icon-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.contracts-table-icon-button:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.contracts-table-button-details {
+    background: #9b59b6;
+}
+
+.contracts-table-button-edit {
+    background: #3498db;
+}
+
+.contracts-table-button-archive {
+    background: #95a5a6;
+}
+
+.contracts-table-button-unarchive {
+    background: #27ae60;
+}
+
+/* Dark mode specific styles */
+.dark-mode .contracts-table-empty {
+    color: #333 !important;
+}
+
+.dark-mode .contracts-table thead tr {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .contracts-table th {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .contracts-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .contracts-table td {
+    color: var(--text-color, #f7fafc);
+}
+
+.dark-mode .contracts-table-product-key,
+.dark-mode .contracts-table-affiliate,
+.dark-mode .contracts-table-line {
+    color: var(--text-secondary-color, #a0aec0);
+}

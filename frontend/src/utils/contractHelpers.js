@@ -84,15 +84,15 @@ export const formatDate = (dateString) => {
     }
 };
 
-export const getAgreementStatus = (agreement) => {
+export const getContractStatus = (contract) => {
     // Se não tem data de término, é considerado ativo (acordo permanente)
-    if (!agreement.end_date || agreement.end_date === "") {
+    if (!contract.end_date || contract.end_date === "") {
         return { status: "Ativo", color: "#27ae60" };
     }
 
-    const endDate = new Date(agreement.end_date);
-    const startDate = agreement.start_date
-        ? new Date(agreement.start_date)
+    const endDate = new Date(contract.end_date);
+    const startDate = contract.start_date
+        ? new Date(contract.start_date)
         : null;
     const now = new Date();
 
@@ -123,7 +123,7 @@ export const filterContracts = (
 ) => {
     return contracts.filter((contract) => {
         const isArchived = !!contract.archived_at;
-        const statusObj = getAgreementStatus(contract);
+        const statusObj = getContractStatus(contract);
         const status = statusObj.status;
 
         const matchesFilter =
@@ -169,7 +169,7 @@ export const getCategoryName = (lineId, categories) => {
 };
 
 // Exportar helper para conversão de data para API (usado no submit)
-export const prepareAgreementDataForAPI = (formData) => {
+export const prepareContractDataForAPI = (formData) => {
     return {
         ...formData,
         start_date: formData.start_date
@@ -181,6 +181,4 @@ export const prepareAgreementDataForAPI = (formData) => {
     };
 };
 
-// Backward compatibility exports - old names
-export const getContractStatus = getAgreementStatus;
-export const prepareContractDataForAPI = prepareAgreementDataForAPI;
+
