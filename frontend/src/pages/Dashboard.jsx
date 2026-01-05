@@ -36,12 +36,13 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [showBirthdays, setShowBirthdays] = useState(() =>
-        getPersistentFilter("dashboard_show_birthdays", false),
-    );
-    // Initialize with null to indicate "not set yet", will be set based on data or persistence
     const [birthdayFilter, setBirthdayFilter] = useState(() =>
-        getPersistentFilter("dashboard_birthday_filter", null),
+        getPersistentFilter("dashboard_birthday_filter", "week"),
+    );
+
+    // Tab state for info section (birthdays, expiring, expired)
+    const [activeInfoTab, setActiveInfoTab] = useState(() =>
+        getPersistentFilter("dashboard_active_info_tab", "birthdays"),
     );
 
     // Dashboard settings from backend
@@ -49,23 +50,24 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         show_birthdays: true,
         birthdays_days_ahead: 7,
         show_recent_activity: true,
-        recent_activity_count: 10,
+        recent_activity_count: 15,
         show_statistics: true,
         show_expiring_contracts: true,
+        show_expired_contracts: true,
         expiring_days_ahead: 30,
         show_quick_actions: true,
     });
 
     // Save persistent states
     useEffect(() => {
-        setPersistentFilter("dashboard_show_birthdays", showBirthdays);
-    }, [showBirthdays, setPersistentFilter]);
-
-    useEffect(() => {
         if (birthdayFilter) {
             setPersistentFilter("dashboard_birthday_filter", birthdayFilter);
         }
     }, [birthdayFilter, setPersistentFilter]);
+
+    useEffect(() => {
+        setPersistentFilter("dashboard_active_info_tab", activeInfoTab);
+    }, [activeInfoTab, setPersistentFilter]);
 
     // Load dashboard settings from backend
     useEffect(() => {
@@ -241,6 +243,66 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const totalCategories = categories.length;
     const totalLines = lines.length;
 
+    // Data subsets for recent activities
+    const archivedClientsList = clients.filter(c => c.archived_at);
+    const archivedContractsList = contracts.filter(c => c.archived_at);
+
+    // Client Suggestions: Non-archived clients older than 30 days without active contracts (none or all expired)
+    const now = new Date();
+    const clientSuggestions = clients.filter(c => {
+        if (c.archived_at) return false;
+
+        const createdDate = new Date(c.created_at || c.updated_at);
+        const daysOld = (now - createdDate) / (1000 * 60 * 60 * 24);
+        if (daysOld < 30) return false;
+
+        const clientContracts = contracts.filter(con => con.client_id === c.id);
+        if (clientContracts.length === 0) return true;
+
+        const allInactive = clientContracts.every(con => {
+            const endDate = new Date(con.end_date);
+            return endDate < now || con.archived_at;
+        });
+
+        return allInactive;
+    }).map(c => ({
+        type: 'client_suggestion',
+        date: new Date(now.getTime() - 1000), // Slightly in the past so it stays below fresh alerts
+        label: `💡 Sugestão: Retomar ${config.labels?.client || 'Cliente'} ${c.name} (Sem contrato ativo)`,
+        id: `sug_${c.id}`
+    }));
+
+    // Recent Activities calculation
+    const recentActivities = [
+        ...clients.filter(c => !c.archived_at).map(c => ({
+            type: 'new_client',
+            date: new Date(c.created_at || c.updated_at),
+            label: `Novo ${config.labels?.client || 'Cliente'}: ${c.name}`,
+            id: `nc_${c.id}`
+        })),
+        ...contracts.filter(c => !c.archived_at).map(c => ({
+            type: 'new_contract',
+            date: new Date(c.created_at || c.updated_at),
+            label: `Novo ${config.labels?.contract || 'Contrato'}: ${c.model || 'Sem modelo'}`,
+            id: `nct_${c.id}`
+        })),
+        ...archivedClientsList.map(c => ({
+            type: 'archived_client',
+            date: new Date(c.archived_at),
+            label: `${config.labels?.client || 'Cliente'} Arquivado: ${c.name}`,
+            id: `ac_${c.id}`
+        })),
+        ...archivedContractsList.map(c => ({
+            type: 'archived_contract',
+            date: new Date(c.archived_at),
+            label: `${config.labels?.contract || 'Contrato'} Arquivado: ${c.model || 'Sem modelo'}`,
+            id: `act_${c.id}`
+        })),
+        ...clientSuggestions
+    ].filter(a => !isNaN(a.date.getTime()))
+        .sort((a, b) => b.date - a.date)
+        .slice(0, dashboardSettings.recent_activity_count || 15);
+
     if (loading) {
         return (
             <div className="dashboard-loading">
@@ -354,297 +416,178 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 </div>
             )}
 
-            {/* Birthdays Section - controlled by show_birthdays */}
-            {dashboardSettings.show_birthdays && (
-                <>
-                    <div style={{ marginTop: "20px", marginBottom: "10px" }}>
-                        <a
-                            href="#"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                setShowBirthdays(!showBirthdays);
-                            }}
-                            style={{
-                                fontSize: "13px",
-                                color: "#3498db",
-                                textDecoration: "none",
-                                cursor: "pointer",
-                            }}
-                        >
-                            {showBirthdays ? "Ocultar" : "Exibir"}{" "}
-                            aniversariantes
-                        </a>
+            {/* 1. Quick Actions Section - Single Row */}
+            {dashboardSettings.show_quick_actions && (
+                <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
+                    <h2 className="dashboard-section-title">⚡ Ações Rápidas</h2>
+                    <div className="dashboard-quick-actions">
+                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/clients?action=new'}>
+                            <span className="action-icon">👤</span>
+                            <span className="action-label">Novo {config.labels?.client || 'Cliente'}</span>
+                        </button>
+                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/contracts?action=new'}>
+                            <span className="action-icon">📄</span>
+                            <span className="action-label">Novo {config.labels?.contract || 'Contrato'}</span>
+                        </button>
+                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/categories?action=new'}>
+                            <span className="action-icon">📁</span>
+                            <span className="action-label">Nova {config.labels?.category || 'Categoria'}</span>
+                        </button>
                     </div>
-
-                    {showBirthdays && (
-                        <div className="dashboard-content-grid">
-                            <div className="dashboard-section-card">
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        marginBottom: "15px",
-                                    }}
-                                >
-                                    <h2
-                                        className="dashboard-section-title"
-                                        style={{ margin: 0 }}
-                                    >
-                                        Aniversariantes{" "}
-                                        {birthdayFilter === "day"
-                                            ? "do Dia"
-                                            : birthdayFilter === "week"
-                                              ? `(próximos ${dashboardSettings.birthdays_days_ahead} dias)`
-                                              : "do Mês"}{" "}
-                                        ({birthdayClients.length})
-                                    </h2>
-                                    <div
-                                        style={{ display: "flex", gap: "10px" }}
-                                    >
-                                        <button
-                                            onClick={() =>
-                                                setBirthdayFilter("day")
-                                            }
-                                            style={{
-                                                padding: "6px 12px",
-                                                fontSize: "12px",
-                                                border: "1px solid #3498db",
-                                                background:
-                                                    birthdayFilter === "day"
-                                                        ? "#3498db"
-                                                        : "white",
-                                                color:
-                                                    birthdayFilter === "day"
-                                                        ? "white"
-                                                        : "#3498db",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            Do Dia
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                setBirthdayFilter("week")
-                                            }
-                                            style={{
-                                                padding: "6px 12px",
-                                                fontSize: "12px",
-                                                border: "1px solid #3498db",
-                                                background:
-                                                    birthdayFilter === "week"
-                                                        ? "#3498db"
-                                                        : "white",
-                                                color:
-                                                    birthdayFilter === "week"
-                                                        ? "white"
-                                                        : "#3498db",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            Próximos{" "}
-                                            {
-                                                dashboardSettings.birthdays_days_ahead
-                                            }{" "}
-                                            dias
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                setBirthdayFilter("month")
-                                            }
-                                            style={{
-                                                padding: "6px 12px",
-                                                fontSize: "12px",
-                                                border: "1px solid #3498db",
-                                                background:
-                                                    birthdayFilter === "month"
-                                                        ? "#3498db"
-                                                        : "white",
-                                                color:
-                                                    birthdayFilter === "month"
-                                                        ? "white"
-                                                        : "#3498db",
-                                                borderRadius: "4px",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            Do Mês
-                                        </button>
-                                    </div>
-                                </div>
-                                {birthdayClients.length === 0 ? (
-                                    <p className="dashboard-section-empty">
-                                        Nenhum aniversariante{" "}
-                                        {birthdayFilter === "day"
-                                            ? "hoje"
-                                            : birthdayFilter === "week"
-                                              ? `nos próximos ${dashboardSettings.birthdays_days_ahead} dias`
-                                              : "este mês"}
-                                    </p>
-                                ) : (
-                                    <div className="dashboard-contracts-list">
-                                        {birthdayClients
-                                            .slice(0, 10)
-                                            .map((client) => {
-                                                return (
-                                                    <div
-                                                        key={client.id}
-                                                        className="dashboard-contract-item clients"
-                                                    >
-                                                        <div className="dashboard-contract-model">
-                                                            {client.name}
-                                                        </div>
-                                                        <div className="dashboard-contract-key">
-                                                            {client.registration_id ||
-                                                                "Sem registro"}
-                                                        </div>
-                                                        <div className="dashboard-contract-days clients">
-                                                            {(() => {
-                                                                const dateStr =
-                                                                    client.birth_date;
-                                                                if (
-                                                                    dateStr &&
-                                                                    dateStr.match(
-                                                                        /^\d{4}-\d{2}-\d{2}/,
-                                                                    )
-                                                                ) {
-                                                                    const [
-                                                                        year,
-                                                                        month,
-                                                                        day,
-                                                                    ] = dateStr
-                                                                        .split(
-                                                                            "T",
-                                                                        )[0]
-                                                                        .split(
-                                                                            "-",
-                                                                        );
-                                                                    return `${day}/${month}`;
-                                                                }
-                                                                return new Date(
-                                                                    dateStr,
-                                                                ).toLocaleDateString(
-                                                                    "pt-BR",
-                                                                    {
-                                                                        day: "2-digit",
-                                                                        month: "2-digit",
-                                                                    },
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </>
+                </div>
             )}
 
-            {/* Expiring Contracts Section - controlled by show_expiring_contracts */}
-            {dashboardSettings.show_expiring_contracts && (
-                <div
-                    className="dashboard-content-grid"
-                    style={{ marginTop: "20px" }}
-                >
-                    <div className="dashboard-section-card">
-                        <h2 className="dashboard-section-title">
-                            {config.labels.contracts || "Contratos"} Expirando
-                            em Breve (próximos{" "}
-                            {dashboardSettings.expiring_days_ahead} dias)
-                        </h2>
-                        {expiringContracts.length === 0 ? (
-                            <p className="dashboard-section-empty">
-                                Nenhum contrato expirando
-                            </p>
-                        ) : (
-                            <div className="dashboard-contracts-list">
-                                {expiringContracts
-                                    .slice(0, 5)
-                                    .map((contract) => {
-                                        const endDate = new Date(
-                                            contract.end_date,
-                                        );
-                                        const now = new Date();
-                                        const daysLeft = Math.ceil(
-                                            (endDate - now) /
-                                                (1000 * 60 * 60 * 24),
-                                        );
+            {/* 2. Tabbed Info Section - Birthdays, Expiring, Expired */}
+            <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
+                <div className="dashboard-info-tabs">
+                    <button
+                        className={`dashboard-info-tab ${activeInfoTab === 'birthdays' ? 'active' : ''}`}
+                        onClick={() => setActiveInfoTab('birthdays')}
+                    >
+                        🎂 Aniversariantes ({birthdayClients.length})
+                    </button>
+                    <button
+                        className={`dashboard-info-tab ${activeInfoTab === 'expiring' ? 'active' : ''}`}
+                        onClick={() => setActiveInfoTab('expiring')}
+                    >
+                        ⌛ Expirando ({expiringContracts.length})
+                    </button>
+                    <button
+                        className={`dashboard-info-tab ${activeInfoTab === 'expired' ? 'active' : ''}`}
+                        onClick={() => setActiveInfoTab('expired')}
+                    >
+                        ❌ Expirados ({expiredContracts.length})
+                    </button>
+                </div>
 
+                <div className="dashboard-info-content">
+                    {/* Birthdays Tab Content */}
+                    {activeInfoTab === 'birthdays' && (
+                        <>
+                            <div style={{ marginBottom: '15px', display: 'flex', gap: '8px' }}>
+                                <button
+                                    onClick={() => setBirthdayFilter("day")}
+                                    className={`filter-btn ${birthdayFilter === "day" ? "active" : ""}`}
+                                >
+                                    Hoje
+                                </button>
+                                <button
+                                    onClick={() => setBirthdayFilter("week")}
+                                    className={`filter-btn ${birthdayFilter === "week" ? "active" : ""}`}
+                                >
+                                    Próxs. {dashboardSettings.birthdays_days_ahead} dias
+                                </button>
+                                <button
+                                    onClick={() => setBirthdayFilter("month")}
+                                    className={`filter-btn ${birthdayFilter === "month" ? "active" : ""}`}
+                                >
+                                    Mês
+                                </button>
+                            </div>
+                            {birthdayClients.length === 0 ? (
+                                <p className="dashboard-section-empty">Nenhum aniversariante</p>
+                            ) : (
+                                <div className="dashboard-contracts-list">
+                                    {birthdayClients.slice(0, 10).map((client) => (
+                                        <div key={client.id} className="dashboard-contract-item clients">
+                                            <div className="dashboard-contract-model">{client.name}</div>
+                                            <div className="dashboard-contract-key">{client.registration_id || "Sem registro"}</div>
+                                            <div className="dashboard-contract-days clients">
+                                                {(() => {
+                                                    const dateStr = client.birth_date;
+                                                    if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                                                        const [year, month, day] = dateStr.split("T")[0].split("-");
+                                                        return `${day}/${month}`;
+                                                    }
+                                                    return new Date(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+                                                })()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* Expiring Tab Content */}
+                    {activeInfoTab === 'expiring' && (
+                        <>
+                            {expiringContracts.length === 0 ? (
+                                <p className="dashboard-section-empty">Nenhum {config.labels?.contract?.toLowerCase() || 'contrato'} expirando</p>
+                            ) : (
+                                <div className="dashboard-contracts-list">
+                                    {expiringContracts.slice(0, 10).map((contract) => {
+                                        const endDate = new Date(contract.end_date);
+                                        const now = new Date();
+                                        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
                                         return (
-                                            <div
-                                                key={contract.id}
-                                                className="dashboard-contract-item expiring"
-                                            >
-                                                <div className="dashboard-contract-model">
-                                                    {contract.model ||
-                                                        "Sem modelo"}
-                                                </div>
-                                                <div className="dashboard-contract-key">
-                                                    {contract.item_key ||
-                                                        "Sem chave"}
-                                                </div>
-                                                <div className="dashboard-contract-days expiring">
-                                                    {daysLeft} dias restantes
-                                                </div>
+                                            <div key={contract.id} className="dashboard-contract-item expiring">
+                                                <div className="dashboard-contract-model">{contract.model || "Sem modelo"}</div>
+                                                <div className="dashboard-contract-key">{contract.item_key || "Sem chave"}</div>
+                                                <div className="dashboard-contract-days expiring">{daysLeft} dias restantes</div>
                                             </div>
                                         );
                                     })}
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
 
-                    <div className="dashboard-section-card">
-                        <h2 className="dashboard-section-title">
-                            {config.labels.contracts || "Contratos"} Expirados
-                        </h2>
-                        {expiredContracts.length === 0 ? (
-                            <p className="dashboard-section-empty">
-                                Nenhum contrato expirado
-                            </p>
-                        ) : (
-                            <div className="dashboard-contracts-list">
-                                {expiredContracts
-                                    .slice(0, 5)
-                                    .map((contract) => {
-                                        const endDate = new Date(
-                                            contract.end_date,
-                                        );
+                    {/* Expired Tab Content */}
+                    {activeInfoTab === 'expired' && (
+                        <>
+                            {expiredContracts.length === 0 ? (
+                                <p className="dashboard-section-empty">Nenhum {config.labels?.contract?.toLowerCase() || 'contrato'} expirado</p>
+                            ) : (
+                                <div className="dashboard-contracts-list">
+                                    {expiredContracts.slice(0, 10).map((contract) => {
+                                        const endDate = new Date(contract.end_date);
                                         const now = new Date();
-                                        const daysExpired = Math.ceil(
-                                            (now - endDate) /
-                                                (1000 * 60 * 60 * 24),
-                                        );
-
+                                        const daysExpired = Math.ceil((now - endDate) / (1000 * 60 * 60 * 24));
                                         return (
-                                            <div
-                                                key={contract.id}
-                                                className="dashboard-contract-item expired"
-                                            >
-                                                <div className="dashboard-contract-model">
-                                                    {contract.model ||
-                                                        "Sem modelo"}
-                                                </div>
-                                                <div className="dashboard-contract-key">
-                                                    {contract.item_key ||
-                                                        "Sem chave"}
-                                                </div>
-                                                <div className="dashboard-contract-days expired">
-                                                    Expirado há {daysExpired}{" "}
-                                                    dias
-                                                </div>
+                                            <div key={contract.id} className="dashboard-contract-item expired">
+                                                <div className="dashboard-contract-model">{contract.model || "Sem modelo"}</div>
+                                                <div className="dashboard-contract-key">{contract.item_key || "Sem chave"}</div>
+                                                <div className="dashboard-contract-days expired">Expirado há {daysExpired} dias</div>
                                             </div>
                                         );
                                     })}
-                            </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* 3. Recent Activities Section */}
+            {dashboardSettings.show_recent_activity && (
+                <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
+                    <h2 className="dashboard-section-title">📋 Atividade Recente</h2>
+                    <div className="dashboard-activities-list">
+                        {recentActivities.length === 0 ? (
+                            <p className="dashboard-section-empty">Nenhuma atividade recente</p>
+                        ) : (
+                            recentActivities.map(activity => (
+                                <div key={activity.id} className="dashboard-activity-item">
+                                    <div className="activity-dot" data-type={activity.type}></div>
+                                    <div className="activity-content">
+                                        <div className="activity-label">{activity.label}</div>
+                                        <div className="activity-date">
+                                            {activity.date.toLocaleString('pt-BR', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
             )}
+
         </div>
     );
 }
