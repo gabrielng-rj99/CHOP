@@ -804,14 +804,6 @@ export default function Appearance({ token, apiUrl }) {
 
     const saveAccessibility = async (newAccessibility) => {
         setAccessibility(newAccessibility);
-        try {
-            await saveThemeSettings({
-                highContrast: newAccessibility.highContrast,
-                colorBlindMode: newAccessibility.colorBlindMode,
-            });
-        } catch (err) {
-            console.error("Error saving accessibility:", err);
-        }
     };
 
     const getThemeName = (themeKey) => {

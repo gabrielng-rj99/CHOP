@@ -500,7 +500,7 @@ export default function SecuritySettings({ token, apiUrl }) {
                                 </div>
                                 <input
                                     type="range"
-                                    min="8"
+                                    min="12"
                                     max="64"
                                     value={config.passwordMinLength}
                                     onChange={(e) =>
@@ -512,7 +512,7 @@ export default function SecuritySettings({ token, apiUrl }) {
                                     className="policy-slider"
                                 />
                                 <div className="slider-labels">
-                                    <span>8</span>
+                                    <span>12</span>
                                     <span>64</span>
                                 </div>
                             </div>
@@ -688,7 +688,7 @@ export default function SecuritySettings({ token, apiUrl }) {
                                     dias e{" "}
                                     {Math.floor(
                                         (config.refreshTokenDuration % 1440) /
-                                            60,
+                                        60,
                                     )}{" "}
                                     horas
                                 </p>
