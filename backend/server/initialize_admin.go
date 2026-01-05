@@ -167,8 +167,8 @@ func (s *Server) HandleInitializeAdmin(w http.ResponseWriter, r *http.Request) {
 	if req.Password == "" {
 		errors = append(errors, "Password is required")
 	} else {
-		// Use store validation for consistent password policy
-		if err := store.ValidateStrongPassword(req.Password); err != nil {
+		// Use store validation for consistent password policy (root requires 24)
+		if err := store.ValidateStrongPassword(req.Password, 24); err != nil {
 			errors = append(errors, err.Error())
 		}
 	}

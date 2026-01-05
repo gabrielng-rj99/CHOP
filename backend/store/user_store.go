@@ -46,10 +46,10 @@ func NewUserStore(db DBInterface) *UserStore {
 	}
 }
 
-// Validação de senha forte: 16+ caracteres, 1 número, 1 minúscula, 1 maiúscula, 1 símbolo, sem espaços
-func ValidateStrongPassword(password string) error {
-	if len(password) < 16 {
-		return errors.New("a senha deve ter pelo menos 16 caracteres")
+// Validação de senha forte com tamanho mínimo variável
+func ValidateStrongPassword(password string, minLength int) error {
+	if len(password) < minLength {
+		return fmt.Errorf("a senha deve ter pelo menos %d caracteres", minLength)
 	}
 	if strings.Contains(password, " ") {
 		return errors.New("a senha não pode conter espaços")
@@ -72,6 +72,22 @@ func ValidateStrongPassword(password string) error {
 		return errors.New("a senha deve conter pelo menos um símbolo")
 	}
 	return nil
+}
+
+// GetMinPasswordLengthForRole retorna o tamanho mínimo de senha para um role
+func GetMinPasswordLengthForRole(role string) int {
+	switch strings.ToLower(role) {
+	case "root":
+		return 24
+	case "admin":
+		return 20
+	case "user":
+		return 16
+	case "viewer":
+		return 12
+	default:
+		return 16
+	}
 }
 
 // HashPassword gera o hash bcrypt da senha
@@ -102,7 +118,8 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		role = "user"
 	}
 
-	if err := ValidateStrongPassword(password); err != nil {
+	minLength := GetMinPasswordLengthForRole(role)
+	if err := ValidateStrongPassword(password, minLength); err != nil {
 		return "", err
 	}
 
@@ -309,7 +326,15 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 
 // Edita a senha de um usuário existente, validando e salvando hasheada
 func (s *UserStore) EditUserPassword(username, newPassword string) error {
-	if err := ValidateStrongPassword(newPassword); err != nil {
+	// Buscar o role do usuário para validar a senha
+	var role string
+	err := s.db.QueryRow("SELECT role FROM users WHERE username = $1 AND deleted_at IS NULL", username).Scan(&role)
+	if err != nil {
+		return errors.New("usuário não encontrado")
+	}
+
+	minLength := GetMinPasswordLengthForRole(role)
+	if err := ValidateStrongPassword(newPassword, minLength); err != nil {
 		return err
 	}
 	passwordHash, err := HashPassword(newPassword)
