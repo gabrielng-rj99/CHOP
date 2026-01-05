@@ -30,8 +30,7 @@ const GenderSelect = ({ section, fieldKey, value, onChange }) => (
     >
         <option value="M">Masculino (o)</option>
         <option value="F">Feminino (a)</option>
-        <option value="N">Neutro (@)</option>
-        <option value="X">Neutro (x)</option>
+        <option value="E">Neutro (e)</option>
     </select>
 );
 
@@ -627,9 +626,9 @@ export default function Settings({ token, apiUrl }) {
                                     type="checkbox"
                                     checked={
                                         formData.branding?.useCustomLogo ===
-                                            true ||
+                                        true ||
                                         formData.branding?.useCustomLogo ===
-                                            "true"
+                                        "true"
                                     }
                                     onChange={(e) =>
                                         handleChange(
@@ -649,108 +648,108 @@ export default function Settings({ token, apiUrl }) {
 
                         {(formData.branding?.useCustomLogo === true ||
                             formData.branding?.useCustomLogo === "true") && (
-                            <>
-                                <div className="form-group">
-                                    <label>
-                                        Logo Horizontal (Barra Lateral Aberta)
-                                    </label>
-                                    <p className="form-hint">
-                                        Tamanho recomendado: 230x60 pixels
-                                    </p>
-                                    <div className="image-upload-container">
-                                        {formData.branding?.logoWideUrl && (
-                                            <img
-                                                src={
-                                                    formData.branding
-                                                        .logoWideUrl
-                                                }
-                                                alt="Logo Wide Preview"
-                                                className="logo-preview wide"
-                                            />
-                                        )}
-                                        <div className="upload-controls">
-                                            <input
-                                                type="text"
-                                                placeholder="URL da imagem ou upload"
-                                                value={
-                                                    formData.branding
-                                                        ?.logoWideUrl || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleChange(
-                                                        "branding",
-                                                        "logoWideUrl",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="file"
-                                                accept="image/*,.svg"
-                                                onChange={(e) =>
-                                                    handleFileUpload(
-                                                        e,
-                                                        "branding",
-                                                        "logoWideUrl",
-                                                    )
-                                                }
-                                                className="file-input"
-                                            />
+                                <>
+                                    <div className="form-group">
+                                        <label>
+                                            Logo Horizontal (Barra Lateral Aberta)
+                                        </label>
+                                        <p className="form-hint">
+                                            Tamanho recomendado: 230x60 pixels
+                                        </p>
+                                        <div className="image-upload-container">
+                                            {formData.branding?.logoWideUrl && (
+                                                <img
+                                                    src={
+                                                        formData.branding
+                                                            .logoWideUrl
+                                                    }
+                                                    alt="Logo Wide Preview"
+                                                    className="logo-preview wide"
+                                                />
+                                            )}
+                                            <div className="upload-controls">
+                                                <input
+                                                    type="text"
+                                                    placeholder="URL da imagem ou upload"
+                                                    value={
+                                                        formData.branding
+                                                            ?.logoWideUrl || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleChange(
+                                                            "branding",
+                                                            "logoWideUrl",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,.svg"
+                                                    onChange={(e) =>
+                                                        handleFileUpload(
+                                                            e,
+                                                            "branding",
+                                                            "logoWideUrl",
+                                                        )
+                                                    }
+                                                    className="file-input"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>
-                                        Ícone Quadrado (Barra Lateral
-                                        Minimizada)
-                                    </label>
-                                    <p className="form-hint">
-                                        Tamanho recomendado: 50x60 pixels
-                                    </p>
-                                    <div className="image-upload-container">
-                                        {formData.branding?.logoSquareUrl && (
-                                            <img
-                                                src={
-                                                    formData.branding
-                                                        .logoSquareUrl
-                                                }
-                                                alt="Icon Square Preview"
-                                                className="logo-preview square"
-                                            />
-                                        )}
-                                        <div className="upload-controls">
-                                            <input
-                                                type="text"
-                                                placeholder="URL da imagem ou upload"
-                                                value={
-                                                    formData.branding
-                                                        ?.logoSquareUrl || ""
-                                                }
-                                                onChange={(e) =>
-                                                    handleChange(
-                                                        "branding",
-                                                        "logoSquareUrl",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <input
-                                                type="file"
-                                                accept="image/*,.svg"
-                                                onChange={(e) =>
-                                                    handleFileUpload(
-                                                        e,
-                                                        "branding",
-                                                        "logoSquareUrl",
-                                                    )
-                                                }
-                                                className="file-input"
-                                            />
+                                    <div className="form-group">
+                                        <label>
+                                            Ícone Quadrado (Barra Lateral
+                                            Minimizada)
+                                        </label>
+                                        <p className="form-hint">
+                                            Tamanho recomendado: 50x60 pixels
+                                        </p>
+                                        <div className="image-upload-container">
+                                            {formData.branding?.logoSquareUrl && (
+                                                <img
+                                                    src={
+                                                        formData.branding
+                                                            .logoSquareUrl
+                                                    }
+                                                    alt="Icon Square Preview"
+                                                    className="logo-preview square"
+                                                />
+                                            )}
+                                            <div className="upload-controls">
+                                                <input
+                                                    type="text"
+                                                    placeholder="URL da imagem ou upload"
+                                                    value={
+                                                        formData.branding
+                                                            ?.logoSquareUrl || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleChange(
+                                                            "branding",
+                                                            "logoSquareUrl",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,.svg"
+                                                    onChange={(e) =>
+                                                        handleFileUpload(
+                                                            e,
+                                                            "branding",
+                                                            "logoSquareUrl",
+                                                        )
+                                                    }
+                                                    className="file-input"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </>
-                        )}
+                                </>
+                            )}
                         <div className="settings-actions">
                             <button
                                 type="button"
@@ -807,9 +806,9 @@ export default function Settings({ token, apiUrl }) {
                         <div className="label-config-grid">
                             <div className="label-header-row">
                                 <div className="col-client">Cliente</div>
+                                <div className="col-gender">Gênero</div>
                                 <div className="col-input">Singular</div>
                                 <div className="col-input">Plural</div>
-                                <div className="col-gender">Gênero</div>
                             </div>
 
                             {[
@@ -854,6 +853,18 @@ export default function Settings({ token, apiUrl }) {
                                     <div className="col-client">
                                         {item.label}
                                     </div>
+                                    <div className="col-gender">
+                                        <GenderSelect
+                                            section="labels"
+                                            fieldKey={item.genderKey}
+                                            value={
+                                                formData.labels?.[
+                                                item.genderKey
+                                                ] || "M"
+                                            }
+                                            onChange={handleChange}
+                                        />
+                                    </div>
                                     <div className="col-input">
                                         <input
                                             type="text"
@@ -876,7 +887,7 @@ export default function Settings({ token, apiUrl }) {
                                             type="text"
                                             value={
                                                 formData.labels?.[
-                                                    item.pluralKey
+                                                item.pluralKey
                                                 ] || ""
                                             }
                                             onChange={(e) =>
@@ -887,18 +898,6 @@ export default function Settings({ token, apiUrl }) {
                                                 )
                                             }
                                             placeholder="Plural"
-                                        />
-                                    </div>
-                                    <div className="col-gender">
-                                        <GenderSelect
-                                            section="labels"
-                                            fieldKey={item.genderKey}
-                                            value={
-                                                formData.labels?.[
-                                                    item.genderKey
-                                                ] || "M"
-                                            }
-                                            onChange={handleChange}
                                         />
                                     </div>
                                 </div>
