@@ -85,7 +85,10 @@ export default function SecuritySettings({ token, apiUrl }) {
                     lockLevel3Attempts: data.lock_level_3_attempts || 10,
                     lockLevel3Duration: data.lock_level_3_duration || 3600,
                     lockManualAttempts: data.lock_manual_attempts || 15,
-                    passwordMinLength: data.password_min_length || 16,
+                    passwordMinLength: Math.max(
+                        data.password_min_length || 16,
+                        12,
+                    ),
                     passwordRequireUppercase:
                         data.password_require_uppercase ?? true,
                     passwordRequireLowercase:
@@ -478,12 +481,8 @@ export default function SecuritySettings({ token, apiUrl }) {
                         {/* Role-based Password Policies Component */}
                         <RolePasswordPolicies token={token} apiUrl={apiUrl} />
 
-                        <div className="password-policy-divider">
-                            <span>Configurações Globais (Fallback)</span>
-                        </div>
-
                         <div className="global-policy-section">
-                            <h3>🌐 Política de Senha Global</h3>
+                            <h3>🌐 Política de Senha Global (Fallback)</h3>
                             <p className="section-info">
                                 Estas configurações são aplicadas quando um role
                                 não possui política específica definida acima.
@@ -688,7 +687,7 @@ export default function SecuritySettings({ token, apiUrl }) {
                                     dias e{" "}
                                     {Math.floor(
                                         (config.refreshTokenDuration % 1440) /
-                                        60,
+                                            60,
                                     )}{" "}
                                     horas
                                 </p>

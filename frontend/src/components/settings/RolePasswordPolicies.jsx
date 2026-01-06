@@ -27,13 +27,10 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
-    const [expandedPolicies, setExpandedPolicies] = useState({});
+    const [expandedPolicies, setExpandedPolicies] = useState(false);
 
-    const toggleExpand = (roleId) => {
-        setExpandedPolicies((prev) => ({
-            ...prev,
-            [roleId]: !prev[roleId],
-        }));
+    const toggleExpand = () => {
+        setExpandedPolicies((prev) => !prev);
     };
 
     const loadPolicies = useCallback(async () => {
@@ -354,8 +351,8 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                             className={`policy-card ${!policy.is_active ? "using-global" : ""}`}
                         >
                             <div
-                                className={`policy-card-header ${expandedPolicies[policy.role_id] ? "expanded" : ""}`}
-                                onClick={() => toggleExpand(policy.role_id)}
+                                className={`policy-card-header ${expandedPolicies ? "expanded" : ""}`}
+                                onClick={() => toggleExpand()}
                                 style={{ cursor: "pointer" }}
                             >
                                 <div className="policy-role-info">
@@ -365,9 +362,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                             display: "inline-block",
                                             marginRight: "8px",
                                             transition: "transform 0.2s",
-                                            transform: expandedPolicies[
-                                                policy.role_id
-                                            ]
+                                            transform: expandedPolicies
                                                 ? "rotate(90deg)"
                                                 : "rotate(0deg)",
                                             fontSize: "12px",
@@ -421,7 +416,7 @@ export default function RolePasswordPolicies({ token, apiUrl }) {
                                 </div>
                             </div>
 
-                            {expandedPolicies[policy.role_id] && (
+                            {expandedPolicies && (
                                 <div className="policy-details">
                                     <div className="policy-metrics-row">
                                         <div className="policy-metric">

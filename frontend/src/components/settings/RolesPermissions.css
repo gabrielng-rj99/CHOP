@@ -17,14 +17,14 @@
 }
 
 .roles-header h2 {
-    font-size: 1.8rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 28px;
+    color: #2c3e50;
     margin-bottom: 8px;
 }
 
 .roles-description {
-    color: var(--text-secondary, #666);
-    font-size: 0.95rem;
+    color: #7f8c8d;
+    font-size: 14px;
     line-height: 1.5;
 }
 
@@ -35,14 +35,14 @@
     align-items: center;
     justify-content: center;
     padding: 60px 20px;
-    color: var(--text-secondary, #666);
+    color: #7f8c8d;
 }
 
 .roles-loading .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--border-color, #e0e0e0);
-    border-top-color: var(--primary-color, #4a6cf7);
+    border: 3px solid #e0e0e0;
+    border-top-color: #3498db;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -66,13 +66,13 @@
 }
 
 .roles-success {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    background: #d4edda;
     color: #155724;
     border-left: 4px solid #28a745;
 }
 
 .roles-error {
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    background: #f8d7da;
     color: #721c24;
     border-left: 4px solid #dc3545;
 }
@@ -81,7 +81,7 @@
 .roles-error button {
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: 18px;
     cursor: pointer;
     color: inherit;
     opacity: 0.7;
@@ -102,10 +102,9 @@
 
 /* Sidebar */
 .roles-sidebar {
-    background: var(--surface-color, #ffffff);
+    background: var(--content-bg);
     border-radius: 12px;
-    /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); */
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color);
     overflow: hidden;
 }
 
@@ -114,30 +113,30 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
-    background: var(--surface-color, #f5f5f5);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--content-bg);
 }
 
 .sidebar-header h3 {
     margin: 0;
-    font-size: 1rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 16px;
+    color: var(--primary-text-color);
 }
 
 .create-role-btn {
-    background: var(--primary-color, #4a6cf7);
+    background: #3498db;
     color: white;
     border: none;
     padding: 6px 12px;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .create-role-btn:hover {
-    background: #3b5bdb;
+    background: #2980b9;
 }
 
 /* Roles List */
@@ -152,21 +151,17 @@
     align-items: center;
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    border-bottom: 1px solid var(--border-color);
     transition: background 0.2s ease;
 }
 
 .role-item:hover {
-    background: var(--surface-color, #f5f5f5);
+    background: var(--hover-bg);
 }
 
 .role-item.selected {
-    background: linear-gradient(
-        135deg,
-        rgba(74, 108, 247, 0.1) 0%,
-        rgba(74, 108, 247, 0.05) 100%
-    );
-    border-left: 3px solid var(--primary-color, #4a6cf7);
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid #3498db;
 }
 
 .role-item.system .role-name {
@@ -180,13 +175,13 @@
 }
 
 .role-name {
-    font-size: 0.95rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 14px;
+    color: var(--primary-text-color);
 }
 
 .role-code {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #666);
+    font-size: 12px;
+    color: var(--secondary-text-color);
     font-family: "Fira Code", "Monaco", monospace;
 }
 
@@ -197,24 +192,23 @@
 }
 
 .role-priority {
-    font-size: 0.7rem;
+    font-size: 11px;
     padding: 2px 6px;
-    background: var(--surface-color, #f0f0f0);
+    background: var(--content-bg);
     border-radius: 4px;
-    color: var(--text-secondary, #666);
+    color: var(--secondary-text-color);
     font-weight: 500;
 }
 
 .system-badge {
-    font-size: 0.9rem;
+    font-size: 14px;
 }
 
 /* Permissions Panel */
 .permissions-panel {
-    background: var(--surface-color, #ffffff);
+    background: var(--content-bg);
     border-radius: 12px;
-    /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); */
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color);
     overflow: hidden;
 }
 
@@ -223,20 +217,20 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 20px;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--content-bg);
 }
 
 .selected-role-info h3 {
     margin: 0 0 4px 0;
-    font-size: 1.2rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 18px;
+    color: var(--primary-text-color);
 }
 
 .role-description {
     margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary, #666);
+    font-size: 14px;
+    color: var(--secondary-text-color);
 }
 
 .role-actions {
@@ -249,15 +243,15 @@
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .edit-role-btn {
-    background: var(--surface-color, #f0f0f0);
-    color: var(--text-color, #1a1a2e);
+    background: #f0f0f0;
+    color: #2c3e50;
 }
 
 .edit-role-btn:hover {
@@ -275,10 +269,10 @@
 
 /* Root Warning */
 .root-warning {
-    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    background: #fff3e0;
     color: #e65100;
     padding: 12px 20px;
-    font-size: 0.9rem;
+    font-size: 14px;
     border-left: 4px solid #ff9800;
 }
 
@@ -293,8 +287,8 @@
 }
 
 .permission-category {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border: 1px solid var(--border-color, #e0e0e0);
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     overflow: hidden;
 }
@@ -304,14 +298,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: var(--surface-color, #f5f5f5);
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    background: var(--content-bg);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .category-title {
-    font-size: 0.95rem;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #1a1a2e);
+    color: var(--primary-text-color);
 }
 
 .category-actions {
@@ -324,7 +318,7 @@
     padding: 4px 8px;
     border: none;
     border-radius: 4px;
-    font-size: 0.7rem;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -363,7 +357,7 @@
 }
 
 .permission-item:hover {
-    background: var(--surface-color, #f5f5f5);
+    background: var(--hover-bg);
 }
 
 .permission-item.disabled {
@@ -374,7 +368,7 @@
 .permission-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: var(--primary-color, #4a6cf7);
+    accent-color: #3498db;
     cursor: pointer;
 }
 
@@ -383,14 +377,14 @@
 }
 
 .permission-icon {
-    font-size: 1rem;
+    font-size: 16px;
     width: 24px;
     text-align: center;
 }
 
 .permission-name {
-    font-size: 0.85rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 13px;
+    color: var(--primary-text-color);
 }
 
 /* No Role Selected */
@@ -399,8 +393,8 @@
     align-items: center;
     justify-content: center;
     height: 400px;
-    color: var(--text-secondary, #666);
-    font-size: 1rem;
+    color: var(--secondary-text-color);
+    font-size: 16px;
 }
 
 /* Modal */
@@ -418,18 +412,20 @@
 }
 
 .modal-content {
-    background: var(--surface-color, #ffffff);
-    border-radius: 12px;
-    padding: 24px;
-    width: 100%;
+    background: white !important;
+    border-radius: 8px;
+    padding: 30px;
+    width: 90%;
     max-width: 480px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-content h3 {
-    margin: 0 0 20px 0;
-    font-size: 1.3rem;
-    color: var(--text-color, #1a1a2e);
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 24px;
+    color: #2c3e50 !important;
 }
 
 .modal-form {
@@ -446,71 +442,78 @@
 }
 
 .form-group label {
-    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
     font-weight: 500;
-    color: var(--text-color, #1a1a2e);
+    color: #2c3e50 !important;
 }
 
 .form-group input,
 .form-group textarea {
-    padding: 10px 12px;
-    border: 1px solid var(--border-color, #e0e0e0);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    transition: border-color 0.2s ease;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd !important;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+    background: white !important;
+    color: #2c3e50 !important;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: var(--primary-color, #4a6cf7);
-    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+    border-color: #3498db !important;
 }
 
 .form-group input.disabled-input {
-    background: var(--surface-color, #f5f5f5);
-    color: var(--text-secondary, #666);
+    background: #f8f9fa !important;
+    color: #7f8c8d !important;
     cursor: not-allowed;
 }
 
 .form-hint {
-    font-size: 0.8rem;
-    color: var(--text-secondary, #666);
+    font-size: 12px;
+    color: #7f8c8d !important;
 }
 
 .modal-actions {
     display: flex;
-    justify-content: flex-end;
     gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
 }
 
 .modal-cancel,
 .modal-confirm {
-    padding: 10px 20px;
+    padding: 10px 24px;
     border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    font-size: 14px;
+    transition: background 0.2s;
 }
 
 .modal-cancel {
-    background: var(--surface-color, #f0f0f0);
-    color: var(--text-color, #1a1a2e);
+    background: white !important;
+    color: #7f8c8d !important;
+    border: 1px solid #ddd !important;
 }
 
 .modal-cancel:hover {
-    background: #e0e0e0;
+    background: #f8f9fa;
 }
 
 .modal-confirm {
-    background: var(--primary-color, #4a6cf7);
-    color: white;
+    background: #27ae60 !important;
+    color: white !important;
+    font-weight: 600;
 }
 
 .modal-confirm:hover:not(:disabled) {
-    background: #3b5bdb;
+    background: #229954 !important;
 }
 
 .modal-confirm:disabled {
@@ -565,26 +568,22 @@
     display: flex;
     flex-direction: column;
     padding: 12px 16px;
-    border: 2px solid var(--border-color, #e0e0e0);
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: var(--surface-color, #ffffff);
+    background: var(--content-bg);
 }
 
 .priority-option:hover {
-    border-color: var(--primary-color, #4a6cf7);
-    background: rgba(74, 108, 247, 0.05);
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.05);
 }
 
 .priority-option.selected {
-    border-color: var(--primary-color, #4a6cf7);
-    background: linear-gradient(
-        135deg,
-        rgba(74, 108, 247, 0.1) 0%,
-        rgba(74, 108, 247, 0.05) 100%
-    );
-    box-shadow: 0 2px 8px rgba(74, 108, 247, 0.2);
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
 }
 
 .priority-option input[type="radio"] {
@@ -592,20 +591,20 @@
 }
 
 .priority-option .priority-label {
-    font-size: 0.95rem;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #1a1a2e);
+    color: var(--primary-text-color);
     margin-bottom: 4px;
 }
 
 .priority-option .priority-desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary, #666);
+    font-size: 12px;
+    color: var(--secondary-text-color);
     line-height: 1.4;
 }
 
 .priority-option.selected .priority-label {
-    color: var(--primary-color, #4a6cf7);
+    color: #3498db;
 }
 
 /* Priority Display (for system roles) */
@@ -618,21 +617,21 @@
 .priority-badge {
     display: inline-block;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid var(--border-color, #e0e0e0);
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #1a1a2e);
+    color: var(--primary-text-color);
 }
 
 /* Role meta priority label update */
 .role-meta .role-priority {
-    font-size: 0.75rem;
+    font-size: 12px;
     padding: 3px 8px;
-    background: var(--surface-color, #f0f0f0);
+    background: var(--content-bg);
     border-radius: 6px;
-    color: var(--text-secondary, #666);
+    color: var(--secondary-text-color);
     font-weight: 500;
     white-space: nowrap;
 }
@@ -645,33 +644,33 @@
     justify-content: center;
     padding: 60px 40px;
     text-align: center;
-    background: var(--surface-color, #ffffff);
+    background: var(--content-bg);
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .roles-empty-state .empty-state-icon {
-    font-size: 4rem;
+    font-size: 64px;
     margin-bottom: 20px;
 }
 
 .roles-empty-state h3 {
-    font-size: 1.4rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 22px;
+    color: var(--primary-text-color);
     margin: 0 0 12px 0;
 }
 
 .roles-empty-state > p {
-    font-size: 1rem;
-    color: var(--text-secondary, #666);
+    font-size: 16px;
+    color: var(--secondary-text-color);
     max-width: 500px;
     line-height: 1.6;
     margin: 0 0 24px 0;
 }
 
 .roles-empty-state .empty-state-instructions {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid var(--border-color, #e0e0e0);
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 16px 24px;
     margin-bottom: 24px;
@@ -679,36 +678,36 @@
 
 .roles-empty-state .empty-state-instructions p {
     margin: 0 0 8px 0;
-    font-size: 0.9rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 14px;
+    color: var(--primary-text-color);
 }
 
 .roles-empty-state .empty-state-instructions code {
     display: block;
-    background: var(--surface-color, #1a1a2e);
-    color: #e0e0e0;
+    background: var(--content-bg);
+    color: var(--primary-text-color);
     padding: 12px 16px;
     border-radius: 6px;
     font-family: "Fira Code", "Monaco", monospace;
-    font-size: 0.85rem;
+    font-size: 13px;
     overflow-x: auto;
     white-space: nowrap;
 }
 
 .roles-empty-state .retry-btn {
-    background: var(--primary-color, #4a6cf7);
+    background: #3498db;
     color: white;
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .roles-empty-state .retry-btn:hover {
-    background: #3b5bdb;
+    background: #2980b9;
 }
 
 /* NEW STYLES for Modal Refactor */
@@ -725,14 +724,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    background: var(--surface-color, #ffffff);
-    border: 1px solid var(--border-color, #e0e0e0);
-    border-radius: 10px;
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     transition: all 0.2s ease;
 }
 
 .category-summary-row:hover {
-    border-color: var(--primary-color, #4a6cf7);
+    border-color: #3498db;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
@@ -743,13 +742,13 @@
 }
 
 .category-icon {
-    font-size: 1.5rem;
+    font-size: 24px;
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f0f4ff;
+    background: var(--content-bg);
     border-radius: 8px;
 }
 
@@ -761,48 +760,48 @@
 
 .category-name {
     font-weight: 600;
-    font-size: 1rem;
-    color: var(--text-color, #1a1a2e);
+    font-size: 16px;
+    color: var(--primary-text-color);
 }
 
 .status-badge {
     display: inline-flex;
     padding: 2px 8px;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .status-badge.all {
-    background: #d1fae5;
-    color: #065f46;
+    background: #d4edda;
+    color: #155724;
 }
 
 .status-badge.none {
-    background: #f3f4f6;
-    color: #4b5563;
+    background: #f8f9fa;
+    color: #495057;
 }
 
 .status-badge.partial {
-    background: #fff7ed;
-    color: #9a3412;
+    background: #fff3cd;
+    color: #856404;
 }
 
 .configure-btn {
     padding: 8px 16px;
-    background: var(--surface-color, #ffffff);
-    border: 1px solid var(--border-color, #e0e0e0);
-    border-radius: 6px;
-    color: var(--text-color, #1a1a2e);
-    font-size: 0.9rem;
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--primary-text-color);
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s;
 }
 
 .configure-btn:hover {
-    background: #f8f9fa;
-    border-color: #d1d5db;
+    background: var(--hover-bg);
+    border-color: var(--border-color);
 }
 
 /* Permissions Modal Specifics */
@@ -813,41 +812,44 @@
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    background: white !important;
 }
 
 .modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--content-bg) !important;
 }
 
 .modal-header h3 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 20px;
     display: flex;
     align-items: center;
     gap: 10px;
+    color: var(--primary-text-color) !important;
 }
 
 .close-modal-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 24px;
     cursor: pointer;
-    color: #9ca3af;
+    color: var(--secondary-text-color) !important;
     padding: 4px;
 }
 
 .close-modal-btn:hover {
-    color: #4b5563;
+    color: var(--primary-text-color);
 }
 
 .modal-subheader {
     padding: 16px 24px;
-    background: #f9fafb;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    background: var(--content-bg) !important;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -855,8 +857,8 @@
 
 .modal-subheader p {
     margin: 0;
-    font-size: 0.9rem;
-    color: #4b5563;
+    font-size: 14px;
+    color: var(--secondary-text-color) !important;
 }
 
 .modal-permissions-list {
@@ -865,6 +867,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    background: var(--content-bg) !important;
 }
 
 .permission-details {
@@ -873,14 +876,32 @@
 }
 
 .permission-description {
-    font-size: 0.8rem;
-    color: #6b7280;
+    font-size: 12px;
+    color: var(--secondary-text-color);
 }
 
 .modal-actions {
     padding: 20px 24px;
-    border-top: 1px solid var(--border-color, #e0e0e0);
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
-    background: #ffffff;
+    background: var(--content-bg) !important;
+}
+
+/* Scrollbar */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
 }
