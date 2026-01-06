@@ -71,15 +71,14 @@ export default function CategoriesTable({
                         >
                             <td
                                 onClick={() => onSelectCategory(category)}
-                                style={{
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                    color: "var(--primary-color)",
-                                }}
+                                className="categories-table-name"
                             >
                                 {category.name}
                             </td>
-                            <td>
+                            <td
+                                onClick={() => onSelectCategory(category)}
+                                className="categories-table-name"
+                            >
                                 <span
                                     className={`categories-table-status ${isArchived ? "archived" : "active"}`}
                                     style={{
@@ -124,11 +123,11 @@ export default function CategoriesTable({
                                             onSelectCategory(category);
                                         }}
                                         className="categories-table-icon-button"
-                                        title="Ver Linhas"
+                                        title={`Ver ${labels.subcategories || "Subcategorias"}`}
                                     >
                                         <img
                                             src={BoxOpenIcon}
-                                            alt="Ver Linhas"
+                                            alt={`Ver ${labels.subcategories || "Subcategorias"}`}
                                             style={{
                                                 width: "26px",
                                                 height: "26px",

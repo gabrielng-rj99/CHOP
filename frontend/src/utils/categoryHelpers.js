@@ -34,7 +34,7 @@ export const filterCategories = (categories, searchTerm, allLines) => {
                 (line) => line.category_id === category.id,
             );
             return categoryLines.some(
-                (line) => line.line && line.line.toLowerCase().includes(search),
+                (line) => line.name && line.name.toLowerCase().includes(search),
             );
         }
 
@@ -55,5 +55,5 @@ export const formatCategoryForEdit = (category) => ({
 });
 
 export const formatLineForEdit = (line) => ({
-    line: line.line || "",
+    line: line.name || "",
 });

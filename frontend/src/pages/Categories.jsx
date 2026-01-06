@@ -32,7 +32,6 @@ import CategoriesTable from "../components/categories/CategoriesTable";
 import CategoryModal from "../components/categories/CategoryModal";
 import LinesPanel from "../components/categories/LinesPanel";
 import LineModal from "../components/categories/LineModal";
-import RefreshButton from "../components/common/RefreshButton";
 import PrimaryButton from "../components/common/PrimaryButton";
 import "./styles/Categories.css";
 
@@ -489,11 +488,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                     {config.labels.subcategories || "Subcategorias"}
                 </h1>
                 <div className="button-group">
-                    <RefreshButton
-                        onClick={loadCategories}
-                        isLoading={loading}
-                        icon="↻"
-                    />
                     <PrimaryButton onClick={openCreateCategoryModal}>
                         {NEW_CATEGORY_LABEL}
                     </PrimaryButton>

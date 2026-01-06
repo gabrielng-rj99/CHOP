@@ -18,7 +18,7 @@
 
 .categories-table-empty {
     text-align: center;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     height: 100px;
     width: 100%;
     display: flex;
@@ -28,7 +28,7 @@
 
 .categories-table-empty p {
     font-size: 16px;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -47,7 +47,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #495057);
+    color: var(--primary-text-color, #495057);
 }
 
 .categories-table th.status,
@@ -72,8 +72,12 @@
 .categories-table td {
     padding: 16px;
     font-size: 14px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     font-weight: 500;
+}
+
+.categories-table-name {
+    cursor: pointer;
 }
 
 .categories-table td.status,
@@ -124,7 +128,7 @@
 
 /* Dark mode specific styles */
 .dark-mode .categories-table-empty {
-    color: #333 !important;
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .categories-table thead tr {
@@ -133,7 +137,7 @@
 }
 
 .dark-mode .categories-table th {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .categories-table tbody tr {
@@ -141,7 +145,7 @@
 }
 
 .dark-mode .categories-table td {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .categories-table tbody tr.selected {

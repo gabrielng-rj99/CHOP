@@ -36,9 +36,10 @@ export default function LinesPanel({
 }) {
     const { config } = useConfig();
     const { labels } = config;
-    const SUBCATEGORY_LABEL = labels.subcategories || "Linhas";
-    const SUBCATEGORY_SINGLE = labels.subcategory || "Linha";
-    const NEW_SUBCATEGORY_LABEL = "+ Nova " + (labels.subcategory || "Linha");
+    const SUBCATEGORY_LABEL = labels.subcategories || "Subcategorias";
+    const SUBCATEGORY_SINGLE = labels.subcategory || "Subcategoria";
+    const NEW_SUBCATEGORY_LABEL =
+        "+ Nova " + (labels.subcategory || "Subcategoria");
 
     if (!selectedCategory) {
         return null;
@@ -88,6 +89,8 @@ export default function LinesPanel({
                                     <div
                                         key={line.id}
                                         className="lines-panel-item"
+                                        onClick={() => onEditLine(line)}
+                                        style={{ cursor: "pointer" }}
                                     >
                                         <div
                                             style={{
@@ -97,7 +100,7 @@ export default function LinesPanel({
                                             }}
                                         >
                                             <span className="lines-panel-item-name">
-                                                {line.line}
+                                                {line.name}
                                             </span>
                                             {isArchived && (
                                                 <span
@@ -116,7 +119,10 @@ export default function LinesPanel({
                                         </div>
                                         <div className="lines-panel-item-actions">
                                             <button
-                                                onClick={() => onEditLine(line)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onEditLine(line);
+                                                }}
                                                 className="lines-panel-icon-button"
                                                 title="Editar"
                                             >
@@ -132,12 +138,13 @@ export default function LinesPanel({
                                             </button>
                                             {isArchived ? (
                                                 <button
-                                                    onClick={() =>
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         onUnarchiveSubcategory(
                                                             line.id,
-                                                            line.line,
-                                                        )
-                                                    }
+                                                            line.name,
+                                                        );
+                                                    }}
                                                     className="lines-panel-icon-button"
                                                     title="Desarquivar"
                                                 >
@@ -153,12 +160,13 @@ export default function LinesPanel({
                                                 </button>
                                             ) : (
                                                 <button
-                                                    onClick={() =>
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         onArchiveLine(
                                                             line.id,
-                                                            line.line,
-                                                        )
-                                                    }
+                                                            line.name,
+                                                        );
+                                                    }}
                                                     className="lines-panel-icon-button"
                                                     title="Arquivar"
                                                 >
@@ -174,12 +182,13 @@ export default function LinesPanel({
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() =>
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     onDeleteLine(
                                                         line.id,
-                                                        line.line,
-                                                    )
-                                                }
+                                                        line.name,
+                                                    );
+                                                }}
                                                 className="lines-panel-icon-button"
                                                 title="Deletar"
                                             >
