@@ -29,7 +29,7 @@
 
 .clients-title {
     font-size: 32px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -93,11 +93,11 @@
 }
 
 .clients-error {
-    background: #fee;
-    color: #c33;
+    background: var(--alert-error-bg, #fee);
+    color: var(--alert-error-text, #c33);
     padding: 16px;
     border-radius: 4px;
-    border: 1px solid #fcc;
+    border: 1px solid var(--alert-error-text, #fcc);
     margin-bottom: 20px;
 }
 
@@ -112,7 +112,7 @@
 .clients-filter-button {
     padding: 8px 16px;
     background: var(--content-bg, white);
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     border: 1px solid var(--border-color, #ddd);
     border-radius: 4px;
     cursor: pointer;
@@ -153,7 +153,7 @@
     border-radius: 4px;
     font-size: 14px;
     background: var(--content-bg, white);
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
 }
 
 .clients-search-input:focus {
@@ -162,7 +162,7 @@
 }
 
 .clients-search-input::placeholder {
-    color: var(--text-secondary-color, #999);
+    color: var(--secondary-text-color, #999);
 }
 
 .clients-table-wrapper {
@@ -185,7 +185,7 @@
 .clients-table-header-title {
     margin: 0;
     font-size: 20px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .clients-loading {
@@ -195,13 +195,10 @@
 
 .clients-loading-text {
     font-size: 18px;
-    color: var(--text-color, #7f8c8d);
+    color: var(--primary-text-color, #7f8c8d);
 }
 
 /* Dark mode specific styles */
-.dark-mode .clients-table-empty {
-    color: #333 !important;
-}
 
 .dark-mode .clients-button-secondary {
     background-color: var(--secondary-color, #2c3e50);

@@ -19,7 +19,7 @@
 .clients-table-empty {
     padding: 32px;
     text-align: center;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     height: 100px;
     width: 100%;
     display: flex;
@@ -29,7 +29,7 @@
 
 .clients-table-empty p {
     font-size: 16px;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -48,7 +48,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #495057);
+    color: var(--primary-text-color, #495057);
 }
 
 .clients-table th.actions {
@@ -63,7 +63,7 @@
 .clients-table td {
     padding: 16px;
     font-size: 14px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .clients-table td.name {
@@ -71,13 +71,13 @@
 }
 
 .clients-table td.nickname {
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
 }
 
 .clients-table td.contracts-count {
     text-align: center;
     font-weight: 500;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .clients-table td.actions {
@@ -127,7 +127,7 @@
 
 /* Dark mode specific styles */
 .dark-mode .clients-table-empty {
-    color: #333 !important;
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .clients-table thead tr {
@@ -136,7 +136,7 @@
 }
 
 .dark-mode .clients-table th {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .clients-table tbody tr {
@@ -144,13 +144,13 @@
 }
 
 .dark-mode .clients-table td {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .clients-table td.nickname {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dark-mode .clients-table td.contracts-count {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }

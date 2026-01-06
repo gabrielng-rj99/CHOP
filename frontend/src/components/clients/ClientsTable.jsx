@@ -32,7 +32,9 @@ export default function ClientsTable({
 }) {
     if (filteredClients.length === 0) {
         return (
-            <div className="clients-table-empty">Nenhum cliente encontrado</div>
+            <div className="clients-table-empty">
+                <p>Nenhum cliente encontrado</p>
+            </div>
         );
     }
 

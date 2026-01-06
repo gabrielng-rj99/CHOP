@@ -32,7 +32,6 @@ import ClientModal from "../components/clients/ClientModal";
 import ClientsTable from "../components/clients/ClientsTable";
 import AffiliatesPanel from "../components/clients/AffiliatesPanel";
 import AffiliateModal from "../components/clients/AffiliateModal";
-import RefreshButton from "../components/common/RefreshButton";
 import PrimaryButton from "../components/common/PrimaryButton";
 import "./styles/Clients.css";
 
@@ -351,14 +350,8 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                     👥 {config.labels.clients || "Clientes"}
                 </h1>
                 <div className="button-group">
-                    <RefreshButton
-                        onClick={() => loadClients(true)}
-                        disabled={loading}
-                        isLoading={loading}
-                        icon="↻"
-                    />
                     <PrimaryButton onClick={openCreateModal}>
-                        + {g.new} {config.labels.Client}
+                        + {g.new} {config.labels.client}
                     </PrimaryButton>
                 </div>
             </div>
