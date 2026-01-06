@@ -19,7 +19,6 @@
 import React, { useState, useEffect } from "react";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
-import RefreshButton from "../components/common/RefreshButton";
 import "./styles/Dashboard.css";
 
 export default function Dashboard({ token, apiUrl, onTokenExpired }) {
@@ -244,62 +243,71 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const totalLines = lines.length;
 
     // Data subsets for recent activities
-    const archivedClientsList = clients.filter(c => c.archived_at);
-    const archivedContractsList = contracts.filter(c => c.archived_at);
+    const archivedClientsList = clients.filter((c) => c.archived_at);
+    const archivedContractsList = contracts.filter((c) => c.archived_at);
 
     // Client Suggestions: Non-archived clients older than 30 days without active contracts (none or all expired)
     const now = new Date();
-    const clientSuggestions = clients.filter(c => {
-        if (c.archived_at) return false;
+    const clientSuggestions = clients
+        .filter((c) => {
+            if (c.archived_at) return false;
 
-        const createdDate = new Date(c.created_at || c.updated_at);
-        const daysOld = (now - createdDate) / (1000 * 60 * 60 * 24);
-        if (daysOld < 30) return false;
+            const createdDate = new Date(c.created_at || c.updated_at);
+            const daysOld = (now - createdDate) / (1000 * 60 * 60 * 24);
+            if (daysOld < 30) return false;
 
-        const clientContracts = contracts.filter(con => con.client_id === c.id);
-        if (clientContracts.length === 0) return true;
+            const clientContracts = contracts.filter(
+                (con) => con.client_id === c.id,
+            );
+            if (clientContracts.length === 0) return true;
 
-        const allInactive = clientContracts.every(con => {
-            const endDate = new Date(con.end_date);
-            return endDate < now || con.archived_at;
-        });
+            const allInactive = clientContracts.every((con) => {
+                const endDate = new Date(con.end_date);
+                return endDate < now || con.archived_at;
+            });
 
-        return allInactive;
-    }).map(c => ({
-        type: 'client_suggestion',
-        date: new Date(now.getTime() - 1000), // Slightly in the past so it stays below fresh alerts
-        label: `💡 Sugestão: Retomar ${config.labels?.client || 'Cliente'} ${c.name} (Sem contrato ativo)`,
-        id: `sug_${c.id}`
-    }));
+            return allInactive;
+        })
+        .map((c) => ({
+            type: "client_suggestion",
+            date: new Date(now.getTime() - 1000), // Slightly in the past so it stays below fresh alerts
+            label: `💡 Sugestão: Retomar ${config.labels?.client || "Cliente"} ${c.name} (Sem contrato ativo)`,
+            id: `sug_${c.id}`,
+        }));
 
     // Recent Activities calculation
     const recentActivities = [
-        ...clients.filter(c => !c.archived_at).map(c => ({
-            type: 'new_client',
-            date: new Date(c.created_at || c.updated_at),
-            label: `Novo ${config.labels?.client || 'Cliente'}: ${c.name}`,
-            id: `nc_${c.id}`
-        })),
-        ...contracts.filter(c => !c.archived_at).map(c => ({
-            type: 'new_contract',
-            date: new Date(c.created_at || c.updated_at),
-            label: `Novo ${config.labels?.contract || 'Contrato'}: ${c.model || 'Sem modelo'}`,
-            id: `nct_${c.id}`
-        })),
-        ...archivedClientsList.map(c => ({
-            type: 'archived_client',
+        ...clients
+            .filter((c) => !c.archived_at)
+            .map((c) => ({
+                type: "new_client",
+                date: new Date(c.created_at || c.updated_at),
+                label: `Novo ${config.labels?.client || "Cliente"}: ${c.name}`,
+                id: `nc_${c.id}`,
+            })),
+        ...contracts
+            .filter((c) => !c.archived_at)
+            .map((c) => ({
+                type: "new_contract",
+                date: new Date(c.created_at || c.updated_at),
+                label: `Novo ${config.labels?.contract || "Contrato"}: ${c.model || "Sem modelo"}`,
+                id: `nct_${c.id}`,
+            })),
+        ...archivedClientsList.map((c) => ({
+            type: "archived_client",
             date: new Date(c.archived_at),
-            label: `${config.labels?.client || 'Cliente'} Arquivado: ${c.name}`,
-            id: `ac_${c.id}`
+            label: `${config.labels?.client || "Cliente"} Arquivado: ${c.name}`,
+            id: `ac_${c.id}`,
         })),
-        ...archivedContractsList.map(c => ({
-            type: 'archived_contract',
+        ...archivedContractsList.map((c) => ({
+            type: "archived_contract",
             date: new Date(c.archived_at),
-            label: `${config.labels?.contract || 'Contrato'} Arquivado: ${c.model || 'Sem modelo'}`,
-            id: `act_${c.id}`
+            label: `${config.labels?.contract || "Contrato"} Arquivado: ${c.model || "Sem modelo"}`,
+            id: `act_${c.id}`,
         })),
-        ...clientSuggestions
-    ].filter(a => !isNaN(a.date.getTime()))
+        ...clientSuggestions,
+    ]
+        .filter((a) => !isNaN(a.date.getTime()))
         .sort((a, b) => b.date - a.date)
         .slice(0, dashboardSettings.recent_activity_count || 15);
 
@@ -335,12 +343,6 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 <h1 className="dashboard-title" style={{ margin: 0 }}>
                     📈 Dashboard
                 </h1>
-                <RefreshButton
-                    onClick={() => loadData(true)}
-                    disabled={loading}
-                    isLoading={loading}
-                    icon="↻"
-                />
             </div>
 
             {/* Statistics Cards - controlled by show_statistics */}
@@ -348,7 +350,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                 <div className="dashboard-stats-grid">
                     <div className="dashboard-stat-card">
                         <div className="dashboard-stat-label">
-                            Clientes Ativos
+                            {config.labels.clients} Ativos
                         </div>
                         <div className="dashboard-stat-value clients">
                             {activeClients.length}
@@ -384,7 +386,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                     <div className="dashboard-stat-card">
                         <div className="dashboard-stat-label">
-                            Clientes Inativos
+                            {config.labels.clients} Inativos
                         </div>
                         <div className="dashboard-stat-value inactive">
                             {inactiveClients.length}
@@ -393,7 +395,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                     <div className="dashboard-stat-card">
                         <div className="dashboard-stat-label">
-                            Clientes Arquivados
+                            {config.labels.clients} Arquivados
                         </div>
                         <div className="dashboard-stat-value archived">
                             {archivedClients.length}
@@ -401,14 +403,18 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                     </div>
 
                     <div className="dashboard-stat-card">
-                        <div className="dashboard-stat-label">Categorias</div>
+                        <div className="dashboard-stat-label">
+                            {config.labels.categories}
+                        </div>
                         <div className="dashboard-stat-value categories">
                             {totalCategories}
                         </div>
                     </div>
 
                     <div className="dashboard-stat-card">
-                        <div className="dashboard-stat-label">Linhas</div>
+                        <div className="dashboard-stat-label">
+                            {config.labels.subcategories}
+                        </div>
                         <div className="dashboard-stat-value lines">
                             {totalLines}
                         </div>
@@ -418,43 +424,75 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
             {/* 1. Quick Actions Section - Single Row */}
             {dashboardSettings.show_quick_actions && (
-                <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
-                    <h2 className="dashboard-section-title">⚡ Ações Rápidas</h2>
+                <div
+                    className="dashboard-section-card"
+                    style={{ marginTop: "20px" }}
+                >
+                    <h2 className="dashboard-section-title">
+                        ⚡ Ações Rápidas
+                    </h2>
                     <div className="dashboard-quick-actions">
-                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/clients?action=new'}>
+                        <button
+                            className="dashboard-action-btn"
+                            onClick={() =>
+                                (window.location.hash = "#/clients?action=new")
+                            }
+                        >
                             <span className="action-icon">👤</span>
-                            <span className="action-label">Novo {config.labels?.client || 'Cliente'}</span>
+                            <span className="action-label">
+                                Novo {config.labels?.client || "Cliente"}
+                            </span>
                         </button>
-                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/contracts?action=new'}>
+                        <button
+                            className="dashboard-action-btn"
+                            onClick={() =>
+                                (window.location.hash =
+                                    "#/contracts?action=new")
+                            }
+                        >
                             <span className="action-icon">📄</span>
-                            <span className="action-label">Novo {config.labels?.contract || 'Contrato'}</span>
+                            <span className="action-label">
+                                Novo {config.labels?.contract || "Contrato"}
+                            </span>
                         </button>
-                        <button className="dashboard-action-btn" onClick={() => window.location.hash = '#/categories?action=new'}>
-                            <span className="action-icon">📁</span>
-                            <span className="action-label">Nova {config.labels?.category || 'Categoria'}</span>
+                        <button
+                            className="dashboard-action-btn"
+                            onClick={() =>
+                                (window.location.hash =
+                                    "#/categories?action=new")
+                            }
+                        >
+                            <span className="action-icon">🏷️</span>
+                            <span className="action-label">
+                                Nova {config.labels?.category || "Categoria"}
+                            </span>
                         </button>
                     </div>
                 </div>
             )}
 
             {/* 2. Tabbed Info Section - Birthdays, Expiring, Expired */}
-            <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
+            <div
+                className="dashboard-section-card"
+                style={{ marginTop: "20px" }}
+            >
+                <h2 className="dashboard-section-title">Entre em contato:</h2>
                 <div className="dashboard-info-tabs">
                     <button
-                        className={`dashboard-info-tab ${activeInfoTab === 'birthdays' ? 'active' : ''}`}
-                        onClick={() => setActiveInfoTab('birthdays')}
+                        className={`dashboard-info-tab ${activeInfoTab === "birthdays" ? "active" : ""}`}
+                        onClick={() => setActiveInfoTab("birthdays")}
                     >
                         🎂 Aniversariantes ({birthdayClients.length})
                     </button>
                     <button
-                        className={`dashboard-info-tab ${activeInfoTab === 'expiring' ? 'active' : ''}`}
-                        onClick={() => setActiveInfoTab('expiring')}
+                        className={`dashboard-info-tab ${activeInfoTab === "expiring" ? "active" : ""}`}
+                        onClick={() => setActiveInfoTab("expiring")}
                     >
                         ⌛ Expirando ({expiringContracts.length})
                     </button>
                     <button
-                        className={`dashboard-info-tab ${activeInfoTab === 'expired' ? 'active' : ''}`}
-                        onClick={() => setActiveInfoTab('expired')}
+                        className={`dashboard-info-tab ${activeInfoTab === "expired" ? "active" : ""}`}
+                        onClick={() => setActiveInfoTab("expired")}
                     >
                         ❌ Expirados ({expiredContracts.length})
                     </button>
@@ -462,9 +500,15 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
                 <div className="dashboard-info-content">
                     {/* Birthdays Tab Content */}
-                    {activeInfoTab === 'birthdays' && (
+                    {activeInfoTab === "birthdays" && (
                         <>
-                            <div style={{ marginBottom: '15px', display: 'flex', gap: '8px' }}>
+                            <div
+                                style={{
+                                    marginBottom: "15px",
+                                    display: "flex",
+                                    gap: "8px",
+                                }}
+                            >
                                 <button
                                     onClick={() => setBirthdayFilter("day")}
                                     className={`filter-btn ${birthdayFilter === "day" ? "active" : ""}`}
@@ -475,7 +519,9 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                     onClick={() => setBirthdayFilter("week")}
                                     className={`filter-btn ${birthdayFilter === "week" ? "active" : ""}`}
                                 >
-                                    Próxs. {dashboardSettings.birthdays_days_ahead} dias
+                                    Próxs.{" "}
+                                    {dashboardSettings.birthdays_days_ahead}{" "}
+                                    dias
                                 </button>
                                 <button
                                     onClick={() => setBirthdayFilter("month")}
@@ -485,73 +531,153 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                 </button>
                             </div>
                             {birthdayClients.length === 0 ? (
-                                <p className="dashboard-section-empty">Nenhum aniversariante</p>
+                                <p className="dashboard-section-empty">
+                                    Nenhum aniversariante
+                                </p>
                             ) : (
                                 <div className="dashboard-contracts-list">
-                                    {birthdayClients.slice(0, 10).map((client) => (
-                                        <div key={client.id} className="dashboard-contract-item clients">
-                                            <div className="dashboard-contract-model">{client.name}</div>
-                                            <div className="dashboard-contract-key">{client.registration_id || "Sem registro"}</div>
-                                            <div className="dashboard-contract-days clients">
-                                                {(() => {
-                                                    const dateStr = client.birth_date;
-                                                    if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
-                                                        const [year, month, day] = dateStr.split("T")[0].split("-");
-                                                        return `${day}/${month}`;
-                                                    }
-                                                    return new Date(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-                                                })()}
+                                    {birthdayClients
+                                        .slice(0, 10)
+                                        .map((client) => (
+                                            <div
+                                                key={client.id}
+                                                className="dashboard-contract-item clients"
+                                            >
+                                                <div className="dashboard-contract-model">
+                                                    {client.name}
+                                                </div>
+                                                <div className="dashboard-contract-key">
+                                                    {client.registration_id ||
+                                                        "Sem registro"}
+                                                </div>
+                                                <div className="dashboard-contract-days clients">
+                                                    {(() => {
+                                                        const dateStr =
+                                                            client.birth_date;
+                                                        if (
+                                                            dateStr &&
+                                                            dateStr.match(
+                                                                /^\d{4}-\d{2}-\d{2}/,
+                                                            )
+                                                        ) {
+                                                            const [
+                                                                year,
+                                                                month,
+                                                                day,
+                                                            ] = dateStr
+                                                                .split("T")[0]
+                                                                .split("-");
+                                                            return `${day}/${month}`;
+                                                        }
+                                                        return new Date(
+                                                            dateStr,
+                                                        ).toLocaleDateString(
+                                                            "pt-BR",
+                                                            {
+                                                                day: "2-digit",
+                                                                month: "2-digit",
+                                                            },
+                                                        );
+                                                    })()}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
                             )}
                         </>
                     )}
 
                     {/* Expiring Tab Content */}
-                    {activeInfoTab === 'expiring' && (
+                    {activeInfoTab === "expiring" && (
                         <>
                             {expiringContracts.length === 0 ? (
-                                <p className="dashboard-section-empty">Nenhum {config.labels?.contract?.toLowerCase() || 'contrato'} expirando</p>
+                                <p className="dashboard-section-empty">
+                                    Nenhum{" "}
+                                    {config.labels?.contract?.toLowerCase() ||
+                                        "contrato"}{" "}
+                                    expirando
+                                </p>
                             ) : (
                                 <div className="dashboard-contracts-list">
-                                    {expiringContracts.slice(0, 10).map((contract) => {
-                                        const endDate = new Date(contract.end_date);
-                                        const now = new Date();
-                                        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-                                        return (
-                                            <div key={contract.id} className="dashboard-contract-item expiring">
-                                                <div className="dashboard-contract-model">{contract.model || "Sem modelo"}</div>
-                                                <div className="dashboard-contract-key">{contract.item_key || "Sem chave"}</div>
-                                                <div className="dashboard-contract-days expiring">{daysLeft} dias restantes</div>
-                                            </div>
-                                        );
-                                    })}
+                                    {expiringContracts
+                                        .slice(0, 10)
+                                        .map((contract) => {
+                                            const endDate = new Date(
+                                                contract.end_date,
+                                            );
+                                            const now = new Date();
+                                            const daysLeft = Math.ceil(
+                                                (endDate - now) /
+                                                    (1000 * 60 * 60 * 24),
+                                            );
+                                            return (
+                                                <div
+                                                    key={contract.id}
+                                                    className="dashboard-contract-item expiring"
+                                                >
+                                                    <div className="dashboard-contract-model">
+                                                        {contract.model ||
+                                                            "Sem modelo"}
+                                                    </div>
+                                                    <div className="dashboard-contract-key">
+                                                        {contract.item_key ||
+                                                            "Sem chave"}
+                                                    </div>
+                                                    <div className="dashboard-contract-days expiring">
+                                                        {daysLeft} dias
+                                                        restantes
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             )}
                         </>
                     )}
 
                     {/* Expired Tab Content */}
-                    {activeInfoTab === 'expired' && (
+                    {activeInfoTab === "expired" && (
                         <>
                             {expiredContracts.length === 0 ? (
-                                <p className="dashboard-section-empty">Nenhum {config.labels?.contract?.toLowerCase() || 'contrato'} expirado</p>
+                                <p className="dashboard-section-empty">
+                                    Nenhum{" "}
+                                    {config.labels?.contract?.toLowerCase() ||
+                                        "contrato"}{" "}
+                                    expirado
+                                </p>
                             ) : (
                                 <div className="dashboard-contracts-list">
-                                    {expiredContracts.slice(0, 10).map((contract) => {
-                                        const endDate = new Date(contract.end_date);
-                                        const now = new Date();
-                                        const daysExpired = Math.ceil((now - endDate) / (1000 * 60 * 60 * 24));
-                                        return (
-                                            <div key={contract.id} className="dashboard-contract-item expired">
-                                                <div className="dashboard-contract-model">{contract.model || "Sem modelo"}</div>
-                                                <div className="dashboard-contract-key">{contract.item_key || "Sem chave"}</div>
-                                                <div className="dashboard-contract-days expired">Expirado há {daysExpired} dias</div>
-                                            </div>
-                                        );
-                                    })}
+                                    {expiredContracts
+                                        .slice(0, 10)
+                                        .map((contract) => {
+                                            const endDate = new Date(
+                                                contract.end_date,
+                                            );
+                                            const now = new Date();
+                                            const daysExpired = Math.ceil(
+                                                (now - endDate) /
+                                                    (1000 * 60 * 60 * 24),
+                                            );
+                                            return (
+                                                <div
+                                                    key={contract.id}
+                                                    className="dashboard-contract-item expired"
+                                                >
+                                                    <div className="dashboard-contract-model">
+                                                        {contract.model ||
+                                                            "Sem modelo"}
+                                                    </div>
+                                                    <div className="dashboard-contract-key">
+                                                        {contract.item_key ||
+                                                            "Sem chave"}
+                                                    </div>
+                                                    <div className="dashboard-contract-days expired">
+                                                        Expirado há{" "}
+                                                        {daysExpired} dias
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             )}
                         </>
@@ -561,24 +687,42 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
             {/* 3. Recent Activities Section */}
             {dashboardSettings.show_recent_activity && (
-                <div className="dashboard-section-card" style={{ marginTop: '20px' }}>
-                    <h2 className="dashboard-section-title">📋 Atividade Recente</h2>
+                <div
+                    className="dashboard-section-card"
+                    style={{ marginTop: "20px" }}
+                >
+                    <h2 className="dashboard-section-title">
+                        📋 Atividade Recente
+                    </h2>
                     <div className="dashboard-activities-list">
                         {recentActivities.length === 0 ? (
-                            <p className="dashboard-section-empty">Nenhuma atividade recente</p>
+                            <p className="dashboard-section-empty">
+                                Nenhuma atividade recente
+                            </p>
                         ) : (
-                            recentActivities.map(activity => (
-                                <div key={activity.id} className="dashboard-activity-item">
-                                    <div className="activity-dot" data-type={activity.type}></div>
+                            recentActivities.map((activity) => (
+                                <div
+                                    key={activity.id}
+                                    className="dashboard-activity-item"
+                                >
+                                    <div
+                                        className="activity-dot"
+                                        data-type={activity.type}
+                                    ></div>
                                     <div className="activity-content">
-                                        <div className="activity-label">{activity.label}</div>
+                                        <div className="activity-label">
+                                            {activity.label}
+                                        </div>
                                         <div className="activity-date">
-                                            {activity.date.toLocaleString('pt-BR', {
-                                                day: '2-digit',
-                                                month: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
+                                            {activity.date.toLocaleString(
+                                                "pt-BR",
+                                                {
+                                                    day: "2-digit",
+                                                    month: "2-digit",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                },
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -587,7 +731,6 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }

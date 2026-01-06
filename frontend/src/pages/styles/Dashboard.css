@@ -28,15 +28,15 @@
 
 .dashboard-loading-text {
     font-size: 18px;
-    color: var(--text-color, #7f8c8d);
+    color: var(--primary-text-color, #7f8c8d);
 }
 
 .dashboard-error-message {
-    background: #fee;
-    color: #c33;
+    background: var(--alert-error-bg, #fee);
+    color: var(--alert-error-text, #c33);
     padding: 16px;
     border-radius: 4px;
-    border: 1px solid #fcc;
+    border: 1px solid var(--alert-error-text, #fcc);
 }
 
 .dashboard-error-button {
@@ -56,7 +56,7 @@
 .dashboard-title {
     font-size: 32px;
     margin-bottom: 30px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .dashboard-stats-grid {
@@ -100,12 +100,21 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color, #ecf0f1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 120px;
 }
 
 .dashboard-stat-label {
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     font-size: 14px;
     margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .dashboard-stat-value {
@@ -177,11 +186,11 @@
 .dashboard-section-title {
     font-size: 20px;
     margin-bottom: 20px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .dashboard-section-empty {
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     font-size: 14px;
 }
 
@@ -224,13 +233,13 @@
 
 .dashboard-contract-model {
     font-weight: 600;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     margin-bottom: 4px;
 }
 
 .dashboard-contract-key {
     font-size: 13px;
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
 }
 
 .dashboard-contract-days {
@@ -261,11 +270,11 @@
 
 /* Dark mode specific styles */
 .dark-mode .dashboard-title {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .dashboard-loading-text {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .dashboard-stat-card {
@@ -274,7 +283,7 @@
 }
 
 .dark-mode .dashboard-stat-label {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dark-mode .dashboard-section-card {
@@ -283,19 +292,19 @@
 }
 
 .dark-mode .dashboard-section-title {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .dashboard-section-empty {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dark-mode .dashboard-contract-model {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .dashboard-contract-key {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dark-mode .dashboard-contract-item.expiring {
@@ -333,7 +342,7 @@
 
 .update-timestamp {
     font-size: 0.75rem;
-    color: var(--text-secondary-color, #999);
+    color: var(--secondary-text-color, #999);
     font-weight: normal;
     display: block;
     margin-top: 2px;
@@ -341,7 +350,7 @@
 }
 
 .dark-mode .update-timestamp {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 /* Quick Actions Styles - Compact buttons matching Appearance page */
@@ -356,16 +365,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    width: 100px;
-    height: 70px;
-    padding: 8px;
+    gap: 12px;
+    width: 120px;
+    height: 80px;
+    padding: 10px;
     border: 2px solid var(--border-color, #e2e8f0);
     border-radius: 8px;
     background: var(--content-bg, #f8f9fa);
     cursor: pointer;
     transition: all 0.2s ease;
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
     flex-shrink: 0;
 }
 
@@ -380,19 +389,21 @@
 }
 
 .dashboard-action-btn .action-icon {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
     line-height: 1;
 }
 
 .dashboard-action-btn .action-label {
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-align: center;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 /* Dark mode for action buttons */
@@ -400,7 +411,7 @@
 .dark-mode .dashboard-action-btn {
     background: var(--hover-bg, rgba(255, 255, 255, 0.05));
     border-color: var(--border-color, #4a5568);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 [data-theme="dark"] .dashboard-action-btn:hover,
@@ -420,27 +431,27 @@
 }
 
 .dashboard-info-tab {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: none;
-    background: var(--surface-color, #f5f5f5);
-    color: var(--text-secondary, #666);
+    background: var(--secondary-color, #2c3e50);
+    color: var(--nav-text-color, white);
     border-radius: 8px 8px 0 0;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 500;
     transition: all 0.2s ease;
 }
 
 .dashboard-info-tab:hover {
-    background: var(--primary-color, #3498db);
-    color: white;
+    background: var(--secondary-light, rgba(255, 255, 255, 0.1));
+    color: var(--nav-text-color, white);
 }
 
 .dashboard-info-tab.active {
     background: var(--primary-color, #3498db);
-    color: white;
+    color: var(--active-nav-text-color, var(--primary-text-color, white));
     transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dashboard-info-content {
@@ -455,20 +466,20 @@
 
 [data-theme="dark"] .dashboard-info-tab,
 .dark-mode .dashboard-info-tab {
-    background: var(--hover-bg, rgba(255, 255, 255, 0.05));
-    color: var(--text-secondary, #a0aec0);
+    background: var(--secondary-color, #2c3e50);
+    color: var(--nav-text-color, white);
 }
 
 [data-theme="dark"] .dashboard-info-tab:hover,
 .dark-mode .dashboard-info-tab:hover {
-    background: var(--primary-color, #3498db);
-    color: white;
+    background: var(--secondary-light, rgba(255, 255, 255, 0.1));
+    color: var(--nav-text-color, white);
 }
 
 [data-theme="dark"] .dashboard-info-tab.active,
 .dark-mode .dashboard-info-tab.active {
     background: var(--primary-color, #3498db);
-    color: white;
+    color: var(--active-nav-text-color, var(--primary-text-color, white));
 }
 
 /* Legacy quick-actions-grid - keep for backwards compatibility */
@@ -489,7 +500,7 @@
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .quick-action-btn:hover {
@@ -551,13 +562,13 @@
 
 .activity-label {
     font-size: 14px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     line-height: 1.4;
 }
 
 .activity-date {
     font-size: 12px;
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     margin-top: 2px;
 }
 
@@ -565,7 +576,7 @@
 .dark-mode .quick-action-btn {
     background: var(--hover-bg, rgba(255, 255, 255, 0.05));
     border-color: var(--border-color, #4a5568);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .quick-action-btn:hover {
@@ -573,11 +584,11 @@
 }
 
 .dark-mode .activity-label {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .activity-date {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 /* Filter buttons for birthdays */
@@ -599,7 +610,7 @@
 
 .filter-btn.active {
     background: #3498db;
-    color: white;
+    color: var(--active-nav-text-color, white);
 }
 
 [data-theme="dark"] .filter-btn,
@@ -621,7 +632,11 @@
     align-items: center;
     gap: 12px;
     padding: 14px 18px;
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(155, 89, 182, 0.05));
+    background: linear-gradient(
+        135deg,
+        rgba(52, 152, 219, 0.08),
+        rgba(155, 89, 182, 0.05)
+    );
     border: 1px dashed rgba(52, 152, 219, 0.4);
     border-radius: 10px;
     flex-wrap: wrap;
@@ -629,7 +644,7 @@
 
 .hidden-widgets-label {
     font-size: 14px;
-    color: var(--text-secondary-color, #6c757d);
+    color: var(--secondary-text-color, #6c757d);
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -665,7 +680,11 @@
 
 [data-theme="dark"] .hidden-widgets-bar,
 .dark-mode .hidden-widgets-bar {
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(155, 89, 182, 0.08));
+    background: linear-gradient(
+        135deg,
+        rgba(52, 152, 219, 0.12),
+        rgba(155, 89, 182, 0.08)
+    );
     border-color: rgba(52, 152, 219, 0.3);
 }
 
