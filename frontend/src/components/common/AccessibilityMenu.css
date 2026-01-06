@@ -47,7 +47,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
 }
 .accessibility-section {
     display: flex;
@@ -63,7 +63,7 @@
 .accessibility-label {
     font-size: 0.9rem;
     font-weight: 500;
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
 }
 .accessibility-label {
     margin-bottom: 0.25rem;
@@ -76,7 +76,7 @@
     cursor: pointer;
     transition: all 0.2s;
     background: transparent;
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
     font-weight: bold;
 }
 .pill-toggle.on {
@@ -97,7 +97,7 @@
     font-size: 0.85rem;
     cursor: pointer;
     text-align: left;
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
     transition: all 0.2s;
 }
 .colorblind-option:hover {
@@ -106,7 +106,7 @@
 }
 .colorblind-option.active {
     background: var(--primary-color, #3498db);
-    color: var(--primary-text-color, white);
+    color: var(--active-nav-text-color, white);
     border-color: var(--primary-color, #3498db);
 }
 /* High Contrast overrides */
