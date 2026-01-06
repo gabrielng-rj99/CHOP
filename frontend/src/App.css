@@ -1,6 +1,6 @@
 :root {
     --sidebar-width: 250px;
-    --transition-speed: 0.4s;
+    --transition-speed: 0.5s;
     --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -26,38 +26,9 @@ html.collapsed {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-:root {
-    --primary-color: #3498db;
-    --primary-dark: color-mix(in srgb, var(--primary-color), black 20%);
-    --secondary-color: #2c3e50;
-    --secondary-light: color-mix(in srgb, var(--secondary-color), white 20%);
-    --danger-color: #e74c3c;
-    --danger-dark: color-mix(in srgb, var(--danger-color), black 20%);
-
-    /* Global Backgrounds */
-    --bg-color: #f8f9fa;
-    /* App container bg */
-    --text-color: #333333;
-    --content-bg: #ffffff;
-    --border-color: #cbd5e0;
-    /* Default border color for light mode */
-    /* Card/Panel bg */
-
-    /* Fonts */
-    --font-general:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    --font-title:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    --font-table-title:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-}
-
 body {
     background-color: var(--bg-color);
-    color: var(--text-color);
+    color: var(--primary-text-color);
     font-family: var(--font-general);
     margin: 0;
 }
@@ -90,10 +61,9 @@ label,
     top: 0;
     left: 0;
     height: 100vh;
-    transition: width var(--transition-speed) var(--transition-curve);
     z-index: 1000;
-    overflow: hidden;
-    will-change: width;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: width var(--transition-speed) var(--transition-curve);
 }
 
 /* ... existing styles ... */
@@ -109,7 +79,7 @@ label,
 .high-contrast .accessibility-popover,
 .high-contrast .gender-select,
 .high-contrast .dataset-item {
-    border: 2px solid var(--text-color) !important;
+    border: 2px solid var(--primary-text-color) !important;
     /* Use text color for max contrast if border-color is low contrast */
 }
 
@@ -204,17 +174,13 @@ html.collapsed .app-nav-items {
     font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
     white-space: nowrap;
     width: 100%;
-    transition:
-        padding var(--transition-speed) var(--transition-curve),
-        justify-content var(--transition-speed) var(--transition-curve);
+    transition: padding var(--transition-speed) var(--transition-curve);
 }
 
 .app-nav.collapsed .app-nav-button,
 html.collapsed .app-nav-button {
-    justify-content: center;
     padding: 12px 8px;
 }
 
@@ -238,20 +204,34 @@ html.collapsed .app-nav-button {
     display: inline-block;
     width: 24px;
     text-align: center;
+    transition: margin-left var(--transition-speed) var(--transition-curve);
 }
 
 .app-nav-text {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
-    transition: all var(--transition-speed) var(--transition-curve);
-    max-width: 100%;
+    text-overflow: clip;
+    /* Changed from ellipsis to clip for cleaner exit */
+    transition:
+        opacity var(--transition-speed) var(--transition-curve),
+        max-width var(--transition-speed) var(--transition-curve),
+        margin-left var(--transition-speed) var(--transition-curve);
+    max-width: 200px;
+    /* Explicit max-width for transition */
+    margin-left: 20px;
+    opacity: 1;
 }
 
 .app-nav.collapsed .app-nav-text,
 html.collapsed .app-nav-text {
     opacity: 0;
-    width: 0;
+    max-width: 0;
+    margin-left: 0;
+}
+
+.app-nav.collapsed .app-nav-icon,
+html.collapsed .app-nav-icon {
+    margin-left: 15px;
 }
 
 .app-nav-footer {
@@ -265,7 +245,6 @@ html.collapsed .app-nav-text {
 html.collapsed .app-nav-footer {
     padding: 20px 10px;
 }
-
 
 .app-nav-user-info {
     margin-bottom: 16px;
@@ -312,29 +291,61 @@ html.collapsed .app-nav-user-role {
 
 .app-nav-logout-button {
     width: 100%;
-    background: var(--danger-color);
+    background: #e74c3c;
     color: white;
     border: none;
-    padding: 10px;
+    padding: 12px 16px;
     cursor: pointer;
     border-radius: 4px;
     font-size: 14px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition:
-        background var(--transition-speed) var(--transition-curve),
-        opacity var(--transition-speed) var(--transition-curve);
+    white-space: nowrap;
+    transition: padding var(--transition-speed) var(--transition-curve);
 }
 
-.app-nav.collapsed .app-nav-logout-button,
+.app-nav-logout-button .app-nav-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    display: inline-block;
+    width: 24px;
+    text-align: center;
+}
+
+.app-nav-logout-button .app-nav-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    transition:
+        opacity var(--transition-speed) var(--transition-curve),
+        max-width var(--transition-speed) var(--transition-curve),
+        margin-left var(--transition-speed) var(--transition-curve);
+    max-width: 200px;
+    margin-left: 20px;
+    margin-right: 44px;
+    opacity: 1;
+    font-size: 16px;
+    font-weight: bold;
+    flex: 1;
+    text-align: center;
+}
+
 html.collapsed .app-nav-logout-button {
-    padding: 10px 8px;
+    padding: 12px;
+    padding-left: 0;
+    margin-left: 0;
+    justify-content: center;
+}
+
+html.collapsed .app-nav-logout-button .app-nav-text {
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .app-nav-logout-button:hover {
-    background: var(--danger-dark);
+    background: #c0392b;
 }
 
 .app-main {
@@ -350,25 +361,25 @@ html.collapsed .app-nav-logout-button {
 }
 
 /* Layout Modes */
-.app-main.layout-mode-standard>* {
+.app-main.layout-mode-standard > * {
     max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
-.app-main.layout-mode-centralized>* {
+.app-main.layout-mode-centralized > * {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
-.app-main.layout-mode-full>* {
+.app-main.layout-mode-full > * {
     max-width: 100%;
 }
 
-.app-nav.collapsed~.app-main,
+.app-nav.collapsed ~ .app-main,
 html.collapsed .app-main {
     margin-left: var(--sidebar-width);
 }
@@ -449,7 +460,7 @@ h3,
 h4,
 h5,
 h6 {
-    color: var(--text-color);
+    color: var(--primary-text-color);
     font-family: var(--font-table-title);
     /* Secondary Titles (Section Headers) */
 }
@@ -474,17 +485,17 @@ th {
     font-family: var(--font-table-title);
     /* Use Secondary Title font for headers */
     font-weight: 600;
-    color: var(--text-secondary-color);
+    color: var(--secondary-text-color);
 }
 
 /* High Contrast Mode - Reinforcement */
 .high-contrast {
-    --text-color: #000 !important;
+    --primary-text-color: #000 !important;
     --border-color: #000 !important;
 }
 
 .high-contrast.dark-mode {
-    --text-color: #fff !important;
+    --primary-text-color: #fff !important;
     --border-color: #fff !important;
 }
 
@@ -499,7 +510,7 @@ th {
 .high-contrast .lines-panel,
 .high-contrast .accessibility-popover,
 .high-contrast .gender-select {
-    border: 2px solid var(--text-color) !important;
+    border: 2px solid var(--primary-text-color) !important;
 }
 
 /* Text Shadow for better readability on colored backgrounds */
@@ -659,12 +670,6 @@ th {
     color: #ffffff;
 }
 
-[data-theme="dark"] .clients-table-empty,
-[data-theme="dark"] .agreements-loading-text,
-[data-theme="dark"] .categories-loading-text {
-    color: #333 !important;
-}
-
 /* Dark Mode - Using class instead of data-theme */
 .dark-mode .clients-title,
 .dark-mode .categories-title,
@@ -674,14 +679,10 @@ th {
 .dark-mode .dashboard-title,
 .dark-mode .appearance-title,
 .dark-mode .settings-title {
-    color: var(--page-title-color, var(--text-color, #f7fafc)) !important;
-}
-
-.dark-mode .clients-table-empty,
-.dark-mode .categories-loading-text,
-.dark-mode .audit-logs-loading-text,
-.dark-mode .agreements-loading-text {
-    color: #333 !important;
+    color: var(
+        --page-title-color,
+        var(--primary-text-color, #f7fafc)
+    ) !important;
 }
 
 /* Page titles should use theme colors */
@@ -693,7 +694,7 @@ th {
 .dashboard-title,
 .appearance-title,
 .settings-title {
-    color: var(--page-title-color, var(--text-color, #2c3e50));
+    color: var(--page-title-color, var(--primary-text-color, #2c3e50));
 }
 
 /* Empty states and loading states */
@@ -701,7 +702,9 @@ th {
 .categories-loading-text,
 .audit-logs-loading-text,
 .agreements-loading-text {
-    color: #333 !important;
+    color: var(--primary-text-color) !important;
+    text-align: center;
+    padding: 2rem;
 }
 
 /* Tables in dark mode */
@@ -719,7 +722,7 @@ th {
 .dark-mode .audit-logs-table th,
 .dark-mode .agreements-table th {
     background: var(--content-bg, #2d3748);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
     font-family: var(--font-table-title);
 }
@@ -729,7 +732,7 @@ th {
 .dark-mode .users-table td,
 .dark-mode .audit-logs-table td,
 .dark-mode .agreements-table td {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
     font-family: var(--font-table-content);
 }
@@ -754,7 +757,7 @@ th {
 .dark-mode .clients-filter-button,
 .dark-mode .audit-logs-button-secondary {
     background: var(--content-bg, #2d3748);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
 }
 
@@ -768,7 +771,7 @@ th {
 .dark-mode .categories-search-input,
 .dark-mode .audit-logs-search-input {
     background: var(--content-bg, #2d3748);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
 }
 
@@ -780,11 +783,10 @@ th {
 
 /* Sidebar Logo Animation Improvements */
 
-
 /* Primary Button - Used for Create/New Actions */
 .primary-button {
     background-color: var(--primary-color, #3498db);
-    color: white;
+    color: var(--nav-text-color, white);
     border: none;
     padding: 0.6rem 1.2rem;
     border-radius: 4px;
@@ -795,9 +797,7 @@ th {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    white-space: nowrap;
-    min-width: 185px;
+    gap: 0.5rem;
 }
 
 .primary-button:hover:not(:disabled) {
@@ -812,7 +812,7 @@ th {
 /* Dark mode for primary button */
 .dark-mode .primary-button {
     background-color: var(--primary-color, #3498db);
-    color: white;
+    color: var(--nav-text-color, white);
 }
 
 .dark-mode .primary-button:hover:not(:disabled) {
@@ -904,7 +904,7 @@ th {
 /* Update Timestamp */
 .update-timestamp {
     font-size: 0.75rem;
-    color: var(--text-secondary-color, #999);
+    color: var(--secondary-text-color, #999);
     font-weight: normal;
     display: block;
     margin-top: 2px;
@@ -912,7 +912,7 @@ th {
 }
 
 .dark-mode .update-timestamp {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 /* High Contrast Filter */
@@ -957,8 +957,8 @@ html.layout-centralized.collapsed .app-main {
 }
 
 /* Ensure full width for specific full-screen containers if needed */
-.layout-standard .app-main>.full-width-container,
-.layout-full .app-main>.full-width-container {
+.layout-standard .app-main > .full-width-container,
+.layout-full .app-main > .full-width-container {
     max-width: 100%;
     padding: 0;
 }
@@ -966,7 +966,7 @@ html.layout-centralized.collapsed .app-main {
 /* Layout Modes - Controlled by ConfigContext className on html root */
 
 /* Centralized: Narrow constraint (e.g. 1200px), centered */
-html.layout-centralized .app-main>* {
+html.layout-centralized .app-main > * {
     margin-left: auto;
     margin-right: auto;
     max-width: 1200px;
@@ -974,7 +974,7 @@ html.layout-centralized .app-main>* {
 }
 
 /* Standard (Padrão): Wider constraint (e.g. 1600px), centered */
-html.layout-standard .app-main>* {
+html.layout-standard .app-main > * {
     margin-left: auto;
     margin-right: auto;
     max-width: 1600px;
@@ -982,7 +982,7 @@ html.layout-standard .app-main>* {
 }
 
 /* Full: 100% width (Default behavior, but explicit here) */
-html.layout-full .app-main>* {
+html.layout-full .app-main > * {
     max-width: 100%;
 }
 
@@ -994,7 +994,6 @@ html.layout-standard .app-main {
 
 /* On mobile, standard padding */
 @media (max-width: 768px) {
-
     html.layout-centralized .app-main,
     html.layout-standard .app-main {
         padding-left: 20px;

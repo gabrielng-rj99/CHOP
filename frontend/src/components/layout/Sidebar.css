@@ -1,13 +1,12 @@
 /* Sidebar Branding Container */
 .app-nav-branding {
-    min-height: 80px;
+    height: 80px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border-bottom: 1px solid var(--secondary-light);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 10px;
+    transition: all var(--transition-speed) var(--transition-curve);
     overflow: hidden;
     width: 100%;
     background: rgba(0, 0, 0, 0.05);
@@ -22,10 +21,10 @@
 .sidebar-logo-collapsed,
 .sidebar-logo-expanded {
     transition:
-        opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity var(--transition-speed) var(--transition-curve),
+        transform var(--transition-speed) var(--transition-curve),
+        width var(--transition-speed) var(--transition-curve),
+        height var(--transition-speed) var(--transition-curve);
     display: flex;
     align-items: center;
     justify-content: center;

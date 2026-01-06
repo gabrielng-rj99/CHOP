@@ -42,6 +42,41 @@ import "./App.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
+const ProtectedLayout = ({
+    token,
+    user,
+    logout,
+    sidebarCollapsed,
+    toggleSidebar,
+}) => {
+    if (!token || !user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return (
+        <ConfigProvider apiUrl={API_URL} token={token}>
+            <DataProvider
+                token={token}
+                apiUrl={API_URL}
+                onTokenExpired={() => logout("Token inválido")}
+            >
+                <LayoutManager />
+                <div className="app-container">
+                    <Sidebar
+                        sidebarCollapsed={sidebarCollapsed}
+                        toggleSidebar={toggleSidebar}
+                        user={user}
+                        logout={logout}
+                    />
+                    <main className="app-main">
+                        <Outlet />
+                    </main>
+                </div>
+            </DataProvider>
+        </ConfigProvider>
+    );
+};
+
 function App() {
     const [appReady, setAppReady] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -263,34 +298,7 @@ function App() {
         );
     }
 
-    const ProtectedLayout = () => {
-        if (!token || !user) {
-            return <Navigate to="/login" replace />;
-        }
 
-        return (
-            <ConfigProvider apiUrl={API_URL} token={token}>
-                <DataProvider
-                    token={token}
-                    apiUrl={API_URL}
-                    onTokenExpired={() => logout("Token inválido")}
-                >
-                    <LayoutManager />
-                    <div className="app-container">
-                        <Sidebar
-                            sidebarCollapsed={sidebarCollapsed}
-                            toggleSidebar={toggleSidebar}
-                            user={user}
-                            logout={logout}
-                        />
-                        <main className="app-main">
-                            <Outlet />
-                        </main>
-                    </div>
-                </DataProvider>
-            </ConfigProvider>
-        );
-    };
 
     return (
         <BrowserRouter>
@@ -306,7 +314,17 @@ function App() {
                     }
                 />
 
-                <Route element={<ProtectedLayout />}>
+                <Route
+                    element={
+                        <ProtectedLayout
+                            token={token}
+                            user={user}
+                            logout={logout}
+                            sidebarCollapsed={sidebarCollapsed}
+                            toggleSidebar={toggleSidebar}
+                        />
+                    }
+                >
                     <Route
                         path="/"
                         element={<Navigate to="/dashboard" replace />}
