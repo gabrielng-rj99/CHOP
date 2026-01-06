@@ -23,7 +23,6 @@ import { usersApi } from "../api/usersApi";
 import AuditFilters from "../components/audit/AuditFilters";
 import AuditLogsTable from "../components/audit/AuditLogsTable";
 import Pagination from "../components/common/Pagination";
-import RefreshButton from "../components/common/RefreshButton";
 import PrimaryButton from "../components/common/PrimaryButton";
 import "./styles/AuditLogs.css";
 
@@ -217,11 +216,6 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             <div className="audit-logs-header">
                 <h1 className="audit-logs-title">🔍 Logs</h1>
                 <div className="button-group">
-                    <RefreshButton
-                        onClick={loadLogs}
-                        isLoading={loading}
-                        icon="↻"
-                    />
                     <PrimaryButton
                         onClick={handleExport}
                         style={{

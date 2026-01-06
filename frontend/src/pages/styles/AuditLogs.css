@@ -29,7 +29,7 @@
 
 .audit-logs-title {
     font-size: 32px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -83,11 +83,11 @@
 }
 
 .audit-logs-error {
-    background: #fee;
-    color: #c33;
+    background: var(--alert-error-bg, #fee);
+    color: var(--alert-error-text, #c33);
     padding: 16px;
     border-radius: 4px;
-    border: 1px solid #fcc;
+    border: 1px solid var(--alert-error-text, #fcc);
     margin-bottom: 20px;
 }
 
@@ -111,7 +111,7 @@
 .audit-logs-table-header-title {
     margin: 0;
     font-size: 20px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .audit-logs-filters {
@@ -130,7 +130,7 @@
     border-radius: 4px;
     font-size: 14px;
     background: var(--content-bg, white);
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
 }
 
 .audit-logs-search-input:focus {
@@ -139,7 +139,7 @@
 }
 
 .audit-logs-search-input::placeholder {
-    color: var(--text-secondary-color, #999);
+    color: var(--secondary-text-color, #999);
 }
 
 .audit-logs-loading {
@@ -149,7 +149,7 @@
 
 .audit-logs-loading-text {
     font-size: 18px;
-    color: var(--text-color, #7f8c8d);
+    color: var(--primary-text-color, #7f8c8d);
 }
 
 .audit-logs-access-denied {

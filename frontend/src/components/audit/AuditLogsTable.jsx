@@ -31,7 +31,12 @@ export default function AuditLogsTable({
     if (loading) {
         return (
             <div style={{ textAlign: "center", padding: "40px" }}>
-                <div style={{ fontSize: "16px", color: "#7f8c8d" }}>
+                <div
+                    style={{
+                        fontSize: "16px",
+                        color: "var(--secondary-text-color, #7f8c8d)",
+                    }}
+                >
                     Carregando logs...
                 </div>
             </div>
@@ -261,67 +266,25 @@ export default function AuditLogsTable({
         return getChangeContext(log);
     };
 
-    const tableStyle = {
-        width: "100%",
-        borderCollapse: "collapse",
-        background: "white",
-    };
-
-    const headerStyle = {
-        borderBottom: "2px solid #ecf0f1",
-        padding: "16px",
-        textAlign: "left",
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "#2c3e50",
-        background: "#f8f9fa",
-    };
-
-    const rowStyle = {
-        borderBottom: "1px solid #ecf0f1",
-        padding: "12px 16px",
-        fontSize: "14px",
-        color: "#34495e",
-    };
-
-    const expandedRowStyle = {
-        background: "#f8f9fa",
-        padding: "20px",
-    };
-
     return (
         <div style={{ overflowX: "auto" }}>
-            <table style={tableStyle}>
+            <table className="audit-logs-table">
                 <thead>
-                    <tr style={{ background: "#f8f9fa" }}>
-                        <th style={headerStyle} width="4%"></th>
-                        <th style={headerStyle} width="16%">
-                            Data/Hora
-                        </th>
-                        <th style={headerStyle} width="10%">
-                            Status
-                        </th>
-                        <th style={headerStyle} width="14%">
-                            Admin
-                        </th>
-                        <th style={headerStyle} width="10%">
-                            Operação
-                        </th>
-                        <th style={headerStyle} width="10%">
-                            Entidade
-                        </th>
-                        <th style={headerStyle} width="26%">
-                            Objeto
-                        </th>
+                    <tr>
+                        <th width="4%"></th>
+                        <th width="16%">Data/Hora</th>
+                        <th width="10%">Status</th>
+                        <th width="14%">Admin</th>
+                        <th width="10%">Operação</th>
+                        <th width="10%">Entidade</th>
+                        <th width="26%">Objeto</th>
                     </tr>
                 </thead>
                 <tbody>
                     {logs.map((log) => (
                         <React.Fragment key={log.id}>
-                            <tr style={{ borderBottom: "1px solid #ecf0f1" }}>
-                                <td
-                                    style={{ ...rowStyle, textAlign: "center" }}
-                                >
+                            <tr>
+                                <td style={{ textAlign: "center" }}>
                                     <button
                                         onClick={() =>
                                             setExpandedId(
@@ -330,15 +293,7 @@ export default function AuditLogsTable({
                                                     : log.id,
                                             )
                                         }
-                                        style={{
-                                            background: "none",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            fontSize: "18px",
-                                            color: "#3498db",
-                                            padding: "0",
-                                            lineHeight: "1",
-                                        }}
+                                        className="audit-logs-expand-button"
                                         title={
                                             expandedId === log.id
                                                 ? "Recolher"
@@ -348,30 +303,19 @@ export default function AuditLogsTable({
                                         {expandedId === log.id ? "−" : "+"}
                                     </button>
                                 </td>
-                                <td style={rowStyle}>
-                                    {formatDate(log.timestamp)}
-                                </td>
-                                <td style={rowStyle}>
+                                <td>{formatDate(log.timestamp)}</td>
+                                <td>
                                     <span
-                                        style={{
-                                            background: getStatusColor(
-                                                log.status,
-                                            ),
-                                            color: "white",
-                                            padding: "4px 12px",
-                                            borderRadius: "12px",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                        }}
+                                        className={`audit-logs-status-badge ${log.status}`}
                                     >
                                         {getStatusLabel(log.status)}
                                     </span>
                                 </td>
-                                <td style={rowStyle}>
+                                <td>
                                     {log.admin_username || (
                                         <span
                                             style={{
-                                                color: "#95a5a6",
+                                                color: "var(--secondary-text-color, #95a5a6)",
                                                 fontStyle: "italic",
                                             }}
                                         >
@@ -379,35 +323,21 @@ export default function AuditLogsTable({
                                         </span>
                                     )}
                                 </td>
-                                <td style={rowStyle}>
+                                <td>
                                     <span
-                                        style={{
-                                            background: getOperationColor(
-                                                log.operation,
-                                            ),
-                                            color: "white",
-                                            padding: "4px 12px",
-                                            borderRadius: "12px",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                        }}
+                                        className={`audit-logs-operation-badge ${log.operation}`}
                                     >
                                         {getOperationLabel(log.operation)}
                                     </span>
                                 </td>
-                                <td style={rowStyle}>
-                                    {getClientLabel(log.client)}
-                                </td>
-                                <td style={rowStyle}>{getObjectLabel(log)}</td>
+                                <td>{getClientLabel(log.client)}</td>
+                                <td>{getObjectLabel(log)}</td>
                             </tr>
                             {expandedId === log.id && (
                                 <tr>
                                     <td
                                         colSpan="6"
-                                        style={{
-                                            ...expandedRowStyle,
-                                            padding: "20px",
-                                        }}
+                                        className="audit-logs-expanded-row"
                                     >
                                         <div
                                             style={{
@@ -421,7 +351,7 @@ export default function AuditLogsTable({
                                                 <h4
                                                     style={{
                                                         margin: "0 0 12px 0",
-                                                        color: "#2c3e50",
+                                                        color: "var(--primary-text-color, #2c3e50)",
                                                     }}
                                                 >
                                                     Informações da Requisição
@@ -440,7 +370,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                     width: "40%",
                                                                 }}
                                                             >
@@ -450,7 +380,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                 }}
                                                             >
                                                                 {log.request_method ||
@@ -464,7 +394,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
                                                                 Endpoint:
@@ -473,7 +403,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                     wordBreak:
                                                                         "break-all",
                                                                 }}
@@ -489,7 +419,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
                                                                 Status HTTP:
@@ -498,7 +428,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                 }}
                                                             >
                                                                 {log.response_code ||
@@ -512,7 +442,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
                                                                 Tempo (ms):
@@ -521,7 +451,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                 }}
                                                             >
                                                                 {log.execution_time_ms ||
@@ -535,7 +465,7 @@ export default function AuditLogsTable({
                                                 <h4
                                                     style={{
                                                         margin: "0 0 12px 0",
-                                                        color: "#2c3e50",
+                                                        color: "var(--primary-text-color, #2c3e50)",
                                                     }}
                                                 >
                                                     Informações do Cliente
@@ -554,7 +484,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                     width: "40%",
                                                                 }}
                                                             >
@@ -564,7 +494,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                 }}
                                                             >
                                                                 {log.ip_address ||
@@ -578,7 +508,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
                                                                 User-Agent:
@@ -587,7 +517,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                     fontSize:
                                                                         "11px",
                                                                     wordBreak:
@@ -605,7 +535,7 @@ export default function AuditLogsTable({
                                                                         "6px 0",
                                                                     fontWeight:
                                                                         "600",
-                                                                    color: "#2c3e50",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
                                                                 Admin ID:
@@ -614,7 +544,7 @@ export default function AuditLogsTable({
                                                                 style={{
                                                                     padding:
                                                                         "6px 0",
-                                                                    color: "#34495e",
+                                                                    color: "var(--secondary-text-color, #34495e)",
                                                                     fontSize:
                                                                         "11px",
                                                                     wordBreak:
@@ -632,12 +562,7 @@ export default function AuditLogsTable({
 
                                         {(log.old_value || log.new_value) && (
                                             <div>
-                                                <h4
-                                                    style={{
-                                                        margin: "16px 0 12px 0",
-                                                        color: "#2c3e50",
-                                                    }}
-                                                >
+                                                <h4 className="audit-logs-changes-title">
                                                     Dados Alterados
                                                 </h4>
                                                 <div
@@ -653,7 +578,7 @@ export default function AuditLogsTable({
                                                             <h5
                                                                 style={{
                                                                     margin: "0 0 8px 0",
-                                                                    color: "#e74c3c",
+                                                                    color: "var(--alert-error-text)",
                                                                     fontSize:
                                                                         "13px",
                                                                 }}
@@ -663,7 +588,7 @@ export default function AuditLogsTable({
                                                             <pre
                                                                 style={{
                                                                     background:
-                                                                        "#fff5f5",
+                                                                        "var(--diff-removed-bg)",
                                                                     padding:
                                                                         "12px",
                                                                     borderRadius:
@@ -674,7 +599,7 @@ export default function AuditLogsTable({
                                                                         "auto",
                                                                     maxHeight:
                                                                         "400px",
-                                                                    color: "#c0392b",
+                                                                    color: "var(--diff-removed-text)",
                                                                     margin: 0,
                                                                     fontFamily:
                                                                         "'Courier New', monospace",
@@ -697,7 +622,7 @@ export default function AuditLogsTable({
                                                             <h5
                                                                 style={{
                                                                     margin: "0 0 8px 0",
-                                                                    color: "#27ae60",
+                                                                    color: "var(--diff-added-text)",
                                                                     fontSize:
                                                                         "13px",
                                                                 }}
@@ -707,7 +632,7 @@ export default function AuditLogsTable({
                                                             <pre
                                                                 style={{
                                                                     background:
-                                                                        "#f0fdf4",
+                                                                        "var(--diff-added-bg)",
                                                                     padding:
                                                                         "12px",
                                                                     borderRadius:
@@ -718,7 +643,7 @@ export default function AuditLogsTable({
                                                                         "auto",
                                                                     maxHeight:
                                                                         "400px",
-                                                                    color: "#1e7e34",
+                                                                    color: "var(--diff-added-text)",
                                                                     margin: 0,
                                                                     fontFamily:
                                                                         "'Courier New', monospace",
@@ -745,16 +670,17 @@ export default function AuditLogsTable({
                                                 style={{
                                                     marginTop: "16px",
                                                     padding: "12px",
-                                                    background: "#fee",
+                                                    background:
+                                                        "var(--alert-error-bg)",
                                                     borderLeft:
-                                                        "4px solid #e74c3c",
+                                                        "4px solid var(--alert-error-text)",
                                                     borderRadius: "4px",
                                                 }}
                                             >
                                                 <h5
                                                     style={{
                                                         margin: "0 0 8px 0",
-                                                        color: "#c0392b",
+                                                        color: "var(--diff-removed-text)",
                                                         fontSize: "13px",
                                                     }}
                                                 >
@@ -763,7 +689,7 @@ export default function AuditLogsTable({
                                                 <p
                                                     style={{
                                                         margin: 0,
-                                                        color: "#c0392b",
+                                                        color: "var(--diff-removed-text)",
                                                         fontSize: "13px",
                                                     }}
                                                 >

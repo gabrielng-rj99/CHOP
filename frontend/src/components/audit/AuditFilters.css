@@ -56,7 +56,7 @@
 
 .audit-filters-title {
     margin: 0;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     font-size: 16px;
     font-weight: 600;
 }
@@ -74,7 +74,7 @@
 
 .audit-filters-toggle-hint {
     font-size: 12px;
-    color: var(--text-secondary-color, #95a5a6);
+    color: var(--secondary-text-color, #95a5a6);
     font-style: italic;
 }
 
@@ -110,7 +110,7 @@
 .audit-filters-label {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .audit-filters-select,
@@ -121,7 +121,7 @@
     font-size: 14px;
     font-family: inherit;
     background: var(--content-bg, white);
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
     transition:
         border-color 0.2s,
         box-shadow 0.2s;
@@ -162,8 +162,9 @@
 
 .audit-filters-button-apply {
     background: var(--primary-color, #3498db);
-    color: var(--primary-text-color, white);
+    color: var(--app-nav-text, white);
     border: none;
+    font-weight: 700;
 }
 
 .audit-filters-button-apply:hover {
@@ -192,21 +193,21 @@
 }
 
 .dark-mode .audit-filters-title {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .audit-filters-toggle-hint {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dark-mode .audit-filters-label {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .audit-filters-select,
 .dark-mode .audit-filters-input {
     background: var(--content-bg, #2d3748);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
 }
 
