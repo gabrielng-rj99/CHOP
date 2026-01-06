@@ -27,7 +27,6 @@ import {
 } from "../utils/userHelpers";
 import UsersTable from "../components/users/UsersTable";
 import UserModal from "../components/users/UserModal";
-import RefreshButton from "../components/common/RefreshButton";
 import PrimaryButton from "../components/common/PrimaryButton";
 import "./styles/Users.css";
 
@@ -282,11 +281,6 @@ export default function Users({
                     👤 {config.labels.users || "Usuários"}
                 </h1>
                 <div className="button-group">
-                    <RefreshButton
-                        onClick={loadUsers}
-                        isLoading={loading}
-                        icon="↻"
-                    />
                     {["admin", "root"].includes(user.role) && (
                         <PrimaryButton onClick={openCreateModal}>
                             + {g.new} {config.labels.user || "Usuário"}

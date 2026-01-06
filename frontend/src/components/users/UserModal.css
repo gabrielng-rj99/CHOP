@@ -193,13 +193,7 @@
     border-radius: 4px;
     font-size: 18px;
     cursor: pointer;
-    opacity: 0.85;
-    transition: opacity 0.2s;
     line-height: 1;
-}
-
-.user-modal-password-toggle:hover {
-    opacity: 1;
 }
 
 .user-modal-password-copy {
@@ -209,13 +203,7 @@
     border-radius: 4px;
     font-size: 18px;
     cursor: pointer;
-    opacity: 0.85;
-    transition: opacity 0.2s;
     line-height: 1;
-}
-
-.user-modal-password-copy:hover {
-    opacity: 1;
 }
 
 .user-modal-password-copied {

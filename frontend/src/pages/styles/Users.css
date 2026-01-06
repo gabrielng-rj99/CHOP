@@ -29,7 +29,7 @@
 
 .users-title {
     font-size: 32px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -126,7 +126,7 @@
     border-radius: 4px;
     font-size: 14px;
     background: var(--content-bg, white);
-    color: var(--text-color, #333);
+    color: var(--primary-text-color, #333);
 }
 
 .users-search-input:focus {
@@ -135,7 +135,7 @@
 }
 
 .users-search-input::placeholder {
-    color: var(--text-secondary-color, #999);
+    color: var(--secondary-text-color, #999);
 }
 
 .users-table-wrapper {
@@ -158,7 +158,7 @@
 .users-table-header-title {
     margin: 0;
     font-size: 20px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .users-loading {
@@ -168,7 +168,7 @@
 
 .users-loading-text {
     font-size: 18px;
-    color: var(--text-color, #7f8c8d);
+    color: var(--primary-text-color, #7f8c8d);
 }
 
 /* Dark mode specific styles */
@@ -192,16 +192,16 @@
 }
 
 .dark-mode .users-table-header-title {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .users-loading-text {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .users-search-input {
     background: var(--content-bg, #2d3748);
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
     border-color: var(--border-color, #4a5568);
 }
 
