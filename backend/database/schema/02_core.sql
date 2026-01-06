@@ -406,7 +406,7 @@ ON CONFLICT (key) DO UPDATE SET
     category = EXCLUDED.category;
 
 INSERT INTO system_settings (key, value, description, category)
-VALUES ('global_theme.preset', 'ocean', 'Tema padrão global do sistema', 'theme')
+VALUES ('global_theme.preset', 'default', 'Tema padrão global do sistema', 'theme')
 ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
     description = EXCLUDED.description,
