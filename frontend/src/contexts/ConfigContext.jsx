@@ -182,7 +182,18 @@ const defaultAccessibility = {
 };
 
 export const ConfigProvider = ({ children }) => {
-    const [config, setConfig] = useState(defaultSettings);
+    // Load saved theme from localStorage to persist across refreshes
+    const initialConfig = { ...defaultSettings };
+    const savedTheme = localStorage.getItem("userTheme");
+    if (savedTheme) {
+        try {
+            const parsed = JSON.parse(savedTheme);
+            initialConfig.theme = { ...initialConfig.theme, ...parsed };
+        } catch (e) {
+            console.error("Error parsing saved theme", e);
+        }
+    }
+    const [config, setConfig] = useState(initialConfig);
     const [loading, setLoading] = useState(true);
 
     // User theme settings from API
@@ -224,7 +235,7 @@ export const ConfigProvider = ({ children }) => {
         },
         accessibility: defaultAccessibility,
         userThemeSettings: null,
-        preset: "default"
+        preset: "default",
     });
 
     // Update ref whenever a state changes (as a secondary sync)
@@ -236,15 +247,21 @@ export const ConfigProvider = ({ children }) => {
             fontSettings,
             accessibility,
             userThemeSettings,
-            preset: config.theme?.preset || "default"
+            preset: config.theme?.preset || "default",
         };
-    }, [themeMode, layoutMode, fontSettings, accessibility, userThemeSettings, config.theme?.preset]);
+    }, [
+        themeMode,
+        layoutMode,
+        fontSettings,
+        accessibility,
+        userThemeSettings,
+        config.theme?.preset,
+    ]);
 
     // Fetch system settings from API
     const fetchSettings = useCallback(async () => {
         const token = localStorage.getItem("accessToken");
         if (!token) {
-            setLoading(false);
             return;
         }
         try {
@@ -290,8 +307,6 @@ export const ConfigProvider = ({ children }) => {
             setConfig(newConfig);
         } catch (err) {
             console.error("Error fetching settings:", err);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
@@ -396,53 +411,47 @@ export const ConfigProvider = ({ children }) => {
                         dyslexicFont: settings.dyslexicFont || false,
                     },
                     userThemeSettings: settings,
-                    preset: settings.preset || "default"
+                    preset: settings.preset || "default",
                 };
 
                 // Update config theme if user has custom settings
                 // Use explicit check for preset to avoid falsy string issues
-                setConfig((prev) => {
-                    const newPreset =
-                        settings.preset && settings.preset !== ""
-                            ? settings.preset
-                            : prev.theme.preset;
-                    return {
-                        ...prev,
-                        theme: {
-                            ...prev.theme,
-                            preset: newPreset,
-                            primaryColor:
-                                settings.primaryColor ||
-                                prev.theme.primaryColor,
-                            secondaryColor:
-                                settings.secondaryColor ||
-                                prev.theme.secondaryColor,
-                            backgroundColor:
-                                settings.backgroundColor ||
-                                prev.theme.backgroundColor,
-                            surfaceColor:
-                                settings.surfaceColor ||
-                                prev.theme.surfaceColor,
-                            textColor:
-                                settings.textColor || prev.theme.textColor,
-                            textSecondaryColor:
-                                settings.textSecondaryColor ||
-                                prev.theme.textSecondaryColor,
-                            borderColor:
-                                settings.borderColor || prev.theme.borderColor,
-                            fontGeneral:
-                                settings.fontGeneral || prev.theme.fontGeneral,
-                            fontTitle:
-                                settings.fontTitle || prev.theme.fontTitle,
-                            fontTableTitle:
-                                settings.fontTableTitle ||
-                                prev.theme.fontTableTitle,
-                            fontTableContent:
-                                settings.fontTableContent ||
-                                prev.theme.fontTableContent,
-                        },
-                    };
-                });
+                const newPreset =
+                    settings.preset && settings.preset !== ""
+                        ? settings.preset
+                        : config.theme.preset;
+                const updatedTheme = {
+                    preset: newPreset,
+                    primaryColor:
+                        settings.primaryColor || config.theme.primaryColor,
+                    secondaryColor:
+                        settings.secondaryColor || config.theme.secondaryColor,
+                    backgroundColor:
+                        settings.backgroundColor ||
+                        config.theme.backgroundColor,
+                    surfaceColor:
+                        settings.surfaceColor || config.theme.surfaceColor,
+                    textColor: settings.textColor || config.theme.textColor,
+                    textSecondaryColor:
+                        settings.textSecondaryColor ||
+                        config.theme.textSecondaryColor,
+                    borderColor:
+                        settings.borderColor || config.theme.borderColor,
+                    fontGeneral:
+                        settings.fontGeneral || config.theme.fontGeneral,
+                    fontTitle: settings.fontTitle || config.theme.fontTitle,
+                    fontTableTitle:
+                        settings.fontTableTitle || config.theme.fontTableTitle,
+                    fontTableContent:
+                        settings.fontTableContent ||
+                        config.theme.fontTableContent,
+                };
+                setConfig((prev) => ({
+                    ...prev,
+                    theme: updatedTheme,
+                }));
+                // Save to localStorage for persistence
+                localStorage.setItem("userTheme", JSON.stringify(updatedTheme));
             } else {
                 // No user settings - use localStorage as fallback
                 const savedMode = localStorage.getItem("themeMode");
@@ -613,8 +622,17 @@ export const ConfigProvider = ({ children }) => {
         [],
     );
     useEffect(() => {
-        fetchSettings();
-        fetchUserTheme();
+        const loadAllSettings = async () => {
+            setLoading(true);
+            try {
+                await Promise.all([fetchSettings(), fetchUserTheme()]);
+            } catch (err) {
+                console.error("Error loading settings:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAllSettings();
     }, [fetchSettings, fetchUserTheme]);
 
     // Update theme mode
@@ -743,8 +761,8 @@ export const ConfigProvider = ({ children }) => {
                     fontTableTitle: upFonts.tableTitle,
                     fontTableContent: upFonts.tableContent,
                 };
-                saveUserTheme(saveSettings).catch(err =>
-                    console.error("Error saving font settings:", err)
+                saveUserTheme(saveSettings).catch((err) =>
+                    console.error("Error saving font settings:", err),
                 );
             }
         },
@@ -775,7 +793,8 @@ export const ConfigProvider = ({ children }) => {
     const setAccessibility = useCallback(
         async (prefs) => {
             // Update ref synchronously first
-            const currentAccessibility = latestSettingsRef.current.accessibility;
+            const currentAccessibility =
+                latestSettingsRef.current.accessibility;
             const newPrefs = { ...currentAccessibility, ...prefs };
             latestSettingsRef.current.accessibility = newPrefs;
 
@@ -806,8 +825,8 @@ export const ConfigProvider = ({ children }) => {
                     fontTableTitle: current.fontSettings.tableTitle,
                     fontTableContent: current.fontSettings.tableContent,
                 };
-                saveUserTheme(saveSettings).catch(err =>
-                    console.error("Error saving accessibility settings:", err)
+                saveUserTheme(saveSettings).catch((err) =>
+                    console.error("Error saving accessibility settings:", err),
                 );
             }
         },
@@ -923,22 +942,9 @@ export const ConfigProvider = ({ children }) => {
             return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         };
 
-        // Determine text colors based on background brightness
-        let primaryTextColor = "#ffffff";
-        if (
-            themeColors.buttonPrimary &&
-            getBrightness(themeColors.buttonPrimary) > 150
-        ) {
-            primaryTextColor = "#000000";
-        }
-
-        let secondaryTextColor = "#ffffff";
-        if (
-            themeColors.buttonSecondary &&
-            getBrightness(themeColors.buttonSecondary) > 150
-        ) {
-            secondaryTextColor = "#000000";
-        }
+        // Use text colors from theme
+        let primaryTextColor = themeColors.textPrimary || "#222222";
+        let secondaryTextColor = themeColors.textSecondary || "#444444";
 
         // Apply Mode Class
         if (resolvedMode === "dark") {
@@ -966,20 +972,12 @@ export const ConfigProvider = ({ children }) => {
         );
         root.style.setProperty("--bg-color", themeColors.bgPage || "#f0f9ff");
         root.style.setProperty("--content-bg", themeColors.bgCard || "#ffffff");
-        root.style.setProperty(
-            "--text-color",
-            themeColors.textPrimary || "#0c4a6e",
-        );
-        root.style.setProperty(
-            "--text-secondary-color",
-            themeColors.textSecondary || "#475569",
-        );
+        root.style.setProperty("--primary-text-color", primaryTextColor);
+        root.style.setProperty("--secondary-text-color", secondaryTextColor);
         root.style.setProperty(
             "--border-color",
             themeColors.borderDefault || "#7dd3fc",
         );
-        root.style.setProperty("--primary-text-color", primaryTextColor);
-        root.style.setProperty("--secondary-text-color", secondaryTextColor);
 
         // Apply nav text color (falls back to secondaryTextColor if not defined)
         root.style.setProperty(
@@ -1350,16 +1348,38 @@ export const ConfigProvider = ({ children }) => {
             const themeSettings = {
                 preset: themeData.preset || current.preset || "default",
                 mode: themeData.mode || current.themeMode,
-                layoutMode: themeData.layoutMode || current.layoutMode || "standard",
-                primaryColor: themeData.primaryColor !== undefined ? themeData.primaryColor : (config.theme?.primaryColor || null),
-                secondaryColor: themeData.secondaryColor !== undefined ? themeData.secondaryColor : (config.theme?.secondaryColor || null),
-                backgroundColor: themeData.backgroundColor !== undefined ? themeData.backgroundColor : (config.theme?.backgroundColor || null),
-                surfaceColor: themeData.surfaceColor !== undefined ? themeData.surfaceColor : (config.theme?.surfaceColor || null),
-                textColor: themeData.textColor !== undefined ? themeData.textColor : (config.theme?.textColor || null),
-                textSecondaryColor: themeData.textSecondaryColor !== undefined ? themeData.textSecondaryColor : (config.theme?.textSecondaryColor || null),
-                borderColor: themeData.borderColor !== undefined ? themeData.borderColor : (config.theme?.borderColor || null),
+                layoutMode:
+                    themeData.layoutMode || current.layoutMode || "standard",
+                primaryColor:
+                    themeData.primaryColor !== undefined
+                        ? themeData.primaryColor
+                        : config.theme?.primaryColor || null,
+                secondaryColor:
+                    themeData.secondaryColor !== undefined
+                        ? themeData.secondaryColor
+                        : config.theme?.secondaryColor || null,
+                backgroundColor:
+                    themeData.backgroundColor !== undefined
+                        ? themeData.backgroundColor
+                        : config.theme?.backgroundColor || null,
+                surfaceColor:
+                    themeData.surfaceColor !== undefined
+                        ? themeData.surfaceColor
+                        : config.theme?.surfaceColor || null,
+                textColor:
+                    themeData.textColor !== undefined
+                        ? themeData.textColor
+                        : config.theme?.textColor || null,
+                textSecondaryColor:
+                    themeData.textSecondaryColor !== undefined
+                        ? themeData.textSecondaryColor
+                        : config.theme?.textSecondaryColor || null,
+                borderColor:
+                    themeData.borderColor !== undefined
+                        ? themeData.borderColor
+                        : config.theme?.borderColor || null,
 
-                // ALWAYS use the latest accessibility and font settings from global state/ref, 
+                // ALWAYS use the latest accessibility and font settings from global state/ref,
                 // ignoring whatever might be in themeData (which often contains stale copies)
                 highContrast: current.accessibility.highContrast,
                 colorBlindMode: current.accessibility.colorBlindMode,
@@ -1375,20 +1395,22 @@ export const ConfigProvider = ({ children }) => {
                 await saveUserTheme(themeSettings);
 
                 // Update local config
+                const updatedTheme = {
+                    preset: themeSettings.preset,
+                    primaryColor: themeSettings.primaryColor,
+                    secondaryColor: themeSettings.secondaryColor,
+                    backgroundColor: themeSettings.backgroundColor,
+                    surfaceColor: themeSettings.surfaceColor,
+                    textColor: themeSettings.textColor,
+                    textSecondaryColor: themeSettings.textSecondaryColor,
+                    borderColor: themeSettings.borderColor,
+                };
                 setConfig((prev) => ({
                     ...prev,
-                    theme: {
-                        ...prev.theme,
-                        preset: themeSettings.preset,
-                        primaryColor: themeSettings.primaryColor,
-                        secondaryColor: themeSettings.secondaryColor,
-                        backgroundColor: themeSettings.backgroundColor,
-                        surfaceColor: themeSettings.surfaceColor,
-                        textColor: themeSettings.textColor,
-                        textSecondaryColor: themeSettings.textSecondaryColor,
-                        borderColor: themeSettings.borderColor,
-                    },
+                    theme: updatedTheme,
                 }));
+                // Save to localStorage for persistence
+                localStorage.setItem("userTheme", JSON.stringify(updatedTheme));
             } catch (err) {
                 console.error("Error saving theme settings:", err);
                 throw err;

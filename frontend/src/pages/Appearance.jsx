@@ -52,24 +52,24 @@ export default function Appearance({ token, apiUrl }) {
     const canEditTheme = config?.canEditTheme || false;
     const themePermissions = config?.themePermissions || {};
     const themeSaving = config?.themeSaving || false;
-    const saveThemeSettings = config?.saveThemeSettings || (() => { });
+    const saveThemeSettings = config?.saveThemeSettings || (() => {});
     const themeMode = config?.themeMode || "system";
-    const setThemeMode = config?.setThemeMode || (() => { });
+    const setThemeMode = config?.setThemeMode || (() => {});
     const layoutMode = config?.layoutMode || "standard";
-    const setLayoutMode = config?.setLayoutMode || (() => { });
+    const setLayoutMode = config?.setLayoutMode || (() => {});
     const accessibility = config?.accessibility || {};
-    const setAccessibility = config?.setAccessibility || (() => { });
+    const setAccessibility = config?.setAccessibility || (() => {});
     const userThemeSettings = config?.userThemeSettings || null;
-    const fetchUserTheme = config?.fetchUserTheme || (() => { });
+    const fetchUserTheme = config?.fetchUserTheme || (() => {});
     const fontSettings = config?.fontSettings || {
         general: "System",
         title: "System",
         tableTitle: "System",
         tableContent: "System",
     };
-    const setFonts = config?.setFonts || (() => { });
-    const saveGlobalTheme = config?.saveGlobalTheme || (() => { });
-    const saveThemePermissions = config?.saveThemePermissions || (() => { });
+    const setFonts = config?.setFonts || (() => {});
+    const saveGlobalTheme = config?.saveGlobalTheme || (() => {});
+    const saveThemePermissions = config?.saveThemePermissions || (() => {});
     // Consolidated data from context (avoids separate API calls)
     const contextAllowedThemes = config?.allowedThemes || [];
     const contextGlobalTheme = config?.globalTheme || null;
@@ -232,33 +232,9 @@ export default function Appearance({ token, apiUrl }) {
             return;
         }
 
-        // Helper to get brightness
-        const getBrightness = (hex) => {
-            if (!hex) return 0;
-            const c = hex.replace("#", "");
-            if (c.length !== 6) return 0;
-            const rgb = parseInt(c, 16);
-            const r = (rgb >> 16) & 0xff;
-            const g = (rgb >> 8) & 0xff;
-            const b = (rgb >> 0) & 0xff;
-            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        };
-
-        let primaryTextColor = "#ffffff";
-        if (
-            themeColors.buttonPrimary &&
-            getBrightness(themeColors.buttonPrimary) > 150
-        ) {
-            primaryTextColor = "#000000";
-        }
-
-        let secondaryTextColor = "#ffffff";
-        if (
-            themeColors.buttonSecondary &&
-            getBrightness(themeColors.buttonSecondary) > 150
-        ) {
-            secondaryTextColor = "#000000";
-        }
+        // Use text colors directly from theme
+        const primaryTextColor = themeColors.textPrimary || "#222222";
+        const secondaryTextColor = themeColors.textSecondary || "#444444";
 
         // Apply CSS variables for instant preview
         root.style.setProperty("--primary-color", themeColors.buttonPrimary);
@@ -268,11 +244,6 @@ export default function Appearance({ token, apiUrl }) {
         );
         root.style.setProperty("--bg-color", themeColors.bgPage);
         root.style.setProperty("--content-bg", themeColors.bgCard);
-        root.style.setProperty("--text-color", themeColors.textPrimary);
-        root.style.setProperty(
-            "--text-secondary-color",
-            themeColors.textSecondary,
-        );
         root.style.setProperty("--border-color", themeColors.borderDefault);
         root.style.setProperty("--primary-text-color", primaryTextColor);
         root.style.setProperty("--secondary-text-color", secondaryTextColor);
@@ -1054,7 +1025,7 @@ export default function Appearance({ token, apiUrl }) {
                                                                 } catch (e) {
                                                                     alert(
                                                                         "Erro ao salvar: " +
-                                                                        e.message,
+                                                                            e.message,
                                                                     );
                                                                 }
                                                             }}
@@ -1095,7 +1066,7 @@ export default function Appearance({ token, apiUrl }) {
                                                                 } catch (e) {
                                                                     alert(
                                                                         "Erro ao atualizar permissões: " +
-                                                                        e.message,
+                                                                            e.message,
                                                                     );
                                                                 }
                                                             }}
@@ -1391,63 +1362,63 @@ export default function Appearance({ token, apiUrl }) {
                                                         {(selectValue ===
                                                             "custom" ||
                                                             isCustom) && (
-                                                                <div
+                                                            <div
+                                                                style={{
+                                                                    marginTop:
+                                                                        "8px",
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    placeholder="Nome da Google Font (ex: Ubuntu)"
+                                                                    value={
+                                                                        fontSettings[
+                                                                            key
+                                                                        ] ===
+                                                                        "System"
+                                                                            ? ""
+                                                                            : fontSettings[
+                                                                                  key
+                                                                              ]
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleFontChange(
+                                                                            key,
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <small
                                                                     style={{
+                                                                        display:
+                                                                            "block",
                                                                         marginTop:
-                                                                            "8px",
+                                                                            "4px",
+                                                                        color: "var(--secondary-text-color)",
                                                                     }}
                                                                 >
-                                                                    <input
-                                                                        type="text"
-                                                                        className="form-control"
-                                                                        placeholder="Nome da Google Font (ex: Ubuntu)"
-                                                                        value={
-                                                                            fontSettings[
-                                                                                key
-                                                                            ] ===
-                                                                                "System"
-                                                                                ? ""
-                                                                                : fontSettings[
-                                                                                key
-                                                                                ]
-                                                                        }
-                                                                        onChange={(
-                                                                            e,
-                                                                        ) =>
-                                                                            handleFontChange(
-                                                                                key,
-                                                                                e
-                                                                                    .target
-                                                                                    .value,
-                                                                            )
-                                                                        }
-                                                                    />
-                                                                    <small
-                                                                        style={{
-                                                                            display:
-                                                                                "block",
-                                                                            marginTop:
-                                                                                "4px",
-                                                                            color: "var(--text-secondary-color)",
-                                                                        }}
+                                                                    ⚠️ Digite o
+                                                                    nome exato
+                                                                    da fonte
+                                                                    disponível
+                                                                    no{" "}
+                                                                    <a
+                                                                        href="https://fonts.google.com"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                     >
-                                                                        ⚠️ Digite o
-                                                                        nome exato
-                                                                        da fonte
-                                                                        disponível
-                                                                        no{" "}
-                                                                        <a
-                                                                            href="https://fonts.google.com"
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                        >
-                                                                            Google
-                                                                            Fonts
-                                                                        </a>
-                                                                        .
-                                                                    </small>
-                                                                </div>
-                                                            )}
+                                                                        Google
+                                                                        Fonts
+                                                                    </a>
+                                                                    .
+                                                                </small>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1723,7 +1694,7 @@ export default function Appearance({ token, apiUrl }) {
                     )}
 
                     {/* Theme Selection Section */}
-                    <section className="appearance-section">
+                    <section className="appearance-section appearance-section-nav-color">
                         <h2>🎨 Tema e Cores</h2>
 
                         {!canEditTheme && (
@@ -1778,18 +1749,32 @@ export default function Appearance({ token, apiUrl }) {
                                             </button>
                                         </div>
 
-                                        <div className="global-theme-info" style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                        <div
+                                            className="global-theme-info"
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "5px",
+                                            }}
+                                        >
                                             <p style={{ margin: 0 }}>
                                                 <strong>
-                                                    Tema Padrão Global atualmente selecionado:
+                                                    Tema Padrão Global
+                                                    atualmente selecionado:
                                                 </strong>{" "}
-                                                {getThemeName(globalTheme) || "N/A"}
+                                                {getThemeName(globalTheme) ||
+                                                    "N/A"}
                                             </p>
                                             <p style={{ margin: 0 }}>
                                                 <strong>
-                                                    Tema do Usuário Atual atualmente selecionado:
+                                                    Tema do Usuário Atual
+                                                    atualmente selecionado:
                                                 </strong>{" "}
-                                                {getThemeName(userThemeSettings?.preset || savedTheme?.preset || formData.theme?.preset) || "N/A"}
+                                                {getThemeName(
+                                                    userThemeSettings?.preset ||
+                                                        savedTheme?.preset ||
+                                                        formData.theme?.preset,
+                                                ) || "N/A"}
                                             </p>
                                         </div>
 
@@ -1830,78 +1815,81 @@ export default function Appearance({ token, apiUrl }) {
                                                     {allowedThemes.includes(
                                                         "custom",
                                                     ) && (
-                                                            <button
-                                                                type="button"
-                                                                data-theme="custom"
-                                                                draggable
-                                                                className={`preset-card ${savedTheme.preset ===
-                                                                    "custom"
+                                                        <button
+                                                            type="button"
+                                                            data-theme="custom"
+                                                            draggable
+                                                            className={`preset-card ${
+                                                                savedTheme.preset ===
+                                                                "custom"
                                                                     ? "active"
                                                                     : ""
-                                                                    } ${selectedThemes.has(
+                                                            } ${
+                                                                selectedThemes.has(
+                                                                    "custom",
+                                                                )
+                                                                    ? "selected"
+                                                                    : ""
+                                                            } ${
+                                                                isDragging &&
+                                                                draggedThemes?.includes(
+                                                                    "custom",
+                                                                )
+                                                                    ? "dragging"
+                                                                    : ""
+                                                            }`}
+                                                            onClick={(e) => {
+                                                                if (
+                                                                    e.ctrlKey ||
+                                                                    e.metaKey
+                                                                ) {
+                                                                    e.stopPropagation();
+                                                                    toggleThemeSelection(
                                                                         "custom",
-                                                                    )
-                                                                        ? "selected"
-                                                                        : ""
-                                                                    } ${isDragging &&
-                                                                        draggedThemes?.includes(
-                                                                            "custom",
-                                                                        )
-                                                                        ? "dragging"
-                                                                        : ""
-                                                                    }`}
-                                                                onClick={(e) => {
-                                                                    if (
-                                                                        e.ctrlKey ||
-                                                                        e.metaKey
-                                                                    ) {
-                                                                        e.stopPropagation();
-                                                                        toggleThemeSelection(
-                                                                            "custom",
-                                                                        );
-                                                                    } else if (
-                                                                        e.shiftKey
-                                                                    ) {
-                                                                        e.stopPropagation();
-                                                                        setSelectionStart(
-                                                                            "custom",
-                                                                        );
-                                                                        selectThemeRange(
-                                                                            "custom",
-                                                                            allowedThemes,
-                                                                        );
-                                                                    } else {
-                                                                        handleThemeChange(
-                                                                            "preset",
-                                                                            "custom",
-                                                                        );
-                                                                    }
-                                                                }}
-                                                                onDragStart={(e) =>
-                                                                    handleThemeDragStart(
-                                                                        "custom",
-                                                                        e,
-                                                                    )
-                                                                }
-                                                                onDragEnd={() => {
-                                                                    setIsDragging(
-                                                                        false,
                                                                     );
+                                                                } else if (
+                                                                    e.shiftKey
+                                                                ) {
+                                                                    e.stopPropagation();
+                                                                    setSelectionStart(
+                                                                        "custom",
+                                                                    );
+                                                                    selectThemeRange(
+                                                                        "custom",
+                                                                        allowedThemes,
+                                                                    );
+                                                                } else {
+                                                                    handleThemeChange(
+                                                                        "preset",
+                                                                        "custom",
+                                                                    );
+                                                                }
+                                                            }}
+                                                            onDragStart={(e) =>
+                                                                handleThemeDragStart(
+                                                                    "custom",
+                                                                    e,
+                                                                )
+                                                            }
+                                                            onDragEnd={() => {
+                                                                setIsDragging(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                            title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
+                                                        >
+                                                            <div
+                                                                className="preset-preview"
+                                                                style={{
+                                                                    background:
+                                                                        "#ccc",
                                                                 }}
-                                                                title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
-                                                            >
-                                                                <div
-                                                                    className="preset-preview"
-                                                                    style={{
-                                                                        background:
-                                                                            "#ccc",
-                                                                    }}
-                                                                ></div>
-                                                                <span>
-                                                                    Personalizado
-                                                                </span>
-                                                            </button>
-                                                        )}
+                                                            ></div>
+                                                            <span>
+                                                                Personalizado
+                                                            </span>
+                                                        </button>
+                                                    )}
                                                     {Object.entries(
                                                         THEME_PRESETS,
                                                     )
@@ -1919,22 +1907,25 @@ export default function Appearance({ token, apiUrl }) {
                                                                         key
                                                                     }
                                                                     draggable
-                                                                    className={`preset-card ${savedTheme.preset ===
+                                                                    className={`preset-card ${
+                                                                        savedTheme.preset ===
                                                                         key
-                                                                        ? "active"
-                                                                        : ""
-                                                                        } ${selectedThemes.has(
+                                                                            ? "active"
+                                                                            : ""
+                                                                    } ${
+                                                                        selectedThemes.has(
                                                                             key,
                                                                         )
                                                                             ? "selected"
                                                                             : ""
-                                                                        } ${isDragging &&
-                                                                            draggedThemes?.includes(
-                                                                                key,
-                                                                            )
+                                                                    } ${
+                                                                        isDragging &&
+                                                                        draggedThemes?.includes(
+                                                                            key,
+                                                                        )
                                                                             ? "dragging"
                                                                             : ""
-                                                                        }`}
+                                                                    }`}
                                                                     onClick={(
                                                                         e,
                                                                     ) => {
@@ -1977,15 +1968,6 @@ export default function Appearance({ token, apiUrl }) {
                                                                             false,
                                                                         );
                                                                     }}
-                                                                    style={{
-                                                                        borderColor:
-                                                                            savedTheme.preset ===
-                                                                                key
-                                                                                ? preset
-                                                                                    .light
-                                                                                    .borderDefault
-                                                                                : "transparent",
-                                                                    }}
                                                                     title="Arraste para bloquear, Ctrl+Clique para selecionar, Shift+Clique para intervalo"
                                                                 >
                                                                     <div
@@ -2004,14 +1986,14 @@ export default function Appearance({ token, apiUrl }) {
                                                         )}
                                                     {allowedThemes.length ===
                                                         0 && (
-                                                            <div className="preset-empty">
-                                                                Nenhum tema liberado
-                                                            </div>
-                                                        )}
+                                                        <div className="preset-empty">
+                                                            Nenhum tema liberado
+                                                        </div>
+                                                    )}
                                                     {isLassoSelecting &&
                                                         lassoRect &&
                                                         currentZone ===
-                                                        "allowed" && (
+                                                            "allowed" && (
                                                             <div
                                                                 className="lasso-selection-box"
                                                                 style={{
@@ -2056,8 +2038,8 @@ export default function Appearance({ token, apiUrl }) {
                                                                 key === "custom"
                                                                     ? null
                                                                     : THEME_PRESETS[
-                                                                    key
-                                                                    ];
+                                                                          key
+                                                                      ];
                                                             return (
                                                                 <button
                                                                     key={key}
@@ -2066,18 +2048,20 @@ export default function Appearance({ token, apiUrl }) {
                                                                         key
                                                                     }
                                                                     draggable
-                                                                    className={`preset-card ${selectedThemes.has(
-                                                                        key,
-                                                                    )
-                                                                        ? "selected"
-                                                                        : ""
-                                                                        } ${isDragging &&
-                                                                            draggedThemes?.includes(
-                                                                                key,
-                                                                            )
+                                                                    className={`preset-card ${
+                                                                        selectedThemes.has(
+                                                                            key,
+                                                                        )
+                                                                            ? "selected"
+                                                                            : ""
+                                                                    } ${
+                                                                        isDragging &&
+                                                                        draggedThemes?.includes(
+                                                                            key,
+                                                                        )
                                                                             ? "dragging"
                                                                             : ""
-                                                                        }`}
+                                                                    }`}
                                                                     onClick={(
                                                                         e,
                                                                     ) => {
@@ -2133,17 +2117,17 @@ export default function Appearance({ token, apiUrl }) {
                                                                         style={{
                                                                             background:
                                                                                 key ===
-                                                                                    "custom"
+                                                                                "custom"
                                                                                     ? "#ccc"
                                                                                     : `linear-gradient(135deg, ${preset.light.buttonSecondary} 50%, ${preset.light.buttonPrimary} 50%)`,
                                                                         }}
                                                                     ></div>
                                                                     <span>
                                                                         {key ===
-                                                                            "custom"
+                                                                        "custom"
                                                                             ? "Personalizado"
                                                                             : preset?.name ||
-                                                                            key}
+                                                                              key}
                                                                     </span>
                                                                 </button>
                                                             );
@@ -2151,15 +2135,15 @@ export default function Appearance({ token, apiUrl }) {
                                                     )}
                                                     {blockedThemes.length ===
                                                         0 && (
-                                                            <div className="preset-empty">
-                                                                Nenhum tema
-                                                                bloqueado
-                                                            </div>
-                                                        )}
+                                                        <div className="preset-empty">
+                                                            Nenhum tema
+                                                            bloqueado
+                                                        </div>
+                                                    )}
                                                     {isLassoSelecting &&
                                                         lassoRect &&
                                                         currentZone ===
-                                                        "blocked" && (
+                                                            "blocked" && (
                                                             <div
                                                                 className="lasso-selection-box"
                                                                 style={{
@@ -2181,25 +2165,25 @@ export default function Appearance({ token, apiUrl }) {
                                             {allowedThemes.includes(
                                                 "custom",
                                             ) && (
-                                                    <button
-                                                        type="button"
-                                                        className={`preset-card ${savedTheme.preset === "custom" ? "active" : ""}`}
-                                                        onClick={() =>
-                                                            handleThemeChange(
-                                                                "preset",
-                                                                "custom",
-                                                            )
-                                                        }
-                                                    >
-                                                        <div
-                                                            className="preset-preview"
-                                                            style={{
-                                                                background: "#ccc",
-                                                            }}
-                                                        ></div>
-                                                        <span>Personalizado</span>
-                                                    </button>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    className={`preset-card ${savedTheme.preset === "custom" ? "active" : ""}`}
+                                                    onClick={() =>
+                                                        handleThemeChange(
+                                                            "preset",
+                                                            "custom",
+                                                        )
+                                                    }
+                                                >
+                                                    <div
+                                                        className="preset-preview"
+                                                        style={{
+                                                            background: "#ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span>Personalizado</span>
+                                                </button>
+                                            )}
                                             {Object.entries(THEME_PRESETS)
                                                 .filter(([key]) =>
                                                     allowedThemes.includes(key),
@@ -2215,15 +2199,6 @@ export default function Appearance({ token, apiUrl }) {
                                                                 key,
                                                             )
                                                         }
-                                                        style={{
-                                                            borderColor:
-                                                                savedTheme.preset ===
-                                                                    key
-                                                                    ? preset
-                                                                        .light
-                                                                        .borderDefault
-                                                                    : "transparent",
-                                                        }}
                                                     >
                                                         <div
                                                             className="preset-preview"

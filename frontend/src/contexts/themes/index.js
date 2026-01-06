@@ -98,6 +98,6 @@ export {
 };
 
 // Total count: 55 themes
-// - 1 Default (Oceano Profundo)
+// - 1 Default (Tema Padrão)
 // - 48 Color Wheel Themes (12 positions × 4 themes each)
 // - 6 Bonus Themes (Complementary color schemes)
