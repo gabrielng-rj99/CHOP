@@ -33,7 +33,6 @@ import {
 } from "../utils/contractHelpers";
 import ContractsTable from "../components/contracts/ContractsTable";
 import ContractModal from "../components/contracts/ContractsModal";
-import RefreshButton from "../components/common/RefreshButton";
 import PrimaryButton from "../components/common/PrimaryButton";
 import "./styles/Contracts.css";
 
@@ -350,12 +349,6 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     📄 {config.labels.contracts || "Contratos"}
                 </h1>
                 <div className="button-group">
-                    <RefreshButton
-                        onClick={() => loadInitialData(true)}
-                        disabled={loading}
-                        isLoading={loading}
-                        icon="↻"
-                    />
                     <PrimaryButton onClick={openCreateModal}>
                         + {g.new} {config.labels.contract}
                     </PrimaryButton>

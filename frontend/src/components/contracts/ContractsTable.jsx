@@ -101,7 +101,7 @@ export default function ContractsTable({
                                 )}
                                 {contract.line && (
                                     <div className="contracts-table-line">
-                                        {contract.line.line}
+                                        {contract.line.name}
                                     </div>
                                 )}
                             </td>

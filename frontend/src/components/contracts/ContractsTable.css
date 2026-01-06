@@ -19,7 +19,7 @@
 .contracts-table-empty {
     padding: 32px;
     text-align: center;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     height: 100px;
     width: 100%;
     display: flex;
@@ -29,7 +29,7 @@
 
 .contracts-table-empty p {
     font-size: 16px;
-    color: #333 !important;
+    color: var(--primary-text-color, #2c3e50);
     margin: 0;
 }
 
@@ -48,7 +48,7 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-color, #495057);
+    color: var(--primary-text-color, #495057);
 }
 
 .contracts-table th.status,
@@ -71,7 +71,7 @@
 .contracts-table td {
     padding: 16px;
     font-size: 14px;
-    color: var(--text-color, #2c3e50);
+    color: var(--primary-text-color, #2c3e50);
 }
 
 .contracts-table td.status,
@@ -85,19 +85,19 @@
 
 .contracts-table-product-key {
     font-size: 12px;
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     margin-top: 4px;
 }
 
 .contracts-table-affiliate {
     font-size: 12px;
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     margin-top: 4px;
 }
 
 .contracts-table-line {
     font-size: 12px;
-    color: var(--text-secondary-color, #7f8c8d);
+    color: var(--secondary-text-color, #7f8c8d);
     margin-top: 4px;
 }
 
@@ -158,7 +158,7 @@
 
 /* Dark mode specific styles */
 .dark-mode .contracts-table-empty {
-    color: #333 !important;
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .contracts-table thead tr {
@@ -167,7 +167,7 @@
 }
 
 .dark-mode .contracts-table th {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .contracts-table tbody tr {
@@ -175,11 +175,11 @@
 }
 
 .dark-mode .contracts-table td {
-    color: var(--text-color, #f7fafc);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .contracts-table-product-key,
 .dark-mode .contracts-table-affiliate,
 .dark-mode .contracts-table-line {
-    color: var(--text-secondary-color, #a0aec0);
+    color: var(--secondary-text-color, #a0aec0);
 }

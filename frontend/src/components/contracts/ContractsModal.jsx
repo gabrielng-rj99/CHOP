@@ -329,7 +329,7 @@ export default function ContractModal({
                                 <option value="">Selecione uma linha</option>
                                 {lines.map((line) => (
                                     <option key={line.id} value={line.id}>
-                                        {line.line}
+                                        {line.name}
                                     </option>
                                 ))}
                             </select>
