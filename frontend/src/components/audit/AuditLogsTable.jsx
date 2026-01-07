@@ -63,6 +63,8 @@ export default function AuditLogsTable({
                 return "#e74c3c";
             case "read":
                 return "#3498db";
+            case "login":
+                return "#9b59b6";
             default:
                 return "#95a5a6";
         }
@@ -86,14 +88,18 @@ export default function AuditLogsTable({
     };
 
     const getStatusColor = (status) => {
-        return status === "success" ? "#27ae60" : "#e74c3c";
+        if (status === "success") return "#27ae60";
+        if (status === "error" || status === "failed") return "#e74c3c";
+        return "#95a5a6";
     };
 
     const getStatusLabel = (status) => {
-        return status === "success" ? "Sucesso" : "Erro";
+        if (status === "success") return "Sucesso";
+        if (status === "error" || status === "failed") return "Erro";
+        return status;
     };
 
-    const getClientLabel = (client) => {
+    const getResourceLabel = (resource) => {
         const labels = {
             auth: "Autenticação",
             user: "Usuário",
@@ -101,9 +107,25 @@ export default function AuditLogsTable({
             contract: "Acordo",
             line: "Linha",
             category: "Categoria",
+            subcategory: "Subcategoria",
             affiliate: "Afiliado",
+            role: "Cargo",
+            role_permissions: "Permissões",
+            role_session_policy: "Sessão",
+            role_password_policy: "Senha",
+            dashboard_config: "Dashboard",
+            settings_branding: "Branding",
+            settings_labels: "Labels",
+            settings_system: "Sistema",
+            global_theme: "Tema Global",
+            allowed_themes: "Temas Permitidos",
+            security_config: "Segurança",
+            password_policy: "Política de Senha",
+            theme_permissions: "Temas",
+            system_config: "Configurações",
+            upload: "Upload",
         };
-        return labels[client] || client;
+        return labels[resource] || resource || "-";
     };
 
     const formatDate = (dateString) => {
@@ -217,49 +239,50 @@ export default function AuditLogsTable({
         }
     };
 
-    // NOVA FUNÇÃO: resolve objeto pelo usuário
+    // NOVA FUNÇÃO: resolve objeto pelo usuário - sempre busca o nome mais recente por ID
     const getObjectLabel = (log) => {
-        // Verifica client_id com diferentes possibilidades de nome de campo
-        const clientId = log.client_id || log.clientId || log.ClientID;
+        // Verifica resource_id com diferentes possibilidades de nome de campo
+        const resourceId =
+            log.resource_id ||
+            log.resourceId ||
+            log.ResourceID ||
+            log.client_id ||
+            log.clientId;
 
-        // Se for entidade usuário, tenta várias formas de resolver
-        if (log.client === "user") {
-            // Primeiro tenta extrair do old_value ou new_value (mais confiável)
+        // Se for entidade usuário, resolve sempre pelo ID (pega nome atual)
+        if (log.resource === "user" || log.client === "user") {
+            // Se tiver resource_id, busca na lista de users (sempre o nome mais recente)
+            if (resourceId) {
+                const user = users.find((u) => u.id === resourceId);
+                if (user) {
+                    return user.username || user.display_name || resourceId;
+                }
+                // Se não encontrou, retorna o UUID (pode ter sido deletado)
+                return resourceId.substring(0, 8) + "...";
+            }
+
+            // Fallback: tenta extrair do new_value se não tiver resource_id
             try {
-                const oldValue =
-                    typeof log.old_value === "string"
-                        ? JSON.parse(log.old_value)
-                        : log.old_value;
                 const newValue =
                     typeof log.new_value === "string"
                         ? JSON.parse(log.new_value)
                         : log.new_value;
-
-                // Prioriza new_value (criação/atualização)
                 if (newValue?.username) return newValue.username;
-                if (oldValue?.username) return oldValue.username;
-
-                // Fallback para display_name
                 if (newValue?.display_name) return newValue.display_name;
-                if (oldValue?.display_name) return oldValue.display_name;
             } catch (e) {
                 // Ignora erro de parse
-            }
-
-            // Se tiver client_id, tenta buscar na lista de users
-            if (clientId) {
-                const user = users.find((u) => u.id === clientId);
-                if (user) {
-                    return user.username || user.display_name || clientId;
-                }
-                // Se não encontrou, retorna o UUID
-                return clientId.substring(0, 8) + "...";
             }
         }
 
         // Para entidade auth (login)
-        if (log.client === "auth") {
+        if (log.resource === "auth" || log.client === "auth") {
             return "N/A";
+        }
+
+        // Para outras entidades, tenta resolver pelo resource_id se disponível
+        if (resourceId) {
+            // Retorna um identificador visual do ID
+            return resourceId.substring(0, 8) + "...";
         }
 
         // fallback para contexto de mudança
@@ -330,7 +353,7 @@ export default function AuditLogsTable({
                                         {getOperationLabel(log.operation)}
                                     </span>
                                 </td>
-                                <td>{getClientLabel(log.client)}</td>
+                                <td>{getResourceLabel(log.resource)}</td>
                                 <td>{getObjectLabel(log)}</td>
                             </tr>
                             {expandedId === log.id && (
@@ -409,52 +432,6 @@ export default function AuditLogsTable({
                                                                 }}
                                                             >
                                                                 {log.request_path ||
-                                                                    "N/A"}
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td
-                                                                style={{
-                                                                    padding:
-                                                                        "6px 0",
-                                                                    fontWeight:
-                                                                        "600",
-                                                                    color: "var(--primary-text-color, #2c3e50)",
-                                                                }}
-                                                            >
-                                                                Status HTTP:
-                                                            </td>
-                                                            <td
-                                                                style={{
-                                                                    padding:
-                                                                        "6px 0",
-                                                                    color: "var(--secondary-text-color, #34495e)",
-                                                                }}
-                                                            >
-                                                                {log.response_code ||
-                                                                    "N/A"}
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td
-                                                                style={{
-                                                                    padding:
-                                                                        "6px 0",
-                                                                    fontWeight:
-                                                                        "600",
-                                                                    color: "var(--primary-text-color, #2c3e50)",
-                                                                }}
-                                                            >
-                                                                Tempo (ms):
-                                                            </td>
-                                                            <td
-                                                                style={{
-                                                                    padding:
-                                                                        "6px 0",
-                                                                    color: "var(--secondary-text-color, #34495e)",
-                                                                }}
-                                                            >
-                                                                {log.execution_time_ms ||
                                                                     "N/A"}
                                                             </td>
                                                         </tr>
@@ -538,6 +515,29 @@ export default function AuditLogsTable({
                                                                     color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
+                                                                Admin:
+                                                            </td>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    color: "var(--secondary-text-color, #34495e)",
+                                                                }}
+                                                            >
+                                                                {log.admin_username ||
+                                                                    "N/A"}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    fontWeight:
+                                                                        "600",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
+                                                                }}
+                                                            >
                                                                 Admin ID:
                                                             </td>
                                                             <td
@@ -578,7 +578,7 @@ export default function AuditLogsTable({
                                                             <h5
                                                                 style={{
                                                                     margin: "0 0 8px 0",
-                                                                    color: "var(--alert-error-text)",
+                                                                    color: "var(--primary-text-color)",
                                                                     fontSize:
                                                                         "13px",
                                                                 }}
@@ -622,7 +622,7 @@ export default function AuditLogsTable({
                                                             <h5
                                                                 style={{
                                                                     margin: "0 0 8px 0",
-                                                                    color: "var(--diff-added-text)",
+                                                                    color: "var(--primary-text-color)",
                                                                     fontSize:
                                                                         "13px",
                                                                 }}
