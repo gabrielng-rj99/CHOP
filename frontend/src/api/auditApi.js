@@ -21,14 +21,15 @@ export const auditApi = {
     getAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
-        if (filters.client) params.append("client", filters.client);
+        if (filters.resource) params.append("resource", filters.resource);
         if (filters.operation) params.append("operation", filters.operation);
         if (filters.adminId) params.append("admin_id", filters.adminId);
         if (filters.adminSearch)
             params.append("admin_search", filters.adminSearch);
-        if (filters.clientId) params.append("client_id", filters.clientId);
-        if (filters.clientSearch)
-            params.append("client_search", filters.clientSearch);
+        if (filters.resourceId)
+            params.append("resource_id", filters.resourceId);
+        if (filters.resourceSearch)
+            params.append("resource_search", filters.resourceSearch);
         if (filters.changedData)
             params.append("changed_data", filters.changedData);
         if (filters.status) params.append("status", filters.status);
@@ -89,12 +90,12 @@ export const auditApi = {
         return await response.json();
     },
 
-    // Get all audit logs for a specific client
-    getAuditLogsByClient: async (
+    // Get all audit logs for a specific resource
+    getAuditLogsByResource: async (
         apiUrl,
         token,
-        client,
-        clientId,
+        resource,
+        resourceId,
         limit = 100,
         offset = 0,
         onTokenExpired,
@@ -104,7 +105,7 @@ export const auditApi = {
         params.append("offset", offset);
 
         const response = await fetch(
-            `${apiUrl}/audit-logs/client/${clientType}/${clientId}?${params.toString()}`,
+            `${apiUrl}/audit-logs/resource/${resource}/${resourceId}?${params.toString()}`,
             {
                 method: "GET",
                 headers: {
@@ -133,13 +134,13 @@ export const auditApi = {
     exportAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
         const params = new URLSearchParams();
 
-        if (filters.client) params.append("client", filters.client);
+        if (filters.resource) params.append("resource", filters.resource);
         if (filters.operation) params.append("operation", filters.operation);
         if (filters.adminId) params.append("admin_id", filters.adminId);
         if (filters.adminSearch)
             params.append("admin_search", filters.adminSearch);
-        if (filters.clientSearch)
-            params.append("client_search", filters.clientSearch);
+        if (filters.resourceSearch)
+            params.append("resource_search", filters.resourceSearch);
         if (filters.changedData)
             params.append("changed_data", filters.changedData);
 
