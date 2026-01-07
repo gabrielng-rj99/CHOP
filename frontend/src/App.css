@@ -2,6 +2,10 @@
     --sidebar-width: 250px;
     --transition-speed: 0.5s;
     --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+    --diff-removed-bg: rgba(231, 76, 60, 0.1);
+    --diff-removed-text: #e74c3c;
+    --diff-added-bg: rgba(39, 174, 96, 0.1);
+    --diff-added-text: #27ae60;
 }
 
 html.collapsed {
