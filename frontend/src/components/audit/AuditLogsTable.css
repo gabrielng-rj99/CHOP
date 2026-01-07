@@ -113,6 +113,11 @@
     color: #e74c3c;
 }
 
+.audit-logs-operation-badge.login {
+    background: #9b59b620;
+    color: #9b59b6;
+}
+
 .audit-logs-status-badge {
     padding: 4px 12px;
     border-radius: 12px;
@@ -127,6 +132,11 @@
 }
 
 .audit-logs-status-badge.error {
+    background: #e74c3c20;
+    color: #e74c3c;
+}
+
+.audit-logs-status-badge.failed {
     background: #e74c3c20;
     color: #e74c3c;
 }
