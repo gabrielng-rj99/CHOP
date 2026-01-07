@@ -51,14 +51,25 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.userStore.AuthenticateUser(req.Username, req.Password)
 	if err != nil {
-		// Log failed login attempt
+		// Log failed login attempt - try to get user ID even on failure
 		errMsg := err.Error()
+		var userID string
+		var username *string = &req.Username
+
+		// Try to get user by username to log with correct ID
+		users, _ := s.userStore.GetUsersByName(req.Username)
+		if len(users) > 0 {
+			userID = users[0].ID
+		} else {
+			userID = req.Username // Fallback to username if user not found
+		}
+
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "login",
 			Resource:      "auth",
-			ResourceID:    req.Username,
+			ResourceID:    userID,
 			AdminID:       nil,
-			AdminUsername: &req.Username,
+			AdminUsername: username,
 			OldValue:      nil,
 			NewValue: map[string]interface{}{
 				"method": "password",

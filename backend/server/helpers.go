@@ -37,9 +37,29 @@ func getIPAddress(r *http.Request) *string {
 		return &xri
 	}
 
-	// Fallback to RemoteAddr
-	ip := strings.Split(r.RemoteAddr, ":")[0]
-	return &ip
+	// Fallback to RemoteAddr - handle both IPv4 and IPv6
+	remoteAddr := r.RemoteAddr
+
+	// Check if it's IPv6 format [ip]:port
+	if strings.HasPrefix(remoteAddr, "[") {
+		// IPv6 format: [::1]:port or [2001:db8::1]:port
+		if idx := strings.LastIndex(remoteAddr, "]:"); idx != -1 {
+			ip := remoteAddr[1:idx] // Remove [ and everything after ]:
+			return &ip
+		}
+		// No port, just [ip]
+		ip := strings.Trim(remoteAddr, "[]")
+		return &ip
+	}
+
+	// IPv4 format: 192.168.1.1:port
+	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
+		ip := remoteAddr[:idx]
+		return &ip
+	}
+
+	// No port in address
+	return &remoteAddr
 }
 
 // getUserAgent extrai o User-Agent da requisição HTTP
