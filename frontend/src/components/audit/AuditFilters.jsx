@@ -38,14 +38,14 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
 
     const handleClear = () => {
         setFilters({
-            client: "",
+            resource: "",
             operation: "",
             adminId: "",
             adminSearch: "",
             status: "",
             ipAddress: "",
-            clientId: "",
-            clientSearch: "",
+            resourceId: "",
+            resourceSearch: "",
             changedData: "",
             startDate: "",
             endDate: "",
@@ -88,9 +88,9 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 Entidade
                             </label>
                             <select
-                                value={filters.client}
+                                value={filters.resource}
                                 onChange={(e) =>
-                                    handleChange("client", e.target.value)
+                                    handleChange("resource", e.target.value)
                                 }
                                 className="audit-filters-select"
                             >
@@ -99,9 +99,18 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 <option value="user">Usuários</option>
                                 <option value="client">Clientes</option>
                                 <option value="contract">Contratos</option>
-                                <option value="line">Linhas</option>
                                 <option value="category">Categorias</option>
+                                <option value="subcategory">
+                                    Subcategorias
+                                </option>
                                 <option value="affiliate">Afiliados</option>
+                                <option value="role">Cargos</option>
+                                <option value="dashboard_config">
+                                    Dashboard
+                                </option>
+                                <option value="global_theme">
+                                    Tema Global
+                                </option>
                             </select>
                         </div>
 
@@ -149,9 +158,12 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                             <input
                                 type="text"
                                 placeholder="UUID ou nome da entidade"
-                                value={filters.clientSearch}
+                                value={filters.resourceSearch}
                                 onChange={(e) =>
-                                    handleChange("clientSearch", e.target.value)
+                                    handleChange(
+                                        "resourceSearch",
+                                        e.target.value,
+                                    )
                                 }
                                 className="audit-filters-input"
                             />
