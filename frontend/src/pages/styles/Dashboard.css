@@ -610,7 +610,7 @@
 
 .filter-btn.active {
     background: #3498db;
-    color: var(--active-nav-text-color, white);
+    color: white;
 }
 
 [data-theme="dark"] .filter-btn,
