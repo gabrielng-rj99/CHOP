@@ -40,15 +40,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
 
     // Helper to extract filters from URL
     const getFiltersFromUrl = () => ({
-        client: searchParams.get("client") || "",
+        resource: searchParams.get("resource") || "",
         operation: searchParams.get("operation") || "",
         adminId: searchParams.get("adminId") || "",
         adminSearch: searchParams.get("adminSearch") || "",
-        clientSearch: searchParams.get("clientSearch") || "",
+        resourceSearch: searchParams.get("resourceSearch") || "",
         changedData: searchParams.get("changedData") || "",
         status: searchParams.get("status") || "",
         ipAddress: searchParams.get("ipAddress") || "",
-        clientId: searchParams.get("clientId") || "",
+        resourceId: searchParams.get("resourceId") || "",
         startDate: searchParams.get("startDate") || "",
         endDate: searchParams.get("endDate") || "",
     });
@@ -94,15 +94,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             const currentUrlFilters = getFiltersFromUrl();
 
             const filterParams = {
-                client: currentUrlFilters.client || undefined,
+                resource: currentUrlFilters.resource || undefined,
                 operation: currentUrlFilters.operation || undefined,
                 admin_id: currentUrlFilters.adminId || undefined,
                 admin_search: currentUrlFilters.adminSearch || undefined,
-                client_search: currentUrlFilters.clientSearch || undefined,
+                resource_search: currentUrlFilters.resourceSearch || undefined,
                 changed_data: currentUrlFilters.changedData || undefined,
                 status: currentUrlFilters.status || undefined,
                 ip_address: currentUrlFilters.ipAddress || undefined,
-                client_id: currentUrlFilters.clientId || undefined,
+                resource_id: currentUrlFilters.resourceId || undefined,
                 start_date: currentUrlFilters.startDate
                     ? new Date(currentUrlFilters.startDate).toISOString()
                     : undefined,
@@ -174,11 +174,11 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             // Use current URL filters for export too
             const currentUrlFilters = getFiltersFromUrl();
             const filterParams = {
-                client: currentUrlFilters.client || undefined,
+                resource: currentUrlFilters.resource || undefined,
                 operation: currentUrlFilters.operation || undefined,
                 admin_id: currentUrlFilters.adminId || undefined,
                 admin_search: currentUrlFilters.adminSearch || undefined,
-                client_search: currentUrlFilters.clientSearch || undefined,
+                resource_search: currentUrlFilters.resourceSearch || undefined,
                 changed_data: currentUrlFilters.changedData || undefined,
             };
 
@@ -238,6 +238,7 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             <div className="audit-logs-table-wrapper">
                 <AuditLogsTable
                     logs={logs}
+                    users={users}
                     onViewDetail={handleViewDetail}
                     loading={loading}
                 />
