@@ -170,6 +170,7 @@ type AuditLog struct {
 	Operation       string    `json:"operation"` // 'create', 'update', 'delete', 'read'
 	Resource        string    `json:"resource"`  // 'client', 'contract', 'user', 'subcategory', 'category', 'affiliate'
 	ResourceID      string    `json:"resource_id"`
+	ObjectName      *string   `json:"object_name,omitempty"` // Nome do objeto (cliente, categoria, etc)
 	AdminID         *string   `json:"admin_id,omitempty"`
 	AdminUsername   *string   `json:"admin_username,omitempty"`
 	OldValue        *string   `json:"old_value,omitempty"` // JSON string com valores antigos

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     operation VARCHAR(50) NOT NULL,
     resource VARCHAR(50) NOT NULL,
     resource_id VARCHAR(255) NOT NULL,
+    object_name VARCHAR(255),
     admin_id UUID,
     admin_username CITEXT,
     old_value TEXT,

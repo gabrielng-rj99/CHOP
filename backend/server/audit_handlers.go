@@ -83,6 +83,35 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		ipAddress = &ip
 	}
 
+	var requestMethod *string
+	if rm := query.Get("request_method"); rm != "" {
+		requestMethod = &rm
+	}
+
+	var requestPath *string
+	if rp := query.Get("request_path"); rp != "" {
+		requestPath = &rp
+	}
+
+	var responseCode *int
+	if rc := query.Get("response_code"); rc != "" {
+		if parsed, err := strconv.Atoi(rc); err == nil {
+			responseCode = &parsed
+		}
+	}
+
+	var executionTimeMs *int
+	if et := query.Get("execution_time_ms"); et != "" {
+		if parsed, err := strconv.Atoi(et); err == nil {
+			executionTimeMs = &parsed
+		}
+	}
+
+	var errorMessage *string
+	if em := query.Get("error_message"); em != "" {
+		errorMessage = &em
+	}
+
 	// Filtro temporal
 	var startDate *time.Time
 	var endDate *time.Time
@@ -115,19 +144,24 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := store.AuditLogFilter{
-		Resource:       resource,
-		Operation:      operation,
-		AdminID:        adminID,
-		AdminSearch:    adminSearch,
-		ResourceID:     resourceID,
-		ResourceSearch: resourceSearch,
-		ChangedData:    changedData,
-		Status:         status,
-		IPAddress:      ipAddress,
-		StartDate:      startDate,
-		EndDate:        endDate,
-		Limit:          limit,
-		Offset:         offset,
+		Resource:        resource,
+		Operation:       operation,
+		AdminID:         adminID,
+		AdminSearch:     adminSearch,
+		ResourceID:      resourceID,
+		ResourceSearch:  resourceSearch,
+		ChangedData:     changedData,
+		Status:          status,
+		IPAddress:       ipAddress,
+		RequestMethod:   requestMethod,
+		RequestPath:     requestPath,
+		ResponseCode:    responseCode,
+		ExecutionTimeMs: executionTimeMs,
+		ErrorMessage:    errorMessage,
+		StartDate:       startDate,
+		EndDate:         endDate,
+		Limit:           limit,
+		Offset:          offset,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)
@@ -340,15 +374,79 @@ func (s *Server) handleAuditLogsExport(w http.ResponseWriter, r *http.Request) {
 		changedData = &cd
 	}
 
+	var status *string
+	if st := query.Get("status"); st != "" {
+		status = &st
+	}
+
+	var ipAddress *string
+	if ip := query.Get("ip_address"); ip != "" {
+		ipAddress = &ip
+	}
+
+	var requestMethod *string
+	if rm := query.Get("request_method"); rm != "" {
+		requestMethod = &rm
+	}
+
+	var requestPath *string
+	if rp := query.Get("request_path"); rp != "" {
+		requestPath = &rp
+	}
+
+	var responseCode *int
+	if rc := query.Get("response_code"); rc != "" {
+		if parsed, err := strconv.Atoi(rc); err == nil {
+			responseCode = &parsed
+		}
+	}
+
+	var executionTimeMs *int
+	if et := query.Get("execution_time_ms"); et != "" {
+		if parsed, err := strconv.Atoi(et); err == nil {
+			executionTimeMs = &parsed
+		}
+	}
+
+	var errorMessage *string
+	if em := query.Get("error_message"); em != "" {
+		errorMessage = &em
+	}
+
+	// Filtro temporal
+	var startDate *time.Time
+	var endDate *time.Time
+
+	if startStr := query.Get("start_date"); startStr != "" {
+		if t, err := time.Parse(time.RFC3339, startStr); err == nil {
+			startDate = &t
+		}
+	}
+
+	if endStr := query.Get("end_date"); endStr != "" {
+		if t, err := time.Parse(time.RFC3339, endStr); err == nil {
+			endDate = &t
+		}
+	}
+
 	filter := store.AuditLogFilter{
-		Resource:       resource,
-		Operation:      operation,
-		AdminID:        adminID,
-		AdminSearch:    adminSearch,
-		ResourceSearch: resourceSearch,
-		ChangedData:    changedData,
-		Limit:          10000,
-		Offset:         0,
+		Resource:        resource,
+		Operation:       operation,
+		AdminID:         adminID,
+		AdminSearch:     adminSearch,
+		ResourceSearch:  resourceSearch,
+		ChangedData:     changedData,
+		Status:          status,
+		IPAddress:       ipAddress,
+		RequestMethod:   requestMethod,
+		RequestPath:     requestPath,
+		ResponseCode:    responseCode,
+		ExecutionTimeMs: executionTimeMs,
+		ErrorMessage:    errorMessage,
+		StartDate:       startDate,
+		EndDate:         endDate,
+		Limit:           10000,
+		Offset:          0,
 	}
 
 	logs, err := s.auditStore.ListAuditLogs(filter)

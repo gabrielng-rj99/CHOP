@@ -39,11 +39,55 @@ func NewAuditStore(db DBInterface) *AuditStore {
 	return &AuditStore{db: db}
 }
 
+// ExtractObjectName extrai o nome do objeto a partir de um JSON
+// Tenta extrair "name" primeiro, depois "model", depois "username"
+func ExtractObjectName(jsonData string) *string {
+	if jsonData == "" {
+		return nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		return nil
+	}
+
+	// Tentar extrair "name" (para clientes, categorias, subcategorias)
+	if name, ok := data["name"]; ok {
+		if nameStr, ok := name.(string); ok && nameStr != "" {
+			return &nameStr
+		}
+	}
+
+	// Tentar extrair "model" (para contratos)
+	if model, ok := data["model"]; ok {
+		if modelStr, ok := model.(string); ok && modelStr != "" {
+			return &modelStr
+		}
+	}
+
+	// Tentar extrair "username" (para usuários)
+	if username, ok := data["username"]; ok {
+		if usernameStr, ok := username.(string); ok && usernameStr != "" {
+			return &usernameStr
+		}
+	}
+
+	// Tentar extrair "display_name" (para usuários)
+	if displayName, ok := data["display_name"]; ok {
+		if displayNameStr, ok := displayName.(string); ok && displayNameStr != "" {
+			return &displayNameStr
+		}
+	}
+
+	return nil
+}
+
 // AuditLogRequest contém todos os dados necessários para registrar uma operação
 type AuditLogRequest struct {
 	Operation       string
-	Resource        string // Renamed from Client
-	ResourceID      string // Renamed from ClientID
+	Resource        string  // Renamed from Client
+	ResourceID      string  // Renamed from ClientID
+	ObjectName      *string // Nome do objeto (cliente, categoria, etc)
 	AdminID         *string
 	AdminUsername   *string
 	OldValue        interface{}
@@ -133,14 +177,24 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		}
 	}
 
+	// Se ObjectName não foi fornecido, tentar extrair do NewValue ou OldValue
+	if req.ObjectName == nil {
+		if newValueStr != nil {
+			req.ObjectName = ExtractObjectName(*newValueStr)
+		}
+		if req.ObjectName == nil && oldValueStr != nil {
+			req.ObjectName = ExtractObjectName(*oldValueStr)
+		}
+	}
+
 	// Note: We use "resource" and "resource_id" column names in SQL, assuming schema update
 	sqlStatement := `
 		INSERT INTO audit_logs (
-			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, object_name, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 		)
 	`
 
@@ -151,6 +205,7 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 		req.Operation,
 		req.Resource,
 		req.ResourceID,
+		req.ObjectName,
 		req.AdminID,
 		req.AdminUsername,
 		oldValueStr,
@@ -175,19 +230,25 @@ func (s *AuditStore) LogOperation(req AuditLogRequest) (string, error) {
 
 // AuditLogFilter contém filtros para buscar logs
 type AuditLogFilter struct {
-	Resource       *string // Renamed from Client
-	Operation      *string
-	AdminID        *string
-	AdminSearch    *string
-	ResourceID     *string // Renamed from ClientID
-	ResourceSearch *string // Renamed from ClientSearch
-	ChangedData    *string
-	Status         *string
-	IPAddress      *string
-	StartDate      *time.Time
-	EndDate        *time.Time
-	Limit          int
-	Offset         int
+	Resource        *string
+	Operation       *string
+	AdminID         *string
+	AdminSearch     *string
+	ResourceID      *string
+	ResourceSearch  *string
+	ObjectSearch    *string // Buscar por object_name
+	ChangedData     *string
+	Status          *string
+	IPAddress       *string
+	RequestMethod   *string
+	RequestPath     *string
+	ResponseCode    *int
+	ExecutionTimeMs *int
+	ErrorMessage    *string
+	StartDate       *time.Time
+	EndDate         *time.Time
+	Limit           int
+	Offset          int
 }
 
 // ListAuditLogs retorna logs de auditoria com filtros opcionais, ordenado por timestamp DESC
@@ -198,7 +259,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 
 	query := `
 		SELECT
-			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, object_name, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		FROM audit_logs
@@ -233,9 +294,15 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 	}
 
 	if filter.ResourceSearch != nil && *filter.ResourceSearch != "" {
-		query += fmt.Sprintf(" AND (resource_id = $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2)
-		args = append(args, *filter.ResourceSearch, "%"+*filter.ResourceSearch+"%", "%"+*filter.ResourceSearch+"%")
-		argNum += 3
+		query += fmt.Sprintf(" AND (resource_id = $%d OR object_name ILIKE $%d OR old_value ILIKE $%d OR new_value ILIKE $%d)", argNum, argNum+1, argNum+2, argNum+3)
+		args = append(args, *filter.ResourceSearch, "%"+*filter.ResourceSearch+"%", "%"+*filter.ResourceSearch+"%", "%"+*filter.ResourceSearch+"%")
+		argNum += 4
+	}
+
+	if filter.ObjectSearch != nil && *filter.ObjectSearch != "" {
+		query += fmt.Sprintf(" AND object_name ILIKE $%d", argNum)
+		args = append(args, "%"+*filter.ObjectSearch+"%")
+		argNum++
 	}
 
 	if filter.ChangedData != nil && *filter.ChangedData != "" {
@@ -259,6 +326,36 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 	if filter.IPAddress != nil && *filter.IPAddress != "" {
 		query += fmt.Sprintf(" AND ip_address = $%d", argNum)
 		args = append(args, *filter.IPAddress)
+		argNum++
+	}
+
+	if filter.RequestMethod != nil && *filter.RequestMethod != "" {
+		query += fmt.Sprintf(" AND request_method = $%d", argNum)
+		args = append(args, *filter.RequestMethod)
+		argNum++
+	}
+
+	if filter.RequestPath != nil && *filter.RequestPath != "" {
+		query += fmt.Sprintf(" AND request_path ILIKE $%d", argNum)
+		args = append(args, "%"+*filter.RequestPath+"%")
+		argNum++
+	}
+
+	if filter.ResponseCode != nil {
+		query += fmt.Sprintf(" AND response_code = $%d", argNum)
+		args = append(args, *filter.ResponseCode)
+		argNum++
+	}
+
+	if filter.ExecutionTimeMs != nil {
+		query += fmt.Sprintf(" AND execution_time_ms >= $%d", argNum)
+		args = append(args, *filter.ExecutionTimeMs)
+		argNum++
+	}
+
+	if filter.ErrorMessage != nil && *filter.ErrorMessage != "" {
+		query += fmt.Sprintf(" AND error_message ILIKE $%d", argNum)
+		args = append(args, "%"+*filter.ErrorMessage+"%")
 		argNum++
 	}
 
@@ -286,7 +383,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 	var logs []domain.AuditLog
 	for rows.Next() {
 		var log domain.AuditLog
-		var adminID, adminUsername, oldValue, newValue, errorMsg, ip, ua, method, path, reqID sql.NullString
+		var adminID, adminUsername, objectName, oldValue, newValue, errorMsg, ip, ua, method, path, reqID sql.NullString
 		var responseCode, execTime sql.NullInt64
 
 		err := rows.Scan(
@@ -295,6 +392,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 			&log.Operation,
 			&log.Resource,   // Renamed
 			&log.ResourceID, // Renamed
+			&objectName,
 			&adminID,
 			&adminUsername,
 			&oldValue,
@@ -316,6 +414,9 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 		// Converter sql.NullString para *string
 		if adminID.Valid {
 			log.AdminID = &adminID.String
+		}
+		if objectName.Valid {
+			log.ObjectName = &objectName.String
 		}
 		if adminUsername.Valid {
 			log.AdminUsername = &adminUsername.String
@@ -367,7 +468,7 @@ func (s *AuditStore) ListAuditLogs(filter AuditLogFilter) ([]domain.AuditLog, er
 func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 	query := `
 		SELECT
-			id, timestamp, operation, resource, resource_id, admin_id, admin_username,
+			id, timestamp, operation, resource, resource_id, object_name, admin_id, admin_username,
 			old_value, new_value, status, error_message, ip_address, user_agent,
 			request_method, request_path, request_id, response_code, execution_time_ms
 		FROM audit_logs
@@ -375,7 +476,7 @@ func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 	`
 
 	var log domain.AuditLog
-	var adminID, adminUsername, oldValue, newValue, errorMsg, ip, ua, method, path, reqID sql.NullString
+	var adminID, adminUsername, objectName, oldValue, newValue, errorMsg, ip, ua, method, path, reqID sql.NullString
 	var responseCode, execTime sql.NullInt64
 
 	err := s.db.QueryRow(query, logID).Scan(
@@ -384,6 +485,7 @@ func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 		&log.Operation,
 		&log.Resource,
 		&log.ResourceID,
+		&objectName,
 		&adminID,
 		&adminUsername,
 		&oldValue,
@@ -408,6 +510,9 @@ func (s *AuditStore) GetAuditLogByID(logID string) (*domain.AuditLog, error) {
 	// Converter sql.NullString para *string
 	if adminID.Valid {
 		log.AdminID = &adminID.String
+	}
+	if objectName.Valid {
+		log.ObjectName = &objectName.String
 	}
 	if adminUsername.Valid {
 		log.AdminUsername = &adminUsername.String
@@ -536,6 +641,36 @@ func (s *AuditStore) CountAuditLogs(filter AuditLogFilter) (int, error) {
 	if filter.IPAddress != nil && *filter.IPAddress != "" {
 		query += fmt.Sprintf(" AND ip_address = $%d", argNum)
 		args = append(args, *filter.IPAddress)
+		argNum++
+	}
+
+	if filter.RequestMethod != nil && *filter.RequestMethod != "" {
+		query += fmt.Sprintf(" AND request_method = $%d", argNum)
+		args = append(args, *filter.RequestMethod)
+		argNum++
+	}
+
+	if filter.RequestPath != nil && *filter.RequestPath != "" {
+		query += fmt.Sprintf(" AND request_path ILIKE $%d", argNum)
+		args = append(args, "%"+*filter.RequestPath+"%")
+		argNum++
+	}
+
+	if filter.ResponseCode != nil {
+		query += fmt.Sprintf(" AND response_code = $%d", argNum)
+		args = append(args, *filter.ResponseCode)
+		argNum++
+	}
+
+	if filter.ExecutionTimeMs != nil {
+		query += fmt.Sprintf(" AND execution_time_ms >= $%d", argNum)
+		args = append(args, *filter.ExecutionTimeMs)
+		argNum++
+	}
+
+	if filter.ErrorMessage != nil && *filter.ErrorMessage != "" {
+		query += fmt.Sprintf(" AND error_message ILIKE $%d", argNum)
+		args = append(args, "%"+*filter.ErrorMessage+"%")
 		argNum++
 	}
 
