@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"Open-Generic-Hub/backend/domain"
 	"Open-Generic-Hub/backend/store"
 )
 
@@ -113,6 +114,11 @@ func (s *Server) HandleRoleByIDRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleID := parts[0]
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 
 	// Check if this is a permissions sub-route
 	if len(parts) > 1 && parts[1] == "permissions" {
@@ -239,6 +245,11 @@ func (s *Server) HandleGetRoles(w http.ResponseWriter, r *http.Request) {
 
 // HandleGetRoleByID returns a single role by ID
 func (s *Server) HandleGetRoleByID(w http.ResponseWriter, r *http.Request, roleID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 	// Validate token and check permissions
 	tokenString := extractTokenFromHeader(r)
 	claims, err := ValidateJWT(tokenString, s.userStore)
@@ -402,6 +413,11 @@ func (s *Server) HandleCreateRole(w http.ResponseWriter, r *http.Request) {
 
 // HandleUpdateRole updates an existing role
 func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 	// Validate token and check permissions
 	tokenString := extractTokenFromHeader(r)
 	claims, err := ValidateJWT(tokenString, s.userStore)
@@ -493,6 +509,11 @@ func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID
 
 // HandleDeleteRole deletes a role
 func (s *Server) HandleDeleteRole(w http.ResponseWriter, r *http.Request, roleID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 	// Validate token and check permissions
 	tokenString := extractTokenFromHeader(r)
 	claims, err := ValidateJWT(tokenString, s.userStore)
@@ -639,6 +660,11 @@ func (s *Server) HandleGetPermissions(w http.ResponseWriter, r *http.Request) {
 
 // HandleGetRolePermissions returns permissions for a specific role
 func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request, roleID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 	// Validate token
 	tokenString := extractTokenFromHeader(r)
 	claims, err := ValidateJWT(tokenString, s.userStore)
@@ -678,6 +704,11 @@ func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request
 
 // HandleSetRolePermissions sets all permissions for a role
 func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request, roleID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(roleID); err != nil {
+		respondError(w, http.StatusNotFound, "Role not found")
+		return
+	}
 	// Validate token
 	tokenString := extractTokenFromHeader(r)
 	claims, err := ValidateJWT(tokenString, s.userStore)
@@ -719,6 +750,14 @@ func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request
 	if err := decoder.Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Corpo da requisição inválido")
 		return
+	}
+
+	// Validate permissions IDs
+	for _, permID := range req.PermissionIDs {
+		if err := domain.ValidateUUID(permID); err != nil {
+			respondError(w, http.StatusBadRequest, "ID de permissão inválido: "+permID)
+			return
+		}
 	}
 
 	// Set permissions

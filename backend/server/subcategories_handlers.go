@@ -69,6 +69,12 @@ func (s *Server) handleCreateSubcategory(w http.ResponseWriter, r *http.Request)
 		CategoryID: req.CategoryID,
 	}
 
+	// SECURITY: Validate subcategory input
+	if err := domain.ValidateSubcategory(&line); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	id, err := s.subcategoryStore.CreateSubcategory(line)
 	if err != nil {
 		// Log failed attempt
@@ -129,6 +135,12 @@ func (s *Server) handleSubcategoryByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(subcategoryID); err != nil {
+		respondError(w, http.StatusNotFound, "Subcategory not found")
+		return
+	}
+
 	// Check for archive/unarchive endpoints
 	if strings.HasSuffix(r.URL.Path, "/archive") {
 		if r.Method == http.MethodPost {
@@ -168,6 +180,10 @@ func (s *Server) handleGetLine(w http.ResponseWriter, _ *http.Request, subcatego
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
+		return
+	}
+	if line == nil {
+		respondError(w, http.StatusNotFound, "Subcategory not found")
 		return
 	}
 

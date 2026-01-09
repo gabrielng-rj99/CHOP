@@ -297,25 +297,11 @@ func TestRolePasswordPolicyRequest_Decode(t *testing.T) {
 
 // TestRolePasswordPolicyResponse_Defaults tests default values
 func TestRolePasswordPolicyResponse_Defaults(t *testing.T) {
-	defaultSpecial := "!@#$%^&*()_+-=[]{}|;:,.<>?"
 	defaultPolicy := RolePasswordPolicyResponse{
-		ID:                   "",
-		RoleID:               "test-role",
-		RoleName:             "test",
-		MinLength:            16,
-		MaxLength:            128,
-		RequireUppercase:     true,
-		RequireLowercase:     true,
-		RequireNumbers:       true,
-		RequireSpecial:       true,
-		AllowedSpecialChars:  &defaultSpecial,
-		MaxAgeDays:           0,
-		HistoryCount:         0,
-		MinAgeHours:          0,
-		MinUniqueChars:       0,
-		NoUsernameInPassword: true,
-		NoCommonPasswords:    true,
-		IsActive:             false,
+		MinLength:        16,
+		MaxLength:        128,
+		RequireUppercase: true,
+		RequireLowercase: true,
 	}
 
 	// Verify defaults are sensible

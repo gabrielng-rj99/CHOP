@@ -100,6 +100,12 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 	// Ignore any status sent from frontend
 	client.Status = ""
 
+	// SECURITY: Validate client input fields
+	if err := domain.ValidateClient(&client); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	id, err := s.clientStore.CreateClient(client)
 	if err != nil {
 		// Log failed attempt
@@ -179,6 +185,12 @@ func (s *Server) handleClientByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteClient(w http.ResponseWriter, r *http.Request, clientID string) {
+	// SECURITY: Validate UUID format
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
 	claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "Token inválido ou expirado")
@@ -186,7 +198,19 @@ func (s *Server) handleDeleteClient(w http.ResponseWriter, r *http.Request, clie
 	}
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldClient, err := s.clientStore.GetClientByID(clientID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Client not found")
+		} else {
+			respondError(w, http.StatusInternalServerError, "Database error checking client")
+		}
+		return
+	}
+	if oldClient == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
 	oldValueJSON, _ := json.Marshal(oldClient)
 
 	if err := s.clientStore.DeleteClientPermanently(clientID); err != nil {
@@ -235,6 +259,12 @@ func (s *Server) handleDeleteClient(w http.ResponseWriter, r *http.Request, clie
 }
 
 func (s *Server) handleGetClient(w http.ResponseWriter, _ *http.Request, clientID string) {
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
 	client, err := s.clientStore.GetClientByID(clientID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -242,6 +272,10 @@ func (s *Server) handleGetClient(w http.ResponseWriter, _ *http.Request, clientI
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
+		return
+	}
+	if client == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
 		return
 	}
 
@@ -255,10 +289,34 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		return
 	}
 
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
+	// SECURITY: Validate client input fields
+	if err := domain.ValidateClient(&client); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldClient, err := s.clientStore.GetClientByID(clientID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Client not found")
+		} else {
+			respondError(w, http.StatusInternalServerError, "Database error checking client")
+		}
+		return
+	}
+	if oldClient == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
 	oldValueJSON, _ := json.Marshal(oldClient)
 
 	client.ID = clientID
@@ -333,10 +391,24 @@ func (s *Server) handleClientArchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientID := parts[0]
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldClient, err := s.clientStore.GetClientByID(clientID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+	if oldClient == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
 	oldValueJSON, _ := json.Marshal(oldClient)
 
 	if err := s.clientStore.ArchiveClient(clientID); err != nil {
@@ -400,10 +472,24 @@ func (s *Server) handleClientUnarchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientID := parts[0]
+	// SECURITY: Validate UUID
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldClient, _ := s.clientStore.GetClientByID(clientID)
+	oldClient, err := s.clientStore.GetClientByID(clientID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+	if oldClient == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
 	oldValueJSON, _ := json.Marshal(oldClient)
 
 	if err := s.clientStore.UnarchiveClient(clientID); err != nil {

@@ -71,6 +71,18 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Validate name is not empty
+	if strings.TrimSpace(req.Name) == "" {
+		respondError(w, http.StatusBadRequest, "Category name is required")
+		return
+	}
+
+	// SECURITY: Limit name length to prevent overflow attacks
+	if len(req.Name) > 200 {
+		respondError(w, http.StatusBadRequest, "Category name too long (max 200 characters)")
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	category := domain.Category{Name: req.Name}
@@ -167,6 +179,12 @@ func (s *Server) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetCategory(w http.ResponseWriter, _ *http.Request, categoryID string) {
+	// SECURITY: Validate UUID format before querying database
+	if err := domain.ValidateUUID(categoryID); err != nil {
+		respondError(w, http.StatusNotFound, "Category not found")
+		return
+	}
+
 	category, err := s.categoryStore.GetCategoryByID(categoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -174,6 +192,10 @@ func (s *Server) handleGetCategory(w http.ResponseWriter, _ *http.Request, categ
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
+		return
+	}
+	if category == nil {
+		respondError(w, http.StatusNotFound, "Category not found")
 		return
 	}
 

@@ -58,6 +58,22 @@ func (s *Server) handleCreateContract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Validate contract fields BEFORE inserting into database
+	if err := domain.ValidateContract(&contract); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// SECURITY: Limit field lengths to prevent overflow attacks
+	if len(contract.Model) > 500 {
+		respondError(w, http.StatusBadRequest, "Model field too long (max 500 characters)")
+		return
+	}
+	if len(contract.ItemKey) > 200 {
+		respondError(w, http.StatusBadRequest, "ItemKey field too long (max 200 characters)")
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	id, err := s.contractStore.CreateContract(contract)
@@ -148,6 +164,12 @@ func (s *Server) handleContractByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetContract(w http.ResponseWriter, _ *http.Request, contractID string) {
+	// SECURITY: Validate UUID format before querying database
+	if err := domain.ValidateUUID(contractID); err != nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
+		return
+	}
+
 	contract, err := s.contractStore.GetContractByID(contractID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -155,6 +177,10 @@ func (s *Server) handleGetContract(w http.ResponseWriter, _ *http.Request, contr
 		} else {
 			respondError(w, http.StatusInternalServerError, err.Error())
 		}
+		return
+	}
+	if contract == nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
 		return
 	}
 

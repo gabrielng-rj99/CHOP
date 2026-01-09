@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -62,6 +63,21 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Validate input
+	if len(req.Username) < 3 {
+		respondError(w, http.StatusBadRequest, "Username deve ter no mínimo 3 caracteres")
+		return
+	}
+	if len(req.Password) < 8 {
+		respondError(w, http.StatusBadRequest, "Senha deve ter no mínimo 8 caracteres")
+		return
+	}
+	// Validate username characters (alphanumeric, underscore, dash)
+	if match, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, req.Username); !match {
+		respondError(w, http.StatusBadRequest, "Username contém caracteres inválidos")
+		return
+	}
+
 	// Get admin info for audit
 	claims, err := getClaimsFromRequest(r, s.userStore)
 	if err != nil {
@@ -89,8 +105,8 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "create",
-			Resource:        "user",
-			ResourceID:      "unknown",
+			Resource:      "user",
+			ResourceID:    "unknown",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      nil,
@@ -115,8 +131,8 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "create",
-		Resource:        "user",
-		ResourceID:      id,
+		Resource:      "user",
+		ResourceID:    id,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      nil,
@@ -187,8 +203,8 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 			errMsg := err.Error()
 			s.auditStore.LogOperation(store.AuditLogRequest{
 				Operation:     "delete",
-				Resource:        "user",
-				ResourceID:      userID,
+				Resource:      "user",
+				ResourceID:    userID,
 				AdminID:       &claims.UserID,
 				AdminUsername: &claims.Username,
 				OldValue:      oldUserData,
@@ -207,8 +223,8 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 		// Log successful deletion
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Resource:        "user",
-			ResourceID:      userID,
+			Resource:      "user",
+			ResourceID:    userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldUserData,
@@ -303,6 +319,16 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 			respondError(w, http.StatusForbidden, "Apenas root pode alterar username de usuários")
 			return
 		}
+		// Validate new username
+		if len(req.Username) < 3 {
+			respondError(w, http.StatusBadRequest, "Username deve ter no mínimo 3 caracteres")
+			return
+		}
+		if match, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, req.Username); !match {
+			respondError(w, http.StatusBadRequest, "Username contém caracteres inválidos")
+			return
+		}
+
 		if err := s.userStore.UpdateUsername(username, req.Username); err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -369,8 +395,8 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	// Log successful update
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Resource:        "user",
-		ResourceID:      userID,
+		Resource:      "user",
+		ResourceID:    userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      oldUserData,
@@ -444,8 +470,8 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Resource:        "user",
-			ResourceID:      userID,
+			Resource:      "user",
+			ResourceID:    userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      map[string]interface{}{"status": "active", "username": username},
@@ -464,8 +490,8 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 	// Log successful block
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Resource:        "user",
-		ResourceID:      userID,
+		Resource:      "user",
+		ResourceID:    userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      map[string]interface{}{"status": "active", "username": username},
@@ -527,8 +553,8 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Resource:        "user",
-			ResourceID:      userID,
+			Resource:      "user",
+			ResourceID:    userID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      map[string]interface{}{"status": "locked", "username": username},
@@ -547,8 +573,8 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 	// Log successful unlock
 	s.auditStore.LogOperation(store.AuditLogRequest{
 		Operation:     "update",
-		Resource:        "user",
-		ResourceID:      userID,
+		Resource:      "user",
+		ResourceID:    userID,
 		AdminID:       &claims.UserID,
 		AdminUsername: &claims.Username,
 		OldValue:      map[string]interface{}{"status": "locked", "username": username},
