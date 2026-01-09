@@ -184,26 +184,26 @@ class TestFileUploadSecurity:
 class TestDeployAPIAuth:
     """Testes de autenticação para Deploy API"""
 
-    def test_deploy_config_without_token(self, http_client, api_url, timer):
-        """POST /api/deploy/config sem token deve retornar 401"""
+    def test_deploy_config_without_token(self, http_client, api_url, root_user, timer):
+        """POST /api/deploy/config sem token deve retornar 401 ou 403 (se instalado)"""
+        # A fixture root_user garante que o sistema está instalado (DB não vazio)
         response = http_client.post(
             f"{api_url}/deploy/config",
             json={"server_host": "localhost"}
         )
-        # DEVE exigir autenticação - NUNCA aceitar 200 sem token
-        assert response.status_code == 401, \
-            f"Deploy config sem token retornou {response.status_code}, esperava 401"
+        # Deve recusar: 401 (se token exigido e faltante) ou 403 (se sistema instalado)
+        assert response.status_code in [401, 403], \
+            f"Deploy config sem token retornou {response.status_code}, esperava 401 ou 403"
 
-    def test_deploy_config_with_invalid_token(self, http_client, api_url, timer):
-        """POST /api/deploy/config com token inválido deve retornar 401"""
+    def test_deploy_config_with_invalid_token(self, http_client, api_url, root_user, timer):
+        """POST /api/deploy/config com token inválido deve retornar 401 ou 403"""
         response = http_client.post(
             f"{api_url}/deploy/config",
             headers={"Authorization": "Bearer invalid-deploy-token"},
             json={"server_host": "localhost"}
         )
-        # Token inválido DEVE retornar 401
-        assert response.status_code == 401, \
-            f"Deploy config com token inválido retornou {response.status_code}, esperava 401"
+        assert response.status_code in [401, 403], \
+            f"Deploy config com token inválido retornou {response.status_code}, esperava 401 ou 403"
 
     def test_deploy_config_with_user_jwt_fails(self, http_client, api_url, root_user, timer):
         """POST /api/deploy/config com JWT de usuário deve falhar (precisa deploy token)"""
@@ -227,10 +227,12 @@ class TestDeployPublicEndpoints:
         data = response.json()
         assert "status" in data or "environment" in data
 
-    def test_deploy_defaults_is_public(self, http_client, api_url, timer):
-        """GET /api/deploy/config/defaults deve ser público"""
+    def test_deploy_defaults_security(self, http_client, api_url, root_user, timer):
+        """GET /api/deploy/config/defaults deve ser PROTEGIDO se instalado"""
+        # Se sistema instalado, deve retornar 403
         response = http_client.get(f"{api_url}/deploy/config/defaults")
-        assert response.status_code == 200
+        assert response.status_code in [401, 403], \
+            f"Deploy defaults retornou {response.status_code} em sistema instalado, esperava 403"
 
     def test_deploy_validate_is_public(self, http_client, api_url, timer):
         """POST /api/deploy/validate deve ser público"""

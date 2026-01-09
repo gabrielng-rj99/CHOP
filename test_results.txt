@@ -1,0 +1,352 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.9, pytest-7.4.3, pluggy-1.6.0
+rootdir: /home/static-shock/Projects/MyProjects/Client-Hub-Open-Project
+plugins: anyio-4.12.0, xdist-3.5.0, timeout-2.2.0, ordering-0.6, metadata-3.1.1, json-report-1.5.0, html-4.1.1, cov-4.1.0, Faker-20.1.0
+collected 111 items
+
+tests/test_upload_deploy_health.py ........FFF...............F.......    [ 30%]
+tests/test_categories_subcategories_security.py ........................ [ 52%]
+............F                                                            [ 63%]
+tests/test_appearance_security.py .F...F.F..F..F.F..F....F..F......F.... [ 98%]
+..                                                                       [100%]
+
+=================================== FAILURES ===================================
+______________ TestDeployAPIAuth.test_deploy_config_without_token ______________
+
+self = <test_upload_deploy_health.TestDeployAPIAuth object at 0x7f2b2fa42c10>
+http_client = <requests.sessions.Session object at 0x7f2b2fa8ba10>
+api_url = 'http://localhost:3000/api', timer = None
+
+    def test_deploy_config_without_token(self, http_client, api_url, timer):
+        """POST /api/deploy/config sem token deve retornar 401"""
+        response = http_client.post(
+            f"{api_url}/deploy/config",
+            json={"server_host": "localhost"}
+        )
+        # DEVE exigir autenticação - NUNCA aceitar 200 sem token
+>       assert response.status_code == 401, \
+            f"Deploy config sem token retornou {response.status_code}, esperava 401"
+E       AssertionError: Deploy config sem token retornou 200, esperava 401
+E       assert 200 == 401
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_upload_deploy_health.py:194: AssertionError
+--------------------------- Captured stdout teardown ---------------------------
+
+⏱️  Test duration: 0.036s
+___________ TestDeployAPIAuth.test_deploy_config_with_invalid_token ____________
+
+self = <test_upload_deploy_health.TestDeployAPIAuth object at 0x7f2b2fa42d50>
+http_client = <requests.sessions.Session object at 0x7f2b2fa8ba10>
+api_url = 'http://localhost:3000/api', timer = None
+
+    def test_deploy_config_with_invalid_token(self, http_client, api_url, timer):
+        """POST /api/deploy/config com token inválido deve retornar 401"""
+        response = http_client.post(
+            f"{api_url}/deploy/config",
+            headers={"Authorization": "Bearer invalid-deploy-token"},
+            json={"server_host": "localhost"}
+        )
+        # Token inválido DEVE retornar 401
+>       assert response.status_code == 401, \
+            f"Deploy config com token inválido retornou {response.status_code}, esperava 401"
+E       AssertionError: Deploy config com token inválido retornou 200, esperava 401
+E       assert 200 == 401
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_upload_deploy_health.py:205: AssertionError
+--------------------------- Captured stdout teardown ---------------------------
+
+⏱️  Test duration: 0.010s
+___________ TestDeployAPIAuth.test_deploy_config_with_user_jwt_fails ___________
+
+self = <test_upload_deploy_health.TestDeployAPIAuth object at 0x7f2b2fbe2fd0>
+http_client = <requests.sessions.Session object at 0x7f2b2fa8ba10>
+api_url = 'http://localhost:3000/api'
+root_user = {'id': '60e2f1aa-4e03-4e16-b446-659fc84434a3', 'password': 'RootPass123!@#456789%%0321654987+-7dfgacvds', 'role': 'roo...0Ni02NTlmYzg0NDM0YTMiLCJleHAiOjE3Njc5NjQ3NTUsImlhdCI6MTc2Nzk2MTE1NX0.C43b_XtHoYPV_7IMLfAODxXMfqerFvUum7ofbBBCFnA', ...}
+timer = None
+
+    def test_deploy_config_with_user_jwt_fails(self, http_client, api_url, root_user, timer):
+        """POST /api/deploy/config com JWT de usuário deve falhar (precisa deploy token)"""
+        response = http_client.post(
+            f"{api_url}/deploy/config",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={"server_host": "localhost"}
+        )
+        # Deploy endpoint DEVE exigir token especial, não aceitar JWT de usuário
+>       assert response.status_code in [401, 403], \
+            f"Deploy config com JWT de usuário retornou {response.status_code}, esperava 401/403"
+E       AssertionError: Deploy config com JWT de usuário retornou 200, esperava 401/403
+E       assert 200 in [401, 403]
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_upload_deploy_health.py:216: AssertionError
+--------------------------- Captured stdout teardown ---------------------------
+
+⏱️  Test duration: 0.010s
+______________ TestAuditLogsAPIComplete.test_audit_logs_limit_max ______________
+
+self = <test_upload_deploy_health.TestAuditLogsAPIComplete object at 0x7f2b2fbdee00>
+http_client = <requests.sessions.Session object at 0x7f2b2fa8ba10>
+api_url = 'http://localhost:3000/api'
+root_user = {'id': '60e2f1aa-4e03-4e16-b446-659fc84434a3', 'password': 'RootPass123!@#456789%%0321654987+-7dfgacvds', 'role': 'roo...0Ni02NTlmYzg0NDM0YTMiLCJleHAiOjE3Njc5NjQ3NTUsImlhdCI6MTc2Nzk2MTE1NX0.C43b_XtHoYPV_7IMLfAODxXMfqerFvUum7ofbBBCFnA', ...}
+timer = None
+
+    def test_audit_logs_limit_max(self, http_client, api_url, root_user, timer):
+        """Limit > 1000 deve ser rejeitado ou truncado"""
+        response = http_client.get(
+            f"{api_url}/audit-logs",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            params={"limit": 10000}
+        )
+        # Deve aceitar com truncamento ou rejeitar
+>       assert response.status_code in [200, 400]
+E       assert 500 in [200, 400]
+E        +  where 500 = <Response [500]>.status_code
+
+tests/test_upload_deploy_health.py:370: AssertionError
+--------------------------- Captured stdout teardown ---------------------------
+
+⏱️  Test duration: 0.010s
+_________ TestCategoriesSubcategoriesWorkflow.test_full_crud_workflow __________
+
+self = <test_categories_subcategories_security.TestCategoriesSubcategoriesWorkflow object at 0x7f2b2fb00f50>
+http_client = <requests.sessions.Session object at 0x7f2b2fa8ba10>
+api_url = 'http://localhost:3000/api'
+root_user = {'id': '60e2f1aa-4e03-4e16-b446-659fc84434a3', 'password': 'RootPass123!@#456789%%0321654987+-7dfgacvds', 'role': 'roo...0Ni02NTlmYzg0NDM0YTMiLCJleHAiOjE3Njc5NjQ3NTUsImlhdCI6MTc2Nzk2MTE1NX0.C43b_XtHoYPV_7IMLfAODxXMfqerFvUum7ofbBBCFnA', ...}
+timer = None
+
+    def test_full_crud_workflow(self, http_client, api_url, root_user, timer):
+        """Teste CRUD completo: criar categoria, subcategoria, arquivar, desarquivar"""
+        # 1. Criar categoria - DEVE funcionar
+        cat_resp = http_client.post(
+            f"{api_url}/categories",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={"name": f"Test Category {uuid.uuid4().hex[:8]}"}
+        )
+        assert cat_resp.status_code == 201, \
+            f"Criar categoria falhou com {cat_resp.status_code}: {cat_resp.text}"
+        json_resp = cat_resp.json()
+        cat_id = json_resp.get("data", {}).get("id") or json_resp.get("id")
+        assert cat_id, f"Categoria criada mas sem ID retornado. Resp: {cat_resp.text}"
+    
+        # 2. Criar subcategoria - DEVE funcionar
+        subcat_resp = http_client.post(
+            f"{api_url}/subcategories",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={"name": "Test Subcategory", "category_id": cat_id}
+        )
+        assert subcat_resp.status_code == 201, \
+            f"Criar subcategoria falhou com {subcat_resp.status_code}: {subcat_resp.text}"
+        subcat_id = subcat_resp.json().get("id")
+>       assert subcat_id, "Subcategoria criada mas sem ID retornado"
+E       AssertionError: Subcategoria criada mas sem ID retornado
+E       assert None
+
+tests/test_categories_subcategories_security.py:493: AssertionError
+--------------------------- Captured stdout teardown ---------------------------
+
+⏱️  Test duration: 0.019s
+_______ TestAppearanceAPISecurity.test_global_theme_get_as_admin_denied ________
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fb01090>
+
+    def test_global_theme_get_as_admin_denied(self):
+        """Admin user should NOT be able to get global theme."""
+        response = requests.get(
+            f"{self.base_url}/api/settings/global-theme",
+            headers=self.get_headers(self.admin_token)
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:72: AssertionError
+______ TestAppearanceAPISecurity.test_global_theme_update_as_admin_denied ______
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fbdf130>
+
+    def test_global_theme_update_as_admin_denied(self):
+        """Admin user should NOT be able to update global theme."""
+        payload = {
+            "theme_preset": "default",
+            "primary_color": "#3498db"
+        }
+        response = requests.put(
+            f"{self.base_url}/api/settings/global-theme",
+            headers=self.get_headers(self.admin_token),
+            json=payload
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:112: AssertionError
+________ TestAppearanceAPISecurity.test_allowed_themes_get_as_any_user _________
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fa75c50>
+
+    def test_allowed_themes_get_as_any_user(self):
+        """Any authenticated user should be able to get allowed themes."""
+        for token in [self.root_token, self.admin_token, self.user_token]:
+            response = requests.get(
+                f"{self.base_url}/api/settings/allowed-themes",
+                headers=self.get_headers(token)
+            )
+>           assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E           AssertionError: Expected 200, got 401
+E           assert 401 == 200
+E            +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:137: AssertionError
+_____ TestAppearanceAPISecurity.test_allowed_themes_update_as_admin_denied _____
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fae8410>
+
+    def test_allowed_themes_update_as_admin_denied(self):
+        """Admin user should NOT be able to update allowed themes."""
+        payload = {
+            "allowed_themes": ["default"]
+        }
+        response = requests.put(
+            f"{self.base_url}/api/settings/allowed-themes",
+            headers=self.get_headers(self.admin_token),
+            json=payload
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:178: AssertionError
+_____ TestAppearanceAPISecurity.test_allowed_themes_invalid_theme_rejected _____
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fb121a0>
+
+    def test_allowed_themes_invalid_theme_rejected(self):
+        """Invalid theme names should be rejected."""
+        payload = {
+            "allowed_themes": ["default", "invalid_theme_name"]
+        }
+        response = requests.put(
+            f"{self.base_url}/api/settings/allowed-themes",
+            headers=self.get_headers(self.root_token),
+            json=payload
+        )
+>       assert response.status_code == 400, f"Expected 400 Bad Request, got {response.status_code}"
+E       AssertionError: Expected 400 Bad Request, got 200
+E       assert 200 == 400
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_appearance_security.py:214: AssertionError
+_______ TestAppearanceAPISecurity.test_system_config_get_as_admin_denied _______
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fbebc50>
+
+    def test_system_config_get_as_admin_denied(self):
+        """Admin user should NOT be able to get system config."""
+        response = requests.get(
+            f"{self.base_url}/api/settings/system-config",
+            headers=self.get_headers(self.admin_token)
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:237: AssertionError
+_____ TestAppearanceAPISecurity.test_system_config_update_as_admin_denied ______
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2fb0bb10>
+
+    def test_system_config_update_as_admin_denied(self):
+        """Admin user should NOT be able to update system config."""
+        payload = {
+            "login_block_time": 300,
+            "login_attempts": 5
+        }
+        response = requests.put(
+            f"{self.base_url}/api/settings/system-config",
+            headers=self.get_headers(self.admin_token),
+            json=payload
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:273: AssertionError
+_____ TestAppearanceAPISecurity.test_theme_permissions_get_as_admin_denied _____
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2faefd90>
+
+    def test_theme_permissions_get_as_admin_denied(self):
+        """Admin user should NOT be able to get theme permissions."""
+        response = requests.get(
+            f"{self.base_url}/api/settings/theme-permissions",
+            headers=self.get_headers(self.admin_token)
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:358: AssertionError
+___ TestAppearanceAPISecurity.test_theme_permissions_update_as_admin_denied ____
+
+self = <test_appearance_security.TestAppearanceAPISecurity object at 0x7f2b2facb5f0>
+
+    def test_theme_permissions_update_as_admin_denied(self):
+        """Admin user should NOT be able to update theme permissions."""
+        payload = {
+            "users_can_edit_theme": True,
+            "admins_can_edit_theme": True
+        }
+        response = requests.put(
+            f"{self.base_url}/api/settings/theme-permissions",
+            headers=self.get_headers(self.admin_token),
+            json=payload
+        )
+>       assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}"
+E       AssertionError: Expected 403 Forbidden, got 401
+E       assert 401 == 403
+E        +  where 401 = <Response [401]>.status_code
+
+tests/test_appearance_security.py:392: AssertionError
+___________ TestUserThemeSecurity.test_user_theme_get_authenticated ____________
+
+self = <test_appearance_security.TestUserThemeSecurity object at 0x7f2b2fb01310>
+
+    def test_user_theme_get_authenticated(self):
+        """Authenticated users should be able to get their theme."""
+        for token in [self.root_token, self.admin_token, self.user_token]:
+            response = requests.get(
+                f"{self.base_url}/api/user/theme",
+                headers=self.get_headers(token)
+            )
+>           assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E           AssertionError: Expected 200, got 500
+E           assert 500 == 200
+E            +  where 500 = <Response [500]>.status_code
+
+tests/test_appearance_security.py:555: AssertionError
+============================= Test Timing Summary ==============================
+=========================== short test summary info ============================
+FAILED tests/test_upload_deploy_health.py::TestDeployAPIAuth::test_deploy_config_without_token
+FAILED tests/test_upload_deploy_health.py::TestDeployAPIAuth::test_deploy_config_with_invalid_token
+FAILED tests/test_upload_deploy_health.py::TestDeployAPIAuth::test_deploy_config_with_user_jwt_fails
+FAILED tests/test_upload_deploy_health.py::TestAuditLogsAPIComplete::test_audit_logs_limit_max
+FAILED tests/test_categories_subcategories_security.py::TestCategoriesSubcategoriesWorkflow::test_full_crud_workflow
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_global_theme_get_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_global_theme_update_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_allowed_themes_get_as_any_user
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_allowed_themes_update_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_allowed_themes_invalid_theme_rejected
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_system_config_get_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_system_config_update_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_theme_permissions_get_as_admin_denied
+FAILED tests/test_appearance_security.py::TestAppearanceAPISecurity::test_theme_permissions_update_as_admin_denied
+FAILED tests/test_appearance_security.py::TestUserThemeSecurity::test_user_theme_get_authenticated
+======================== 15 failed, 96 passed in 1.43s =========================
