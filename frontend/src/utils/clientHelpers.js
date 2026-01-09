@@ -96,3 +96,40 @@ export const formatAffiliateForEdit = (affiliate) => ({
     birth_date: affiliate.birth_date ? affiliate.birth_date.split("T")[0] : "",
     phone: affiliate.phone || "",
 });
+
+export const prepareClientPayload = (data) => {
+    const payload = { ...data };
+
+    // Campos que devem ser enviados como null se estiverem vazios
+    const nullableFields = [
+        "registration_id",
+        "nickname",
+        "birth_date",
+        "email",
+        "phone",
+        "address",
+        "notes",
+        "contact_preference",
+        "tags",
+        "documents"
+    ];
+
+    nullableFields.forEach((field) => {
+        if (payload[field] === "" || payload[field] === undefined) {
+            payload[field] = null;
+        }
+    });
+
+    // Tratamento especial para datas (converter YYYY-MM-DD para RFC3339)
+    if (payload.birth_date && typeof payload.birth_date === 'string' && payload.birth_date.length === 10) {
+        payload.birth_date = `${payload.birth_date}T00:00:00Z`;
+    }
+
+    // Tratamento especial para telefone (remover formatação para aceitar apenas números)
+    if (payload.phone) {
+        payload.phone = payload.phone.replace(/\D/g, "");
+        if (payload.phone === "") payload.phone = null;
+    }
+
+    return payload;
+};

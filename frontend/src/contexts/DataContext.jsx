@@ -390,6 +390,8 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
 
     /**
      * Manual cache invalidation
+     * Nota: Cada página agora faz seu próprio fresh request ao carregar,
+     * então a invalidação de cache é apenas para limpar dados stale durante a sessão.
      */
     const invalidateCache = useCallback((resource) => {
         if (resource) {
@@ -433,6 +435,10 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
         loading,
         errors,
     };
+
+    // Nota: Removido o monitoramento de rotas com polling.
+    // Cada página agora faz seu próprio fresh request ao carregar (forceRefresh=true),
+    // garantindo dados sempre atualizados sem complexidade de sincronização de cache.
 
     return (
         <DataContext.Provider value={value}>{children}</DataContext.Provider>
