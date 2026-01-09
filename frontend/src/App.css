@@ -420,31 +420,121 @@ html.collapsed .app-main {
     background: #a0aec0;
 }
 
-/* Responsive */
+/* Responsive - Mobile/Narrow screens */
+/* Force sidebar collapsed permanently with icons visible */
 @media (max-width: 768px) {
+    :root {
+        --sidebar-width: 70px !important;
+    }
+
+    html.collapsed {
+        --sidebar-width: 70px !important;
+    }
+
     .app-nav {
-        width: 70px;
+        width: 70px !important;
     }
 
     .app-nav-title {
-        display: none;
+        display: none !important;
     }
 
+    /* Hide toggle button - can't expand on mobile */
     .app-nav-toggle {
-        margin: 0 auto;
+        display: none !important;
     }
 
     .app-nav-text {
-        display: none;
+        display: none !important;
+        opacity: 0 !important;
+        max-width: 0 !important;
     }
 
-    .app-nav-user-info {
-        display: none;
+    .app-nav-icon {
+        margin-left: 15px !important;
+    }
+
+    .app-nav-user-info,
+    .app-nav-user-label,
+    .app-nav-user-name,
+    .app-nav-user-role {
+        display: none !important;
+    }
+
+    .app-nav-logout-button {
+        justify-content: center !important;
+        padding: 12px !important;
+    }
+
+    .app-nav-logout-button .app-nav-text {
+        display: none !important;
+        opacity: 0 !important;
+        max-width: 0 !important;
+        margin: 0 !important;
+    }
+
+    .app-nav-items {
+        padding: 20px 0 !important;
+    }
+
+    .app-nav-footer {
+        padding: 20px 10px !important;
     }
 
     .app-main {
-        margin-left: 70px;
+        margin-left: 70px !important;
     }
+
+    /* Prevent buttons from expanding on narrow screens */
+    .primary-button,
+    .secondary-button,
+    .tertiary-button,
+    .save-button,
+    .clients-button,
+    .clients-button-secondary,
+    .contracts-button,
+    .contracts-button-secondary,
+    .categories-button,
+    .categories-button-secondary,
+    .users-button,
+    .users-button-secondary,
+    .audit-logs-button,
+    .audit-logs-button-secondary {
+        min-width: auto !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+    }
+
+    /* Button groups should wrap but keep buttons side by side */
+    .button-group,
+    .clients-button-group,
+    .contracts-button-group,
+    .categories-button-group,
+    .users-button-group,
+    .audit-logs-button-group {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: auto !important;
+    }
+}
+
+/* Class applied by JS when mobile view is detected */
+html.mobile-forced-collapsed .app-nav-toggle {
+    display: none !important;
+}
+
+html.mobile-forced-collapsed .app-nav {
+    width: 70px !important;
+}
+
+html.mobile-forced-collapsed .app-nav-text {
+    display: none !important;
+}
+
+html.mobile-forced-collapsed .app-main {
+    margin-left: 70px !important;
 }
 
 /* Empty States */
@@ -802,6 +892,8 @@ th {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .primary-button:hover:not(:disabled) {
@@ -831,6 +923,8 @@ th {
     padding: 0.6rem 1.2rem;
     border-radius: 4px;
     font-size: 0.9rem;
+    flex-shrink: 0;
+    flex-grow: 0;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -875,6 +969,8 @@ th {
     gap: 6px;
     white-space: nowrap;
     min-width: 185px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .tertiary-button:hover:not(:disabled) {

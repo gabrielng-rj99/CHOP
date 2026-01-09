@@ -54,6 +54,8 @@
     gap: 6px;
     white-space: nowrap;
     min-width: 185px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .contracts-button:hover:not(:disabled) {
@@ -79,6 +81,8 @@
     align-items: center;
     gap: 6px;
     min-width: 185px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .contracts-button-secondary:hover {
@@ -259,18 +263,58 @@
 
 /* Responsive styles */
 @media (max-width: 768px) {
+    .contracts-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .contracts-button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .contracts-button,
+    .contracts-button-secondary {
+        min-width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
     .contracts-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
     }
 
     .contracts-filter-button {
-        flex: 1;
+        flex: 0 0 auto;
+        min-width: auto;
     }
 
     .contracts-search-input {
-        flex: 1;
-        min-width: 200px;
+        flex: 1 1 200px;
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contracts-title {
+        font-size: 24px;
+    }
+
+    .contracts-button,
+    .contracts-button-secondary {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .contracts-filter-button {
+        padding: 6px 12px;
+        font-size: 13px;
     }
 }

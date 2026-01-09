@@ -777,6 +777,8 @@
     transition:
         transform 0.2s ease,
         box-shadow 0.2s ease;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .security-save-button:hover:not(:disabled) {
@@ -901,11 +903,16 @@
 /* Responsive */
 @media (max-width: 768px) {
     .security-tabs {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .security-tab {
         border-radius: 8px;
+        flex: 0 1 auto;
+        padding: 10px 16px;
+        font-size: 0.85rem;
     }
 
     .lock-levels-grid,
@@ -917,5 +924,28 @@
 
     .lock-level-fields {
         grid-template-columns: 1fr;
+    }
+
+    .security-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .security-save-button {
+        padding: 10px 24px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .security-tab {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+    }
+
+    .security-save-button {
+        padding: 8px 16px;
+        font-size: 0.85rem;
     }
 }

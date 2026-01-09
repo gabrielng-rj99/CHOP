@@ -493,6 +493,8 @@
     cursor: pointer;
     font-size: 14px;
     transition: background 0.2s;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .button-cancel:hover {
@@ -509,6 +511,8 @@
     font-size: 14px;
     font-weight: 600;
     transition: background 0.2s;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .button-save:hover {
@@ -528,17 +532,46 @@
     }
 
     .form-row {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
 
     .modal-content {
-        width: 95%;
+        width: 90vw;
+        max-height: 80vh;
         padding: 20px;
     }
 
     .policies-header {
         flex-direction: column;
-        gap: 16px;
+    }
+
+    .modal-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .button-cancel,
+    .button-save {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .policies-header {
+        gap: 8px;
+    }
+
+    .modal-content {
+        width: 90vw;
+        padding: 16px;
+    }
+
+    .button-cancel,
+    .button-save {
+        width: 100%;
+        padding: 10px 16px;
+        font-size: 13px;
     }
 }
 

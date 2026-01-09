@@ -54,6 +54,8 @@
     gap: 6px;
     white-space: nowrap;
     min-width: 185px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .clients-button:hover:not(:disabled) {
@@ -81,6 +83,8 @@
     min-width: 185px;
     white-space: nowrap;
     justify-content: center;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .clients-button-secondary:hover {
@@ -211,18 +215,58 @@
 
 /* Responsive styles */
 @media (max-width: 768px) {
+    .clients-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .clients-button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .clients-button,
+    .clients-button-secondary {
+        min-width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
     .clients-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
     }
 
     .clients-filter-button {
-        flex: 1;
+        flex: 0 0 auto;
+        min-width: auto;
     }
 
     .clients-search-input {
-        flex: 1;
-        min-width: 200px;
+        flex: 1 1 200px;
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clients-title {
+        font-size: 24px;
+    }
+
+    .clients-button,
+    .clients-button-secondary {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .clients-filter-button {
+        padding: 6px 12px;
+        font-size: 13px;
     }
 }

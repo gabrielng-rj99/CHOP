@@ -82,8 +82,8 @@
 
 @media (min-width: 600px) and (max-width: 999px) {
     .dashboard-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        /* 2x4 */
+        grid-template-columns: repeat(4, 1fr);
+        /* 4x2 */
     }
 }
 
@@ -104,6 +104,23 @@
     flex-direction: column;
     justify-content: space-between;
     min-height: 120px;
+}
+
+/* Smaller cards for 4-column layout */
+@media (min-width: 600px) and (max-width: 999px) {
+    .dashboard-stat-card {
+        padding: 16px;
+        min-height: 100px;
+    }
+
+    .dashboard-stat-value {
+        font-size: 28px;
+    }
+
+    .dashboard-stat-label {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
 }
 
 .dashboard-stat-label {

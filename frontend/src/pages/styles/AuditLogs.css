@@ -49,6 +49,8 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .audit-logs-button:hover {
@@ -71,6 +73,8 @@
     min-width: 185px;
     white-space: nowrap;
     justify-content: center;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .audit-logs-button-secondary:hover {
@@ -170,4 +174,52 @@
 
 .dark-mode .audit-logs-button-secondary:hover {
     filter: brightness(0.9);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .audit-logs-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .audit-logs-button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .audit-logs-button,
+    .audit-logs-button-secondary {
+        min-width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .audit-logs-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .audit-logs-search-input {
+        flex: 1 1 200px;
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .audit-logs-title {
+        font-size: 24px;
+    }
+
+    .audit-logs-button,
+    .audit-logs-button-secondary {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
 }

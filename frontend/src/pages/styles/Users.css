@@ -54,6 +54,8 @@
     gap: 6px;
     white-space: nowrap;
     min-width: 185px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .users-button:hover:not(:disabled) {
@@ -81,6 +83,8 @@
     min-width: 185px;
     white-space: nowrap;
     justify-content: center;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .users-button-secondary:hover {
@@ -217,4 +221,52 @@
     background: rgba(52, 211, 153, 0.15);
     color: #10b981;
     border-color: rgba(52, 211, 153, 0.3);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .users-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .users-button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .users-button,
+    .users-button-secondary {
+        min-width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .users-search-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .users-search-input {
+        flex: 1 1 200px;
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .users-title {
+        font-size: 24px;
+    }
+
+    .users-button,
+    .users-button-secondary {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
 }

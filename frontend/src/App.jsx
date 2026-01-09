@@ -83,8 +83,33 @@ function App() {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [refreshToken, setRefreshToken] = useState(null);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(
+        window.innerWidth <= 768,
+    );
+    const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
     const refreshTimeoutRef = useRef(null);
+
+    // Detect mobile/narrow screens and force sidebar collapsed permanently
+    useEffect(() => {
+        const handleResize = () => {
+            const isMobile = window.innerWidth <= 768;
+            setIsMobileView(isMobile);
+            if (isMobile) {
+                setSidebarCollapsed(true);
+                document.documentElement.classList.add(
+                    "mobile-forced-collapsed",
+                );
+            } else {
+                document.documentElement.classList.remove(
+                    "mobile-forced-collapsed",
+                );
+            }
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     // Check if app is initialized
     useEffect(() => {
@@ -259,6 +284,10 @@ function App() {
     };
 
     const toggleSidebar = () => {
+        // Prevent sidebar expansion on mobile/narrow screens
+        if (isMobileView) {
+            return;
+        }
         setSidebarCollapsed(!sidebarCollapsed);
     };
 
@@ -297,8 +326,6 @@ function App() {
             />
         );
     }
-
-
 
     return (
         <BrowserRouter>
