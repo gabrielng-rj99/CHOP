@@ -34,6 +34,16 @@ export const auditApi = {
             params.append("changed_data", filters.changedData);
         if (filters.status) params.append("status", filters.status);
         if (filters.ipAddress) params.append("ip_address", filters.ipAddress);
+        if (filters.requestMethod)
+            params.append("request_method", filters.requestMethod);
+        if (filters.requestPath)
+            params.append("request_path", filters.requestPath);
+        if (filters.responseCode)
+            params.append("response_code", filters.responseCode);
+        if (filters.executionTimeMs)
+            params.append("execution_time_ms", filters.executionTimeMs);
+        if (filters.errorMessage)
+            params.append("error_message", filters.errorMessage);
         if (filters.startDate) params.append("start_date", filters.startDate);
         if (filters.endDate) params.append("end_date", filters.endDate);
         if (filters.limit) params.append("limit", filters.limit);
@@ -143,6 +153,20 @@ export const auditApi = {
             params.append("resource_search", filters.resourceSearch);
         if (filters.changedData)
             params.append("changed_data", filters.changedData);
+        if (filters.status) params.append("status", filters.status);
+        if (filters.ipAddress) params.append("ip_address", filters.ipAddress);
+        if (filters.requestMethod)
+            params.append("request_method", filters.requestMethod);
+        if (filters.requestPath)
+            params.append("request_path", filters.requestPath);
+        if (filters.responseCode)
+            params.append("response_code", filters.responseCode);
+        if (filters.executionTimeMs)
+            params.append("execution_time_ms", filters.executionTimeMs);
+        if (filters.errorMessage)
+            params.append("error_message", filters.errorMessage);
+        if (filters.startDate) params.append("start_date", filters.startDate);
+        if (filters.endDate) params.append("end_date", filters.endDate);
 
         const response = await fetch(
             `${apiUrl}/audit-logs/export?${params.toString()}`,

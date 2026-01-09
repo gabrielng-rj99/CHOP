@@ -49,6 +49,11 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
             changedData: "",
             startDate: "",
             endDate: "",
+            requestMethod: "",
+            requestPath: "",
+            responseCode: "",
+            executionTimeMs: "",
+            errorMessage: "",
         });
     };
 
@@ -240,6 +245,92 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                                 value={filters.endDate}
                                 onChange={(e) =>
                                     handleDateChange("endDate", e.target.value)
+                                }
+                                className="audit-filters-input"
+                            />
+                        </div>
+
+                        <div className="audit-filters-field">
+                            <label className="audit-filters-label">
+                                Método HTTP
+                            </label>
+                            <select
+                                value={filters.requestMethod}
+                                onChange={(e) =>
+                                    handleChange(
+                                        "requestMethod",
+                                        e.target.value,
+                                    )
+                                }
+                                className="audit-filters-select"
+                            >
+                                <option value="">Todos os métodos</option>
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                            </select>
+                        </div>
+
+                        <div className="audit-filters-field">
+                            <label className="audit-filters-label">
+                                Endpoint
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Ex: /api/clients"
+                                value={filters.requestPath}
+                                onChange={(e) =>
+                                    handleChange("requestPath", e.target.value)
+                                }
+                                className="audit-filters-input"
+                            />
+                        </div>
+
+                        <div className="audit-filters-field">
+                            <label className="audit-filters-label">
+                                Código de Resposta
+                            </label>
+                            <input
+                                type="number"
+                                placeholder="Ex: 200"
+                                value={filters.responseCode}
+                                onChange={(e) =>
+                                    handleChange("responseCode", e.target.value)
+                                }
+                                className="audit-filters-input"
+                            />
+                        </div>
+
+                        <div className="audit-filters-field">
+                            <label className="audit-filters-label">
+                                Tempo de Execução (ms)
+                            </label>
+                            <input
+                                type="number"
+                                placeholder="Ex: 100"
+                                value={filters.executionTimeMs}
+                                onChange={(e) =>
+                                    handleChange(
+                                        "executionTimeMs",
+                                        e.target.value,
+                                    )
+                                }
+                                className="audit-filters-input"
+                            />
+                        </div>
+
+                        <div className="audit-filters-field">
+                            <label className="audit-filters-label">
+                                Mensagem de Erro
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Buscar na mensagem de erro"
+                                value={filters.errorMessage}
+                                onChange={(e) =>
+                                    handleChange("errorMessage", e.target.value)
                                 }
                                 className="audit-filters-input"
                             />

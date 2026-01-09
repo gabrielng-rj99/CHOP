@@ -166,7 +166,7 @@ export default function AuditLogsTable({
     };
 
     const getChangeContext = (log) => {
-        if (!log.old_value && !log.new_value) return "N/A";
+        if (!log || (!log.old_value && !log.new_value)) return "N/A";
 
         try {
             // Parse inicial
@@ -241,6 +241,13 @@ export default function AuditLogsTable({
 
     // NOVA FUNÇÃO: resolve objeto pelo usuário - sempre busca o nome mais recente por ID
     const getObjectLabel = (log) => {
+        if (!log) return "N/A";
+
+        // Primeiro, tenta usar o object_name do backend (novo campo)
+        if (log.object_name) {
+            return log.object_name;
+        }
+
         // Verifica resource_id com diferentes possibilidades de nome de campo
         const resourceId =
             log.resource_id ||
@@ -252,7 +259,7 @@ export default function AuditLogsTable({
         // Se for entidade usuário, resolve sempre pelo ID (pega nome atual)
         if (log.resource === "user" || log.client === "user") {
             // Se tiver resource_id, busca na lista de users (sempre o nome mais recente)
-            if (resourceId) {
+            if (resourceId && users && Array.isArray(users)) {
                 const user = users.find((u) => u.id === resourceId);
                 if (user) {
                     return user.username || user.display_name || resourceId;
@@ -295,12 +302,13 @@ export default function AuditLogsTable({
                 <thead>
                     <tr>
                         <th width="4%"></th>
-                        <th width="16%">Data/Hora</th>
-                        <th width="10%">Status</th>
-                        <th width="14%">Admin</th>
-                        <th width="10%">Operação</th>
-                        <th width="10%">Entidade</th>
-                        <th width="26%">Objeto</th>
+                        <th width="14%">Data/Hora</th>
+                        <th width="8%">Status</th>
+                        <th width="12%">Admin</th>
+                        <th width="8%">Operação</th>
+                        <th width="8%">Entidade</th>
+                        <th width="14%">Nome do Objeto</th>
+                        <th width="12%">Objeto ID</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -355,11 +363,19 @@ export default function AuditLogsTable({
                                 </td>
                                 <td>{getResourceLabel(log.resource)}</td>
                                 <td>{getObjectLabel(log)}</td>
+                                <td
+                                    style={{
+                                        fontSize: "11px",
+                                        wordBreak: "break-all",
+                                    }}
+                                >
+                                    {log.resource_id || "N/A"}
+                                </td>
                             </tr>
                             {expandedId === log.id && (
                                 <tr>
                                     <td
-                                        colSpan="6"
+                                        colSpan="7"
                                         className="audit-logs-expanded-row"
                                     >
                                         <div
@@ -432,6 +448,56 @@ export default function AuditLogsTable({
                                                                 }}
                                                             >
                                                                 {log.request_path ||
+                                                                    "N/A"}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    fontWeight:
+                                                                        "600",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
+                                                                }}
+                                                            >
+                                                                Admin:
+                                                            </td>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    color: "var(--secondary-text-color, #34495e)",
+                                                                }}
+                                                            >
+                                                                {log.admin_username ||
+                                                                    "N/A"}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    fontWeight:
+                                                                        "600",
+                                                                    color: "var(--primary-text-color, #2c3e50)",
+                                                                }}
+                                                            >
+                                                                Admin ID:
+                                                            </td>
+                                                            <td
+                                                                style={{
+                                                                    padding:
+                                                                        "6px 0",
+                                                                    color: "var(--secondary-text-color, #34495e)",
+                                                                    fontSize:
+                                                                        "11px",
+                                                                    wordBreak:
+                                                                        "break-all",
+                                                                }}
+                                                            >
+                                                                {log.admin_id ||
                                                                     "N/A"}
                                                             </td>
                                                         </tr>
@@ -515,7 +581,7 @@ export default function AuditLogsTable({
                                                                     color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
-                                                                Admin:
+                                                                Objeto Nome:
                                                             </td>
                                                             <td
                                                                 style={{
@@ -524,8 +590,9 @@ export default function AuditLogsTable({
                                                                     color: "var(--secondary-text-color, #34495e)",
                                                                 }}
                                                             >
-                                                                {log.admin_username ||
-                                                                    "N/A"}
+                                                                {getObjectLabel(
+                                                                    log,
+                                                                )}
                                                             </td>
                                                         </tr>
                                                         <tr>
@@ -538,7 +605,7 @@ export default function AuditLogsTable({
                                                                     color: "var(--primary-text-color, #2c3e50)",
                                                                 }}
                                                             >
-                                                                Admin ID:
+                                                                Objeto ID:
                                                             </td>
                                                             <td
                                                                 style={{
@@ -551,7 +618,7 @@ export default function AuditLogsTable({
                                                                         "break-all",
                                                                 }}
                                                             >
-                                                                {log.admin_id ||
+                                                                {log.resource_id ||
                                                                     "N/A"}
                                                             </td>
                                                         </tr>

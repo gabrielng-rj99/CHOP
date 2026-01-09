@@ -51,6 +51,11 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         resourceId: searchParams.get("resourceId") || "",
         startDate: searchParams.get("startDate") || "",
         endDate: searchParams.get("endDate") || "",
+        requestMethod: searchParams.get("requestMethod") || "",
+        requestPath: searchParams.get("requestPath") || "",
+        responseCode: searchParams.get("responseCode") || "",
+        executionTimeMs: searchParams.get("executionTimeMs") || "",
+        errorMessage: searchParams.get("errorMessage") || "",
     });
 
     // Local state for the filter inputs
@@ -109,6 +114,12 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
                 end_date: currentUrlFilters.endDate
                     ? new Date(currentUrlFilters.endDate).toISOString()
                     : undefined,
+                request_method: currentUrlFilters.requestMethod || undefined,
+                request_path: currentUrlFilters.requestPath || undefined,
+                response_code: currentUrlFilters.responseCode || undefined,
+                execution_time_ms:
+                    currentUrlFilters.executionTimeMs || undefined,
+                error_message: currentUrlFilters.errorMessage || undefined,
                 limit: logsPerPage,
                 offset: offset,
             };
@@ -180,6 +191,12 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
                 admin_search: currentUrlFilters.adminSearch || undefined,
                 resource_search: currentUrlFilters.resourceSearch || undefined,
                 changed_data: currentUrlFilters.changedData || undefined,
+                request_method: currentUrlFilters.requestMethod || undefined,
+                request_path: currentUrlFilters.requestPath || undefined,
+                response_code: currentUrlFilters.responseCode || undefined,
+                execution_time_ms:
+                    currentUrlFilters.executionTimeMs || undefined,
+                error_message: currentUrlFilters.errorMessage || undefined,
             };
 
             const data = await auditApi.exportAuditLogs(
@@ -216,6 +233,8 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             <div className="audit-logs-header">
                 <h1 className="audit-logs-title">🔍 Logs</h1>
                 <div className="button-group">
+                    <PrimaryButton onClick={() => loadLogs(true)}>
+                    </PrimaryButton>
                     <PrimaryButton
                         onClick={handleExport}
                         style={{
