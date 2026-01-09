@@ -22,11 +22,12 @@ import { useData } from "../contexts/DataContext";
 import { clientsApi } from "../api/clientsApi";
 import { useUrlState } from "../hooks/useUrlState";
 import {
-    filterClients,
     formatClientForEdit,
     formatAffiliateForEdit,
     getInitialFormData,
     getInitialAffiliateForm,
+    prepareClientPayload,
+    filterClients,
 } from "../utils/clientHelpers";
 import ClientModal from "../components/clients/ClientModal";
 import ClientsTable from "../components/clients/ClientsTable";
@@ -76,7 +77,9 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     );
 
     useEffect(() => {
-        loadClients();
+        // Sempre fazer fresh request ao carregar a página
+        // Cache é útil apenas para buscas/filtros durante a mesma sessão
+        loadClients(true);
     }, []);
 
     // Equalize filter button widths
@@ -142,7 +145,8 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const createClient = async () => {
         setModalError("");
         try {
-            await createClientAPI(formData);
+            const payload = prepareClientPayload(formData);
+            await createClientAPI(payload);
             invalidateCache("clients");
             await loadClients(true);
             closeModal();
@@ -154,7 +158,8 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const updateClient = async () => {
         setModalError("");
         try {
-            await updateClientAPI(selectedClient.id, formData);
+            const payload = prepareClientPayload(formData);
+            await updateClientAPI(selectedClient.id, payload);
             invalidateCache("clients");
             await loadClients(true);
             closeModal();

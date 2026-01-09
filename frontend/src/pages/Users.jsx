@@ -281,6 +281,8 @@ export default function Users({
                     👤 {config.labels.users || "Usuários"}
                 </h1>
                 <div className="button-group">
+                    <PrimaryButton onClick={() => loadUsers()}>
+                    </PrimaryButton>
                     {["admin", "root"].includes(user.role) && (
                         <PrimaryButton onClick={openCreateModal}>
                             + {g.new} {config.labels.user || "Usuário"}

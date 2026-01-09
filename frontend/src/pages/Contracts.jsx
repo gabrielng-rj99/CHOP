@@ -75,8 +75,10 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
 
     const filtersContainerRef = useRef(null);
 
+    // Sempre fazer fresh request ao carregar a página
+    // Cache é usado apenas para buscas/filtros durante a mesma sessão
     useEffect(() => {
-        loadInitialData();
+        loadInitialData(true);
     }, []);
 
     // Equalize filter button widths

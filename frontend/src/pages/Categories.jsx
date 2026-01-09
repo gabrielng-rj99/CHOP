@@ -70,6 +70,8 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const [categoryForm, setCategoryForm] = useState(getInitialCategoryForm());
     const [lineForm, setLineForm] = useState(getInitialLineForm());
 
+    // Sempre fazer fresh request ao carregar a página
+    // A API de categories não usa cache, então sempre busca dados frescos
     useEffect(() => {
         loadCategories();
     }, []);

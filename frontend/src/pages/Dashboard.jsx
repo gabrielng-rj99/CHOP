@@ -93,8 +93,10 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         }
     }, [token, apiUrl]);
 
+    // Sempre fazer fresh request ao carregar o Dashboard
+    // Cache é usado apenas para buscas/filtros durante a mesma sessão
     useEffect(() => {
-        loadData();
+        loadData(true); // forceRefresh=true para garantir dados atualizados
     }, []);
 
     const loadData = async (forceRefresh = false) => {
