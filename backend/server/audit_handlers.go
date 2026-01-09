@@ -131,8 +131,12 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	// Paginação
 	limit := 100
 	if l := query.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 1000 {
-			limit = parsed
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			if parsed > 1000 {
+				limit = 1000
+			} else {
+				limit = parsed
+			}
 		}
 	}
 

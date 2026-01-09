@@ -90,8 +90,11 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify deploy token (if set in environment)
+	// Verify deploy token (if set in environment)
 	deployToken := os.Getenv("DEPLOY_TOKEN")
+
 	if deployToken != "" {
+		// Validar token se existir
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "Bearer "+deployToken {
 			w.Header().Set("Content-Type", "application/json")
@@ -102,6 +105,25 @@ func (s *Server) HandleDeployConfig(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+	} else {
+		// Se não tem token, verificar se o sistema já está instalado (DB com dados)
+		db := GetGlobalDB()
+		if db != nil {
+			isEmpty, err := isDatabaseEmpty(db)
+			if err != nil {
+				// Erro ao verificar DB: Fail safe -> Bloquear
+				log.Printf("❌ Erro verificando estado do DB para deploy: %v", err)
+				respondError(w, http.StatusInternalServerError, "Erro verificando estado do sistema")
+				return
+			}
+			if !isEmpty {
+				// Sistema já tem dados -> Bloquear acesso sem token
+				log.Printf("🚨 SECURITY: Bloqueada tentativa de acesso a Deploy Config em sistema instalado")
+				respondError(w, http.StatusForbidden, "Acesso negado. O sistema já está instalado.")
+				return
+			}
+		}
+		// Se db == nil, permite prosseguir (primeira configuração)
 	}
 
 	var req DeployConfigRequest
@@ -323,6 +345,25 @@ func (s *Server) HandleDeployConfigDefaults(w http.ResponseWriter, r *http.Reque
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// SECURITY: Protect defaults (sensitive info) from unauthorized access on installed systems
+	deployToken := os.Getenv("DEPLOY_TOKEN")
+	if deployToken != "" {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "Bearer "+deployToken {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+	} else {
+		db := GetGlobalDB()
+		if db != nil {
+			isEmpty, err := isDatabaseEmpty(db)
+			if err != nil || !isEmpty {
+				respondError(w, http.StatusForbidden, "Acesso negado. Sistema instalado.")
+				return
+			}
+		}
 	}
 
 	cfg := config.GetConfig()
