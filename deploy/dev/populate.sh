@@ -349,6 +349,195 @@ echo ""
 echo "✓ Contracts: $ccount"
 echo ""
 
+# Step 6.5: Create financial for contracts with realistic date distribution
+echo "[6.5/9] Creating financial for contracts with date distribution..."
+declare -i fcount=0
+
+# Helper function to calculate dates relative to today
+calc_date() {
+    local offset=$1
+    date -u -d "$offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || \
+    date -u -v${offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || \
+    echo "2026-01-15T00:00:00Z"
+}
+
+# Get all contracts
+CONTRACTS_RESPONSE=$(curl -s -X GET "$BASE_URL/contracts" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
+CONTRACT_IDS=($(echo "$CONTRACTS_RESPONSE" | jq -r '.data[].id // empty' 2>/dev/null))
+
+if [ "${#CONTRACT_IDS[@]}" -gt 0 ]; then
+    for i in "${!CONTRACT_IDS[@]}"; do
+        contract_id="${CONTRACT_IDS[$i]}"
+
+        # Determine financial type based on index
+        # 40% único, 30% recorrente, 30% personalizado
+        financial_type_idx=$((i % 10))
+
+        if [ $financial_type_idx -lt 4 ]; then
+            # Financeiro único
+            client_val=$((100 + RANDOM % 900))
+            received_val=$((client_val * (10 + RANDOM % 30) / 100))
+
+            res=$(api_call POST "/financial" "{
+                \"contract_id\": \"$contract_id\",
+                \"financial_type\": \"unico\",
+                \"client_value\": $client_val,
+                \"received_value\": $received_val,
+                \"description\": \"Financeiro único - Taxa de adesão\"
+            }")
+            id=$(getid "$res")
+            [ -n "$id" ] && ((fcount++))
+
+        elif [ $financial_type_idx -lt 7 ]; then
+            # Financeiro recorrente
+            recurrence_types=("mensal" "trimestral" "semestral" "anual")
+            rec_type="${recurrence_types[$((RANDOM % 4))]}"
+            due_day=$((1 + RANDOM % 28))
+            client_val=$((50 + RANDOM % 450))
+            received_val=$((client_val * (5 + RANDOM % 20) / 100))
+
+            res=$(api_call POST "/financial" "{
+                \"contract_id\": \"$contract_id\",
+                \"financial_type\": \"recorrente\",
+                \"recurrence_type\": \"$rec_type\",
+                \"due_day\": $due_day,
+                \"client_value\": $client_val,
+                \"received_value\": $received_val,
+                \"description\": \"Mensalidade $rec_type\"
+            }")
+            id=$(getid "$res")
+            [ -n "$id" ] && ((fcount++))
+
+        else
+            # Financeiro personalizado (com parcelas - simula plano de saúde)
+            # Distribuir datas: passado, presente e futuro para teste de períodos
+            num_installments=$((4 + RANDOM % 4))  # 4-7 parcelas para melhor distribuição
+
+            # Determine temporal pattern based on contract index
+            # 25% - todas no passado (já devem estar pagas ou atrasadas)
+            # 25% - mix passado/presente (algumas pagas, algumas pendentes)
+            # 25% - presente/futuro (mês atual e próximos)
+            # 25% - todas no futuro
+            temporal_pattern=$((i % 4))
+
+            # Criar array de parcelas
+            installments="["
+            for j in $(seq 0 $((num_installments - 1))); do
+                if [ $j -eq 0 ]; then
+                    label="Entrada"
+                    client_val=$((500 + RANDOM % 1500))
+                    received_val=$((client_val * (20 + RANDOM % 30) / 100))
+                else
+                    label="${j}ª Parcela"
+                    client_val=$((200 + RANDOM % 800))
+                    received_val=$((client_val * (10 + RANDOM % 20) / 100))
+                fi
+
+                # Calculate due date based on temporal pattern
+                case $temporal_pattern in
+                    0)
+                        # Todas no passado (-90 a -30 dias atrás)
+                        base_offset=$((-90 + j * 15))
+                        due_offset=$((base_offset + RANDOM % 10))
+                        ;;
+                    1)
+                        # Mix passado/presente (-60 a +30 dias)
+                        base_offset=$((-60 + j * 20))
+                        due_offset=$((base_offset + RANDOM % 10))
+                        ;;
+                    2)
+                        # Presente/futuro (-15 a +90 dias)
+                        base_offset=$((-15 + j * 20))
+                        due_offset=$((base_offset + RANDOM % 10))
+                        ;;
+                    3)
+                        # Todas no futuro (+7 a +120 dias)
+                        base_offset=$((7 + j * 20))
+                        due_offset=$((base_offset + RANDOM % 10))
+                        ;;
+                esac
+
+                due_date=$(calc_date "$due_offset")
+
+                [ $j -gt 0 ] && installments="$installments,"
+                installments="$installments{
+                    \"installment_number\": $j,
+                    \"installment_label\": \"$label\",
+                    \"client_value\": $client_val,
+                    \"received_value\": $received_val,
+                    \"due_date\": \"$due_date\"
+                }"
+            done
+            installments="$installments]"
+
+            res=$(api_call POST "/financial" "{
+                \"contract_id\": \"$contract_id\",
+                \"financial_type\": \"personalizado\",
+                \"description\": \"Comissão escalonada - Plano de Saúde\",
+                \"installments\": $installments
+            }")
+            id=$(getid "$res")
+            [ -n "$id" ] && ((fcount++))
+        fi
+
+        [ $((fcount % 30)) -eq 0 ] && echo -n "."
+    done
+fi
+echo ""
+echo "✓ Financials: $fcount"
+echo ""
+
+# Step 6.6: Mark installments as paid based on due date (realistic simulation)
+echo "[6.6/9] Marking installments as paid based on due dates..."
+declare -i paid_count=0
+declare -i overdue_count=0
+
+TODAY_EPOCH=$(date +%s)
+
+# Get all financial
+FINANCIALS_RESPONSE=$(curl -s -X GET "$BASE_URL/financial" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
+FINANCIAL_IDS=($(echo "$FINANCIALS_RESPONSE" | jq -r '.data[] | select(.financial_type == "personalizado") | .id // empty' 2>/dev/null))
+
+for financial_id in "${FINANCIAL_IDS[@]}"; do
+    # Get installments for this financial
+    INSTALLMENTS_RESPONSE=$(curl -s -X GET "$BASE_URL/financial/$financial_id/installments" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
+
+    # Parse installments and mark as paid if due date is in the past (80% chance)
+    # This simulates realistic financial behavior
+    echo "$INSTALLMENTS_RESPONSE" | jq -r '.data[] | "\(.id)|\(.due_date)"' 2>/dev/null | while IFS='|' read -r inst_id due_date; do
+        if [ -n "$due_date" ] && [ "$due_date" != "null" ]; then
+            # Convert due_date to epoch
+            due_epoch=$(date -d "$due_date" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$due_date" +%s 2>/dev/null || echo "0")
+
+            if [ "$due_epoch" != "0" ] && [ "$due_epoch" -lt "$TODAY_EPOCH" ]; then
+                # Due date is in the past - 80% chance of being paid
+                if [ $((RANDOM % 100)) -lt 80 ]; then
+                    api_call PUT "/financial/$financial_id/installments/$inst_id/pay" "{}" > /dev/null 2>&1
+                    ((paid_count++))
+                else
+                    ((overdue_count++))
+                fi
+            fi
+        fi
+    done
+done
+
+# Also mark some recent/current installments as paid (simulating proactive financial)
+for financial_id in "${FINANCIAL_IDS[@]:0:20}"; do
+    INSTALLMENTS_RESPONSE=$(curl -s -X GET "$BASE_URL/financial/$financial_id/installments" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
+    INSTALLMENT_IDS=($(echo "$INSTALLMENTS_RESPONSE" | jq -r '.data[] | select(.status == "pendente") | .id // empty' 2>/dev/null | head -1))
+
+    for inst_id in "${INSTALLMENT_IDS[@]:0:1}"; do
+        if [ -n "$inst_id" ] && [ $((RANDOM % 100)) -lt 30 ]; then
+            api_call PUT "/financial/$financial_id/installments/$inst_id/pay" "{}" > /dev/null 2>&1
+            ((paid_count++))
+        fi
+    done
+done
+
+echo "✓ Marked ~$paid_count installments as paid, ~$overdue_count remain overdue"
+echo ""
+
 # Step 7: Users
 echo "[7/9] Creating 8 users..."
 declare -i ucount=0
@@ -438,6 +627,11 @@ echo "    - Expirados: ~$((ccount * 15 / 100))"
 echo "    - Não Iniciados (data futura): ~$((ccount * 15 / 100))"
 echo "    - Com Afiliado: ~$((ccount * 10 / 100))"
 echo "    - Arquivados: ~$((ccount * 5 / 100))"
+echo "  ✓ Financials: $fcount"
+echo "    - Financeiro Único: ~$((fcount * 40 / 100))"
+echo "    - Recorrente (Mensalidade): ~$((fcount * 30 / 100))"
+echo "    - Personalizado (Parcelas): ~$((fcount * 30 / 100))"
+echo "    - Parcelas marcadas como pagas: $paid_count"
 echo "  ✓ Users: $ucount"
 echo "  ✓ API Activities: $activity_count"
 echo ""
@@ -449,6 +643,11 @@ echo ""
 echo "Birthday Distribution:"
 echo "  ✓ At least 1 client birthday per week of the year"
 echo "  ✓ At least 1 affiliate birthday per week of the year"
+echo ""
+echo "Financial Features:"
+echo "  💰 Various financial types configured for contracts"
+echo "  📅 Personalized financial with due dates and installments"
+echo "  ✅ Some installments pre-marked as paid for testing"
 echo ""
 echo "====================================="
 
