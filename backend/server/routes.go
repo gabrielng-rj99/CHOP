@@ -83,16 +83,19 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Inject user info for logging
-		setRequestUser(r, claims)
+		// Inject user info for logging (role fetched from DB)
+		setRequestUser(r, claims, s.roleStore)
 
-		log.Printf("Requisição autenticada: username=%s, role=%s, method=%s, path=%s", claims.Username, claims.Role, r.Method, r.URL.Path)
+		// Get role from DB for logging
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("Requisição autenticada: username=%s, role=%s, method=%s, path=%s", claims.Username, role, r.Method, r.URL.Path)
 		next(w, r)
 	}
 }
 
 // adminOnlyMiddleware restricts access to admin and root users only
 // Must be used after authMiddleware
+// NOTE: Role is checked via DB lookup, not JWT claims
 func (s *Server) adminOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenString := extractTokenFromHeader(r)
@@ -102,9 +105,18 @@ func (s *Server) adminOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if claims.Role != "admin" && claims.Role != "root" {
+		// Check role via DB lookup
+		isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+		if err != nil {
+			log.Printf("❌ Error checking user role: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+
+		if !isAdminOrRoot {
+			role, _ := s.roleStore.GetUserRole(claims.UserID)
 			log.Printf("🚫 Acesso negado: usuário %s (role: %s) tentou acessar recurso administrativo %s %s",
-				claims.Username, claims.Role, r.Method, r.URL.Path)
+				claims.Username, role, r.Method, r.URL.Path)
 			respondError(w, http.StatusForbidden, "Acesso negado. Apenas administradores podem acessar este recurso.")
 			return
 		}
@@ -115,6 +127,7 @@ func (s *Server) adminOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // rootOnlyMiddleware restricts access to root users only
 // Must be used after authMiddleware
+// NOTE: Role is checked via DB lookup, not JWT claims
 func (s *Server) rootOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenString := extractTokenFromHeader(r)
@@ -124,9 +137,18 @@ func (s *Server) rootOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if claims.Role != "root" {
+		// Check role via DB lookup
+		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+		if err != nil {
+			log.Printf("❌ Error checking user role: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+
+		if !isRoot {
+			role, _ := s.roleStore.GetUserRole(claims.UserID)
 			log.Printf("🚫 Acesso negado: usuário %s (role: %s) tentou acessar recurso exclusivo de root %s %s",
-				claims.Username, claims.Role, r.Method, r.URL.Path)
+				claims.Username, role, r.Method, r.URL.Path)
 			respondError(w, http.StatusForbidden, "Acesso negado. Apenas usuários root podem acessar este recurso.")
 			return
 		}
@@ -221,6 +243,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			s.handleContractArchive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/unarchive") {
 			s.handleContractUnarchive(w, r)
+		} else if strings.HasSuffix(r.URL.Path, "/financial") {
+			s.handleContractFinancial(w, r)
 		} else {
 			s.handleContractByID(w, r)
 		}
@@ -269,11 +293,32 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	})))
 
+	// Financial - Contract financial management
+	mux.HandleFunc("/api/financial/summary", s.standardMiddleware(s.authMiddleware(s.handleFinancialSummary)))
+	mux.HandleFunc("/api/financial/detailed-summary", s.standardMiddleware(s.authMiddleware(s.handleFinancialDetailedSummary)))
+	mux.HandleFunc("/api/financial/upcoming", s.standardMiddleware(s.authMiddleware(s.handleUpcomingFinancial)))
+	mux.HandleFunc("/api/financial/overdue", s.standardMiddleware(s.authMiddleware(s.handleOverdueFinancial)))
+	mux.HandleFunc("/api/financial/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		s.handleFinancialByID(w, r)
+	})))
+	mux.HandleFunc("/api/financial", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/financial" {
+			s.handleFinancial(w, r)
+		} else {
+			s.handleFinancialByID(w, r)
+		}
+	})))
+
 	// Audit Logs (only accessible to root)
 	mux.HandleFunc("/api/audit-logs/", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		// Apenas root pode acessar
+		// Apenas root pode acessar - check via DB
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
-		if err != nil || claims.Role != "root" {
+		if err != nil {
+			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
+			return
+		}
+		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+		if err != nil || !isRoot {
 			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
 			return
 		}
@@ -288,9 +333,14 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	})))
 	mux.HandleFunc("/api/audit-logs", s.standardMiddleware(s.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		// Apenas root pode acessar
+		// Apenas root pode acessar - check via DB
 		claims, err := ValidateJWT(extractTokenFromHeader(r), s.userStore)
-		if err != nil || claims.Role != "root" {
+		if err != nil {
+			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
+			return
+		}
+		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+		if err != nil || !isRoot {
 			respondError(w, http.StatusForbidden, "Apenas root pode acessar logs de auditoria")
 			return
 		}

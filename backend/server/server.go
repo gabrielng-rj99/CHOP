@@ -57,6 +57,7 @@ type Server struct {
 	settingsStore    *store.SettingsStore
 	userThemeStore   *store.UserThemeStore
 	roleStore        *store.RoleStore
+	financialStore     *store.FinancialStore
 	config           *config.Config
 	rateLimiter      *IPRateLimiter
 }
@@ -77,6 +78,7 @@ func NewServer(db *sql.DB) *Server {
 	var settingsStore *store.SettingsStore
 	var userThemeStore *store.UserThemeStore
 	var roleStore *store.RoleStore
+	var financialStore *store.FinancialStore
 
 	if db != nil {
 		userStore = store.NewUserStore(db)
@@ -89,6 +91,7 @@ func NewServer(db *sql.DB) *Server {
 		settingsStore = store.NewSettingsStore(db)
 		userThemeStore = store.NewUserThemeStore(db)
 		roleStore = store.NewRoleStore(db)
+		financialStore = store.NewFinancialStore(db)
 	}
 
 	return &Server{
@@ -102,6 +105,7 @@ func NewServer(db *sql.DB) *Server {
 		settingsStore:    settingsStore,
 		userThemeStore:   userThemeStore,
 		roleStore:        roleStore,
+		financialStore:     financialStore,
 		config:           cfg,
 		rateLimiter:      NewIPRateLimiter(rate.Limit(cfg.Security.RateLimit), cfg.Security.RateBurst),
 	}
@@ -120,6 +124,7 @@ func (s *Server) InitializeStores(db *sql.DB) {
 		s.settingsStore = store.NewSettingsStore(db)
 		s.userThemeStore = store.NewUserThemeStore(db)
 		s.roleStore = store.NewRoleStore(db)
+		s.financialStore = store.NewFinancialStore(db)
 	}
 }
 

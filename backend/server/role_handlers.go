@@ -114,8 +114,8 @@ func (s *Server) HandleRoleByIDRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleID := parts[0]
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -247,8 +247,8 @@ func (s *Server) HandleGetRoles(w http.ResponseWriter, r *http.Request) {
 
 // HandleGetRoleByID returns a single role by ID
 func (s *Server) HandleGetRoleByID(w http.ResponseWriter, r *http.Request, roleID string) {
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -423,8 +423,8 @@ func (s *Server) HandleCreateRole(w http.ResponseWriter, r *http.Request) {
 
 // HandleUpdateRole updates an existing role
 func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID string) {
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -526,8 +526,8 @@ func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID
 
 // HandleDeleteRole deletes a role
 func (s *Server) HandleDeleteRole(w http.ResponseWriter, r *http.Request, roleID string) {
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -690,8 +690,8 @@ func (s *Server) HandleGetPermissions(w http.ResponseWriter, r *http.Request) {
 
 // HandleGetRolePermissions returns permissions for a specific role
 func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request, roleID string) {
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -735,8 +735,8 @@ func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request
 
 // HandleSetRolePermissions sets all permissions for a role
 func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request, roleID string) {
-	// SECURITY: Validate UUID
-	if err := domain.ValidateUUID(roleID); err != nil {
+	// SECURITY: Validate UUID (generic format to accept hardcoded role IDs)
+	if err := domain.ValidateUUIDGeneric(roleID); err != nil {
 		respondError(w, http.StatusNotFound, "Role not found")
 		return
 	}
@@ -790,9 +790,9 @@ func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Validate permissions IDs
+	// Validate permissions IDs (use generic UUID validation for hardcoded permission IDs)
 	for _, permID := range req.PermissionIDs {
-		if err := domain.ValidateUUID(permID); err != nil {
+		if err := domain.ValidateUUIDGeneric(permID); err != nil {
 			respondError(w, http.StatusBadRequest, "ID de permissão inválido: "+permID)
 			return
 		}
