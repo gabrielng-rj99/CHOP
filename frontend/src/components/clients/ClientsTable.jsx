@@ -17,11 +17,12 @@
  */
 
 import React from "react";
+import { useConfig } from "../../contexts/ConfigContext";
 import "./ClientsTable.css";
-import BranchIcon from "../../assets/icons/branch.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
+import ContractIcon from "../../assets/icons/contract.svg";
 
 export default function ClientsTable({
     filteredClients,
@@ -29,7 +30,10 @@ export default function ClientsTable({
     openAffiliatesPanel,
     archiveClient,
     unarchiveClient,
+    onViewContracts,
 }) {
+    const { config } = useConfig();
+
     if (filteredClients.length === 0) {
         return (
             <div className="clients-table-empty">
@@ -45,9 +49,9 @@ export default function ClientsTable({
                     <th>NOME</th>
                     <th>APELIDO</th>
                     <th>STATUS</th>
-                    <th>CONTRATOS ATIVOS</th>
-                    <th>CONTRATOS EXPIRADOS</th>
-                    <th>CONTRATOS ARQUIVADOS</th>
+                    <th>{config.labels.contracts || "Contratos"} Ativos</th>
+                    <th>{config.labels.contracts || "Contratos"} Expirados</th>
+                    <th>{config.labels.contracts || "Contratos"} Arquivados</th>
                     <th className="actions">AÇÕES</th>
                 </tr>
             </thead>
@@ -63,7 +67,11 @@ export default function ClientsTable({
                         effectiveStatus === "ativo" ? "#27ae60" : "#95a5a6";
 
                     return (
-                        <tr key={client.id}>
+                        <tr
+                            key={client.id}
+                            className="clients-table-row"
+                            onClick={() => openAffiliatesPanel(client)}
+                        >
                             <td className="name">{client.name}</td>
                             <td className="nickname">
                                 {client.nickname || "-"}
@@ -91,7 +99,27 @@ export default function ClientsTable({
                             <td className="actions">
                                 <div className="clients-table-actions">
                                     <button
-                                        onClick={() => openEditModal(client)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onViewContracts(client);
+                                        }}
+                                        className="clients-table-icon-button"
+                                        title="Ver contratos"
+                                    >
+                                        <img
+                                            src={ContractIcon}
+                                            alt="Ver contratos"
+                                            style={{
+                                                width: "26px",
+                                                height: "26px",
+                                            }}
+                                        />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openEditModal(client);
+                                        }}
                                         className="clients-table-icon-button"
                                         title="Editar"
                                     >
@@ -105,28 +133,12 @@ export default function ClientsTable({
                                             }}
                                         />
                                     </button>
-                                    <button
-                                        onClick={() =>
-                                            openAffiliatesPanel(client)
-                                        }
-                                        className="clients-table-icon-button"
-                                        title="Afiliados"
-                                    >
-                                        <img
-                                            src={BranchIcon}
-                                            alt="Filiais"
-                                            style={{
-                                                width: "26px",
-                                                height: "26px",
-                                                color: "#9b59b6",
-                                            }}
-                                        />
-                                    </button>
                                     {isArchived ? (
                                         <button
-                                            onClick={() =>
-                                                unarchiveClient(client.id)
-                                            }
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                unarchiveClient(client.id);
+                                            }}
                                             className="clients-table-icon-button"
                                             title="Desarquivar"
                                         >
@@ -142,9 +154,10 @@ export default function ClientsTable({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() =>
-                                                archiveClient(client.id)
-                                            }
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                archiveClient(client.id);
+                                            }}
                                             className="clients-table-icon-button"
                                             title="Arquivar"
                                         >

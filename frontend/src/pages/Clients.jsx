@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
 import { clientsApi } from "../api/clientsApi";
@@ -34,9 +35,11 @@ import ClientsTable from "../components/clients/ClientsTable";
 import AffiliatesPanel from "../components/clients/AffiliatesPanel";
 import AffiliateModal from "../components/clients/AffiliateModal";
 import PrimaryButton from "../components/common/PrimaryButton";
+import Pagination from "../components/common/Pagination";
 import "./styles/Clients.css";
 
 export default function Clients({ token, apiUrl, onTokenExpired }) {
+    const navigate = useNavigate();
     const {
         fetchClients,
         createClient: createClientAPI,
@@ -54,14 +57,26 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const filtersContainerRef = useRef(null);
 
     // State persistence
-    const { values, updateValue } = useUrlState(
-        { filter: "all", search: "" },
-        { debounce: true, debounceTime: 300 },
-    );
+    const { values, updateValue, updateValues, updateValuesImmediate } =
+        useUrlState(
+            { filter: "active", search: "", page: "1", limit: "20" },
+            { debounce: true, debounceTime: 300, syncWithUrl: false },
+        );
     const filter = values.filter;
     const searchTerm = values.search;
-    const setFilter = (val) => updateValue("filter", val);
-    const setSearchTerm = (val) => updateValue("search", val);
+    const currentPage = parseInt(values.page || "1", 10);
+    const itemsPerPage = parseInt(values.limit || "20", 10);
+    const setFilter = (val) => {
+        updateValuesImmediate({ filter: val, page: "1" });
+    };
+    const setSearchTerm = (val) => {
+        updateValues({ search: val, page: "1" });
+    };
+    const setCurrentPage = (page) =>
+        updateValuesImmediate({ page: page.toString() });
+    const setItemsPerPage = (limit) => {
+        updateValuesImmediate({ limit: limit.toString(), page: "1" });
+    };
 
     const [selectedClient, setSelectedClient] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -319,6 +334,18 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         }
     };
 
+    const onViewContracts = (client) => {
+        navigate(`/contracts?clientName=${encodeURIComponent(client.name)}`);
+    };
+
+    const onViewContractsAffiliate = () => {
+        if (selectedClient) {
+            navigate(
+                `/contracts?clientName=${encodeURIComponent(selectedClient.name)}`,
+            );
+        }
+    };
+
     function compareAlphaNum(a, b) {
         const regex = /(.*?)(\d+)$/;
         const aVal = (a.name || "").trim();
@@ -332,11 +359,17 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         return aVal.localeCompare(bVal);
     }
 
-    const filteredClients = filterClients(
+    const allFilteredClients = filterClients(
         [...clients].sort(compareAlphaNum),
         filter,
         searchTerm,
     );
+
+    // Pagination
+    const totalItems = allFilteredClients.length;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const filteredClients = allFilteredClients.slice(startIndex, endIndex);
 
     if (loading) {
         return (
@@ -352,7 +385,8 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         <div className="clients-container">
             <div className="clients-header">
                 <h1 className="clients-title">
-                    👥 {config.labels.clients || "Clientes"}
+                    👥 {config.labels.clients || "Clientes"} e{" "}
+                    {config.labels.affiliates || "Afiliados"}
                 </h1>
                 <div className="button-group">
                     <PrimaryButton onClick={openCreateModal}>
@@ -400,18 +434,31 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 />
             </div>
 
+            <p className="clients-hint">
+                💡 Para visualizar e editar{" "}
+                {config.labels.affiliates?.toLowerCase() || "afiliados"}, clique
+                em cima do {config.labels.client?.toLowerCase() || "cliente"}{" "}
+                desejado na tabela.
+            </p>
+
             <div className="clients-table-wrapper">
-                {/* <div className="clients-table-header">
-                    <h2 className="clients-table-header-title">Clientes</h2>
-                </div>*/}
                 <ClientsTable
                     filteredClients={filteredClients}
                     openEditModal={openEditModal}
                     openAffiliatesPanel={openAffiliatesPanel}
                     archiveClient={archiveClient}
                     unarchiveClient={unarchiveClient}
+                    onViewContracts={onViewContracts}
                 />
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+            />
 
             <ClientModal
                 showModal={showModal}
@@ -431,6 +478,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                     onEditAffiliate={openEditAffiliateModal}
                     onDeleteAffiliate={deleteAffiliate}
                     onClose={closeAffiliatesPanel}
+                    onViewContracts={onViewContractsAffiliate}
                 />
             )}
 

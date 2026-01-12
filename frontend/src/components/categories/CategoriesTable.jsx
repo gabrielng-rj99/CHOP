@@ -17,18 +17,17 @@
  */
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./CategoriesTable.css";
-import BoxOpenIcon from "../../assets/icons/box-open.svg";
-import EditIcon from "../../assets/icons/edit.svg";
 import TrashIcon from "../../assets/icons/trash.svg";
 import ArchiveIcon from "../../assets/icons/archive.svg";
 import UnarchiveIcon from "../../assets/icons/unarchive.svg";
+import ContractIcon from "../../assets/icons/contract.svg";
 import { useConfig } from "../../contexts/ConfigContext";
 
 export default function CategoriesTable({
     filteredCategories,
     onSelectCategory,
-    onEditCategory,
     onDeleteCategory,
     onArchiveCategory,
     onUnarchiveCategory,
@@ -36,6 +35,12 @@ export default function CategoriesTable({
 }) {
     const { config } = useConfig();
     const { labels } = config;
+    const navigate = useNavigate();
+
+    const handleViewContracts = (e, categoryId) => {
+        e.stopPropagation();
+        navigate(`/contracts?categoryId=${categoryId}`);
+    };
 
     if (filteredCategories.length === 0) {
         return (
@@ -60,39 +65,19 @@ export default function CategoriesTable({
             <tbody>
                 {filteredCategories.map((category) => {
                     const isArchived = !!category.archived_at;
+                    const isSelected = selectedCategory?.id === category.id;
                     return (
                         <tr
                             key={category.id}
-                            className={
-                                selectedCategory?.id === category.id
-                                    ? "selected"
-                                    : ""
-                            }
+                            className={`categories-table-row ${isSelected ? "selected" : ""}`}
+                            onClick={() => onSelectCategory(category)}
                         >
-                            <td
-                                onClick={() => onSelectCategory(category)}
-                                className="categories-table-name"
-                            >
+                            <td className="categories-table-name">
                                 {category.name}
                             </td>
-                            <td
-                                onClick={() => onSelectCategory(category)}
-                                className="categories-table-name"
-                            >
+                            <td className="categories-table-status-cell">
                                 <span
                                     className={`categories-table-status ${isArchived ? "archived" : "active"}`}
-                                    style={{
-                                        background: isArchived
-                                            ? "#95a5a620"
-                                            : "#27ae6020",
-                                        color: isArchived
-                                            ? "#95a5a6"
-                                            : "#27ae60",
-                                        padding: "4px 12px",
-                                        borderRadius: "12px",
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                    }}
                                 >
                                     {isArchived ? "Arquivado" : "Ativo"}
                                 </span>
@@ -100,39 +85,16 @@ export default function CategoriesTable({
                             <td className="actions">
                                 <div className="categories-table-actions">
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEditCategory(category);
-                                        }}
+                                        onClick={(e) =>
+                                            handleViewContracts(e, category.id)
+                                        }
                                         className="categories-table-icon-button"
-                                        title="Editar"
+                                        title={`Ver ${labels.contracts?.toLowerCase() || "contratos"} desta ${labels.category?.toLowerCase() || "categoria"}`}
                                     >
                                         <img
-                                            src={EditIcon}
-                                            alt="Editar"
-                                            style={{
-                                                width: "26px",
-                                                height: "26px",
-                                                filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
-                                            }}
-                                        />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onSelectCategory(category);
-                                        }}
-                                        className="categories-table-icon-button"
-                                        title={`Ver ${labels.subcategories || "Subcategorias"}`}
-                                    >
-                                        <img
-                                            src={BoxOpenIcon}
-                                            alt={`Ver ${labels.subcategories || "Subcategorias"}`}
-                                            style={{
-                                                width: "26px",
-                                                height: "26px",
-                                                color: "#9b59b6",
-                                            }}
+                                            src={ContractIcon}
+                                            alt="Ver contratos"
+                                            className="categories-table-icon contract-icon"
                                         />
                                     </button>
                                     {isArchived ? (
@@ -150,11 +112,7 @@ export default function CategoriesTable({
                                             <img
                                                 src={UnarchiveIcon}
                                                 alt="Desarquivar"
-                                                style={{
-                                                    width: "26px",
-                                                    height: "26px",
-                                                    filter: "invert(62%) sepia(34%) saturate(760%) hue-rotate(88deg) brightness(93%) contrast(81%)",
-                                                }}
+                                                className="categories-table-icon unarchive-icon"
                                             />
                                         </button>
                                     ) : (
@@ -172,11 +130,7 @@ export default function CategoriesTable({
                                             <img
                                                 src={ArchiveIcon}
                                                 alt="Arquivar"
-                                                style={{
-                                                    width: "26px",
-                                                    height: "26px",
-                                                    filter: "invert(64%) sepia(81%) saturate(455%) hue-rotate(359deg) brightness(98%) contrast(91%)",
-                                                }}
+                                                className="categories-table-icon archive-icon"
                                             />
                                         </button>
                                     )}
@@ -194,11 +148,7 @@ export default function CategoriesTable({
                                         <img
                                             src={TrashIcon}
                                             alt="Deletar"
-                                            style={{
-                                                width: "26px",
-                                                height: "26px",
-                                                filter: "invert(37%) sepia(93%) saturate(1447%) hue-rotate(342deg) brightness(94%) contrast(88%)",
-                                            }}
+                                            className="categories-table-icon delete-icon"
                                         />
                                     </button>
                                 </div>

@@ -73,7 +73,17 @@ export default function AffiliateModal({
 
                     <div className="affiliate-modal-form-group">
                         <label className="affiliate-modal-label">
-                            Relacionamento *
+                            Relacionamento
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#7f8c8d",
+                                    marginLeft: "4px",
+                                    fontWeight: "normal",
+                                }}
+                            >
+                                (opcional)
+                            </span>
                         </label>
                         <input
                             type="text"
@@ -84,7 +94,6 @@ export default function AffiliateModal({
                                     relationship: e.target.value,
                                 })
                             }
-                            required
                             placeholder="Ex: Filho, Cônjuge, Filial"
                             className="affiliate-modal-input"
                         />

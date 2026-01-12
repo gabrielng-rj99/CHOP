@@ -39,8 +39,8 @@
 }
 
 .users-table thead tr {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background: var(--secondary-color);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 .users-table th {
@@ -48,7 +48,8 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: #495057;
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
 }
 
 .users-table th.status,
@@ -61,7 +62,7 @@
 }
 
 .users-table tbody tr {
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--border-color, #ecf0f1);
 }
 
 .users-table tbody tr.blocked {
@@ -71,7 +72,7 @@
 .users-table td {
     padding: 16px;
     font-size: 14px;
-    color: #2c3e50;
+    color: var(--primary-text-color, #2c3e50);
     font-weight: 500;
 }
 
@@ -148,4 +149,23 @@
 .users-table-icon-button svg {
     width: 22px;
     height: 22px;
+}
+
+/* Dark mode specific styles */
+.dark-mode .users-table thead tr {
+    background: var(--secondary-color);
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .users-table th {
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
+}
+
+.dark-mode .users-table tbody tr {
+    border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .users-table td {
+    color: var(--primary-text-color, #f7fafc);
 }

@@ -443,7 +443,7 @@
         var(--content-bg, white) 0%,
         rgba(52, 152, 219, 0.05) 100%
     );
-    /* border-left: 4px solid var(--primary-color, #3498db); */
+    border-left: 4px solid var(--secondary-color);
 }
 
 .permissions-section h2 {
@@ -492,6 +492,175 @@
 
 .permissions-message {
     margin-bottom: 1rem;
+}
+
+/* Permission Status Buttons */
+.permission-status-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.permission-status-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 20px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    background: var(--content-bg, #f8f9fa);
+    color: var(--primary-text-color, #333);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.permission-status-btn:hover:not(:disabled) {
+    border-color: var(--primary-color, #3498db);
+    background: var(--hover-bg, rgba(52, 152, 219, 0.1));
+}
+
+.permission-status-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.permission-status-btn.allow.active {
+    background: rgba(39, 174, 96, 0.15);
+    border-color: #27ae60;
+    color: #27ae60;
+}
+
+.permission-status-btn.block.active {
+    background: rgba(231, 76, 60, 0.15);
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.permission-status-btn.custom.active {
+    background: rgba(243, 156, 18, 0.15);
+    border-color: #f39c12;
+    color: #f39c12;
+}
+
+.permission-status-description {
+    font-size: 13px;
+    color: var(--secondary-text-color, #666);
+    line-height: 1.5;
+    padding: 10px;
+    background: var(--content-bg, #f8f9fa);
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+/* Warning Modal */
+.warning-modal {
+    max-width: 450px;
+}
+
+.warning-modal h3 {
+    margin: 0 0 1rem 0;
+    color: #f39c12;
+}
+
+.warning-modal p {
+    margin: 0 0 1rem 0;
+    line-height: 1.6;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-btn.cancel {
+    background: var(--content-bg, #f8f9fa);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--primary-text-color, #333);
+}
+
+.modal-btn.cancel:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.modal-btn.confirm {
+    background: #f39c12;
+    border: none;
+    color: white;
+}
+
+.modal-btn.confirm:hover {
+    background: #e67e22;
+}
+
+/* Dark mode for permission status buttons */
+.dark-mode .permission-status-btn {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+    color: var(--primary-text-color, #f7fafc);
+}
+
+.dark-mode .permission-status-btn:hover:not(:disabled) {
+    border-color: var(--primary-color, #63b3ed);
+    background: rgba(99, 179, 237, 0.15);
+}
+
+.dark-mode .permission-status-btn.allow.active {
+    background: rgba(39, 174, 96, 0.25);
+    border-color: #27ae60;
+    color: #2ecc71;
+}
+
+.dark-mode .permission-status-btn.block.active {
+    background: rgba(231, 76, 60, 0.25);
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.dark-mode .permission-status-btn.custom.active {
+    background: rgba(243, 156, 18, 0.25);
+    border-color: #f39c12;
+    color: #f39c12;
+}
+
+.dark-mode .permission-status-description {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+    color: var(--secondary-text-color, #a0aec0);
+}
+
+.dark-mode .warning-modal {
+    background: var(--content-bg, #2d3748);
+}
+
+.dark-mode .warning-modal h3 {
+    color: #f39c12;
+}
+
+.dark-mode .warning-modal p {
+    color: var(--primary-text-color, #f7fafc);
+}
+
+.dark-mode .modal-btn.cancel {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+    border-color: var(--border-color, #4a5568);
+    color: var(--primary-text-color, #f7fafc);
 }
 
 .save-permissions-button {

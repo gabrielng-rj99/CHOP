@@ -16,18 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const filterUsers = (users, searchTerm) => {
-    if (!searchTerm.trim()) {
+export const filterUsers = (users, filters) => {
+    const { username, displayName, role } = filters;
+
+    if (!username && !displayName && !role) {
         return users;
     }
 
-    const search = searchTerm.toLowerCase();
-    return users.filter(
-        (user) =>
-            user.username?.toLowerCase().includes(search) ||
-            user.display_name?.toLowerCase().includes(search) ||
-            user.role?.toLowerCase().includes(search),
-    );
+    return users.filter((user) => {
+        const usernameMatch =
+            !username ||
+            user.username?.toLowerCase().includes(username.toLowerCase());
+        const displayNameMatch =
+            !displayName ||
+            user.display_name
+                ?.toLowerCase()
+                .includes(displayName.toLowerCase());
+        const roleMatch =
+            !role || user.role?.toLowerCase().includes(role.toLowerCase());
+
+        return usernameMatch && displayNameMatch && roleMatch;
+    });
 };
 
 export const getInitialFormData = () => ({

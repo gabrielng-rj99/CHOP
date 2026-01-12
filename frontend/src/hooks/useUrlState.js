@@ -30,7 +30,7 @@ import { useSearchParams } from "react-router-dom";
  * @returns {Object} { values, updateValue, updateValues, reset }
  */
 export function useUrlState(initialState, config = {}) {
-    const { debounce = false, debounceTime = 500 } = config;
+    const { debounce = false, debounceTime = 500, syncWithUrl = true } = config;
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Converte SearchParams para objeto
@@ -50,32 +50,42 @@ export function useUrlState(initialState, config = {}) {
         return values;
     }, [searchParams, initialState]);
 
-    const [localState, setLocalState] = useState(getValuesFromUrl());
+    const [localState, setLocalState] = useState(
+        syncWithUrl ? getValuesFromUrl() : initialState,
+    );
     const debounceTimeout = useRef(null);
 
-    // Sincroniza estado local se a URL mudar externamente (ex: botão voltar)
+    // Sincroniza estado local se a URL mudar externamente (ex: botão voltar), apenas se syncWithUrl
     useEffect(() => {
-        // Comparação simples para evitar loops se necessário, mas 
-        // como getValuesFromUrl retorna novo objeto sempre, o React pode re-renderizar.
-        // Idealmente veriamos se mudou.
+        if (!syncWithUrl) return;
         const currentUrlValues = getValuesFromUrl();
         if (JSON.stringify(currentUrlValues) !== JSON.stringify(localState)) {
             setLocalState(currentUrlValues);
         }
     }, [searchParams]);
 
+    // Sempre sincronizar a URL com o estado local atual, apenas se syncWithUrl
+    useEffect(() => {
+        if (!syncWithUrl) return;
+        applyToUrl(localState);
+    }, [localState]);
+
     const applyToUrl = (newState) => {
-        setSearchParams(prev => {
-            const newParams = new URLSearchParams(prev);
-            Object.entries(newState).forEach(([key, value]) => {
-                if (value !== "" && value !== undefined && value !== null) {
-                    newParams.set(key, value);
-                } else {
-                    newParams.delete(key);
-                }
-            });
-            return newParams;
-        }, { replace: debounce }); // Se for debounce (busca), usa replace pra não sujar histórico
+        if (!syncWithUrl) return;
+        setSearchParams(
+            (prev) => {
+                const newParams = new URLSearchParams(prev);
+                Object.entries(newState).forEach(([key, value]) => {
+                    if (value !== "" && value !== undefined && value !== null) {
+                        newParams.set(key, value);
+                    } else {
+                        newParams.delete(key);
+                    }
+                });
+                return newParams;
+            },
+            { replace: debounce },
+        ); // Se for debounce (busca), usa replace pra não sujar histórico
     };
 
     const updateValue = (key, value) => {
@@ -106,10 +116,20 @@ export function useUrlState(initialState, config = {}) {
         }
     };
 
+    // Atualiza múltiplos valores IMEDIATAMENTE (sem debounce)
+    // Útil para filtros e paginação que devem reagir instantaneamente
+    const updateValuesImmediate = (newValues) => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        const newState = { ...localState, ...newValues };
+        setLocalState(newState);
+        applyToUrl(newState);
+    };
+
     return {
         values: localState,
         updateValue,
         updateValues,
-        setSearchParams // escape hatch
+        updateValuesImmediate,
+        setSearchParams, // escape hatch
     };
 }

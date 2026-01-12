@@ -18,15 +18,21 @@
 
 import React, { useState } from "react";
 import "./AuditFilters.css";
+import { useConfig } from "../../contexts/ConfigContext";
 
 export default function AuditFilters({ filters, setFilters, onApply }) {
+    const { config } = useConfig();
+    const labels = config.labels || {};
     const [isExpanded, setIsExpanded] = useState(false);
 
     const handleChange = (field, value) => {
-        setFilters((prev) => ({
-            ...prev,
+        const newFilters = {
+            ...filters,
             [field]: value,
-        }));
+        };
+        setFilters(newFilters);
+        // Apply filters immediately with the new filters object
+        onApply(newFilters);
     };
 
     const handleDateChange = (field, value) => {
@@ -101,14 +107,24 @@ export default function AuditFilters({ filters, setFilters, onApply }) {
                             >
                                 <option value="">Todas as entidades</option>
                                 <option value="auth">Autenticação</option>
-                                <option value="user">Usuários</option>
-                                <option value="client">Clientes</option>
-                                <option value="contract">Contratos</option>
-                                <option value="category">Categorias</option>
-                                <option value="subcategory">
-                                    Subcategorias
+                                <option value="user">
+                                    {labels.user || "Usuários"}
                                 </option>
-                                <option value="affiliate">Afiliados</option>
+                                <option value="client">
+                                    {labels.client || "Clientes"}
+                                </option>
+                                <option value="contract">
+                                    {labels.contract || "Contratos"}
+                                </option>
+                                <option value="category">
+                                    {labels.category || "Categorias"}
+                                </option>
+                                <option value="subcategory">
+                                    {labels.subcategory || "Subcategorias"}
+                                </option>
+                                <option value="affiliate">
+                                    {labels.affiliate || "Afiliados"}
+                                </option>
                                 <option value="role">Cargos</option>
                                 <option value="dashboard_config">
                                     Dashboard

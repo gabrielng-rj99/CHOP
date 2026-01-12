@@ -96,10 +96,15 @@
 }
 
 .audit-logs-table-wrapper {
-    background: var(--content-bg, white);
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color, #ecf0f1);
+    border-left: 4px solid var(--secondary-color);
     overflow: hidden;
 }
 

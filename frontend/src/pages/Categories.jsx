@@ -16,8 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
 import { categoriesApi } from "../api/categoriesApi";
 import { useConfig } from "../contexts/ConfigContext";
 import { useUrlState } from "../hooks/useUrlState";
@@ -33,13 +32,13 @@ import CategoryModal from "../components/categories/CategoryModal";
 import LinesPanel from "../components/categories/LinesPanel";
 import LineModal from "../components/categories/LineModal";
 import PrimaryButton from "../components/common/PrimaryButton";
+import Pagination from "../components/common/Pagination";
 import "./styles/Categories.css";
 
 export default function Categories({ token, apiUrl, onTokenExpired }) {
     const { config, getGenderHelpers } = useConfig();
     const { labels } = config;
     const gCat = getGenderHelpers("category");
-    // const gSub = getGenderHelpers(labels.subcategory_gender || 'F');
 
     const CATEGORY_LABEL = labels.categories || "Categorias";
     const SUBCATEGORY_LABEL = labels.subcategories || "Subcategorias";
@@ -52,14 +51,37 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const [error, setError] = useState("");
     const [lineModalError, setLineModalError] = useState("");
 
-    // State persistence
-    const { values, updateValue } = useUrlState(
-        { search: "", categoryId: "" },
-        { debounce: true, debounceTime: 300 },
-    );
+    const filtersContainerRef = useRef(null);
+
+    // State persistence with pagination and filters
+    const { values, updateValue, updateValues, updateValuesImmediate } =
+        useUrlState(
+            {
+                search: "",
+                categoryId: "",
+                filter: "active",
+                page: "1",
+                limit: "20",
+            },
+            { debounce: true, debounceTime: 300, syncWithUrl: false },
+        );
     const searchTerm = values.search;
     const categoryId = values.categoryId;
-    const setSearchTerm = (val) => updateValue("search", val);
+    const filter = values.filter || "all";
+    const currentPage = parseInt(values.page || "1", 10);
+    const itemsPerPage = parseInt(values.limit || "20", 10);
+
+    const setSearchTerm = (val) => {
+        updateValues({ search: val, page: "1" });
+    };
+    const setFilter = (val) => {
+        updateValuesImmediate({ filter: val, page: "1" });
+    };
+    const setCurrentPage = (page) =>
+        updateValuesImmediate({ page: page.toString() });
+    const setItemsPerPage = (limit) => {
+        updateValuesImmediate({ limit: limit.toString(), page: "1" });
+    };
 
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -70,11 +92,32 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const [categoryForm, setCategoryForm] = useState(getInitialCategoryForm());
     const [lineForm, setLineForm] = useState(getInitialLineForm());
 
-    // Sempre fazer fresh request ao carregar a página
-    // A API de categories não usa cache, então sempre busca dados frescos
     useEffect(() => {
         loadCategories();
     }, []);
+
+    // Equalize filter button widths
+    useEffect(() => {
+        if (filtersContainerRef.current) {
+            const buttons = filtersContainerRef.current.querySelectorAll(
+                ".categories-filter-button",
+            );
+            if (buttons.length > 0) {
+                buttons.forEach((btn) => (btn.style.minWidth = "auto"));
+                let minButtonWidth = 0;
+                buttons.forEach((btn) => {
+                    const width = btn.offsetWidth;
+                    if (width > minButtonWidth) {
+                        minButtonWidth = width;
+                    }
+                });
+                minButtonWidth = Math.max(minButtonWidth, 120);
+                buttons.forEach((btn) => {
+                    btn.style.minWidth = minButtonWidth + "px";
+                });
+            }
+        }
+    }, [filter, categories]);
 
     // Sync selectedCategory from URL
     useEffect(() => {
@@ -82,7 +125,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             if (categoryId) {
                 const cat = categories.find((c) => c.id == categoryId);
                 if (cat) {
-                    // Only update if different to avoid loops or unnecessary re-renders
                     if (!selectedCategory || selectedCategory.id !== cat.id) {
                         setSelectedCategory(cat);
                         loadSubcategories(cat.id);
@@ -108,7 +150,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             );
             setCategories(data);
 
-            // Load all lines for all categories for search functionality
             const allLinesPromises = data.map((category) =>
                 categoriesApi
                     .loadSubcategories(
@@ -177,8 +218,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             );
             await loadCategories();
             closeCategoryModal();
-
-            // selectedCategory will be updated via effect if categories changed
         } catch (err) {
             if (
                 err.message &&
@@ -210,7 +249,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             await loadCategories();
 
             if (selectedCategory?.id === catId) {
-                updateValue("categoryId", ""); // Close panel via URL
+                updateValue("categoryId", "");
             }
         } catch (err) {
             setError(err.message);
@@ -266,7 +305,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const handleCreateLine = async () => {
         setLineModalError("");
 
-        // Validate whitespace-only names
         const lineName = lineForm.line?.trim();
         if (!lineName) {
             setLineModalError(
@@ -296,7 +334,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     const handleUpdateLine = async () => {
         setLineModalError("");
 
-        // Validate whitespace-only names
         const lineName = lineForm.line?.trim();
         if (!lineName) {
             setLineModalError(
@@ -394,18 +431,16 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
 
     const openEditCategoryModal = (category) => {
         setCategoryMode("edit");
-        setSelectedCategory(category); // This is for the modal's internal use
+        setSelectedCategory(category);
         setCategoryForm(formatCategoryForEdit(category));
         setShowCategoryModal(true);
-        updateValue("categoryId", category.id); // Also update URL to reflect selection
+        updateValue("categoryId", category.id);
     };
 
     const closeCategoryModal = () => {
         setShowCategoryModal(false);
         setCategoryForm(getInitialCategoryForm());
         setError("");
-        // Clear the categoryId from the URL when the modal is closed,
-        // which will then trigger the useEffect to clear selectedCategory.
         updateValue("categoryId", "");
     };
 
@@ -449,7 +484,6 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
     };
 
     const selectCategory = async (category) => {
-        // Update URL to persist selection
         updateValue("categoryId", category ? category.id : "");
     };
 
@@ -459,18 +493,31 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
         const bMatch = (b.name || "").match(regex);
 
         if (aMatch && bMatch && aMatch[1] === bMatch[1]) {
-            // Se prefixo igual, compara número como inteiro
             return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
         }
-        // Caso contrário, ordena normalmente
         return (a.name || "").localeCompare(b.name || "");
     }
 
-    const filteredCategories = filterCategories(
+    // Filter categories
+    const allFilteredCategories = filterCategories(
         [...categories].sort(compareAlphaNum),
         searchTerm,
         allLines,
+        filter,
     );
+
+    // Pagination
+    const totalItems = allFilteredCategories.length;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const filteredCategories = allFilteredCategories.slice(
+        startIndex,
+        endIndex,
+    );
+
+    // Count for filters
+    const activeCount = categories.filter((c) => !c.archived_at).length;
+    const archivedCount = categories.filter((c) => !!c.archived_at).length;
 
     if (loading) {
         return (
@@ -500,7 +547,26 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                 <div className="categories-error">{error}</div>
             )}
 
-            <div className="categories-search-container">
+            <div className="categories-filters" ref={filtersContainerRef}>
+                <button
+                    onClick={() => setFilter("all")}
+                    className={`categories-filter-button ${filter === "all" ? "active-all" : ""}`}
+                >
+                    {gCat.all} ({categories.length})
+                </button>
+                <button
+                    onClick={() => setFilter("active")}
+                    className={`categories-filter-button ${filter === "active" ? "active-active" : ""}`}
+                >
+                    {gCat.active} ({activeCount})
+                </button>
+                <button
+                    onClick={() => setFilter("archived")}
+                    className={`categories-filter-button ${filter === "archived" ? "active-archived" : ""}`}
+                >
+                    {gCat.archived} ({archivedCount})
+                </button>
+
                 <input
                     type="text"
                     placeholder={`Buscar ${CATEGORY_LABEL.toLowerCase()} (ou ${SUBCATEGORY_LABEL.toLowerCase()})...`}
@@ -510,17 +576,31 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                 />
             </div>
 
+            <p className="categories-hint">
+                💡 Para visualizar e editar {SUBCATEGORY_LABEL.toLowerCase()},
+                clique em cima da{" "}
+                {labels.category?.toLowerCase() || "categoria"} desejada na
+                tabela.
+            </p>
+
             <div className="categories-table-wrapper">
                 <CategoriesTable
                     filteredCategories={filteredCategories}
                     onSelectCategory={selectCategory}
-                    onEditCategory={openEditCategoryModal}
                     onDeleteCategory={handleDeleteCategory}
                     onArchiveCategory={handleArchiveCategory}
                     onUnarchiveCategory={handleUnarchiveCategory}
                     selectedCategory={selectedCategory}
                 />
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+            />
 
             {selectedCategory && !showCategoryModal && (
                 <LinesPanel
@@ -531,6 +611,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                     onDeleteLine={handleDeleteLine}
                     onArchiveLine={handleArchiveLine}
                     onUnarchiveSubcategory={handleUnarchiveSubcategory}
+                    onEditCategory={openEditCategoryModal}
                     onClose={() => updateValue("categoryId", "")}
                 />
             )}

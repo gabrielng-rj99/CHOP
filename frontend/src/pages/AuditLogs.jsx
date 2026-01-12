@@ -20,6 +20,9 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { auditApi } from "../api/auditApi";
 import { usersApi } from "../api/usersApi";
+import { clientsApi } from "../api/clientsApi";
+import { contractsApi } from "../api/contractsApi";
+import { categoriesApi } from "../api/categoriesApi";
 import AuditFilters from "../components/audit/AuditFilters";
 import AuditLogsTable from "../components/audit/AuditLogsTable";
 import Pagination from "../components/common/Pagination";
@@ -30,6 +33,11 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
+    const [clients, setClients] = useState([]);
+    const [contracts, setContracts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [lines, setLines] = useState([]);
+    const [affiliates, setAffiliates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [totalLogs, setTotalLogs] = useState(0);
@@ -74,6 +82,9 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
 
     useEffect(() => {
         loadUsers();
+        loadClients();
+        loadContracts();
+        loadCategories();
     }, []);
 
     const loadUsers = async () => {
@@ -86,6 +97,85 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             setUsers(userData);
         } catch (err) {
             console.error("Erro ao carregar usuários:", err);
+        }
+    };
+
+    const loadClients = async () => {
+        try {
+            const response = await clientsApi.getClients(
+                apiUrl,
+                token,
+                { limit: 1000 },
+                onTokenExpired,
+            );
+            setClients(response.data || []);
+
+            // Extract affiliates from clients
+            if (response.data && Array.isArray(response.data)) {
+                let allAffiliates = [];
+                for (const client of response.data) {
+                    if (client.affiliates && Array.isArray(client.affiliates)) {
+                        allAffiliates = allAffiliates.concat(client.affiliates);
+                    }
+                }
+                setAffiliates(allAffiliates);
+            }
+        } catch (err) {
+            console.error("Erro ao carregar clientes:", err);
+        }
+    };
+
+    const loadContracts = async () => {
+        try {
+            const response = await contractsApi.getContracts(
+                apiUrl,
+                token,
+                { limit: 1000 },
+                onTokenExpired,
+            );
+            setContracts(response.data || []);
+        } catch (err) {
+            console.error("Erro ao carregar contratos:", err);
+        }
+    };
+
+    const loadCategories = async () => {
+        try {
+            const response = await categoriesApi.getCategories(
+                apiUrl,
+                token,
+                { limit: 1000 },
+                onTokenExpired,
+            );
+            setCategories(response.data || []);
+
+            // Carregar subcategorias para cada categoria
+            if (response.data && Array.isArray(response.data)) {
+                let allLines = [];
+                for (const category of response.data) {
+                    try {
+                        const linesResponse =
+                            await categoriesApi.getSubcategories(
+                                apiUrl,
+                                token,
+                                category.id,
+                                { limit: 1000 },
+                                onTokenExpired,
+                            );
+                        if (
+                            linesResponse.data &&
+                            Array.isArray(linesResponse.data)
+                        ) {
+                            allLines = allLines.concat(linesResponse.data);
+                        }
+                    } catch (err) {
+                        console.error("Erro ao carregar subcategorias:", err);
+                    }
+                }
+                setLines(allLines);
+            }
+        } catch (err) {
+            console.error("Erro ao carregar categorias:", err);
         }
     };
 
@@ -139,12 +229,15 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
         }
     };
 
-    const handleApplyFilters = () => {
+    const handleApplyFilters = (filtersToApply = null) => {
+        // Use passed filters if provided, otherwise use current state
+        const filtersObj = filtersToApply || filters;
+
         setSearchParams((prev) => {
             const newParams = new URLSearchParams(prev);
 
             // Update all filter keys
-            Object.entries(filters).forEach(([key, value]) => {
+            Object.entries(filtersObj).forEach(([key, value]) => {
                 if (value) {
                     newParams.set(key, value);
                 } else {
@@ -233,8 +326,6 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
             <div className="audit-logs-header">
                 <h1 className="audit-logs-title">🔍 Logs</h1>
                 <div className="button-group">
-                    <PrimaryButton onClick={() => loadLogs(true)}>
-                    </PrimaryButton>
                     <PrimaryButton
                         onClick={handleExport}
                         style={{
@@ -258,6 +349,11 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
                 <AuditLogsTable
                     logs={logs}
                     users={users}
+                    clients={clients}
+                    contracts={contracts}
+                    categories={categories}
+                    lines={lines}
+                    affiliates={affiliates}
                     onViewDetail={handleViewDetail}
                     loading={loading}
                 />

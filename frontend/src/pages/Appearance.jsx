@@ -74,6 +74,16 @@ export default function Appearance({ token, apiUrl }) {
     const contextAllowedThemes = config?.allowedThemes || [];
     const contextGlobalTheme = config?.globalTheme || null;
 
+    // Role permissions state for theme sync
+    const [roles, setRoles] = useState([]);
+    const [rolePermissions, setRolePermissions] = useState({});
+    const [themeUpdatePermissionId, setThemeUpdatePermissionId] =
+        useState(null);
+    const [permissionStatus, setPermissionStatus] = useState("loading"); // "allow" | "block" | "custom" | "loading"
+    const [showCustomWarning, setShowCustomWarning] = useState(false);
+    const [pendingPermissionChange, setPendingPermissionChange] =
+        useState(null);
+
     // Debounce timeout refs (separate refs to avoid conflicts)
     const debounceTimeout = useRef(null);
     const permissionsDebounceTimeout = useRef(null);
@@ -140,6 +150,106 @@ export default function Appearance({ token, apiUrl }) {
     useEffect(() => {
         fetchUserTheme();
     }, [fetchUserTheme]);
+
+    // Load roles and their permissions to sync with theme permissions
+    useEffect(() => {
+        if (isRoot) {
+            loadRolesAndPermissions();
+        }
+    }, [isRoot]);
+
+    const loadRolesAndPermissions = async () => {
+        try {
+            const authToken = localStorage.getItem("accessToken");
+            if (!authToken) return;
+
+            // Load roles
+            const rolesResponse = await fetch("/api/roles", {
+                headers: { Authorization: `Bearer ${authToken}` },
+            });
+            if (!rolesResponse.ok) return;
+            const rolesData = await rolesResponse.json();
+            const loadedRoles = rolesData.data || [];
+            setRoles(loadedRoles);
+
+            // Load all permissions to find theme:update
+            const permsResponse = await fetch("/api/permissions", {
+                headers: { Authorization: `Bearer ${authToken}` },
+            });
+            if (!permsResponse.ok) return;
+            const permsData = await permsResponse.json();
+            const allPerms = permsData.data || [];
+
+            // Find theme:update permission ID
+            const themeUpdatePerm = allPerms.find(
+                (p) => p.resource === "theme" && p.action === "update",
+            );
+            if (themeUpdatePerm) {
+                setThemeUpdatePermissionId(themeUpdatePerm.id);
+            }
+
+            // Load permissions for each non-root role
+            const permMap = {};
+            for (const role of loadedRoles) {
+                if (role.name === "root") continue;
+                try {
+                    const rolePermsResponse = await fetch(
+                        `/api/roles/${role.id}/permissions`,
+                        { headers: { Authorization: `Bearer ${authToken}` } },
+                    );
+                    if (rolePermsResponse.ok) {
+                        const rolePermsData = await rolePermsResponse.json();
+                        permMap[role.id] = rolePermsData.data || [];
+                    }
+                } catch (e) {
+                    console.error(
+                        `Error loading permissions for role ${role.name}:`,
+                        e,
+                    );
+                }
+            }
+            setRolePermissions(permMap);
+        } catch (err) {
+            console.error("Error loading roles and permissions:", err);
+        }
+    };
+
+    // Determine permission status based on role permissions
+    useEffect(() => {
+        if (!themeUpdatePermissionId || roles.length === 0) {
+            return;
+        }
+
+        const nonRootRoles = roles.filter((r) => r.name !== "root");
+        if (nonRootRoles.length === 0) {
+            setPermissionStatus("allow");
+            return;
+        }
+
+        let allHavePermission = true;
+        let noneHavePermission = true;
+
+        for (const role of nonRootRoles) {
+            const perms = rolePermissions[role.id] || [];
+            const hasThemeUpdate = perms.some(
+                (p) => p.id === themeUpdatePermissionId,
+            );
+
+            if (hasThemeUpdate) {
+                noneHavePermission = false;
+            } else {
+                allHavePermission = false;
+            }
+        }
+
+        if (allHavePermission) {
+            setPermissionStatus("allow");
+        } else if (noneHavePermission) {
+            setPermissionStatus("block");
+        } else {
+            setPermissionStatus("custom");
+        }
+    }, [roles, rolePermissions, themeUpdatePermissionId]);
 
     // Sync form data and saved theme when userThemeSettings or config loads
     useEffect(() => {
@@ -373,6 +483,92 @@ export default function Appearance({ token, apiUrl }) {
             [key]: value,
         }));
         debouncedSavePermissions();
+    };
+
+    // Handle permission status button click (Allow/Block/Custom)
+    const handlePermissionStatusChange = async (newStatus) => {
+        if (newStatus === permissionStatus) return;
+
+        // If current status is custom and user wants to change, show warning
+        if (permissionStatus === "custom" && newStatus !== "custom") {
+            setPendingPermissionChange(newStatus);
+            setShowCustomWarning(true);
+            return;
+        }
+
+        await applyPermissionStatus(newStatus);
+    };
+
+    const applyPermissionStatus = async (newStatus) => {
+        if (!themeUpdatePermissionId) return;
+
+        const authToken = localStorage.getItem("accessToken");
+        if (!authToken) return;
+
+        try {
+            const nonRootRoles = roles.filter((r) => r.name !== "root");
+
+            for (const role of nonRootRoles) {
+                const currentPerms = rolePermissions[role.id] || [];
+                let newPermIds;
+
+                if (newStatus === "allow") {
+                    // Add theme:update permission if not present
+                    const hasIt = currentPerms.some(
+                        (p) => p.id === themeUpdatePermissionId,
+                    );
+                    if (!hasIt) {
+                        newPermIds = [
+                            ...currentPerms.map((p) => p.id),
+                            themeUpdatePermissionId,
+                        ];
+                    } else {
+                        continue;
+                    }
+                } else if (newStatus === "block") {
+                    // Remove theme:update permission
+                    newPermIds = currentPerms
+                        .filter((p) => p.id !== themeUpdatePermissionId)
+                        .map((p) => p.id);
+                } else {
+                    continue;
+                }
+
+                await fetch(`/api/roles/${role.id}/permissions`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({ permission_ids: newPermIds }),
+                });
+            }
+
+            // Also update system settings
+            await saveThemePermissions(
+                newStatus === "allow",
+                newStatus === "allow",
+            );
+
+            // Reload permissions
+            await loadRolesAndPermissions();
+            setPermissionStatus(newStatus);
+        } catch (err) {
+            console.error("Error applying permission status:", err);
+        }
+    };
+
+    const confirmCustomWarning = async () => {
+        setShowCustomWarning(false);
+        if (pendingPermissionChange) {
+            await applyPermissionStatus(pendingPermissionChange);
+            setPendingPermissionChange(null);
+        }
+    };
+
+    const cancelCustomWarning = () => {
+        setShowCustomWarning(false);
+        setPendingPermissionChange(null);
     };
 
     const handleSaveGlobalTheme = useCallback(async () => {
@@ -1618,76 +1814,118 @@ export default function Appearance({ token, apiUrl }) {
                                 <p className="section-description">
                                     Controle quem pode personalizar as
                                     configurações de tema. Usuários root sempre
-                                    podem editar.
+                                    podem editar. Esta configuração está
+                                    sincronizada com as permissões de cada
+                                    cargo.
                                 </p>
 
-                                <div className="permissions-grid">
-                                    <div className="permission-item">
-                                        <div className="permission-toggle">
-                                            <label className="switch">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        permissionsFormData.adminsCanEditTheme
-                                                    }
-                                                    onChange={(e) =>
-                                                        handlePermissionsChange(
-                                                            "adminsCanEditTheme",
-                                                            e.target.checked,
-                                                        )
-                                                    }
-                                                />
-                                                <span className="slider round"></span>
-                                            </label>
-                                            <div className="permission-info">
-                                                <span className="permission-label">
-                                                    Administradores podem
-                                                    alterar tema
-                                                </span>
-                                                <span className="permission-description">
-                                                    Permite que usuários com
-                                                    role "admin" personalizem
-                                                    suas próprias configurações
-                                                    de tema
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="permission-status-buttons">
+                                    <button
+                                        className={`permission-status-btn allow ${permissionStatus === "allow" ? "active" : ""}`}
+                                        onClick={() =>
+                                            handlePermissionStatusChange(
+                                                "allow",
+                                            )
+                                        }
+                                        disabled={
+                                            permissionStatus === "loading"
+                                        }
+                                    >
+                                        ✅ Permitir
+                                    </button>
+                                    <button
+                                        className={`permission-status-btn block ${permissionStatus === "block" ? "active" : ""}`}
+                                        onClick={() =>
+                                            handlePermissionStatusChange(
+                                                "block",
+                                            )
+                                        }
+                                        disabled={
+                                            permissionStatus === "loading"
+                                        }
+                                    >
+                                        🚫 Bloquear
+                                    </button>
+                                    <button
+                                        className={`permission-status-btn custom ${permissionStatus === "custom" ? "active" : ""}`}
+                                        onClick={() =>
+                                            (window.location.hash =
+                                                "#/settings?section=roles")
+                                        }
+                                        disabled={
+                                            permissionStatus === "loading"
+                                        }
+                                    >
+                                        ⚙️ Personalizado
+                                    </button>
+                                </div>
 
-                                    <div className="permission-item">
-                                        <div className="permission-toggle">
-                                            <label className="switch">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        permissionsFormData.usersCanEditTheme
-                                                    }
-                                                    onChange={(e) =>
-                                                        handlePermissionsChange(
-                                                            "usersCanEditTheme",
-                                                            e.target.checked,
-                                                        )
-                                                    }
-                                                />
-                                                <span className="slider round"></span>
-                                            </label>
-                                            <div className="permission-info">
-                                                <span className="permission-label">
-                                                    Usuários podem alterar tema
-                                                </span>
-                                                <span className="permission-description">
-                                                    Permite que usuários
-                                                    convencionais personalizem
-                                                    suas próprias configurações
-                                                    de tema
-                                                </span>
-                                            </div>
+                                <p className="permission-status-description">
+                                    {permissionStatus === "allow" && (
+                                        <>
+                                            <strong>Permitir:</strong> Todos os
+                                            usuários podem personalizar seu tema
+                                            pessoal.
+                                        </>
+                                    )}
+                                    {permissionStatus === "block" && (
+                                        <>
+                                            <strong>Bloquear:</strong> Nenhum
+                                            usuário (exceto root) pode alterar
+                                            seu tema pessoal.
+                                        </>
+                                    )}
+                                    {permissionStatus === "custom" && (
+                                        <>
+                                            <strong>Personalizado:</strong> As
+                                            permissões estão configuradas por
+                                            cargo. Clique no botão para
+                                            gerenciar no menu de Papéis &
+                                            Permissões.
+                                        </>
+                                    )}
+                                    {permissionStatus === "loading" && (
+                                        <>Carregando configurações...</>
+                                    )}
+                                </p>
+                            </section>
+
+                            {/* Custom Permission Warning Modal */}
+                            {showCustomWarning && (
+                                <div className="modal-overlay">
+                                    <div className="modal-content warning-modal">
+                                        <h3>⚠️ Atenção</h3>
+                                        <p>
+                                            Você está prestes a alterar
+                                            permissões que foram configuradas
+                                            individualmente por cargo. Esta ação
+                                            irá sobrescrever as configurações
+                                            personalizadas e aplicar a mesma
+                                            permissão para todos os cargos.
+                                        </p>
+                                        <p>
+                                            <strong>
+                                                Tem certeza que deseja
+                                                continuar?
+                                            </strong>
+                                        </p>
+                                        <div className="modal-actions">
+                                            <button
+                                                className="modal-btn cancel"
+                                                onClick={cancelCustomWarning}
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                className="modal-btn confirm"
+                                                onClick={confirmCustomWarning}
+                                            >
+                                                Sim, continuar
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Permissions are saved automatically */}
-                            </section>
+                            )}
 
                             {/* Global Theme is now integrated in Theme and Colors */}
                         </>

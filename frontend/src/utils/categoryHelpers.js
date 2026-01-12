@@ -16,13 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const filterCategories = (categories, searchTerm, allLines) => {
+export const filterCategories = (
+    categories,
+    searchTerm,
+    allLines,
+    statusFilter = "all",
+) => {
+    let filtered = categories;
+
+    // Filter by status first
+    if (statusFilter === "active") {
+        filtered = filtered.filter((category) => !category.archived_at);
+    } else if (statusFilter === "archived") {
+        filtered = filtered.filter((category) => !!category.archived_at);
+    }
+
+    // Then filter by search term
     if (!searchTerm.trim()) {
-        return categories;
+        return filtered;
     }
 
     const search = searchTerm.toLowerCase();
-    return categories.filter((category) => {
+    return filtered.filter((category) => {
         // Search by category name
         if (category.name.toLowerCase().includes(search)) {
             return true;
@@ -40,6 +55,31 @@ export const filterCategories = (categories, searchTerm, allLines) => {
 
         return false;
     });
+};
+
+export const filterSubcategories = (
+    subcategories,
+    searchTerm,
+    statusFilter = "all",
+) => {
+    let filtered = subcategories;
+
+    // Filter by status first
+    if (statusFilter === "active") {
+        filtered = filtered.filter((sub) => !sub.archived_at);
+    } else if (statusFilter === "archived") {
+        filtered = filtered.filter((sub) => !!sub.archived_at);
+    }
+
+    // Then filter by search term
+    if (!searchTerm.trim()) {
+        return filtered;
+    }
+
+    const search = searchTerm.toLowerCase();
+    return filtered.filter(
+        (sub) => sub.name && sub.name.toLowerCase().includes(search),
+    );
 };
 
 export const getInitialCategoryForm = () => ({

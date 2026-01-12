@@ -38,7 +38,7 @@
 }
 
 .categories-table thead tr {
-    background: var(--content-bg, #f8f9fa);
+    background: var(--secondary-color);
     border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
@@ -47,7 +47,8 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: var(--primary-text-color, #495057);
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
 }
 
 .categories-table th.status,
@@ -56,17 +57,30 @@
 }
 
 .categories-table th.actions {
-    width: 250px;
+    width: 200px;
 }
 
 .categories-table tbody tr {
     border-bottom: 1px solid var(--border-color, #ecf0f1);
     background: transparent;
+    transition: background-color 0.2s ease;
 }
 
-.categories-table tbody tr.selected {
-    background: var(--primary-color, #e3f2fd);
-    opacity: 0.2;
+/* Row hover effect */
+.categories-table-row {
+    cursor: pointer;
+}
+
+.categories-table-row:hover {
+    background: var(--hover-bg, rgba(52, 152, 219, 0.08));
+}
+
+.categories-table-row.selected {
+    background: var(--primary-color-light, rgba(52, 152, 219, 0.15));
+}
+
+.categories-table-row.selected:hover {
+    background: var(--primary-color-light, rgba(52, 152, 219, 0.2));
 }
 
 .categories-table td {
@@ -78,6 +92,10 @@
 
 .categories-table-name {
     cursor: pointer;
+}
+
+.categories-table-status-cell {
+    text-align: center;
 }
 
 .categories-table td.status,
@@ -94,13 +112,13 @@
 }
 
 .categories-table-status.active {
-    background: #27ae6020;
-    color: #27ae60;
+    background: var(--success-bg, rgba(39, 174, 96, 0.12));
+    color: var(--success-color, #27ae60);
 }
 
 .categories-table-status.archived {
-    background: #95a5a620;
-    color: #95a5a6;
+    background: var(--muted-bg, rgba(149, 165, 166, 0.12));
+    color: var(--muted-color, #95a5a6);
 }
 
 .categories-table-actions {
@@ -126,18 +144,50 @@
     background: var(--hover-bg, rgba(0, 0, 0, 0.05));
 }
 
+/* Icon styles with themed colors */
+.categories-table-icon {
+    width: 26px;
+    height: 26px;
+}
+
+.categories-table-icon.edit-icon {
+    filter: invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg)
+        brightness(95%) contrast(88%);
+}
+
+.categories-table-icon.delete-icon {
+    filter: invert(37%) sepia(93%) saturate(1447%) hue-rotate(342deg)
+        brightness(94%) contrast(88%);
+}
+
+.categories-table-icon.archive-icon {
+    filter: invert(64%) sepia(81%) saturate(455%) hue-rotate(359deg)
+        brightness(98%) contrast(91%);
+}
+
+.categories-table-icon.unarchive-icon {
+    filter: invert(62%) sepia(34%) saturate(760%) hue-rotate(88deg)
+        brightness(93%) contrast(81%);
+}
+
+.categories-table-emoji-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
 /* Dark mode specific styles */
 .dark-mode .categories-table-empty {
     color: var(--primary-text-color, #f7fafc);
 }
 
 .dark-mode .categories-table thead tr {
-    background: var(--content-bg, #2d3748);
+    background: var(--secondary-color);
     border-color: var(--border-color, #4a5568);
 }
 
 .dark-mode .categories-table th {
-    color: var(--primary-text-color, #f7fafc);
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
 }
 
 .dark-mode .categories-table tbody tr {
@@ -148,7 +198,28 @@
     color: var(--primary-text-color, #f7fafc);
 }
 
-.dark-mode .categories-table tbody tr.selected {
-    background: var(--primary-color, #3498db);
-    opacity: 0.3;
+.dark-mode .categories-table-row:hover {
+    background: var(--hover-bg, rgba(52, 152, 219, 0.15));
+}
+
+.dark-mode .categories-table-row.selected {
+    background: var(--primary-color-light, rgba(52, 152, 219, 0.25));
+}
+
+.dark-mode .categories-table-row.selected:hover {
+    background: var(--primary-color-light, rgba(52, 152, 219, 0.3));
+}
+
+.dark-mode .categories-table-status.active {
+    background: var(--success-bg, rgba(39, 174, 96, 0.2));
+    color: var(--success-color, #2ecc71);
+}
+
+.dark-mode .categories-table-status.archived {
+    background: var(--muted-bg, rgba(149, 165, 166, 0.2));
+    color: var(--muted-color, #bdc3c7);
+}
+
+.dark-mode .categories-table-icon-button:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
 }

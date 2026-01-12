@@ -17,6 +17,8 @@
  */
 
 import React from "react";
+import Select from "react-select";
+import { useConfig } from "../../contexts/ConfigContext";
 import "./ContractsModal.css";
 
 export default function ContractModal({
@@ -34,9 +36,60 @@ export default function ContractModal({
     onClientChange,
     error,
 }) {
+    const { config } = useConfig();
+    const { labels } = config;
+
     if (!showModal) return null;
 
     const activeClients = clients.filter((c) => !c.archived_at);
+
+    // Custom styles for react-select to match existing styles
+    const customSelectStyles = {
+        control: (provided, state) => ({
+            ...provided,
+            width: "100%",
+            fontSize: "14px",
+            border: "1px solid #ced4da",
+            borderRadius: "4px",
+            background: "white",
+            color: "#333",
+            cursor: "pointer",
+            boxShadow: state.isFocused
+                ? "0 0 0 1px #3498db"
+                : provided.boxShadow,
+            "&:hover": {
+                borderColor: "#3498db",
+            },
+        }),
+        option: (provided, state) => ({
+            ...provided,
+            backgroundColor: state.isSelected
+                ? "#3498db"
+                : state.isFocused
+                  ? "#f8f9fa"
+                  : "white",
+            color: state.isSelected ? "white" : "#333",
+            cursor: "pointer",
+        }),
+        menu: (provided) => ({
+            ...provided,
+            background: "white",
+            border: "1px solid #ced4da",
+            borderRadius: "4px",
+        }),
+        singleValue: (provided) => ({
+            ...provided,
+            color: "#333",
+        }),
+        placeholder: (provided) => ({
+            ...provided,
+            color: "#999",
+        }),
+        input: (provided) => ({
+            ...provided,
+            color: "#333",
+        }),
+    };
 
     // Convert date from yyyy-mm-dd to dd/mm/yyyy for display
     const formatDateForDisplay = (dateString) => {
@@ -90,6 +143,15 @@ export default function ContractModal({
         });
     };
 
+    // Labels with fallbacks
+    const clientLabel = labels.client || "Cliente";
+    const affiliateLabel = labels.affiliate || "Afiliado";
+    const categoryLabel = labels.category || "Categoria";
+    const subcategoryLabel = labels.subcategory || "Subcategoria";
+    const modelLabel = labels.model || "Descrição";
+    const itemKeyLabel = labels.item_key || "Identificador";
+    const contractLabel = labels.contract || "Contrato";
+
     return (
         <div
             style={{
@@ -129,8 +191,8 @@ export default function ContractModal({
                     }}
                 >
                     {modalMode === "create"
-                        ? "Novo Contrato"
-                        : "Editar Contrato"}
+                        ? `Novo ${contractLabel}`
+                        : `Editar ${contractLabel}`}
                 </h2>
 
                 {error && (
@@ -162,37 +224,66 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Cliente *
+                                {clientLabel} *
                             </label>
-                            <select
-                                value={formData.client_id}
-                                onChange={(e) => {
+                            <Select
+                                value={
+                                    formData.client_id
+                                        ? {
+                                              value: formData.client_id,
+                                              label:
+                                                  activeClients.find(
+                                                      (c) =>
+                                                          c.id ===
+                                                          formData.client_id,
+                                                  )?.name +
+                                                  (activeClients.find(
+                                                      (c) =>
+                                                          c.id ===
+                                                          formData.client_id,
+                                                  )?.nickname
+                                                      ? ` (${
+                                                            activeClients.find(
+                                                                (c) =>
+                                                                    c.id ===
+                                                                    formData.client_id,
+                                                            )?.nickname
+                                                        })`
+                                                      : ""),
+                                          }
+                                        : null
+                                }
+                                onChange={(selected) => {
                                     setFormData({
                                         ...formData,
-                                        client_id: e.target.value,
+                                        client_id: selected
+                                            ? selected.value
+                                            : "",
                                         affiliate_id: "",
                                     });
-                                    onClientChange(e.target.value);
+                                    onClientChange(
+                                        selected ? selected.value : "",
+                                    );
                                 }}
+                                options={[
+                                    {
+                                        value: "",
+                                        label: `Selecione um ${clientLabel.toLowerCase()}`,
+                                    },
+                                    ...activeClients.map((client) => ({
+                                        value: client.id,
+                                        label: `${client.name}${
+                                            client.nickname
+                                                ? ` (${client.nickname})`
+                                                : ""
+                                        }`,
+                                    })),
+                                ]}
+                                isSearchable={true}
+                                placeholder={`Selecione um ${clientLabel.toLowerCase()}`}
+                                styles={customSelectStyles}
                                 required
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
-                            >
-                                <option value="">Selecione um cliente</option>
-                                {activeClients.map((client) => (
-                                    <option key={client.id} value={client.id}>
-                                        {client.name}{" "}
-                                        {client.nickname &&
-                                            `(${client.nickname})`}
-                                    </option>
-                                ))}
-                            </select>
+                            />
                         </div>
 
                         {/* Afiliado */}
@@ -206,41 +297,69 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Afiliado (Opcional)
+                                {affiliateLabel}
+                                <span
+                                    style={{
+                                        fontSize: "12px",
+                                        color: "#7f8c8d",
+                                        marginLeft: "4px",
+                                    }}
+                                >
+                                    (opcional)
+                                </span>
                             </label>
-                            <select
-                                value={formData.affiliate_id}
-                                onChange={(e) =>
+                            <Select
+                                value={
+                                    formData.affiliate_id
+                                        ? {
+                                              value: formData.affiliate_id,
+                                              label: affiliates.find(
+                                                  (a) =>
+                                                      a.id ===
+                                                      formData.affiliate_id,
+                                              )?.name,
+                                          }
+                                        : null
+                                }
+                                onChange={(selected) =>
                                     setFormData({
                                         ...formData,
-                                        affiliate_id: e.target.value,
+                                        affiliate_id: selected
+                                            ? selected.value
+                                            : "",
                                     })
                                 }
-                                disabled={
+                                options={[
+                                    {
+                                        value: "",
+                                        label: `Nenhum ${affiliateLabel.toLowerCase()}`,
+                                    },
+                                    ...affiliates.map((aff) => ({
+                                        value: aff.id,
+                                        label: aff.name,
+                                    })),
+                                ]}
+                                isSearchable={true}
+                                isDisabled={
                                     !formData.client_id ||
                                     affiliates.length === 0
                                 }
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                    opacity:
-                                        !formData.client_id ||
-                                        affiliates.length === 0
-                                            ? 0.6
-                                            : 1,
+                                placeholder={`Selecione um ${affiliateLabel.toLowerCase()}`}
+                                styles={{
+                                    ...customSelectStyles,
+                                    control: (provided, state) => ({
+                                        ...customSelectStyles.control(
+                                            provided,
+                                            state,
+                                        ),
+                                        opacity:
+                                            !formData.client_id ||
+                                            affiliates.length === 0
+                                                ? 0.6
+                                                : 1,
+                                    }),
                                 }}
-                            >
-                                <option value="">Nenhum afiliado</option>
-                                {affiliates.map((dep) => (
-                                    <option key={dep.id} value={dep.id}>
-                                        {dep.name}
-                                    </option>
-                                ))}
-                            </select>
+                            />
                         </div>
 
                         {/* Categoria */}
@@ -254,40 +373,51 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Categoria *
+                                {categoryLabel} *
                             </label>
-                            <select
-                                value={formData.category_id}
-                                onChange={(e) => {
+                            <Select
+                                value={
+                                    formData.category_id
+                                        ? {
+                                              value: formData.category_id,
+                                              label: categories.find(
+                                                  (c) =>
+                                                      c.id ===
+                                                      formData.category_id,
+                                              )?.name,
+                                          }
+                                        : null
+                                }
+                                onChange={(selected) => {
                                     setFormData({
                                         ...formData,
-                                        category_id: e.target.value,
+                                        category_id: selected
+                                            ? selected.value
+                                            : "",
                                         subcategory_id: "",
                                     });
-                                    onCategoryChange(e.target.value);
+                                    onCategoryChange(
+                                        selected ? selected.value : "",
+                                    );
                                 }}
+                                options={[
+                                    {
+                                        value: "",
+                                        label: `Selecione uma ${categoryLabel.toLowerCase()}`,
+                                    },
+                                    ...categories.map((cat) => ({
+                                        value: cat.id,
+                                        label: cat.name,
+                                    })),
+                                ]}
+                                isSearchable={true}
+                                placeholder={`Selecione uma ${categoryLabel.toLowerCase()}`}
+                                styles={customSelectStyles}
                                 required
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                }}
-                            >
-                                <option value="">
-                                    Selecione uma categoria
-                                </option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.name}
-                                    </option>
-                                ))}
-                            </select>
+                            />
                         </div>
 
-                        {/* Linha */}
+                        {/* Subcategoria/Linha */}
                         <div>
                             <label
                                 style={{
@@ -298,44 +428,63 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Linha *
+                                {subcategoryLabel} *
                             </label>
-                            <select
-                                value={formData.subcategory_id}
-                                onChange={(e) =>
+                            <Select
+                                value={
+                                    formData.subcategory_id
+                                        ? {
+                                              value: formData.subcategory_id,
+                                              label: lines.find(
+                                                  (l) =>
+                                                      l.id ===
+                                                      formData.subcategory_id,
+                                              )?.name,
+                                          }
+                                        : null
+                                }
+                                onChange={(selected) =>
                                     setFormData({
                                         ...formData,
-                                        subcategory_id: e.target.value,
+                                        subcategory_id: selected
+                                            ? selected.value
+                                            : "",
                                     })
                                 }
-                                disabled={
+                                options={[
+                                    {
+                                        value: "",
+                                        label: `Selecione uma ${subcategoryLabel.toLowerCase()}`,
+                                    },
+                                    ...lines.map((line) => ({
+                                        value: line.id,
+                                        label: line.name,
+                                    })),
+                                ]}
+                                isSearchable={true}
+                                isDisabled={
                                     !formData.category_id || lines.length === 0
                                 }
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    boxSizing: "border-box",
-                                    opacity:
-                                        !formData.category_id ||
-                                        lines.length === 0
-                                            ? 0.6
-                                            : 1,
+                                placeholder={`Selecione uma ${subcategoryLabel.toLowerCase()}`}
+                                styles={{
+                                    ...customSelectStyles,
+                                    control: (provided, state) => ({
+                                        ...customSelectStyles.control(
+                                            provided,
+                                            state,
+                                        ),
+                                        opacity:
+                                            !formData.category_id ||
+                                            lines.length === 0
+                                                ? 0.6
+                                                : 1,
+                                    }),
                                 }}
-                            >
-                                <option value="">Selecione uma linha</option>
-                                {lines.map((line) => (
-                                    <option key={line.id} value={line.id}>
-                                        {line.name}
-                                    </option>
-                                ))}
-                            </select>
+                                required
+                            />
                         </div>
 
-                        {/* Modelo */}
+                        {/* Modelo/Descrição */}
                         <div>
                             <label
                                 style={{
@@ -346,7 +495,16 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Modelo
+                                {modelLabel}
+                                <span
+                                    style={{
+                                        fontSize: "12px",
+                                        color: "#7f8c8d",
+                                        marginLeft: "4px",
+                                    }}
+                                >
+                                    (opcional)
+                                </span>
                             </label>
                             <input
                                 type="text"
@@ -369,7 +527,7 @@ export default function ContractModal({
                             />
                         </div>
 
-                        {/* Chave do Produto */}
+                        {/* Chave do Produto/Identificador */}
                         <div>
                             <label
                                 style={{
@@ -380,7 +538,16 @@ export default function ContractModal({
                                     color: "#495057",
                                 }}
                             >
-                                Chave do Produto
+                                {itemKeyLabel}
+                                <span
+                                    style={{
+                                        fontSize: "12px",
+                                        color: "#7f8c8d",
+                                        marginLeft: "4px",
+                                    }}
+                                >
+                                    (opcional)
+                                </span>
                             </label>
                             <input
                                 type="text"
@@ -505,9 +672,9 @@ export default function ContractModal({
                             }}
                         >
                             <p style={{ margin: 0 }}>
-                                💡 Dica: As datas são opcionais. Contratos sem
-                                data de término são considerados permanentes
-                                (ex: licenças vitalícias).
+                                💡 Dica: As datas são opcionais. {contractLabel}
+                                s sem data de término são considerados
+                                permanentes (ex: licenças vitalícias).
                             </p>
                         </div>
                     </div>
@@ -549,7 +716,7 @@ export default function ContractModal({
                             }}
                         >
                             {modalMode === "create"
-                                ? "Criar Contrato"
+                                ? `Criar ${contractLabel}`
                                 : "Salvar Alterações"}
                         </button>
                     </div>

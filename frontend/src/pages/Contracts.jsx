@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import Select from "react-select";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
 import { contractsApi } from "../api/contractsApi";
@@ -28,12 +29,12 @@ import {
     formatDate,
     getContractStatus,
     getClientName,
-    getCategoryName,
     prepareContractDataForAPI,
 } from "../utils/contractHelpers";
 import ContractsTable from "../components/contracts/ContractsTable";
 import ContractModal from "../components/contracts/ContractsModal";
 import PrimaryButton from "../components/common/PrimaryButton";
+import Pagination from "../components/common/Pagination";
 import "./styles/Contracts.css";
 
 export default function Contracts({ token, apiUrl, onTokenExpired }) {
@@ -55,15 +56,118 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    // Custom styles for react-select to match existing CSS
+    const customSelectStyles = {
+        control: (provided, state) => ({
+            ...provided,
+            minWidth: "220px",
+            width: "220px",
+            fontSize: "14px",
+            border: "1px solid var(--border-color, #ddd)",
+            borderRadius: "4px",
+            background: "var(--content-bg, white)",
+            color: "var(--primary-text-color, #333)",
+            cursor: "pointer",
+            boxShadow: state.isFocused
+                ? "0 0 0 1px var(--primary-color, #3498db)"
+                : provided.boxShadow,
+            "&:hover": {
+                borderColor: "var(--primary-color, #3498db)",
+            },
+        }),
+        option: (provided, state) => ({
+            ...provided,
+            backgroundColor: state.isSelected
+                ? "var(--primary-color, #3498db)"
+                : state.isFocused
+                  ? "var(--hover-bg, #f8f9fa)"
+                  : "var(--content-bg, white)",
+            color: state.isSelected
+                ? "white"
+                : "var(--primary-text-color, #333)",
+            cursor: "pointer",
+        }),
+        menu: (provided) => ({
+            ...provided,
+            background: "var(--content-bg, white)",
+            border: "1px solid var(--border-color, #ddd)",
+            borderRadius: "4px",
+        }),
+        singleValue: (provided) => ({
+            ...provided,
+            color: "var(--primary-text-color, #333)",
+        }),
+        placeholder: (provided) => ({
+            ...provided,
+            color: "var(--secondary-text-color, #999)",
+        }),
+        input: (provided) => ({
+            ...provided,
+            color: "var(--primary-text-color, #333)",
+        }),
+    };
+
     // State persistence
-    const { values, updateValue } = useUrlState(
-        { filter: "all", search: "" },
-        { debounce: true, debounceTime: 300 },
-    );
+    const { values, updateValue, updateValues, updateValuesImmediate } =
+        useUrlState(
+            {
+                filter: "active",
+                page: "1",
+                limit: "20",
+                categoryId: "",
+                subcategoryId: "",
+                clientName: "",
+                contractName: "",
+                sortBy: "end_date",
+                sortOrder: "desc",
+            },
+            { debounce: true, debounceTime: 300, syncWithUrl: false },
+        );
     const filter = values.filter;
-    const searchTerm = values.search;
-    const setFilter = (val) => updateValue("filter", val);
-    const setSearchTerm = (val) => updateValue("search", val);
+    const currentPage = parseInt(values.page || "1", 10);
+    const itemsPerPage = parseInt(values.limit || "20", 10);
+    const categoryIdFilter = values.categoryId || "";
+    const subcategoryIdFilter = values.subcategoryId || "";
+    const clientNameFilter = values.clientName || "";
+    const contractNameFilter = values.contractName || "";
+    const sortBy = values.sortBy || "end_date";
+    const sortOrder = values.sortOrder || "desc";
+
+    const setFilter = (val) => {
+        updateValuesImmediate({ filter: val, page: "1" });
+    };
+    const setCategoryIdFilter = (val) => {
+        updateValuesImmediate({
+            categoryId: val,
+            subcategoryId: "",
+            page: "1",
+        });
+    };
+    const setSubcategoryIdFilter = (val) => {
+        updateValuesImmediate({ subcategoryId: val, page: "1" });
+    };
+    const setClientNameFilter = (val) => {
+        updateValues({ clientName: val, page: "1" });
+    };
+    const setContractNameFilter = (val) => {
+        updateValues({ contractName: val, page: "1" });
+    };
+    const setSortBy = (val) => {
+        updateValuesImmediate({ sortBy: val, page: "1" });
+    };
+    const setSortOrder = (val) => {
+        updateValuesImmediate({ sortOrder: val, page: "1" });
+    };
+    const setCurrentPage = (page) =>
+        updateValuesImmediate({ page: page.toString() });
+    const setItemsPerPage = (limit) => {
+        updateValuesImmediate({ limit: limit.toString(), page: "1" });
+    };
+
+    // Get subcategories/lines for selected category
+    const availableSubcategories = categoryIdFilter
+        ? categories.find((c) => c.id === categoryIdFilter)?.lines || []
+        : [];
 
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -326,13 +430,103 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         return aDiff - bDiff;
     }
 
-    const filteredContracts = filterContracts(
-        [...contracts].sort(compareContracts),
-        filter,
-        searchTerm,
-        clients,
-        categories,
+    function sortContracts(contracts, sortBy, sortOrder) {
+        return [...contracts].sort((a, b) => {
+            let aVal, bVal;
+
+            switch (sortBy) {
+                case "model":
+                    aVal = (a.model || "").toLowerCase();
+                    bVal = (b.model || "").toLowerCase();
+                    break;
+                case "end_date":
+                    aVal = new Date(a.end_date || 0);
+                    bVal = new Date(b.end_date || 0);
+                    break;
+                case "client":
+                    const aClient = clients.find((c) => c.id === a.client_id);
+                    const bClient = clients.find((c) => c.id === b.client_id);
+                    aVal = (aClient?.name || "").toLowerCase();
+                    bVal = (bClient?.name || "").toLowerCase();
+                    break;
+                case "category":
+                    // Find category name from subcategory_id
+                    const getCategoryName = (contract) => {
+                        if (!contract.subcategory_id) return "";
+                        for (const cat of categories) {
+                            if (
+                                cat.lines?.some(
+                                    (l) => l.id === contract.subcategory_id,
+                                )
+                            ) {
+                                return cat.name || "";
+                            }
+                        }
+                        return "";
+                    };
+                    aVal = getCategoryName(a).toLowerCase();
+                    bVal = getCategoryName(b).toLowerCase();
+                    break;
+                case "subcategory":
+                    // Find subcategory/line name from subcategory_id
+                    const getSubcategoryName = (contract) => {
+                        if (!contract.subcategory_id) return "";
+                        for (const cat of categories) {
+                            const line = cat.lines?.find(
+                                (l) => l.id === contract.subcategory_id,
+                            );
+                            if (line) return line.name || "";
+                        }
+                        return contract.line?.name || "";
+                    };
+                    aVal = getSubcategoryName(a).toLowerCase();
+                    bVal = getSubcategoryName(b).toLowerCase();
+                    break;
+                case "status":
+                    // Simple status comparison
+                    const getStatusOrder = (contract) => {
+                        if (contract.archived_at) return 4;
+                        const endDate = new Date(contract.end_date);
+                        const now = new Date();
+                        if (endDate < now) return 3; // expired
+                        if (endDate - now < 30 * 24 * 60 * 60 * 1000) return 2; // expiring
+                        return 1; // active
+                    };
+                    aVal = getStatusOrder(a);
+                    bVal = getStatusOrder(b);
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+            if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const allFilteredContracts = sortContracts(
+        filterContracts(
+            [...contracts].sort(compareContracts),
+            filter,
+            {
+                categoryId: categoryIdFilter,
+                subcategoryId: subcategoryIdFilter,
+                clientName: clientNameFilter,
+                contractName: contractNameFilter,
+            },
+            clients,
+            categories,
+        ),
+        sortBy,
+        sortOrder,
     );
+
+    // Pagination
+    const totalItems = allFilteredContracts.length;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const filteredContracts = allFilteredContracts.slice(startIndex, endIndex);
 
     if (loading) {
         return (
@@ -396,14 +590,217 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 >
                     {config.labels.archived || g.archived}
                 </button>
+            </div>
+
+            <div className="contracts-search-filters">
+                <Select
+                    value={
+                        clientNameFilter
+                            ? {
+                                  value: clientNameFilter,
+                                  label: clientNameFilter,
+                              }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setClientNameFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        {
+                            value: "",
+                            label: `Todos os ${config.labels.clients?.toLowerCase() || "clientes"}`,
+                        },
+                        ...clients
+                            .filter((c) => !c.archived_at)
+                            .map((client) => ({
+                                value: client.name,
+                                label: client.name,
+                            })),
+                    ]}
+                    isSearchable={true}
+                    placeholder={`Filtrar por ${config.labels.client?.toLowerCase() || "cliente"}`}
+                    styles={customSelectStyles}
+                />
+
+                <Select
+                    value={
+                        categoryIdFilter
+                            ? {
+                                  value: categoryIdFilter,
+                                  label:
+                                      categories.find(
+                                          (c) => c.id === categoryIdFilter,
+                                      )?.name || "",
+                              }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setCategoryIdFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        {
+                            value: "",
+                            label: `Todas as ${config.labels.categories?.toLowerCase() || "categorias"}`,
+                        },
+                        ...categories
+                            .filter((c) => !c.archived_at)
+                            .map((category) => ({
+                                value: category.id,
+                                label: category.name,
+                            })),
+                    ]}
+                    isSearchable={true}
+                    placeholder={`Selecionar ${config.labels.categories?.toLowerCase() || "categoria"}`}
+                    styles={customSelectStyles}
+                />
+
+                <Select
+                    value={
+                        subcategoryIdFilter
+                            ? {
+                                  value: subcategoryIdFilter,
+                                  label:
+                                      availableSubcategories.find(
+                                          (s) => s.id === subcategoryIdFilter,
+                                      )?.name || "",
+                              }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setSubcategoryIdFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        {
+                            value: "",
+                            label: `Todas as ${config.labels.subcategories?.toLowerCase() || "subcategorias"}`,
+                        },
+                        ...availableSubcategories
+                            .filter((s) => !s.archived_at)
+                            .map((sub) => ({
+                                value: sub.id,
+                                label: sub.name,
+                            })),
+                    ]}
+                    isSearchable={true}
+                    isDisabled={!categoryIdFilter}
+                    placeholder={`Selecionar ${config.labels.subcategories?.toLowerCase() || "subcategoria"}`}
+                    styles={customSelectStyles}
+                />
+
+                <Select
+                    value={
+                        sortBy
+                            ? {
+                                  value: sortBy,
+                                  label: (() => {
+                                      const sortLabels = {
+                                          model:
+                                              config.labels.model ||
+                                              "Nome/Modelo",
+                                          end_date: "Data de Vencimento",
+                                          client:
+                                              config.labels.client || "Cliente",
+                                          status: "Status",
+                                      };
+                                      return sortLabels[sortBy];
+                                  })(),
+                              }
+                            : null
+                    }
+                    onChange={(selected) => {
+                        if (selected) {
+                            setSortBy(selected.value);
+                        }
+                    }}
+                    options={[
+                        {
+                            value: "model",
+                            label: config.labels.model || "Nome/Modelo",
+                        },
+                        {
+                            value: "end_date",
+                            label: "Data de Vencimento",
+                        },
+                        {
+                            value: "client",
+                            label: config.labels.client || "Cliente",
+                        },
+                        {
+                            value: "category",
+                            label: config.labels.category || "Categoria",
+                        },
+                        {
+                            value: "subcategory",
+                            label: config.labels.subcategory || "Subcategoria",
+                        },
+                        { value: "status", label: "Status" },
+                    ]}
+                    isSearchable={false}
+                    placeholder="Ordenar por..."
+                    styles={customSelectStyles}
+                />
+
+                <Select
+                    value={
+                        sortOrder
+                            ? {
+                                  value: sortOrder,
+                                  label:
+                                      sortOrder === "asc"
+                                          ? "Crescente"
+                                          : "Decrescente",
+                              }
+                            : null
+                    }
+                    onChange={(selected) => {
+                        if (selected) {
+                            setSortOrder(selected.value);
+                        }
+                    }}
+                    options={[
+                        { value: "asc", label: "Crescente" },
+                        { value: "desc", label: "Decrescente" },
+                    ]}
+                    isSearchable={false}
+                    placeholder="Ordem..."
+                    styles={customSelectStyles}
+                />
 
                 <input
                     type="text"
-                    placeholder={`Buscar por modelo, chave, ${config.labels.client.toLowerCase()}...`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={`Filtrar por ${config.labels.model?.toLowerCase() || "descrição"}...`}
+                    value={contractNameFilter}
+                    onChange={(e) => setContractNameFilter(e.target.value)}
                     className="contracts-search-input"
+                    style={{
+                        minWidth: "220px",
+                        width: "220px",
+                        fontSize: "14px",
+                        padding: "8px 12px",
+                        border: "1px solid var(--border-color, #ddd)",
+                        borderRadius: "4px",
+                        background: "var(--content-bg, white)",
+                        color: "var(--primary-text-color, #333)",
+                    }}
                 />
+
+                <PrimaryButton
+                    onClick={() => {
+                        updateValuesImmediate({
+                            categoryId: "",
+                            subcategoryId: "",
+                            clientName: "",
+                            contractName: "",
+                            page: "1",
+                        });
+                    }}
+                    title="Limpar filtros"
+                    style={{
+                        minWidth: "120px",
+                    }}
+                >
+                    Limpar Filtros
+                </PrimaryButton>
             </div>
 
             <div className="contracts-table-wrapper">
@@ -420,6 +817,14 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     onUnarchive={handleUnarchiveContract}
                 />
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+            />
 
             <ContractModal
                 showModal={showModal}
@@ -474,17 +879,17 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                                 color: "#2c3e50",
                             }}
                         >
-                            Detalhes do Contrato
+                            Detalhes do {config.labels.contract || "Contrato"}
                         </h2>
 
                         <div style={{ display: "grid", gap: "16px" }}>
                             <DetailRow
-                                label={config.labels.model || "Modelo"}
+                                label={config.labels.model || "Descrição"}
                                 value={selectedContract.model || "-"}
                             />
                             <DetailRow
                                 label={
-                                    config.labels.item_key || "Chave do Produto"
+                                    config.labels.item_key || "Identificador"
                                 }
                                 value={selectedContract.item_key || "-"}
                             />
@@ -505,16 +910,42 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                             )}
                             <DetailRow
                                 label={config.labels.category || "Categoria"}
-                                value={getCategoryName(
-                                    selectedContract.subcategory_id,
-                                    categories,
-                                )}
+                                value={(() => {
+                                    // Find category name from subcategory_id
+                                    if (!selectedContract.subcategory_id)
+                                        return "-";
+                                    for (const cat of categories) {
+                                        if (
+                                            cat.lines?.some(
+                                                (l) =>
+                                                    l.id ===
+                                                    selectedContract.subcategory_id,
+                                            )
+                                        ) {
+                                            return cat.name;
+                                        }
+                                    }
+                                    return "-";
+                                })()}
                             />
                             <DetailRow
                                 label={
                                     config.labels.subcategory || "Subcategoria"
                                 }
-                                value={selectedContract.line?.line || "-"}
+                                value={(() => {
+                                    // Find subcategory/line name from subcategory_id
+                                    if (!selectedContract.subcategory_id)
+                                        return "-";
+                                    for (const cat of categories) {
+                                        const line = cat.lines?.find(
+                                            (l) =>
+                                                l.id ===
+                                                selectedContract.subcategory_id,
+                                        );
+                                        if (line) return line.name;
+                                    }
+                                    return selectedContract.line?.name || "-";
+                                })()}
                             />
                             <DetailRow
                                 label="Data de Início"

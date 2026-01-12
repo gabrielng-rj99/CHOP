@@ -21,7 +21,6 @@ import {
     formatDate,
     getContractStatus,
     getClientName,
-    getCategoryName,
 } from "../../utils/contractHelpers";
 import "./ContractsTable.css";
 import InfoIcon from "../../assets/icons/info.svg";
@@ -43,6 +42,29 @@ export default function ContractsTable({
     const { config } = useConfig();
     const { labels } = config;
 
+    // Helper to get category name from subcategory_id
+    const getCategoryName = (subcategoryId) => {
+        if (!subcategoryId) return "-";
+        for (const category of categories) {
+            if (category.lines?.some((line) => line.id === subcategoryId)) {
+                return category.name;
+            }
+        }
+        return "-";
+    };
+
+    // Helper to get subcategory/line name from subcategory_id
+    const getSubcategoryName = (subcategoryId) => {
+        if (!subcategoryId) return "-";
+        for (const category of categories) {
+            const line = category.lines?.find((l) => l.id === subcategoryId);
+            if (line) {
+                return line.name;
+            }
+        }
+        return "-";
+    };
+
     if (filteredContracts.length === 0) {
         return (
             <div className="contracts-table-empty">
@@ -61,6 +83,7 @@ export default function ContractsTable({
                     <th>{labels.model || "Modelo"}</th>
                     <th>{labels.client || "Cliente"}</th>
                     <th>{labels.category || "Categoria"}</th>
+                    <th>{labels.subcategory || "Subcategoria"}</th>
                     <th>Vencimento</th>
                     <th className="status">Status</th>
                     <th className="actions">Ações</th>
@@ -90,20 +113,14 @@ export default function ContractsTable({
                                 {getClientName(contract.client_id, clients)}
                                 {contract.affiliate && (
                                     <div className="contracts-table-affiliate">
-                                        Dep: {contract.affiliate.name}
+                                        {labels.affiliate || "Afiliado"}:{" "}
+                                        {contract.affiliate.name}
                                     </div>
                                 )}
                             </td>
+                            <td>{getCategoryName(contract.subcategory_id)}</td>
                             <td>
-                                {getCategoryName(
-                                    contract.subcategory_id,
-                                    categories,
-                                )}
-                                {contract.line && (
-                                    <div className="contracts-table-line">
-                                        {contract.line.name}
-                                    </div>
-                                )}
+                                {getSubcategoryName(contract.subcategory_id)}
                             </td>
                             <td>{formatDate(contract.end_date)}</td>
                             <td className="status">
@@ -130,7 +147,6 @@ export default function ContractsTable({
                                             style={{
                                                 width: "22px",
                                                 height: "22px",
-                                                filter: "invert(44%) sepia(92%) saturate(1092%) hue-rotate(182deg) brightness(95%) contrast(88%)",
                                             }}
                                         />
                                     </button>

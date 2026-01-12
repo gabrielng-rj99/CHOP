@@ -193,11 +193,16 @@
 }
 
 .dashboard-section-card {
-    background: var(--content-bg, white);
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
     padding: 24px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color, #ecf0f1);
+    border-left: 4px solid var(--secondary-color);
 }
 
 .dashboard-section-title {
@@ -212,15 +217,86 @@
 }
 
 .dashboard-contracts-list {
-    max-height: 200px;
+    max-height: 450px;
     overflow-y: auto;
 }
 
 .dashboard-contract-item {
-    padding: 12px;
+    padding: 10px 12px;
     border-radius: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     border: 1px solid;
+    font-size: 13px;
+}
+
+/* Single line layout for contract items */
+.dashboard-contract-item.single-line {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-date {
+    flex: 0 0 50px;
+    font-weight: 600;
+    text-align: left;
+    font-size: 12px;
+    color: var(--primary-color, #3498db);
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-client-name {
+    flex: 2;
+    font-weight: 600;
+    text-align: left;
+    font-size: 12px;
+    color: var(--primary-text-color, #2c3e50);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-model {
+    flex: 1.5;
+    margin-bottom: 0;
+    text-align: left;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-phone {
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--secondary-text-color, #7f8c8d);
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-key {
+    flex: 1.5;
+    text-align: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.dashboard-contract-item.single-line .dashboard-contract-days {
+    flex: 0 0 70px;
+    margin-top: 0;
+    text-align: right;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: 11px;
 }
 
 .dashboard-contract-item.expiring {
@@ -255,14 +331,31 @@
 }
 
 .dashboard-contract-key {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--secondary-text-color, #7f8c8d);
 }
 
 .dashboard-contract-days {
     margin-top: 8px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
+}
+
+.dashboard-contract-date {
+    font-weight: 600;
+    color: var(--primary-color, #3498db);
+}
+
+.dashboard-contract-phone {
+    color: var(--secondary-text-color, #7f8c8d);
+}
+
+.dark-mode .dashboard-contract-date {
+    color: var(--primary-color, #63b3ed);
+}
+
+.dark-mode .dashboard-contract-phone {
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 .dashboard-contract-days.expiring {
@@ -283,6 +376,58 @@
 
 .dashboard-contract-days.clients {
     color: #3498db;
+}
+
+/* Pagination styles */
+.dashboard-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.pagination-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 4px;
+    background: var(--content-bg, #fff);
+    color: var(--primary-text-color, #2c3e50);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary-color, #3498db);
+    background: var(--hover-bg, rgba(52, 152, 219, 0.1));
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: var(--secondary-text-color, #7f8c8d);
+}
+
+.dark-mode .pagination-btn {
+    background: var(--content-bg, #2d3748);
+    border-color: var(--border-color, #4a5568);
+    color: var(--primary-text-color, #f7fafc);
+}
+
+.dark-mode .pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary-color, #3498db);
+    background: rgba(52, 152, 219, 0.2);
+}
+
+.dark-mode .pagination-info {
+    color: var(--secondary-text-color, #a0aec0);
 }
 
 /* Dark mode specific styles */
@@ -317,6 +462,10 @@
 }
 
 .dark-mode .dashboard-contract-model {
+    color: var(--primary-text-color, #f7fafc);
+}
+
+.dark-mode .dashboard-contract-client-name {
     color: var(--primary-text-color, #f7fafc);
 }
 

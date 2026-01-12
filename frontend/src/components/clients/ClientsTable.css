@@ -39,7 +39,7 @@
 }
 
 .clients-table thead tr {
-    background: var(--content-bg, #f8f9fa);
+    background: var(--secondary-color);
     border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
@@ -48,7 +48,8 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: var(--primary-text-color, #495057);
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
 }
 
 .clients-table th.actions {
@@ -58,6 +59,16 @@
 
 .clients-table tbody tr {
     border-bottom: 1px solid var(--border-color, #ecf0f1);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.clients-table tbody tr:hover {
+    background-color: var(--hover-bg, rgba(52, 152, 219, 0.08));
+}
+
+.clients-table tbody tr.clients-table-row:hover {
+    background-color: var(--hover-bg, rgba(52, 152, 219, 0.12));
 }
 
 .clients-table td {
@@ -131,16 +142,25 @@
 }
 
 .dark-mode .clients-table thead tr {
-    background: var(--content-bg, #2d3748);
+    background: var(--secondary-color);
     border-color: var(--border-color, #4a5568);
 }
 
 .dark-mode .clients-table th {
-    color: var(--primary-text-color, #f7fafc);
+    color: var(--nav-text-color, white);
+    background: var(--secondary-color);
 }
 
 .dark-mode .clients-table tbody tr {
     border-color: var(--border-color, #4a5568);
+}
+
+.dark-mode .clients-table tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.15);
+}
+
+.dark-mode .clients-table tbody tr.clients-table-row:hover {
+    background-color: rgba(52, 152, 219, 0.2);
 }
 
 .dark-mode .clients-table td {

@@ -81,6 +81,13 @@ export default function Settings({ token, apiUrl }) {
         }));
     };
 
+    const handleKeyDown = (e, saveFunction) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            saveFunction();
+        }
+    };
+
     const handleSaveBranding = async () => {
         setBrandingMessage("");
         setBrandingError("");
@@ -411,6 +418,12 @@ export default function Settings({ token, apiUrl }) {
                                                         ) || 7,
                                                     )
                                                 }
+                                                onKeyDown={(e) =>
+                                                    handleKeyDown(
+                                                        e,
+                                                        handleSaveDashboard,
+                                                    )
+                                                }
                                             />
                                         </div>
                                     )}
@@ -445,8 +458,8 @@ export default function Settings({ token, apiUrl }) {
                                             <input
                                                 type="number"
                                                 className="small-input"
-                                                min="5"
-                                                max="50"
+                                                min="1"
+                                                max="365"
                                                 value={
                                                     dashboardSettings.recent_activity_count
                                                 }
@@ -455,7 +468,13 @@ export default function Settings({ token, apiUrl }) {
                                                         "recent_activity_count",
                                                         parseInt(
                                                             e.target.value,
-                                                        ) || 10,
+                                                        ) || 15,
+                                                    )
+                                                }
+                                                onKeyDown={(e) =>
+                                                    handleKeyDown(
+                                                        e,
+                                                        handleSaveDashboard,
                                                     )
                                                 }
                                             />
@@ -520,8 +539,8 @@ export default function Settings({ token, apiUrl }) {
                                             <input
                                                 type="number"
                                                 className="small-input"
-                                                min="7"
-                                                max="180"
+                                                min="1"
+                                                max="365"
                                                 value={
                                                     dashboardSettings.expiring_days_ahead
                                                 }
@@ -531,6 +550,12 @@ export default function Settings({ token, apiUrl }) {
                                                         parseInt(
                                                             e.target.value,
                                                         ) || 30,
+                                                    )
+                                                }
+                                                onKeyDown={(e) =>
+                                                    handleKeyDown(
+                                                        e,
+                                                        handleSaveDashboard,
                                                     )
                                                 }
                                             />
@@ -609,6 +634,9 @@ export default function Settings({ token, apiUrl }) {
                                         e.target.value,
                                     )
                                 }
+                                onKeyDown={(e) =>
+                                    handleKeyDown(e, handleSaveBranding)
+                                }
                             />
                         </div>
 
@@ -682,6 +710,12 @@ export default function Settings({ token, apiUrl }) {
                                                         e.target.value,
                                                     )
                                                 }
+                                                onKeyDown={(e) =>
+                                                    handleKeyDown(
+                                                        e,
+                                                        handleSaveBranding,
+                                                    )
+                                                }
                                             />
                                             <input
                                                 type="file"
@@ -730,6 +764,12 @@ export default function Settings({ token, apiUrl }) {
                                                         "branding",
                                                         "logoSquareUrl",
                                                         e.target.value,
+                                                    )
+                                                }
+                                                onKeyDown={(e) =>
+                                                    handleKeyDown(
+                                                        e,
+                                                        handleSaveBranding,
                                                     )
                                                 }
                                             />
@@ -879,6 +919,12 @@ export default function Settings({ token, apiUrl }) {
                                                     e.target.value,
                                                 )
                                             }
+                                            onKeyDown={(e) =>
+                                                handleKeyDown(
+                                                    e,
+                                                    handleSaveLabels,
+                                                )
+                                            }
                                             placeholder="Singular"
                                         />
                                     </div>
@@ -897,7 +943,12 @@ export default function Settings({ token, apiUrl }) {
                                                     e.target.value,
                                                 )
                                             }
-                                            placeholder="Plural"
+                                            onKeyDown={(e) =>
+                                                handleKeyDown(
+                                                    e,
+                                                    handleSaveLabels,
+                                                )
+                                            }
                                         />
                                     </div>
                                 </div>

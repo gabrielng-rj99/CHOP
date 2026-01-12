@@ -17,6 +17,8 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import { useConfig } from "../contexts/ConfigContext";
 import { usersApi } from "../api/usersApi";
 import { useUrlState } from "../hooks/useUrlState";
@@ -37,19 +39,28 @@ export default function Users({
     onLogout,
     onTokenExpired,
 }) {
+    // All hooks must be called at the top level, before any early returns
+    const { config, getGenderHelpers } = useConfig();
+    const navigate = useNavigate();
+    const g = getGenderHelpers("user");
+
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [modalError, setModalError] = useState("");
     const [success, setSuccess] = useState("");
 
-    // State persistence for search
+    // State persistence for filters
     const { values, updateValue } = useUrlState(
-        { search: "" },
-        { debounce: true, debounceTime: 300 },
+        { username: "", displayName: "", role: "" },
+        { debounce: true, debounceTime: 300, syncWithUrl: false },
     );
-    const searchTerm = values.search;
-    const setSearchTerm = (val) => updateValue("search", val);
+    const usernameFilter = values.username || "";
+    const displayNameFilter = values.displayName || "";
+    const roleFilter = values.role || "";
+    const setUsernameFilter = (val) => updateValue("username", val);
+    const setDisplayNameFilter = (val) => updateValue("displayName", val);
+    const setRoleFilter = (val) => updateValue("role", val);
 
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create");
@@ -256,12 +267,11 @@ export default function Users({
         return (a.username || "").localeCompare(b.username || "");
     }
 
-    const filteredUsers = filterUsers(
-        [...users].sort(compareAlphaNum),
-        searchTerm,
-    );
-
-    const { config, getGenderHelpers } = useConfig();
+    const filteredUsers = filterUsers([...users].sort(compareAlphaNum), {
+        username: usernameFilter,
+        displayName: displayNameFilter,
+        role: roleFilter,
+    });
 
     if (loading) {
         return (
@@ -271,9 +281,6 @@ export default function Users({
         );
     }
 
-    // We need to access getGenderHelpers in component body
-    const g = getGenderHelpers("user");
-
     return (
         <div className="users-container">
             <div className="users-header">
@@ -281,12 +288,21 @@ export default function Users({
                     👤 {config.labels.users || "Usuários"}
                 </h1>
                 <div className="button-group">
-                    <PrimaryButton onClick={() => loadUsers()}>
-                    </PrimaryButton>
                     {["admin", "root"].includes(user.role) && (
-                        <PrimaryButton onClick={openCreateModal}>
-                            + {g.new} {config.labels.user || "Usuário"}
-                        </PrimaryButton>
+                        <>
+                            <PrimaryButton
+                                onClick={() =>
+                                    navigate("/settings?section=roles")
+                                }
+                                style={{ minWidth: "auto" }}
+                                title="Gerenciar papéis e permissões"
+                            >
+                                👨‍💼 Papéis & Permissões
+                            </PrimaryButton>
+                            <PrimaryButton onClick={openCreateModal}>
+                                + {g.new} {config.labels.user || "Usuário"}
+                            </PrimaryButton>
+                        </>
                     )}
                 </div>
             </div>
@@ -296,13 +312,106 @@ export default function Users({
             {success && <div className="users-success">{success}</div>}
 
             <div className="users-search-container">
-                <input
-                    type="text"
-                    placeholder="Buscar por nome de usuário, nome de exibição ou função..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="users-search-input"
+                <Select
+                    value={
+                        usernameFilter
+                            ? { value: usernameFilter, label: usernameFilter }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setUsernameFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        { value: "", label: "Todos os usuários" },
+                        ...[...new Set(users.map((u) => u.username))].map(
+                            (username) => ({
+                                value: username,
+                                label: username,
+                            }),
+                        ),
+                    ]}
+                    isSearchable={true}
+                    placeholder="Filtrar por nome de usuário..."
+                    styles={{
+                        control: (provided) => ({
+                            ...provided,
+                            minWidth: "200px",
+                            fontSize: "14px",
+                        }),
+                    }}
                 />
+
+                <Select
+                    value={
+                        displayNameFilter
+                            ? {
+                                  value: displayNameFilter,
+                                  label: displayNameFilter,
+                              }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setDisplayNameFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        { value: "", label: "Todos os nomes de exibição" },
+                        ...[...new Set(users.map((u) => u.display_name))].map(
+                            (displayName) => ({
+                                value: displayName,
+                                label: displayName,
+                            }),
+                        ),
+                    ]}
+                    isSearchable={true}
+                    placeholder="Filtrar por nome de exibição..."
+                    styles={{
+                        control: (provided) => ({
+                            ...provided,
+                            minWidth: "200px",
+                            fontSize: "14px",
+                        }),
+                    }}
+                />
+
+                <Select
+                    value={
+                        roleFilter
+                            ? { value: roleFilter, label: roleFilter }
+                            : null
+                    }
+                    onChange={(selected) =>
+                        setRoleFilter(selected ? selected.value : "")
+                    }
+                    options={[
+                        { value: "", label: "Todas as funções" },
+                        { value: "root", label: "Root" },
+                        { value: "admin", label: "Administrador" },
+                        { value: "user", label: "Usuário" },
+                    ]}
+                    isSearchable={false}
+                    placeholder="Filtrar por função..."
+                    styles={{
+                        control: (provided) => ({
+                            ...provided,
+                            minWidth: "200px",
+                            fontSize: "14px",
+                        }),
+                    }}
+                />
+
+                {(usernameFilter || displayNameFilter || roleFilter) && (
+                    <button
+                        onClick={() => {
+                            setUsernameFilter("");
+                            setDisplayNameFilter("");
+                            setRoleFilter("");
+                        }}
+                        className="users-clear-filters-button"
+                        title="Limpar filtros"
+                    >
+                        ✕ Limpar
+                    </button>
+                )}
             </div>
 
             <div className="users-table-wrapper">

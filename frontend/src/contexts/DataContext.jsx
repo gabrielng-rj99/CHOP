@@ -174,7 +174,7 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
         async (forceRefresh = false) => {
             return fetchWithCache(
                 "/categories",
-                {},
+                { params: { include_archived: "true" } },
                 null,
                 5 * 60 * 1000,
                 forceRefresh,

@@ -36,13 +36,19 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [birthdayFilter, setBirthdayFilter] = useState(() =>
-        getPersistentFilter("dashboard_birthday_filter", "week"),
+        getPersistentFilter("dashboard_birthday_filter", "day"),
     );
 
     // Tab state for info section (birthdays, expiring, expired)
     const [activeInfoTab, setActiveInfoTab] = useState(() =>
         getPersistentFilter("dashboard_active_info_tab", "birthdays"),
     );
+
+    // Pagination state for each tab
+    const [birthdayPage, setBirthdayPage] = useState(1);
+    const [expiringPage, setExpiringPage] = useState(1);
+    const [expiredPage, setExpiredPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Dashboard settings from backend
     const [dashboardSettings, setDashboardSettings] = useState({
@@ -127,12 +133,9 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             const flattenedLines = allLinesResults.flat();
             setLines(flattenedLines);
 
-            // Smart filter logic: If birthdayFilter is null (not loaded from session), determine based on count
+            // Always set birthday filter to 'day'
             if (!birthdayFilter) {
-                const activeCount = (clientsData.data || []).filter(
-                    (c) => !c.archived_at && c.status === "ativo",
-                ).length;
-                setBirthdayFilter(activeCount > 120 ? "day" : "month");
+                setBirthdayFilter("day");
             }
         } catch (err) {
             setError(err.message);
@@ -183,15 +186,43 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         return !c.archived_at && status.status === "Ativo";
     });
 
-    const expiringContracts = contracts.filter((c) => {
-        const status = getContractStatus(c);
-        return !c.archived_at && status.status === "Expirando";
-    });
+    const expiringContracts = contracts
+        .filter((c) => {
+            const status = getContractStatus(c);
+            return !c.archived_at && status.status === "Expirando";
+        })
+        .sort((a, b) => {
+            // Sort by days remaining (ascending - fewer days first)
+            const endDateA = new Date(a.end_date);
+            const endDateB = new Date(b.end_date);
+            const now = new Date();
+            const daysLeftA = Math.ceil(
+                (endDateA - now) / (1000 * 60 * 60 * 24),
+            );
+            const daysLeftB = Math.ceil(
+                (endDateB - now) / (1000 * 60 * 60 * 24),
+            );
+            return daysLeftA - daysLeftB;
+        });
 
-    const expiredContracts = contracts.filter((c) => {
-        const status = getContractStatus(c);
-        return !c.archived_at && status.status === "Expirado";
-    });
+    const expiredContracts = contracts
+        .filter((c) => {
+            const status = getContractStatus(c);
+            return !c.archived_at && status.status === "Expirado";
+        })
+        .sort((a, b) => {
+            // Sort by days expired (descending - more days expired first)
+            const endDateA = new Date(a.end_date);
+            const endDateB = new Date(b.end_date);
+            const now = new Date();
+            const daysExpiredA = Math.ceil(
+                (now - endDateA) / (1000 * 60 * 60 * 24),
+            );
+            const daysExpiredB = Math.ceil(
+                (now - endDateB) / (1000 * 60 * 60 * 24),
+            );
+            return daysExpiredB - daysExpiredA;
+        });
 
     const activeClients = clients.filter(
         (c) => !c.archived_at && c.status === "ativo",
@@ -204,42 +235,62 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const archivedClients = clients.filter((c) => c.archived_at);
 
     // Clientes que fazem aniversário no mês atual ou dia atual (respeitando days_ahead)
-    const birthdayClients = clients.filter((c) => {
-        if (c.archived_at || c.status !== "ativo" || !c.birth_date) {
-            return false;
-        }
-
-        const birthDate = new Date(c.birth_date);
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentDay = now.getDate();
-        const birthMonth = birthDate.getMonth();
-        const birthDay = birthDate.getDate();
-
-        if (birthdayFilter === "day") {
-            return birthMonth === currentMonth && birthDay === currentDay;
-        } else if (birthdayFilter === "week") {
-            // Check if birthday is within the next X days
-            const daysAhead = dashboardSettings.birthdays_days_ahead || 7;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            for (let i = 0; i <= daysAhead; i++) {
-                const checkDate = new Date(today);
-                checkDate.setDate(checkDate.getDate() + i);
-                if (
-                    checkDate.getMonth() === birthMonth &&
-                    checkDate.getDate() === birthDay
-                ) {
-                    return true;
-                }
+    const birthdayClients = clients
+        .filter((c) => {
+            if (c.archived_at || !c.birth_date) {
+                return false;
             }
-            return false;
-        } else {
-            // Default to month if birthdayFilter is null or 'month'
-            return birthMonth === currentMonth;
-        }
-    });
+
+            // Parse birth_date as UTC to avoid timezone issues
+            const birthDateStr = c.birth_date.split("T")[0]; // Get YYYY-MM-DD part
+            const [birthYear, birthMonth, birthDay] = birthDateStr
+                .split("-")
+                .map(Number);
+
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const currentMonth = now.getMonth() + 1; // getMonth returns 0-11, so add 1
+            const currentDay = now.getDate();
+
+            if (birthdayFilter === "day") {
+                return birthMonth === currentMonth && birthDay === currentDay;
+            } else if (birthdayFilter === "week") {
+                // Check if birthday is within the next X days
+                const daysAhead = dashboardSettings.birthdays_days_ahead || 7;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                for (let i = 0; i <= daysAhead; i++) {
+                    const checkDate = new Date(today);
+                    checkDate.setDate(checkDate.getDate() + i);
+                    const checkMonth = checkDate.getMonth() + 1; // Convert 0-11 to 1-12
+                    const checkDay = checkDate.getDate();
+                    if (checkMonth === birthMonth && checkDay === birthDay) {
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                // Default to month if birthdayFilter is null or 'month'
+                return birthMonth === currentMonth;
+            }
+        })
+        .sort((a, b) => {
+            // Sort by birth month and day (ascending)
+            const aDateStr = a.birth_date.split("T")[0];
+            const [aYear, aMonth, aDay] = aDateStr.split("-").map(Number);
+            const bDateStr = b.birth_date.split("T")[0];
+            const [bYear, bMonth, bDay] = bDateStr.split("-").map(Number);
+
+            if (aMonth !== bMonth) {
+                return aMonth - bMonth;
+            }
+            if (aDay !== bDay) {
+                return aDay - bDay;
+            }
+            // If same date, sort alphabetically by name
+            return a.name.localeCompare(b.name);
+        });
 
     const totalCategories = categories.length;
     const totalLines = lines.length;
@@ -437,17 +488,6 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                         <button
                             className="dashboard-action-btn"
                             onClick={() =>
-                                (window.location.hash = "#/clients?action=new")
-                            }
-                        >
-                            <span className="action-icon">👤</span>
-                            <span className="action-label">
-                                Novo {config.labels?.client || "Cliente"}
-                            </span>
-                        </button>
-                        <button
-                            className="dashboard-action-btn"
-                            onClick={() =>
                                 (window.location.hash =
                                     "#/contracts?action=new")
                             }
@@ -460,6 +500,23 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                         <button
                             className="dashboard-action-btn"
                             onClick={() =>
+                                (window.location.hash = "#/clients?action=new")
+                            }
+                        >
+                            <span className="action-icon">👤</span>
+                            <span className="action-label">
+                                Novo {config.labels?.client || "Cliente"}
+                            </span>
+                        </button>
+                        <button className="dashboard-action-btn">
+                            <span className="action-icon">🤝</span>
+                            <span className="action-label">
+                                Novo {config.labels?.affiliate || "Afiliado"}
+                            </span>
+                        </button>
+                        <button
+                            className="dashboard-action-btn"
+                            onClick={() =>
                                 (window.location.hash =
                                     "#/categories?action=new")
                             }
@@ -467,6 +524,13 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             <span className="action-icon">🏷️</span>
                             <span className="action-label">
                                 Nova {config.labels?.category || "Categoria"}
+                            </span>
+                        </button>
+                        <button className="dashboard-action-btn">
+                            <span className="action-icon">📂</span>
+                            <span className="action-label">
+                                Nova{" "}
+                                {config.labels?.subcategory || "Subcategoria"}
                             </span>
                         </button>
                     </div>
@@ -512,13 +576,19 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                 }}
                             >
                                 <button
-                                    onClick={() => setBirthdayFilter("day")}
+                                    onClick={() => {
+                                        setBirthdayFilter("day");
+                                        setBirthdayPage(1);
+                                    }}
                                     className={`filter-btn ${birthdayFilter === "day" ? "active" : ""}`}
                                 >
                                     Hoje
                                 </button>
                                 <button
-                                    onClick={() => setBirthdayFilter("week")}
+                                    onClick={() => {
+                                        setBirthdayFilter("week");
+                                        setBirthdayPage(1);
+                                    }}
                                     className={`filter-btn ${birthdayFilter === "week" ? "active" : ""}`}
                                 >
                                     Próxs.{" "}
@@ -526,7 +596,10 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                     dias
                                 </button>
                                 <button
-                                    onClick={() => setBirthdayFilter("month")}
+                                    onClick={() => {
+                                        setBirthdayFilter("month");
+                                        setBirthdayPage(1);
+                                    }}
                                     className={`filter-btn ${birthdayFilter === "month" ? "active" : ""}`}
                                 >
                                     Mês
@@ -537,54 +610,118 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                     Nenhum aniversariante
                                 </p>
                             ) : (
-                                <div className="dashboard-contracts-list">
-                                    {birthdayClients
-                                        .slice(0, 10)
-                                        .map((client) => (
-                                            <div
-                                                key={client.id}
-                                                className="dashboard-contract-item clients"
+                                <>
+                                    <div className="dashboard-contracts-list">
+                                        {birthdayClients
+                                            .slice(
+                                                (birthdayPage - 1) *
+                                                    itemsPerPage,
+                                                birthdayPage * itemsPerPage,
+                                            )
+                                            .map((client) => {
+                                                // Find last contract for this client
+                                                const clientContracts =
+                                                    contracts.filter(
+                                                        (c) =>
+                                                            c.client_id ===
+                                                                client.id &&
+                                                            !c.archived_at,
+                                                    );
+                                                const lastContract =
+                                                    clientContracts.length > 0
+                                                        ? clientContracts.sort(
+                                                              (a, b) =>
+                                                                  new Date(
+                                                                      b.end_date ||
+                                                                          0,
+                                                                  ) -
+                                                                  new Date(
+                                                                      a.end_date ||
+                                                                          0,
+                                                                  ),
+                                                          )[0]
+                                                        : null;
+
+                                                // Format birth date
+                                                const dateStr =
+                                                    client.birth_date;
+                                                let formattedDate = "-";
+                                                if (
+                                                    dateStr &&
+                                                    dateStr.match(
+                                                        /^\d{4}-\d{2}-\d{2}/,
+                                                    )
+                                                ) {
+                                                    const [year, month, day] =
+                                                        dateStr
+                                                            .split("T")[0]
+                                                            .split("-");
+                                                    formattedDate = `${day}/${month}`;
+                                                }
+
+                                                return (
+                                                    <div
+                                                        key={client.id}
+                                                        className="dashboard-contract-item clients single-line"
+                                                    >
+                                                        <div className="dashboard-contract-date">
+                                                            {formattedDate}
+                                                        </div>
+                                                        <div className="dashboard-contract-model">
+                                                            {client.name}
+                                                        </div>
+                                                        <div className="dashboard-contract-phone">
+                                                            {client.phone ||
+                                                                "-"}
+                                                        </div>
+                                                        <div className="dashboard-contract-key">
+                                                            {lastContract?.model ||
+                                                                "Sem contrato"}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                    {birthdayClients.length > itemsPerPage && (
+                                        <div className="dashboard-pagination">
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={birthdayPage === 1}
+                                                onClick={() =>
+                                                    setBirthdayPage(
+                                                        (p) => p - 1,
+                                                    )
+                                                }
                                             >
-                                                <div className="dashboard-contract-model">
-                                                    {client.name}
-                                                </div>
-                                                <div className="dashboard-contract-key">
-                                                    {client.registration_id ||
-                                                        "Sem registro"}
-                                                </div>
-                                                <div className="dashboard-contract-days clients">
-                                                    {(() => {
-                                                        const dateStr =
-                                                            client.birth_date;
-                                                        if (
-                                                            dateStr &&
-                                                            dateStr.match(
-                                                                /^\d{4}-\d{2}-\d{2}/,
-                                                            )
-                                                        ) {
-                                                            const [
-                                                                year,
-                                                                month,
-                                                                day,
-                                                            ] = dateStr
-                                                                .split("T")[0]
-                                                                .split("-");
-                                                            return `${day}/${month}`;
-                                                        }
-                                                        return new Date(
-                                                            dateStr,
-                                                        ).toLocaleDateString(
-                                                            "pt-BR",
-                                                            {
-                                                                day: "2-digit",
-                                                                month: "2-digit",
-                                                            },
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        ))}
-                                </div>
+                                                ← Anterior
+                                            </button>
+                                            <span className="pagination-info">
+                                                Página {birthdayPage} de{" "}
+                                                {Math.ceil(
+                                                    birthdayClients.length /
+                                                        itemsPerPage,
+                                                )}
+                                            </span>
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={
+                                                    birthdayPage >=
+                                                    Math.ceil(
+                                                        birthdayClients.length /
+                                                            itemsPerPage,
+                                                    )
+                                                }
+                                                onClick={() =>
+                                                    setBirthdayPage(
+                                                        (p) => p + 1,
+                                                    )
+                                                }
+                                            >
+                                                Próxima →
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
                     )}
@@ -600,39 +737,95 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                     expirando
                                 </p>
                             ) : (
-                                <div className="dashboard-contracts-list">
-                                    {expiringContracts
-                                        .slice(0, 10)
-                                        .map((contract) => {
-                                            const endDate = new Date(
-                                                contract.end_date,
-                                            );
-                                            const now = new Date();
-                                            const daysLeft = Math.ceil(
-                                                (endDate - now) /
-                                                    (1000 * 60 * 60 * 24),
-                                            );
-                                            return (
-                                                <div
-                                                    key={contract.id}
-                                                    className="dashboard-contract-item expiring"
-                                                >
-                                                    <div className="dashboard-contract-model">
-                                                        {contract.model ||
-                                                            "Sem modelo"}
+                                <>
+                                    <div className="dashboard-contracts-list">
+                                        {expiringContracts
+                                            .slice(
+                                                (expiringPage - 1) *
+                                                    itemsPerPage,
+                                                expiringPage * itemsPerPage,
+                                            )
+                                            .map((contract) => {
+                                                const endDate = new Date(
+                                                    contract.end_date,
+                                                );
+                                                const now = new Date();
+                                                const daysLeft = Math.ceil(
+                                                    (endDate - now) /
+                                                        (1000 * 60 * 60 * 24),
+                                                );
+                                                // Find client for this contract
+                                                const client = clients.find(
+                                                    (c) =>
+                                                        c.id ===
+                                                        contract.client_id,
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={contract.id}
+                                                        className="dashboard-contract-item expiring single-line"
+                                                    >
+                                                        <div className="dashboard-contract-client-name">
+                                                            {client?.name ||
+                                                                "Sem cliente"}
+                                                        </div>
+                                                        <div className="dashboard-contract-model">
+                                                            {contract.model ||
+                                                                "-"}
+                                                        </div>
+                                                        <div className="dashboard-contract-phone">
+                                                            {client?.phone ||
+                                                                "-"}
+                                                        </div>
+                                                        <div className="dashboard-contract-days expiring">
+                                                            {daysLeft} dias
+                                                        </div>
                                                     </div>
-                                                    <div className="dashboard-contract-key">
-                                                        {contract.item_key ||
-                                                            "Sem chave"}
-                                                    </div>
-                                                    <div className="dashboard-contract-days expiring">
-                                                        {daysLeft} dias
-                                                        restantes
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
+                                                );
+                                            })}
+                                    </div>
+                                    {expiringContracts.length >
+                                        itemsPerPage && (
+                                        <div className="dashboard-pagination">
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={expiringPage === 1}
+                                                onClick={() =>
+                                                    setExpiringPage(
+                                                        (p) => p - 1,
+                                                    )
+                                                }
+                                            >
+                                                ← Anterior
+                                            </button>
+                                            <span className="pagination-info">
+                                                Página {expiringPage} de{" "}
+                                                {Math.ceil(
+                                                    expiringContracts.length /
+                                                        itemsPerPage,
+                                                )}
+                                            </span>
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={
+                                                    expiringPage >=
+                                                    Math.ceil(
+                                                        expiringContracts.length /
+                                                            itemsPerPage,
+                                                    )
+                                                }
+                                                onClick={() =>
+                                                    setExpiringPage(
+                                                        (p) => p + 1,
+                                                    )
+                                                }
+                                            >
+                                                Próxima →
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
                     )}
@@ -648,39 +841,91 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                                     expirado
                                 </p>
                             ) : (
-                                <div className="dashboard-contracts-list">
-                                    {expiredContracts
-                                        .slice(0, 10)
-                                        .map((contract) => {
-                                            const endDate = new Date(
-                                                contract.end_date,
-                                            );
-                                            const now = new Date();
-                                            const daysExpired = Math.ceil(
-                                                (now - endDate) /
-                                                    (1000 * 60 * 60 * 24),
-                                            );
-                                            return (
-                                                <div
-                                                    key={contract.id}
-                                                    className="dashboard-contract-item expired"
-                                                >
-                                                    <div className="dashboard-contract-model">
-                                                        {contract.model ||
-                                                            "Sem modelo"}
+                                <>
+                                    <div className="dashboard-contracts-list">
+                                        {expiredContracts
+                                            .slice(
+                                                (expiredPage - 1) *
+                                                    itemsPerPage,
+                                                expiredPage * itemsPerPage,
+                                            )
+                                            .map((contract) => {
+                                                const endDate = new Date(
+                                                    contract.end_date,
+                                                );
+                                                const now = new Date();
+                                                const daysExpired = Math.ceil(
+                                                    (now - endDate) /
+                                                        (1000 * 60 * 60 * 24),
+                                                );
+                                                // Find client for this contract
+                                                const client = clients.find(
+                                                    (c) =>
+                                                        c.id ===
+                                                        contract.client_id,
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={contract.id}
+                                                        className="dashboard-contract-item expired single-line"
+                                                    >
+                                                        <div className="dashboard-contract-client-name">
+                                                            {client?.name ||
+                                                                "Sem cliente"}
+                                                        </div>
+                                                        <div className="dashboard-contract-model">
+                                                            {contract.model ||
+                                                                "-"}
+                                                        </div>
+                                                        <div className="dashboard-contract-phone">
+                                                            {client?.phone ||
+                                                                "-"}
+                                                        </div>
+                                                        <div className="dashboard-contract-days expired">
+                                                            há {daysExpired}{" "}
+                                                            dias
+                                                        </div>
                                                     </div>
-                                                    <div className="dashboard-contract-key">
-                                                        {contract.item_key ||
-                                                            "Sem chave"}
-                                                    </div>
-                                                    <div className="dashboard-contract-days expired">
-                                                        Expirado há{" "}
-                                                        {daysExpired} dias
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
+                                                );
+                                            })}
+                                    </div>
+                                    {expiredContracts.length > itemsPerPage && (
+                                        <div className="dashboard-pagination">
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={expiredPage === 1}
+                                                onClick={() =>
+                                                    setExpiredPage((p) => p - 1)
+                                                }
+                                            >
+                                                ← Anterior
+                                            </button>
+                                            <span className="pagination-info">
+                                                Página {expiredPage} de{" "}
+                                                {Math.ceil(
+                                                    expiredContracts.length /
+                                                        itemsPerPage,
+                                                )}
+                                            </span>
+                                            <button
+                                                className="pagination-btn"
+                                                disabled={
+                                                    expiredPage >=
+                                                    Math.ceil(
+                                                        expiredContracts.length /
+                                                            itemsPerPage,
+                                                    )
+                                                }
+                                                onClick={() =>
+                                                    setExpiredPage((p) => p + 1)
+                                                }
+                                            >
+                                                Próxima →
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
                     )}

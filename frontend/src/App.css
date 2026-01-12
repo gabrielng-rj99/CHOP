@@ -8,6 +8,16 @@
     --diff-added-text: #27ae60;
 }
 
+/* Utility class for sections with left border */
+.section-with-left-border {
+    border-left: 4px solid var(--secondary-color);
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
+}
+
 html.collapsed {
     --sidebar-width: 70px;
 }

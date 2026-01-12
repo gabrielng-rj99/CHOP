@@ -44,8 +44,8 @@ export default function UsersTable({
         <table className="users-table">
             <thead>
                 <tr>
-                    <th>Nome de Usuário</th>
                     <th>Nome de Exibição</th>
+                    <th>Nome de Usuário</th>
                     <th>Função</th>
                     <th className="status">Status</th>
                     <th className="actions">Ações</th>
@@ -62,6 +62,7 @@ export default function UsersTable({
                             key={user.username}
                             className={isBlocked ? "blocked" : ""}
                         >
+                            <td>{user.display_name || "-"}</td>
                             <td>
                                 {user.username}
                                 {isCurrentUser && (
@@ -70,7 +71,6 @@ export default function UsersTable({
                                     </span>
                                 )}
                             </td>
-                            <td>{user.display_name || "-"}</td>
                             <td>
                                 <span
                                     className={`users-table-role ${

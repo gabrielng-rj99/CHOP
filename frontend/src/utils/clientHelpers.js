@@ -92,7 +92,7 @@ export const formatClientForEdit = (client) => ({
 
 export const formatAffiliateForEdit = (affiliate) => ({
     name: affiliate.name || "",
-    relationship: affiliate.relationship || "",
+    relationship: affiliate.description || affiliate.relationship || "", // Maps backend 'description' to frontend 'relationship'
     birth_date: affiliate.birth_date ? affiliate.birth_date.split("T")[0] : "",
     phone: affiliate.phone || "",
 });
@@ -111,7 +111,7 @@ export const prepareClientPayload = (data) => {
         "notes",
         "contact_preference",
         "tags",
-        "documents"
+        "documents",
     ];
 
     nullableFields.forEach((field) => {
@@ -121,7 +121,11 @@ export const prepareClientPayload = (data) => {
     });
 
     // Tratamento especial para datas (converter YYYY-MM-DD para RFC3339)
-    if (payload.birth_date && typeof payload.birth_date === 'string' && payload.birth_date.length === 10) {
+    if (
+        payload.birth_date &&
+        typeof payload.birth_date === "string" &&
+        payload.birth_date.length === 10
+    ) {
         payload.birth_date = `${payload.birth_date}T00:00:00Z`;
     }
 

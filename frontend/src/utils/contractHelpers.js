@@ -117,10 +117,17 @@ export const getContractStatus = (contract) => {
 export const filterContracts = (
     contracts,
     filter,
-    searchTerm,
+    searchFilters,
     clients,
     categories,
 ) => {
+    // searchFilters can be an object with: categoryId, subcategoryId, clientName, contractName
+    // or a string for backward compatibility
+    const filters =
+        typeof searchFilters === "object"
+            ? searchFilters
+            : { searchTerm: searchFilters };
+
     return contracts.filter((contract) => {
         const isArchived = !!contract.archived_at;
         const statusObj = getContractStatus(contract);
@@ -138,21 +145,63 @@ export const filterContracts = (
             (filter === "archived" && isArchived) ||
             (filter === "all" && !isArchived);
 
+        if (!matchesFilter) return false;
+
         const client = clients.find((c) => c.id === contract.client_id);
         const category = categories.find((cat) =>
             cat.lines?.some((line) => line.id === contract.subcategory_id),
         );
 
-        const matchesSearch =
-            searchTerm === "" ||
-            contract.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            contract.item_key
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            category?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        // Filter by category ID
+        if (filters.categoryId && filters.categoryId !== "") {
+            if (!category || category.id !== filters.categoryId) {
+                return false;
+            }
+        }
 
-        return matchesFilter && matchesSearch;
+        // Filter by subcategory ID
+        if (filters.subcategoryId && filters.subcategoryId !== "") {
+            if (contract.subcategory_id !== filters.subcategoryId) {
+                return false;
+            }
+        }
+
+        // Filter by client name (partial match)
+        if (filters.clientName && filters.clientName !== "") {
+            const clientNameLower = filters.clientName.toLowerCase();
+            if (!client?.name?.toLowerCase().includes(clientNameLower)) {
+                return false;
+            }
+        }
+
+        // Filter by contract name/model (partial match)
+        if (filters.contractName && filters.contractName !== "") {
+            const contractNameLower = filters.contractName.toLowerCase();
+            const matchesModel = contract.model
+                ?.toLowerCase()
+                .includes(contractNameLower);
+            const matchesItemKey = contract.item_key
+                ?.toLowerCase()
+                .includes(contractNameLower);
+            if (!matchesModel && !matchesItemKey) {
+                return false;
+            }
+        }
+
+        // Legacy search term support (searches all fields)
+        if (filters.searchTerm && filters.searchTerm !== "") {
+            const searchLower = filters.searchTerm.toLowerCase();
+            const matchesSearch =
+                contract.model?.toLowerCase().includes(searchLower) ||
+                contract.item_key?.toLowerCase().includes(searchLower) ||
+                client?.name?.toLowerCase().includes(searchLower) ||
+                category?.name?.toLowerCase().includes(searchLower);
+            if (!matchesSearch) {
+                return false;
+            }
+        }
+
+        return true;
     });
 };
 
@@ -180,5 +229,3 @@ export const prepareContractDataForAPI = (formData) => {
             : null,
     };
 };
-
-

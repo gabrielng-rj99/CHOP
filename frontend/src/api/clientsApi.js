@@ -235,7 +235,7 @@ export const clientsApi = {
     ) => {
         const payload = {
             name: affiliateForm.name,
-            relationship: affiliateForm.relationship,
+            description: affiliateForm.relationship || null, // Maps frontend 'relationship' to backend 'description'
             birth_date:
                 affiliateForm.birth_date &&
                 affiliateForm.birth_date.trim() !== ""
@@ -280,7 +280,7 @@ export const clientsApi = {
     ) => {
         const payload = {
             name: affiliateForm.name,
-            relationship: affiliateForm.relationship,
+            description: affiliateForm.relationship || null, // Maps frontend 'relationship' to backend 'description'
             birth_date:
                 affiliateForm.birth_date &&
                 affiliateForm.birth_date.trim() !== ""
