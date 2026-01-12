@@ -1,0 +1,297 @@
+/*
+ * This file is part of Client Hub Open Project.
+ * Copyright (C) 2025 Client Hub Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* ============================================
+   FINANCIAL FORM STYLES
+   ============================================ */
+
+.financial-form {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color, #ddd);
+    padding-top: 20px;
+}
+
+.financial-form-section {
+    background: var(--card-bg, #f8f9fa);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.financial-form-section-title {
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary-text-color, #333);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.financial-form-optional {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--secondary-text-color, #666);
+    margin-left: 4px;
+}
+
+/* ============================================
+   FORM FIELDS
+   ============================================ */
+
+.financial-form-field {
+    margin-bottom: 16px;
+}
+
+.financial-form-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary-text-color, #333);
+}
+
+.financial-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 480px) {
+    .financial-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.financial-form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--primary-text-color, #333);
+    background: var(--content-bg, white);
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.financial-form-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #3498db);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
+}
+
+.financial-form-input:disabled {
+    background: var(--disabled-bg, #f5f5f5);
+    color: var(--secondary-text-color, #666);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.financial-form-input::placeholder {
+    color: var(--placeholder-color, #999);
+}
+
+/* ============================================
+   INSTALLMENTS SECTION
+   ============================================ */
+
+.financial-form-installments {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--content-bg, white);
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.financial-form-installments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.financial-form-installments-header span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-text-color, #333);
+}
+
+.financial-form-add-btn {
+    padding: 6px 12px;
+    background: var(--primary-color, #3498db);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.financial-form-add-btn:hover:not(:disabled) {
+    background: var(--primary-hover-color, #2980b9);
+}
+
+.financial-form-add-btn:disabled {
+    background: var(--disabled-bg, #ccc);
+    cursor: not-allowed;
+}
+
+/* ============================================
+   INSTALLMENT ROW
+   ============================================ */
+
+.financial-form-installments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.financial-form-installment-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    background: var(--card-bg, #f8f9fa);
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .financial-form-installment-row {
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+    }
+
+    .financial-form-installment-label {
+        grid-column: 1 / -2;
+    }
+
+    .financial-form-installment-value {
+        width: 100%;
+    }
+}
+
+.financial-form-installment-label {
+    min-width: 100px;
+}
+
+.financial-form-input-label {
+    font-weight: 500;
+}
+
+.financial-form-installment-value {
+    min-width: 80px;
+}
+
+.financial-form-remove-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: var(--danger-color, #e74c3c);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.financial-form-remove-btn:hover:not(:disabled) {
+    background: var(--danger-hover-color, #c0392b);
+}
+
+.financial-form-remove-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   TOTALS
+   ============================================ */
+
+.financial-form-totals {
+    display: flex;
+    justify-content: flex-end;
+    gap: 24px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #eee);
+}
+
+.financial-form-total-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--secondary-text-color, #666);
+}
+
+.financial-form-total-item strong {
+    font-size: 14px;
+    color: var(--primary-text-color, #333);
+}
+
+/* ============================================
+   TIP
+   ============================================ */
+
+.financial-form-tip {
+    margin: 16px 0 0 0;
+    padding: 10px 12px;
+    background: var(--info-bg, #e8f4fd);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--info-color, #0c5460);
+    line-height: 1.5;
+}
+
+.financial-form-tip strong {
+    font-weight: 600;
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    .financial-form-section {
+        background: var(--card-bg, #2d2d2d);
+        border-color: var(--border-color, #444);
+    }
+
+    .financial-form-installments {
+        background: var(--content-bg, #1e1e1e);
+        border-color: var(--border-color, #444);
+    }
+
+    .financial-form-installment-row {
+        background: var(--card-bg, #2d2d2d);
+    }
+
+    .financial-form-tip {
+        background: var(--info-bg, #1a3a4a);
+        color: var(--info-color, #8ecae6);
+    }
+}
