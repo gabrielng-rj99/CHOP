@@ -29,6 +29,7 @@ import Dashboard from "./pages/Dashboard";
 import Contracts from "./pages/Contracts";
 import Clients from "./pages/Clients";
 import Categories from "./pages/Categories";
+import Financial from "./pages/Financial";
 import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
 import Initialize from "./pages/Initialize";
@@ -390,6 +391,16 @@ function App() {
                         path="/categories"
                         element={
                             <Categories
+                                token={token}
+                                apiUrl={API_URL}
+                                onTokenExpired={() => logout("Token inválido")}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/financial"
+                        element={
+                            <Financial
                                 token={token}
                                 apiUrl={API_URL}
                                 onTokenExpired={() => logout("Token inválido")}

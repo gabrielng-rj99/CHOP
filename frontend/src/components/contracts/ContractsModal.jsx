@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import { useConfig } from "../../contexts/ConfigContext";
+import FinancialForm from "../financial/FinancialForm";
 import "./ContractsModal.css";
 
 export default function ContractModal({
@@ -35,6 +36,12 @@ export default function ContractModal({
     onCategoryChange,
     onClientChange,
     error,
+    // Financial props
+    financialData = null,
+    onFinancialChange = null,
+    showFinancialSection = true,
+    showFinancialValues = true,
+    canEditFinancialValues = true,
 }) {
     const { config } = useConfig();
     const { labels } = config;
@@ -677,6 +684,17 @@ export default function ContractModal({
                                 permanentes (ex: licenças vitalícias).
                             </p>
                         </div>
+
+                        {/* Financial Section */}
+                        {showFinancialSection && onFinancialChange && (
+                            <FinancialForm
+                                financialData={financialData}
+                                onChange={onFinancialChange}
+                                disabled={false}
+                                showValues={showFinancialValues}
+                                canEditValues={canEditFinancialValues}
+                            />
+                        )}
                     </div>
 
                     <div

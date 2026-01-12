@@ -21,6 +21,7 @@ import Select from "react-select";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
 import { contractsApi } from "../api/contractsApi";
+import { financialApi } from "../api/financialApi";
 import { useUrlState } from "../hooks/useUrlState";
 import {
     getInitialFormData,
@@ -55,6 +56,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const [affiliates, setAffiliates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [financialData, setFinancialData] = useState(null);
+    const [existingFinancial, setExistingFinancial] = useState(null);
 
     // Custom styles for react-select to match existing CSS
     const customSelectStyles = {
@@ -282,12 +285,32 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const handleCreateContract = async () => {
         try {
             const apiData = prepareContractDataForAPI(formData);
-            await contractsApi.createContract(
+            const result = await contractsApi.createContract(
                 apiUrl,
                 token,
                 apiData,
                 onTokenExpired,
             );
+            const createdContractId = result?.data?.id;
+
+            // Create financial if financial data exists
+            if (createdContractId && financialData && financialData.financial_type) {
+                try {
+                    await financialApi.createFinancial(
+                        apiUrl,
+                        token,
+                        {
+                            contract_id: createdContractId,
+                            ...financialData,
+                        },
+                        onTokenExpired,
+                    );
+                } catch (financialErr) {
+                    console.error("Error creating financial:", financialErr);
+                    // Don't fail the contract creation if financial fails
+                }
+            }
+
             invalidateCache("contracts");
             await loadContracts(true);
             closeModal();
@@ -352,10 +375,12 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setFormData(getInitialFormData());
         setLines([]);
         setAffiliates([]);
+        setFinancialData(null);
+        setExistingFinancial(null);
         setShowModal(true);
     };
 
-    const openEditModal = (contract) => {
+    const openEditModal = async (contract) => {
         setModalMode("edit");
         setSelectedContract(contract);
         setFormData(formatContractForEdit(contract));
@@ -366,6 +391,21 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         }
         if (contract.line?.category_id) {
             loadSubcategories(contract.line.category_id);
+        }
+
+        // Load existing financial for this contract
+        try {
+            const financial = await financialApi.getContractFinancial(
+                apiUrl,
+                token,
+                contract.id,
+                onTokenExpired,
+            );
+            setExistingFinancial(financial);
+            setFinancialData(financial);
+        } catch (err) {
+            setExistingFinancial(null);
+            setFinancialData(null);
         }
     };
 
@@ -380,6 +420,8 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         setFormData(getInitialFormData());
         setLines([]);
         setAffiliates([]);
+        setFinancialData(null);
+        setExistingFinancial(null);
         setError("");
     };
 
@@ -840,6 +882,11 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                 onCategoryChange={handleCategoryChange}
                 onClientChange={handleClientChange}
                 error={error}
+                financialData={existingFinancial}
+                onFinancialChange={setFinancialData}
+                showFinancialSection={true}
+                showFinancialValues={true}
+                canEditFinancialValues={true}
             />
 
             {showDetailsModal && selectedContract && (

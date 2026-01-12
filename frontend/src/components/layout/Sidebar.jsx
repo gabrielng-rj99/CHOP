@@ -7,6 +7,7 @@ import {
     faFileContract,
     faUserGroup,
     faTags,
+    faMoneyBillWave,
     faUserGear,
     faSearchPlus,
     faCog,
@@ -125,6 +126,17 @@ const Sidebar = ({ sidebarCollapsed, toggleSidebar, user, logout }) => {
                     <span className="app-nav-text">
                         {labels?.categories || "Categorias"}
                     </span>
+                </button>
+
+                <button
+                    onClick={() => navigate("/financial")}
+                    className={`app-nav-button ${currentPath === "financial" ? "active" : ""}`}
+                    title="Financeiro"
+                >
+                    <span className="app-nav-icon">
+                        <FontAwesomeIcon icon={faMoneyBillWave} />
+                    </span>
+                    <span className="app-nav-text">Financeiro</span>
                 </button>
 
                 {(user.role === "admin" || user.role === "root") && (
