@@ -257,9 +257,10 @@ func (s *Server) HandleGetUserTheme(w http.ResponseWriter, r *http.Request) {
 		adminsCanEdit = true
 	}
 
-	// Determine if user can edit their theme
+	// Determine if user can edit their theme - check role via DB
 	canEdit := false
-	switch claims.Role {
+	role, _ := s.roleStore.GetUserRole(claims.UserID)
+	switch role {
 	case "root":
 		canEdit = true
 	case "admin":
@@ -299,7 +300,7 @@ func (s *Server) HandleGetUserTheme(w http.ResponseWriter, r *http.Request) {
 			response["allowed_themes"] = allowedThemes
 
 			// Include global_theme for root users only
-			if claims.Role == "root" {
+			if role == "root" {
 				globalTheme := make(map[string]interface{})
 				for key, value := range systemSettings {
 					if strings.HasPrefix(key, "global_theme.") {
@@ -354,8 +355,10 @@ func (s *Server) HandleUpdateUserTheme(w http.ResponseWriter, r *http.Request) {
 		adminsCanEdit = true
 	}
 
+	// Check role via DB
+	role, _ := s.roleStore.GetUserRole(claims.UserID)
 	canEdit := false
-	switch claims.Role {
+	switch role {
 	case "root":
 		canEdit = true
 	case "admin":
@@ -365,7 +368,7 @@ func (s *Server) HandleUpdateUserTheme(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !canEdit {
-		log.Printf("🚫 User %s (role: %s) denied permission to edit theme", claims.Username, claims.Role)
+		log.Printf("🚫 User %s (role: %s) denied permission to edit theme", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Você não tem permissão para alterar configurações de tema")
 		return
 	}
@@ -483,9 +486,16 @@ func (s *Server) HandleGetThemePermissions(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Only root can view/manage theme permissions
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to theme permissions", claims.Username, claims.Role)
+	// Only root can view/manage theme permissions - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to theme permissions", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem gerenciar permissões de tema")
 		return
 	}
@@ -533,9 +543,16 @@ func (s *Server) HandleUpdateThemePermissions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Only root can manage theme permissions
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update theme permissions", claims.Username, claims.Role)
+	// Only root can manage theme permissions - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update theme permissions", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem gerenciar permissões de tema")
 		return
 	}
@@ -639,8 +656,14 @@ func (s *Server) HandleGetGlobalTheme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only root can view global theme settings
-	if claims.Role != "root" {
+	// Only root can view global theme settings - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem acessar configurações de tema global")
 		return
 	}
@@ -684,9 +707,16 @@ func (s *Server) HandleUpdateGlobalTheme(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Only root can update global theme
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update global theme", claims.Username, claims.Role)
+	// Only root can update global theme - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update global theme", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem alterar o tema global")
 		return
 	}
@@ -915,9 +945,16 @@ func (s *Server) HandleUpdateAllowedThemes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Only root can update allowed themes
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update allowed themes", claims.Username, claims.Role)
+	// Only root can update allowed themes - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update allowed themes", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem alterar os temas permitidos")
 		return
 	}
@@ -1027,8 +1064,14 @@ func (s *Server) HandleGetSystemConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only root can view system config
-	if claims.Role != "root" {
+	// Only root can view system config - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem acessar configurações do sistema")
 		return
 	}
@@ -1088,9 +1131,16 @@ func (s *Server) HandleUpdateSystemConfig(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Only root can update system config
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update system config", claims.Username, claims.Role)
+	// Only root can update system config - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update system config", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem alterar configurações do sistema")
 		return
 	}

@@ -127,8 +127,14 @@ func (s *Server) HandleGetSecurityConfig(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Only root can view security config
-	if claims.Role != "root" {
+	// Only root can view security config - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem acessar configurações de segurança")
 		return
 	}
@@ -272,9 +278,16 @@ func (s *Server) HandleUpdateSecurityConfig(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Only root can update security config
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update security config", claims.Username, claims.Role)
+	// Only root can update security config - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update security config", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem alterar configurações de segurança")
 		return
 	}
@@ -407,8 +420,8 @@ func (s *Server) HandleUpdateSecurityConfig(w http.ResponseWriter, r *http.Reque
 	if s.auditStore != nil {
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Resource:        "security_config",
-			ResourceID:      "system",
+			Resource:      "security_config",
+			ResourceID:    "system",
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldSettings,

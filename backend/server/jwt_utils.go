@@ -34,10 +34,13 @@ import (
 )
 
 // JWTClaims define o payload do token
+// NOTE: Role was intentionally removed from JWT claims for security.
+// All authorization checks must be performed via database lookups using roleStore.
+// This ensures role changes take effect immediately without requiring token re-issuance.
 type JWTClaims struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	TokenType string `json:"token_type,omitempty"` // Should be empty for access tokens
 	jwt.RegisteredClaims
 }
 
@@ -56,6 +59,8 @@ func getUserSigningKey(user *domain.User) ([]byte, error) {
 }
 
 // Gera um JWT para o usuário autenticado
+// NOTE: Role is intentionally NOT included in the JWT.
+// All authorization must be performed via database lookups for immediate effect of role changes.
 func GenerateJWT(user *domain.User) (string, error) {
 	signingKey, err := getUserSigningKey(user)
 	if err != nil {
@@ -66,7 +71,6 @@ func GenerateJWT(user *domain.User) (string, error) {
 	claims := JWTClaims{
 		UserID:   user.ID,
 		Username: derefString(user.Username),
-		Role:     derefString(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.ExpirationTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -81,7 +85,8 @@ func GenerateJWT(user *domain.User) (string, error) {
 // ========== REFRESH TOKEN ==========
 
 type RefreshTokenClaims struct {
-	UserID string `json:"user_id"`
+	UserID    string `json:"user_id"`
+	TokenType string `json:"token_type"` // Must be "refresh" to distinguish from access tokens
 	jwt.RegisteredClaims
 }
 
@@ -94,7 +99,8 @@ func GenerateRefreshToken(user *domain.User) (string, error) {
 
 	cfg := config.GetConfig()
 	claims := RefreshTokenClaims{
-		UserID: user.ID,
+		UserID:    user.ID,
+		TokenType: "refresh", // Explicitly mark as refresh token
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.RefreshExpirationTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -130,6 +136,12 @@ func ValidateRefreshToken(tokenString string, userStore *store.UserStore) (*Refr
 		return nil, errors.New("refresh token inválido ou expirado")
 	}
 
+	// SECURITY: Verify this is actually a refresh token, not an access token
+	// Access tokens don't have token_type field, so they will fail this check
+	if claims.TokenType != "refresh" {
+		return nil, errors.New("token fornecido não é um refresh token válido")
+	}
+
 	return claims, nil
 }
 
@@ -156,6 +168,12 @@ func ValidateJWT(tokenString string, userStore *store.UserStore) (*JWTClaims, er
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok || !token.Valid {
 		return nil, errors.New("token inválido ou expirado")
+	}
+
+	// SECURITY: Reject refresh tokens - access tokens should not have token_type claim
+	// If token_type is present, this is likely a refresh token and should be rejected
+	if claims.TokenType != "" {
+		return nil, errors.New("token fornecido não é um access token válido")
 	}
 
 	return claims, nil

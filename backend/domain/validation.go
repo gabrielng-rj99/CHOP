@@ -166,9 +166,7 @@ func ValidateSubcategory(s *Subcategory) error {
 
 // ValidateContract valida um contrato
 func ValidateContract(c *Contract) error {
-	if strings.TrimSpace(c.Model) == "" {
-		return errors.New("modelo do contrato é obrigatório")
-	}
+	// Model is optional - removed mandatory check
 
 	if err := ValidateUUID(c.ClientID); err != nil {
 		return fmt.Errorf("client_id inválido: %v", err)

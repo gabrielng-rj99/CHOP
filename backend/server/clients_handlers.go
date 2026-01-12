@@ -100,6 +100,29 @@ func (s *Server) handleCreateClient(w http.ResponseWriter, r *http.Request) {
 	// Ignore any status sent from frontend
 	client.Status = ""
 
+	// SECURITY: Sanitize all text fields to prevent XSS
+	client.Name = sanitizeHTML(client.Name)
+	if client.Nickname != nil {
+		sanitized := sanitizeHTML(*client.Nickname)
+		client.Nickname = &sanitized
+	}
+	if client.Notes != nil {
+		sanitized := sanitizeHTML(*client.Notes)
+		client.Notes = &sanitized
+	}
+	if client.Address != nil {
+		sanitized := sanitizeHTML(*client.Address)
+		client.Address = &sanitized
+	}
+	if client.Tags != nil {
+		sanitized := sanitizeHTML(*client.Tags)
+		client.Tags = &sanitized
+	}
+	if client.Documents != nil {
+		sanitized := sanitizeHTML(*client.Documents)
+		client.Documents = &sanitized
+	}
+
 	// SECURITY: Validate client input fields
 	if err := domain.ValidateClient(&client); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
@@ -283,8 +306,8 @@ func (s *Server) handleGetClient(w http.ResponseWriter, _ *http.Request, clientI
 }
 
 func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clientID string) {
-	var client domain.Client
-	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
+	var updateData domain.Client
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -295,16 +318,10 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		return
 	}
 
-	// SECURITY: Validate client input fields
-	if err := domain.ValidateClient(&client); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
-	// Get old value for audit
-	oldClient, err := s.clientStore.GetClientByID(clientID)
+	// Get existing client for partial update support
+	existingClient, err := s.clientStore.GetClientByID(clientID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			respondError(w, http.StatusNotFound, "Client not found")
@@ -313,11 +330,58 @@ func (s *Server) handleUpdateClient(w http.ResponseWriter, r *http.Request, clie
 		}
 		return
 	}
-	if oldClient == nil {
+	if existingClient == nil {
 		respondError(w, http.StatusNotFound, "Client not found")
 		return
 	}
-	oldValueJSON, _ := json.Marshal(oldClient)
+	oldValueJSON, _ := json.Marshal(existingClient)
+
+	// Merge: use existing values if not provided in update
+	client := *existingClient
+	if updateData.Name != "" {
+		client.Name = sanitizeHTML(updateData.Name)
+	}
+	if updateData.Nickname != nil {
+		sanitized := sanitizeHTML(*updateData.Nickname)
+		client.Nickname = &sanitized
+	}
+	if updateData.Notes != nil {
+		sanitized := sanitizeHTML(*updateData.Notes)
+		client.Notes = &sanitized
+	}
+	if updateData.Address != nil {
+		sanitized := sanitizeHTML(*updateData.Address)
+		client.Address = &sanitized
+	}
+	if updateData.Tags != nil {
+		sanitized := sanitizeHTML(*updateData.Tags)
+		client.Tags = &sanitized
+	}
+	if updateData.Documents != nil {
+		sanitized := sanitizeHTML(*updateData.Documents)
+		client.Documents = &sanitized
+	}
+	if updateData.Email != nil {
+		client.Email = updateData.Email
+	}
+	if updateData.Phone != nil {
+		client.Phone = updateData.Phone
+	}
+	if updateData.RegistrationID != nil {
+		client.RegistrationID = updateData.RegistrationID
+	}
+	if updateData.BirthDate != nil {
+		client.BirthDate = updateData.BirthDate
+	}
+	if updateData.NextActionDate != nil {
+		client.NextActionDate = updateData.NextActionDate
+	}
+
+	// SECURITY: Validate the merged client
+	if err := domain.ValidateClient(&client); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	client.ID = clientID
 	// Status will be auto-calculated by UpdateClient based on active contracts

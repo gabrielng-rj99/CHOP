@@ -49,6 +49,19 @@ func (s *Server) handleClientAffiliates(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleListAffiliates(w http.ResponseWriter, _ *http.Request, clientID string) {
+	// SECURITY: Validate UUID format
+	if err := domain.ValidateUUID(clientID); err != nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
+	// SECURITY: Check if client exists before listing affiliates
+	client, err := s.clientStore.GetClientByID(clientID)
+	if err != nil || client == nil {
+		respondError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
 	affiliates, err := s.affiliateStore.GetAffiliatesByClientID(clientID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
@@ -152,6 +165,11 @@ func (s *Server) handleUpdateAffiliate(w http.ResponseWriter, r *http.Request, a
 	// Get old value for audit
 	oldAffiliate, _ := s.affiliateStore.GetAffiliateByID(affiliateID)
 	oldValueJSON, _ := json.Marshal(oldAffiliate)
+
+	// SECURITY: Preserve the original client_id - prevent client_id spoofing via request body
+	if oldAffiliate != nil {
+		affiliate.ClientID = oldAffiliate.ClientID
+	}
 
 	affiliate.ID = affiliateID
 

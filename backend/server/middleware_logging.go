@@ -24,6 +24,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"Open-Generic-Hub/backend/store"
 )
 
 // contextKey is a custom type for context keys to avoid collisions
@@ -107,12 +109,23 @@ func (s *Server) loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // setRequestUser allows auth middleware to set the user for logging
-func setRequestUser(r *http.Request, claims *JWTClaims) {
+// Role is fetched from DB since it's no longer in JWT claims
+func setRequestUser(r *http.Request, claims *JWTClaims, roleStore *store.RoleStore) {
 	if val := r.Context().Value(requestLogDataKey); val != nil {
 		if logData, ok := val.(*RequestLogData); ok {
 			logData.UserID = claims.UserID
 			logData.Username = claims.Username
-			logData.Role = claims.Role
+			// Fetch role from DB since it's not in JWT anymore
+			if roleStore != nil {
+				role, err := roleStore.GetUserRole(claims.UserID)
+				if err == nil {
+					logData.Role = role
+				} else {
+					logData.Role = "unknown"
+				}
+			} else {
+				logData.Role = "unknown"
+			}
 		}
 	}
 }

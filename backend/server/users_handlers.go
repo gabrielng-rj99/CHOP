@@ -63,6 +63,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Sanitize display name to prevent XSS
+	req.DisplayName = sanitizeDisplayName(req.DisplayName)
+
 	// SECURITY: Validate input
 	if len(req.Username) < 3 {
 		respondError(w, http.StatusBadRequest, "Username deve ter no mínimo 3 caracteres")
@@ -92,11 +95,20 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only root users can create other root users
-	if req.Role == "root" && claims.Role != "root" {
-		log.Printf("🚫 Acesso negado: %s (role: %s) tentou criar usuário root", claims.Username, claims.Role)
-		respondError(w, http.StatusForbidden, "Apenas usuários root podem criar outros usuários root")
-		return
+	// Only root users can create other root users - check via DB
+	if req.Role == "root" {
+		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+		if err != nil {
+			log.Printf("❌ Error checking user role: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+		if !isRoot {
+			role, _ := s.roleStore.GetUserRole(claims.UserID)
+			log.Printf("🚫 Acesso negado: %s (role: %s) tentou criar usuário root", claims.Username, role)
+			respondError(w, http.StatusForbidden, "Apenas usuários root podem criar outros usuários root")
+			return
+		}
 	}
 
 	id, err := s.userStore.CreateUser(req.Username, req.DisplayName, req.Password, req.Role)
@@ -177,13 +189,22 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if claims.Role != "root" {
-			log.Printf("Tentativa de deletar usuário %s por %s com role %s - acesso negado", username, claims.Username, claims.Role)
+		// Check if user is root via DB
+		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+		if err != nil {
+			log.Printf("❌ Error checking user role: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+		if !isRoot {
+			role, _ := s.roleStore.GetUserRole(claims.UserID)
+			log.Printf("Tentativa de deletar usuário %s por %s com role %s - acesso negado", username, claims.Username, role)
 			respondError(w, http.StatusForbidden, "Apenas root pode deletar usuários")
 			return
 		}
 
-		log.Printf("DELETE request autorizado para %s (role: %s) deletando usuário: %s", claims.Username, claims.Role, username)
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("DELETE request autorizado para %s (role: %s) deletando usuário: %s", claims.Username, role, username)
 
 		// Get user data before deleting for audit
 		users, _ := s.userStore.GetUsersByName(username)
@@ -291,31 +312,35 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 		targetUserRole = *users[0].Role
 	}
 
+	// Get current user's role from DB
+	currentUserRole, _ := s.roleStore.GetUserRole(claims.UserID)
+	isRoot, _ := s.roleStore.IsUserRoot(claims.UserID)
+
 	// REGRA 1: Apenas root pode alterar dados de outros usuários root
-	if !isUpdatingSelf && targetUserRole == "root" && claims.Role != "root" {
-		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar dados do usuário root %s - NEGADO", claims.Username, claims.Role, username)
+	if !isUpdatingSelf && targetUserRole == "root" && !isRoot {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar dados do usuário root %s - NEGADO", claims.Username, currentUserRole, username)
 		respondError(w, http.StatusForbidden, "Apenas root pode alterar dados de outros usuários root")
 		return
 	}
 
 	// REGRA 2: Admin não pode alterar senha de outros usuários (apenas a própria)
-	if req.Password != "" && !isUpdatingSelf && claims.Role != "root" {
-		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar senha de %s - NEGADO", claims.Username, claims.Role, username)
+	if req.Password != "" && !isUpdatingSelf && !isRoot {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar senha de %s - NEGADO", claims.Username, currentUserRole, username)
 		respondError(w, http.StatusForbidden, "Você só pode alterar sua própria senha. Apenas root pode alterar senhas de outros usuários")
 		return
 	}
 
 	// REGRA 3: Admin não pode alterar display_name de outros admin ou root
-	if req.DisplayName != "" && !isUpdatingSelf && claims.Role != "root" && (targetUserRole == "admin" || targetUserRole == "root") {
-		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar display_name de %s (role: %s) - NEGADO", claims.Username, claims.Role, username, targetUserRole)
+	if req.DisplayName != "" && !isUpdatingSelf && !isRoot && (targetUserRole == "admin" || targetUserRole == "root") {
+		log.Printf("SEGURANÇA: Tentativa de %s (role: %s) alterar display_name de %s (role: %s) - NEGADO", claims.Username, currentUserRole, username, targetUserRole)
 		respondError(w, http.StatusForbidden, "Você não tem permissão para alterar dados deste usuário")
 		return
 	}
 
 	// Update username if provided and different from current
 	if req.Username != "" && req.Username != username {
-		if claims.Role != "root" {
-			log.Printf("Tentativa de alterar username por %s com role %s - acesso negado", claims.Username, claims.Role)
+		if !isRoot {
+			log.Printf("Tentativa de alterar username por %s com role %s - acesso negado", claims.Username, currentUserRole)
 			respondError(w, http.StatusForbidden, "Apenas root pode alterar username de usuários")
 			return
 		}
@@ -338,7 +363,9 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	}
 
 	if req.DisplayName != "" {
-		if err := s.userStore.EditUserDisplayName(username, req.DisplayName); err != nil {
+		// SECURITY: Sanitize display name to prevent XSS
+		sanitizedDisplayName := sanitizeDisplayName(req.DisplayName)
+		if err := s.userStore.EditUserDisplayName(username, sanitizedDisplayName); err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -352,8 +379,8 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	}
 
 	if req.Role != "" {
-		if claims.Role != "root" {
-			log.Printf("SEGURANÇA: Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, claims.Role)
+		if !isRoot {
+			log.Printf("SEGURANÇA: Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, currentUserRole)
 			respondError(w, http.StatusForbidden, "Apenas root pode alterar role de usuários")
 			return
 		}
@@ -437,8 +464,16 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims.Role != "root" && claims.Role != "admin" {
-		log.Printf("Tentativa de bloquear usuário por %s com role %s - acesso negado", claims.Username, claims.Role)
+	// Check if user is admin or root via DB
+	isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isAdminOrRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("Tentativa de bloquear usuário por %s com role %s - acesso negado", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas admin ou root podem bloquear usuários")
 		return
 	}
@@ -450,6 +485,13 @@ func (s *Server) handleUserBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := parts[0]
+
+	// SECURITY: Prevent user from blocking themselves
+	if claims.Username == username {
+		log.Printf("SEGURANÇA: Tentativa de %s bloquear a si mesmo - NEGADO", claims.Username)
+		respondError(w, http.StatusForbidden, "Você não pode bloquear a si mesmo")
+		return
+	}
 
 	// Get user data before blocking for audit
 	users, _ := s.userStore.GetUsersByName(username)
@@ -520,8 +562,16 @@ func (s *Server) handleUserUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims.Role != "root" && claims.Role != "admin" {
-		log.Printf("Tentativa de desbloquear usuário por %s com role %s - acesso negado", claims.Username, claims.Role)
+	// Check if user is admin or root via DB
+	isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isAdminOrRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("Tentativa de desbloquear usuário por %s com role %s - acesso negado", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas admin ou root podem desbloquear usuários")
 		return
 	}

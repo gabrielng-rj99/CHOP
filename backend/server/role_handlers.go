@@ -173,7 +173,9 @@ func (s *Server) HandleGetRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasPermission && claims.Role != "root" {
+	// Check if user is root via DB (root always has all permissions)
+	isRoot, _ := s.roleStore.IsUserRoot(claims.UserID)
+	if !hasPermission && !isRoot {
 		respondError(w, http.StatusForbidden, "Você não tem permissão para visualizar papéis")
 		return
 	}
@@ -258,8 +260,9 @@ func (s *Server) HandleGetRoleByID(w http.ResponseWriter, r *http.Request, roleI
 		return
 	}
 
-	hasPermission, err := s.roleStore.HasPermission(claims.UserID, "roles", "read")
-	if err != nil || (!hasPermission && claims.Role != "root") {
+	hasPermission, _ := s.roleStore.HasPermission(claims.UserID, "roles", "read")
+	isRoot, _ := s.roleStore.IsUserRoot(claims.UserID)
+	if !hasPermission && !isRoot {
 		respondError(w, http.StatusForbidden, "Você não tem permissão para visualizar papéis")
 		return
 	}
@@ -342,9 +345,16 @@ func (s *Server) HandleCreateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only root can create roles
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to create role", claims.Username, claims.Role)
+	// Only root can create roles - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to create role", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem criar papéis")
 		return
 	}
@@ -426,9 +436,16 @@ func (s *Server) HandleUpdateRole(w http.ResponseWriter, r *http.Request, roleID
 		return
 	}
 
-	// Only root can update roles
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to update role", claims.Username, claims.Role)
+	// Only root can update roles - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update role", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem editar papéis")
 		return
 	}
@@ -522,9 +539,16 @@ func (s *Server) HandleDeleteRole(w http.ResponseWriter, r *http.Request, roleID
 		return
 	}
 
-	// Only root can delete roles
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to delete role", claims.Username, claims.Role)
+	// Only root can delete roles - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to delete role", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem deletar papéis")
 		return
 	}
@@ -601,8 +625,14 @@ func (s *Server) HandleGetPermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only admin and root can view all permissions
-	if claims.Role != "root" && claims.Role != "admin" {
+	// Only admin and root can view all permissions - check via DB
+	isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isAdminOrRoot {
 		respondError(w, http.StatusForbidden, "Você não tem permissão para visualizar permissões")
 		return
 	}
@@ -673,9 +703,10 @@ func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Check permission
-	hasPermission, err := s.roleStore.HasPermission(claims.UserID, "roles", "read")
-	if err != nil || (!hasPermission && claims.Role != "root") {
+	// Check permission - DB based
+	hasPermission, _ := s.roleStore.HasPermission(claims.UserID, "roles", "read")
+	isRoot, _ := s.roleStore.IsUserRoot(claims.UserID)
+	if !hasPermission && !isRoot {
 		respondError(w, http.StatusForbidden, "Você não tem permissão para visualizar permissões de papéis")
 		return
 	}
@@ -717,9 +748,16 @@ func (s *Server) HandleSetRolePermissions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Only root can modify role permissions
-	if claims.Role != "root" {
-		log.Printf("🚫 User %s (role: %s) denied access to set role permissions", claims.Username, claims.Role)
+	// Only root can modify role permissions - check via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to set role permissions", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Apenas usuários root podem alterar permissões de papéis")
 		return
 	}

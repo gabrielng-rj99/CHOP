@@ -66,8 +66,14 @@ func (s *Server) HandleGetDashboardConfig(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Admin+ can view dashboard config
-	if claims.Role != "root" && claims.Role != "admin" {
+	// Admin+ can view dashboard config - check via DB
+	isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isAdminOrRoot {
 		respondError(w, http.StatusForbidden, "Acesso negado")
 		return
 	}
@@ -137,9 +143,16 @@ func (s *Server) HandleUpdateDashboardConfig(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Admin+ can update dashboard config
-	if claims.Role != "root" && claims.Role != "admin" {
-		log.Printf("🚫 User %s (role: %s) denied access to update dashboard config", claims.Username, claims.Role)
+	// Admin+ can update dashboard config - check via DB
+	isAdminOrRoot, err := s.roleStore.IsUserAdminOrRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isAdminOrRoot {
+		role, _ := s.roleStore.GetUserRole(claims.UserID)
+		log.Printf("🚫 User %s (role: %s) denied access to update dashboard config", claims.Username, role)
 		respondError(w, http.StatusForbidden, "Acesso negado")
 		return
 	}

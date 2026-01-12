@@ -55,19 +55,19 @@ func NewContractStore(db DBInterface) *ContractStore {
 func (s *ContractStore) CreateContract(contract domain.Contract) (string, error) {
 	var trimmedModel, trimmedItemKey string
 	var err error
-	if contract.Model == "" {
-		return "", errors.New("model name cannot be empty")
+	// Model is optional - only validate if provided
+	if contract.Model != "" {
+		trimmedModel, err = ValidateName(contract.Model, 255)
+		if err != nil {
+			return "", err
+		}
 	}
-	trimmedModel, err = ValidateName(contract.Model, 255)
-	if err != nil {
-		return "", err
-	}
-	if contract.ItemKey == "" {
-		return "", errors.New("product key cannot be empty")
-	}
-	trimmedItemKey, err = ValidateName(contract.ItemKey, 255)
-	if err != nil {
-		return "", err
+	// ItemKey is optional - only validate if provided
+	if contract.ItemKey != "" {
+		trimmedItemKey, err = ValidateName(contract.ItemKey, 255)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Start and End dates are now optional - only validate if both are provided
@@ -334,19 +334,19 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 
 	var trimmedModel, trimmedItemKey string
 	var err error
-	if contract.Model == "" {
-		return errors.New("model name cannot be empty")
+	// Model is optional - only validate if provided
+	if contract.Model != "" {
+		trimmedModel, err = ValidateName(contract.Model, 255)
+		if err != nil {
+			return err
+		}
 	}
-	trimmedModel, err = ValidateName(contract.Model, 255)
-	if err != nil {
-		return err
-	}
-	if contract.ItemKey == "" {
-		return errors.New("product key cannot be empty")
-	}
-	trimmedItemKey, err = ValidateName(contract.ItemKey, 255)
-	if err != nil {
-		return err
+	// ItemKey is optional - only validate if provided
+	if contract.ItemKey != "" {
+		trimmedItemKey, err = ValidateName(contract.ItemKey, 255)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Datas são opcionais, mas se ambas forem fornecidas, end_date deve ser maior que start_date

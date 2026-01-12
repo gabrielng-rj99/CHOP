@@ -19,7 +19,9 @@
 package server
 
 import (
+	"html"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -95,4 +97,33 @@ func bytesToStringPtr(b []byte) *string {
 	}
 	s := string(b)
 	return &s
+}
+
+// sanitizeHTML removes HTML tags and escapes special characters to prevent XSS attacks
+func sanitizeHTML(input string) string {
+	if input == "" {
+		return input
+	}
+
+	// Remove all HTML tags
+	htmlTagRegex := regexp.MustCompile(`<[^>]*>`)
+	sanitized := htmlTagRegex.ReplaceAllString(input, "")
+
+	// Remove javascript: protocol
+	jsProtocolRegex := regexp.MustCompile(`(?i)javascript:`)
+	sanitized = jsProtocolRegex.ReplaceAllString(sanitized, "")
+
+	// Remove event handlers (onclick, onerror, onload, etc.)
+	eventHandlerRegex := regexp.MustCompile(`(?i)\bon\w+\s*=`)
+	sanitized = eventHandlerRegex.ReplaceAllString(sanitized, "")
+
+	// Escape HTML special characters
+	sanitized = html.EscapeString(sanitized)
+
+	return sanitized
+}
+
+// sanitizeDisplayName sanitizes a display name to prevent XSS
+func sanitizeDisplayName(displayName string) string {
+	return sanitizeHTML(displayName)
 }

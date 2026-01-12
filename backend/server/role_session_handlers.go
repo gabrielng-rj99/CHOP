@@ -73,7 +73,14 @@ func (s *Server) HandleRoleSessionPoliciesRoute(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if claims.Role != "root" {
+	// Check if user is root via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas root pode visualizar políticas de sessão")
 		return
 	}
@@ -100,7 +107,14 @@ func (s *Server) HandleRoleSessionPolicyByIDRoute(w http.ResponseWriter, r *http
 		return
 	}
 
-	if claims.Role != "root" {
+	// Check if user is root via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas root pode gerenciar políticas de sessão")
 		return
 	}
@@ -390,8 +404,8 @@ func (s *Server) HandleUpdateRoleSessionPolicy(w http.ResponseWriter, r *http.Re
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Resource:        "role_session_policy",
-			ResourceID:      roleID,
+			Resource:      "role_session_policy",
+			ResourceID:    roleID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldPolicy,

@@ -245,30 +245,30 @@ func (s *RoleStore) GetAnyRoleByName(name string) (*Role, error) {
 
 // CreateRole creates a new role
 func (s *RoleStore) CreateRole(name, displayName string, description *string, priority int) (*Role, error) {
-    // Check if name already exists (active or inactive)
+	// Check if name already exists (active or inactive)
 	existing, err := s.GetAnyRoleByName(name)
 	if err != nil {
 		return nil, err
 	}
 
 	if existing != nil {
-        if existing.IsActive {
-		    return nil, errors.New("role with this name already exists")
-        }
-        
-        // If inactive (deleted), rename it to free up the name
+		if existing.IsActive {
+			return nil, errors.New("role with this name already exists")
+		}
+
+		// If inactive (deleted), rename it to free up the name
 		timestamp := time.Now().Format("20060102150405")
 		newName := fmt.Sprintf("%s_deleted_%s", existing.Name, timestamp)
-        
-        // Ensure new name fits in database (truncate if needed, though unlikely for standard names)
-        if len(newName) > 255 {
-             newName = newName[:255]
-        }
-        
-        _, err = s.db.Exec("UPDATE roles SET name = $1 WHERE id = $2", newName, existing.ID)
-        if err != nil {
-            return nil, fmt.Errorf("failed to rename old deleted role: %w", err)
-        }
+
+		// Ensure new name fits in database (truncate if needed, though unlikely for standard names)
+		if len(newName) > 255 {
+			newName = newName[:255]
+		}
+
+		_, err = s.db.Exec("UPDATE roles SET name = $1 WHERE id = $2", newName, existing.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to rename old deleted role: %w", err)
+		}
 	}
 
 	// Validate priority (custom roles must have priority < 100)
@@ -361,14 +361,14 @@ func (s *RoleStore) DeleteRole(roleID string) error {
 		return fmt.Errorf("cannot delete role: %d users have this role", count)
 	}
 
-    // Rename role to free up the name for future use
-    timestamp := time.Now().Format("20060102150405")
-    deletedName := fmt.Sprintf("%s_deleted_%s", role.Name, timestamp)
+	// Rename role to free up the name for future use
+	timestamp := time.Now().Format("20060102150405")
+	deletedName := fmt.Sprintf("%s_deleted_%s", role.Name, timestamp)
 
-    // Ensure we don't exceed max length (assuming 255 or similar, safe bet)
-    if len(deletedName) > 255 {
-        deletedName = deletedName[:255]
-    }
+	// Ensure we don't exceed max length (assuming 255 or similar, safe bet)
+	if len(deletedName) > 255 {
+		deletedName = deletedName[:255]
+	}
 
 	query := `UPDATE roles SET is_active = false, name = $1, updated_at = $2 WHERE id = $3`
 	_, err = s.db.Exec(query, deletedName, time.Now(), roleID)
@@ -887,4 +887,54 @@ func (s *RoleStore) SyncAllUserRoleIDs() error {
 	}
 
 	return nil
+}
+
+// ============================================
+// Authorization Helper Functions
+// ============================================
+
+// GetUserRole returns the role name for a user from the database
+func (s *RoleStore) GetUserRole(userID string) (string, error) {
+	query := `SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL`
+
+	var role sql.NullString
+	err := s.db.QueryRow(query, userID).Scan(&role)
+	if err == sql.ErrNoRows {
+		return "", errors.New("user not found")
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get user role: %w", err)
+	}
+
+	if role.Valid {
+		return role.String, nil
+	}
+	return "user", nil // default role
+}
+
+// IsUserRoot checks if a user has the root role
+func (s *RoleStore) IsUserRoot(userID string) (bool, error) {
+	role, err := s.GetUserRole(userID)
+	if err != nil {
+		return false, err
+	}
+	return role == "root", nil
+}
+
+// IsUserAdmin checks if a user has the admin role
+func (s *RoleStore) IsUserAdmin(userID string) (bool, error) {
+	role, err := s.GetUserRole(userID)
+	if err != nil {
+		return false, err
+	}
+	return role == "admin", nil
+}
+
+// IsUserAdminOrRoot checks if a user has admin or root role
+func (s *RoleStore) IsUserAdminOrRoot(userID string) (bool, error) {
+	role, err := s.GetUserRole(userID)
+	if err != nil {
+		return false, err
+	}
+	return role == "admin" || role == "root", nil
 }

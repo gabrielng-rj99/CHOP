@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"Open-Generic-Hub/backend/domain"
 	"Open-Generic-Hub/backend/store"
@@ -58,7 +59,50 @@ func (s *Server) handleListCategories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: categories})
+	// Fetch subcategories for each category
+	type CategoryWithLines struct {
+		ID         string               `json:"id"`
+		Name       string               `json:"name"`
+		Status     string               `json:"status"`
+		ArchivedAt *time.Time           `json:"archived_at"`
+		Lines      []domain.Subcategory `json:"lines"`
+	}
+
+	var categoriesWithLines []CategoryWithLines
+
+	for _, category := range categories {
+		var subcategories []domain.Subcategory
+		if includeArchived {
+			// Get all subcategories for this category including archived
+			allLines, err := s.subcategoryStore.GetAllSubcategoriesIncludingArchived()
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			// Filter by category ID
+			for _, line := range allLines {
+				if line.CategoryID == category.ID {
+					subcategories = append(subcategories, line)
+				}
+			}
+		} else {
+			subcategories, err = s.subcategoryStore.GetSubcategoriesByCategoryID(category.ID)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		categoriesWithLines = append(categoriesWithLines, CategoryWithLines{
+			ID:         category.ID,
+			Name:       category.Name,
+			Status:     category.Status,
+			ArchivedAt: category.ArchivedAt,
+			Lines:      subcategories,
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: categoriesWithLines})
 }
 
 func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {

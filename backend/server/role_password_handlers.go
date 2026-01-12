@@ -109,7 +109,14 @@ func (s *Server) HandleRolePasswordPoliciesRoute(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if claims.Role != "root" {
+	// Check if user is root via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas root pode visualizar políticas de senha")
 		return
 	}
@@ -136,7 +143,14 @@ func (s *Server) HandleRolePasswordPolicyByIDRoute(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if claims.Role != "root" {
+	// Check if user is root via DB
+	isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error checking user role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+	if !isRoot {
 		respondError(w, http.StatusForbidden, "Apenas root pode gerenciar políticas de senha")
 		return
 	}
@@ -522,8 +536,8 @@ func (s *Server) HandleUpdateRolePasswordPolicy(w http.ResponseWriter, r *http.R
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "update",
-			Resource:        "role_password_policy",
-			ResourceID:      roleID,
+			Resource:      "role_password_policy",
+			ResourceID:    roleID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldPolicy,
@@ -622,8 +636,8 @@ func (s *Server) HandleDeleteRolePasswordPolicy(w http.ResponseWriter, r *http.R
 		path := r.URL.Path
 		s.auditStore.LogOperation(store.AuditLogRequest{
 			Operation:     "delete",
-			Resource:        "role_password_policy",
-			ResourceID:      roleID,
+			Resource:      "role_password_policy",
+			ResourceID:    roleID,
 			AdminID:       &claims.UserID,
 			AdminUsername: &claims.Username,
 			OldValue:      oldPolicy,
