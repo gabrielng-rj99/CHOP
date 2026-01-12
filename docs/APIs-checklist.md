@@ -759,6 +759,159 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
 
 ---
 
+## 📋 Financial APIs
+
+### GET /api/financial
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token | ✅ | test_financial_security.py |
+ | **Auth** | Token inválido | ✅ | test_financial_security.py |
+ | **Auth** | Header mal formado | ✅ | test_financial_security.py |
+ | **Permission** | Usuário regular pode listar | ✅ | test_financial_security.py |
+ | **SQL Injection** | Query params maliciosos | ✅ | test_financial_security.py |
+ | **SQL Injection** | Union-based injection | ✅ | test_financial_security.py |
+ | **SQL Injection** | DROP TABLE attempts | ✅ | test_financial_security.py |
+ | **Data Leakage** | Não vaza senhas em responses | ✅ | test_financial_security.py |
+
+### POST /api/financial
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Empty Request** | Body vazio retorna 400 | ✅ | test_financial_security.py |
+ | **Empty Request** | Body null retorna 400 | ✅ | test_financial_security.py |
+ | **Empty Request** | Campos obrigatórios faltando | ✅ | test_financial_security.py |
+ | **XSS** | Script tags em description | ✅ | test_financial_security.py |
+ | **XSS** | img onerror payload | ✅ | test_financial_security.py |
+ | **XSS** | SVG onload payload | ✅ | test_financial_security.py |
+ | **XSS** | javascript: protocol | ✅ | test_financial_security.py |
+ | **XSS** | iframe injection | ✅ | test_financial_security.py |
+ | **SQL Injection** | DROP TABLE em campos texto | ✅ | test_financial_security.py |
+ | **SQL Injection** | OR 1=1 injection | ✅ | test_financial_security.py |
+ | **SQL Injection** | UNION SELECT injection | ✅ | test_financial_security.py |
+ | **NULL Handling** | NULL em campos opcionais aceito | ✅ | test_financial_security.py |
+ | **NULL Handling** | NULL em campos obrigatórios rejeita | ✅ | test_financial_security.py |
+ | **Overflow** | Valores monetários extremos rejeitados | ✅ | test_financial_security.py |
+ | **Overflow** | Valores infinitos tratados | ✅ | test_financial_security.py |
+ | **Overflow** | Valores negativos validados | ✅ | test_financial_security.py |
+ | **Overflow** | Descrição muito longa (100k chars) | ✅ | test_financial_security.py |
+ | **Validation** | financial_type inválido rejeitado | ✅ | test_financial_security.py |
+
+### GET /api/financial/{id}
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token | ✅ | test_financial_security.py |
+ | **Not Found** | ID inexistente retorna 404 | ✅ | test_financial_security.py |
+ | **Validation** | UUID inválido retorna 400 | ✅ | test_financial_security.py |
+ | **SQL Injection** | SQL em UUID não crasha | ✅ | test_financial_security.py |
+ | **Path Traversal** | ../ em UUID rejeitado | ✅ | test_financial_security.py |
+
+### PUT /api/financial/{id}
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token | ✅ | test_financial_security.py |
+ | **XSS** | Script tags sanitizados | ✅ | test_financial_security.py |
+ | **XSS** | Payloads complexos filtrados | ✅ | test_financial_security.py |
+
+### DELETE /api/financial/{id}
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token | ✅ | test_financial_security.py |
+ | **Not Found** | ID inexistente retorna 404 | ✅ | test_financial_security.py |
+
+### GET /api/financial/{id}/installments
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token | ✅ | test_financial_security.py |
+
+### POST /api/financial/{id}/installments
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Empty Request** | Body vazio retorna 400 | ✅ | test_financial_security.py |
+ | **XSS** | Script tags em description | ✅ | test_financial_security.py |
+ | **XSS** | Sanitização de payloads | ✅ | test_financial_security.py |
+
+### PUT /api/financial/{id}/installments/{inst_id}
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Requisições autenticadas | ✅ | test_financial_security.py |
+
+### DELETE /api/financial/{id}/installments/{inst_id}
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Requisições autenticadas | ✅ | test_financial_security.py |
+
+### PUT /api/financial/{id}/installments/{inst_id}/pay
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token retorna 401 | ✅ | test_financial_security.py |
+ | **Not Found** | Parcela inexistente retorna 400/404 | ✅ | test_financial_security.py |
+ | **SQL Injection** | UUID malicioso não crasha | ✅ | test_financial_security.py |
+ | **Validation** | IDs inválidos tratados | ✅ | test_financial_security.py |
+ | **Bug Fix** | Correção de parsing de installmentID | ✅ | financial_handlers.go |
+
+### PUT /api/financial/{id}/installments/{inst_id}/unpay
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Requisições autenticadas | ✅ | test_financial_security.py |
+
+### GET /api/financial/summary
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token retorna 401 | ✅ | test_financial_security.py |
+
+### GET /api/financial/detailed-summary
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token retorna 401 | ⏳ | - |
+ | **Response** | Retorna last_month, current_month, next_month | ⏳ | - |
+ | **Response** | Retorna monthly_breakdown com 7 meses | ⏳ | - |
+ | **Response** | Totais calculados corretamente | ⏳ | - |
+
+### GET /api/financial/upcoming
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token retorna 401 | ✅ | test_financial_security.py |
+ | **SQL Injection** | Payloads em query params | ✅ | test_financial_security.py |
+ | **SQL Injection** | DROP TABLE em days param | ✅ | test_financial_security.py |
+ | **SQL Injection** | UNION SELECT attempts | ✅ | test_financial_security.py |
+
+### GET /api/financial/overdue
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Sem token retorna 401 | ✅ | test_financial_security.py |
+
+### GET /api/contracts/{id}/financial
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Auth** | Requisições autenticadas | ✅ | test_financial_security.py |
+ | **Integration** | Integrado com contratos | ✅ | test_financial_security.py |
+
+### 🧪 Testes Adicionais de Financeiro
+
+ | Categoria | Teste | Status | Arquivo |
+ | ----------- | ------- | -------- | --------- |
+ | **Concurrency** | Criação concorrente não crasha | ✅ | test_financial_security.py |
+ | **Resilience** | Backend resiliente a payloads | ✅ | test_financial_security.py |
+ | **Edge Cases** | Tipos de financeiro validados | ✅ | test_financial_security.py |
+ | **Edge Cases** | Valores edge cases tratados | ✅ | test_financial_security.py |
+
+---
+
 ## 📋 Categories APIs
 
 ### GET /api/categories
@@ -1239,26 +1392,27 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
 
  | Categoria de API | Total Endpoints | Testes Implementados | Cobertura |
  | ----------------- | ----------------- | --------------------- | ----------- |
- | Authentication | 2 | 25+ | � 90% |
- | Users | 6 | 35+ | � 80% |
+ | Authentication | 2 | 25+ | 🟢 90% |
+ | Users | 6 | 35+ | 🟢 80% |
  | Clients | 9 | 25+ | 🟡 70% |
- | Affiliates | 2 | 10+ | � 60% |
- | Contracts | 5 | 30+ | � 85% |
- | Categories | 8 | 25+ | � 80% |
- | Subcategories | 7 | 20+ | � 75% |
- | Roles & Permissions | 11 | 30+ | � 80% |
- | Session Policies | 3 | 10+ | � 70% |
- | Password Policies | 4 | 10+ | � 70% |
- | Settings | 5 | 20+ | � 80% |
- | Theme | 10 | 15+ | � 60% |
- | Dashboard | 2 | 10+ | � 80% |
- | Audit Logs | 4 | 15+ | � 80% |
- | File Upload | 1 | 10+ | � 85% |
- | Deploy | 4 | 15+ | � 70% |
- | Initialization | 2 | 10+ | � 80% |
- | Health | 1 | 5+ | � 90% |
+ | Affiliates | 2 | 10+ | 🟠 60% |
+ | Contracts | 5 | 30+ | 🟢 85% |
+ | **Financial** | **12** | **60+** | **🟢 90%** |
+ | Categories | 8 | 25+ | 🟢 80% |
+ | Subcategories | 7 | 20+ | 🟢 75% |
+ | Roles & Permissions | 11 | 30+ | 🟢 80% |
+ | Session Policies | 3 | 10+ | 🟡 70% |
+ | Password Policies | 4 | 10+ | 🟡 70% |
+ | Settings | 5 | 20+ | 🟢 80% |
+ | Theme | 10 | 15+ | 🟠 60% |
+ | Dashboard | 2 | 10+ | 🟢 80% |
+ | Audit Logs | 4 | 15+ | 🟢 80% |
+ | File Upload | 1 | 10+ | 🟢 85% |
+ | Deploy | 4 | 15+ | 🟡 70% |
+ | Initialization | 2 | 10+ | 🟢 80% |
+ | Health | 1 | 5+ | 🟢 90% |
 
-**Total Geral:** ~86 endpoints, **531 testes** implementados, ~75% cobertos
+**Total Geral:** ~98 endpoints, **591+ testes** implementados, ~77% cobertos
 
 ---
 
@@ -1283,6 +1437,7 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
  | **Settings Security** | ✅ | test_settings_security.py |
  | **Categories/Subcategories** | ✅ | test_categories_subcategories_security.py |
  | **Contracts Security** | ✅ | test_contracts_security.py |
+ | **Financial Security** | ✅ | test_financial_security.py |
  | **Upload/Deploy/Health** | ✅ | test_upload_deploy_health.py |
 
 ---

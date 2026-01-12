@@ -92,11 +92,93 @@ This API uses Role-Based Access Control (RBAC) with granular permissions. Each e
 | `GET` | `/api/contracts/{id}` | Authenticated with `contracts:read` permission | N/A | Complete Contract Object |
 | `PUT` | `/api/contracts/{id}` | Authenticated with `contracts:update` permission | `model`, `item_key`, `start_date`, `end_date`, `subcategory_id`, `client_id`, `affiliate_id` | `message` |
 | `PUT` | `/api/contracts/{id}/archive` | Authenticated with `contracts:archive` permission | N/A | `message` |
+| `GET` | `/api/contracts/{id}/financial` | Authenticated with `financial:read` permission | N/A | Contract Financial Object (or `null` if none) |
 
 **Contract Status Logic:**
 - `start_date = null`: Contract always started (infinite lower bound)
 - `end_date = null`: Contract never expires (infinite upper bound)
 - Calculated Status: `Ativo`, `Expirando em Breve` (≤30 days to end), `Expirado`
+
+---
+
+## Financial
+
+*Financial models and installments for contracts. Supports three financial types: unique (one-time), recurring, and custom (with installments).*
+
+| Method | Endpoint | Authentication | Required Parameters | Response Fields |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/financial` | Authenticated with `financial:read` permission | N/A | List of Financial (`id`, `contract_id`, `financial_type`, `recurrence_type`, `due_day`, `client_value`, `received_value`, `description`, `is_active`, `total_client_value`, `total_received_value`, `total_installments`, `paid_installments`) |
+| `POST` | `/api/financial` | Authenticated with `financial:create` permission | `contract_id`, `financial_type` (Optional: `recurrence_type`, `due_day`, `client_value`, `received_value`, `description`, `installments[]`) | `id`, `message` |
+| `GET` | `/api/financial/{id}` | Authenticated with `financial:read` permission | N/A | Complete Financial Object with Installments |
+| `PUT` | `/api/financial/{id}` | Authenticated with `financial:update` permission | `financial_type` (Optional: `recurrence_type`, `due_day`, `client_value`, `received_value`, `description`, `is_active`, `installments[]`) | `message` |
+| `DELETE` | `/api/financial/{id}` | Authenticated with `financial:delete` permission | N/A | `message` |
+
+**Financial Types:**
+- `unico`: One-time financial (uses `client_value` and `received_value` directly)
+- `recorrente`: Recurring financial (requires `recurrence_type`: `mensal`, `trimestral`, `semestral`, `anual`)
+- `personalizado`: Custom installments (uses `installments[]` array)
+
+**Values:**
+- `client_value`: Amount the client pays
+- `received_value`: Amount you receive (commission, etc.)
+
+---
+
+## Financial Installments
+
+*Custom installments for financial with type `personalizado`.*
+
+| Method | Endpoint | Authentication | Required Parameters | Response Fields |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/financial/{id}/installments` | Authenticated with `financial:read` permission | N/A | List of Installments |
+| `POST` | `/api/financial/{id}/installments` | Authenticated with `financial:create` permission | `installment_number`, `client_value`, `received_value` (Optional: `installment_label`, `due_date`, `notes`) | `id`, `message` |
+| `PUT` | `/api/financial/{id}/installments/{inst_id}` | Authenticated with `financial:update` permission | `client_value`, `received_value` (Optional: `installment_label`, `due_date`, `notes`) | `message` |
+| `DELETE` | `/api/financial/{id}/installments/{inst_id}` | Authenticated with `financial:delete` permission | N/A | `message` |
+| `PUT` | `/api/financial/{id}/installments/{inst_id}/pay` | Authenticated with `financial:mark_paid` permission | N/A | `message` |
+| `PUT` | `/api/financial/{id}/installments/{inst_id}/unpay` | Authenticated with `financial:mark_paid` permission | N/A | `message` |
+
+**Installment Status:** `pendente`, `pago`, `atrasado`, `cancelado`
+
+**Installment Labels:** `installment_number` 0 = "Entrada", 1 = "1ª Parcela", etc.
+
+---
+
+## Financial Dashboard
+
+*Summary and upcoming financial for dashboard widgets.*
+
+| Method | Endpoint | Authentication | Required Parameters | Response Fields |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/financial/summary` | Authenticated with `financial:read` permission | Optional Query: `year`, `month` | `total_to_receive`, `total_client_pays`, `already_received`, `pending_count`, `paid_count`, `overdue_count` |
+| `GET` | `/api/financial/detailed-summary` | Authenticated with `financial:read` permission | N/A | Detailed summary with period breakdown (see below) |
+| `GET` | `/api/financial/upcoming` | Authenticated with `financial:read` permission | Optional Query: `days` (default: 30) | List of Upcoming Financial (`installment_id`, `contract_id`, `client_id`, `client_name`, `contract_model`, `installment_label`, `client_value`, `received_value`, `due_date`, `status`) |
+| `GET` | `/api/financial/overdue` | Authenticated with `financial:read` permission | N/A | List of Overdue Financial (same fields as upcoming) |
+
+**Detailed Summary Response Fields:**
+- `total_to_receive`: Total amount to receive across all contracts
+- `total_client_pays`: Total amount clients pay
+- `total_received`: Total amount already received
+- `total_pending`: Total amount still pending
+- `total_overdue`: Total amount overdue
+- `total_overdue_count`: Number of overdue installments
+- `last_month`: Period summary for last month
+- `current_month`: Period summary for current month
+- `next_month`: Period summary for next month
+- `monthly_breakdown`: Array of period summaries for past 3 months to next 3 months
+- `generated_at`: Timestamp when the summary was generated
+- `current_date`: Current date
+
+**Period Summary Fields:**
+- `period`: Period identifier (e.g., "2025-01")
+- `period_label`: Human-readable label (e.g., "Janeiro 2025")
+- `total_to_receive`: Total to receive in the period
+- `total_client_pays`: Total clients pay in the period
+- `already_received`: Amount already received in the period
+- `pending_amount`: Amount still pending in the period
+- `pending_count`: Number of pending installments
+- `paid_count`: Number of paid installments
+- `overdue_count`: Number of overdue installments
+- `overdue_amount`: Total overdue amount in the period
 
 ---
 
