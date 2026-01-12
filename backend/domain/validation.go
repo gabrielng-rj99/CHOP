@@ -30,14 +30,25 @@ import (
 var (
 	// Regex para validação de ID (UUID v4)
 	uuidRegex = regexp.MustCompile(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$`)
+	// Regex para validação de UUID genérico (qualquer versão)
+	uuidGenericRegex = regexp.MustCompile(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$`)
 	// Regex para telefone simples (apenas números, min 10 dígitos)
 	phoneRegex = regexp.MustCompile(`^\d{10,}$`)
 )
 
-// ValidateUUID verifica se o ID é um UUID válido
+// ValidateUUID verifica se o ID é um UUID v4 válido
 func ValidateUUID(id string) error {
 	if !uuidRegex.MatchString(id) {
 		return errors.New("id inválido: deve ser um UUID v4")
+	}
+	return nil
+}
+
+// ValidateUUIDGeneric verifica se o ID é um UUID válido (qualquer versão)
+// Usado para permissões e outros IDs fixos que não seguem UUID v4
+func ValidateUUIDGeneric(id string) error {
+	if !uuidGenericRegex.MatchString(id) {
+		return errors.New("id inválido: deve ser um UUID válido")
 	}
 	return nil
 }

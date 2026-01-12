@@ -35,6 +35,8 @@
 --   05_clients.sql     - Clientes e filiais
 --   06_contracts.sql   - Categorias, subcategorias e contratos
 --   07_audit.sql       - Logs de auditoria
+--   08_audit_object_name.sql - Função para nome de objeto em audit
+--   09_financial.sql    - Financeiro e parcelas de contratos
 --
 -- Cada módulo é auto-contido: inclui DDL (CREATE TABLE) e DML (INSERT)
 -- para os dados essenciais daquele módulo.
@@ -44,26 +46,32 @@
 \echo '============================================'
 \echo ''
 
-\echo '[1/7] Loading extensions...'
+\echo '[1/9] Loading extensions...'
 \i 01_extensions.sql
 
-\echo '[2/7] Loading core module (settings, roles, permissions)...'
+\echo '[2/9] Loading core module (settings, roles, permissions)...'
 \i 02_core.sql
 
-\echo '[3/7] Loading security module (password/session policies)...'
+\echo '[3/9] Loading security module (password/session policies)...'
 \i 03_security.sql
 
-\echo '[4/7] Loading users module...'
+\echo '[4/9] Loading users module...'
 \i 04_users.sql
 
-\echo '[5/7] Loading clients module...'
+\echo '[5/9] Loading clients module...'
 \i 05_clients.sql
 
-\echo '[6/7] Loading contracts module...'
+\echo '[6/9] Loading contracts module...'
 \i 06_contracts.sql
 
-\echo '[7/7] Loading audit module...'
+\echo '[7/9] Loading audit module...'
 \i 07_audit.sql
+
+\echo '[8/9] Loading audit object name function...'
+\i 08_audit_object_name.sql
+
+\echo '[9/9] Loading financial module...'
+\i 09_financial.sql
 
 \echo ''
 \echo '============================================'
@@ -86,13 +94,20 @@
 \echo '  - categories'
 \echo '  - subcategories'
 \echo '  - contracts'
+\echo '  - contract_financial'
+\echo '  - financial_installments'
 \echo '  - audit_logs'
 \echo ''
 \echo 'Default data inserted:'
 \echo '  - 4 roles (root, admin, user, viewer)'
-\echo '  - All permissions'
+\echo '  - All permissions (including financial)'
 \echo '  - Role-permission mappings'
 \echo '  - System settings (security, dashboard, notifications, audit)'
 \echo '  - Password policies per role'
 \echo '  - Session policies per role'
+\echo ''
+\echo 'Financial features:'
+\echo '  - Support for unique, recurring, and custom financial types'
+\echo '  - Installment tracking with due dates and status'
+\echo '  - Dashboard views for upcoming and overdue financial'
 \echo ''

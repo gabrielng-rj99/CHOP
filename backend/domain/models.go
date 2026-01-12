@@ -163,6 +163,118 @@ func (c *Contract) Status() string {
 	return "Ativo"
 }
 
+// ContractFinancial representa a tabela 'contract_financial'
+// Modelo de financeiro associado a um contrato
+type ContractFinancial struct {
+	ID             string    `json:"id"`
+	ContractID     string    `json:"contract_id"`
+	FinancialType  string    `json:"financial_type"`            // 'unico', 'recorrente', 'personalizado'
+	RecurrenceType *string   `json:"recurrence_type,omitempty"` // 'mensal', 'trimestral', 'semestral', 'anual'
+	DueDay         *int      `json:"due_day,omitempty"`         // Dia do vencimento (1-31)
+	ClientValue    *float64  `json:"client_value,omitempty"`    // Quanto o cliente paga
+	ReceivedValue  *float64  `json:"received_value,omitempty"`  // Quanto você recebe
+	Description    *string   `json:"description,omitempty"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+
+	// Campos calculados (não persistidos)
+	TotalClientValue   *float64 `json:"total_client_value,omitempty"`
+	TotalReceivedValue *float64 `json:"total_received_value,omitempty"`
+	TotalInstallments  int      `json:"total_installments,omitempty"`
+	PaidInstallments   int      `json:"paid_installments,omitempty"`
+
+	// Relacionamentos (para responses)
+	Installments []FinancialInstallment `json:"installments,omitempty"`
+}
+
+// FinancialInstallment representa a tabela 'financial_installments'
+// Parcelas customizadas para financeiro do tipo 'personalizado'
+type FinancialInstallment struct {
+	ID                  string     `json:"id"`
+	ContractFinancialID string     `json:"contract_financial_id"`
+	InstallmentNumber   int        `json:"installment_number"` // 0 = Entrada, 1 = 1ª Parcela, etc.
+	InstallmentLabel    *string    `json:"installment_label,omitempty"`
+	ClientValue         float64    `json:"client_value"`
+	ReceivedValue       float64    `json:"received_value"`
+	DueDate             *time.Time `json:"due_date,omitempty"`
+	PaidAt              *time.Time `json:"paid_at,omitempty"`
+	Status              string     `json:"status"` // 'pendente', 'pago', 'atrasado', 'cancelado'
+	Notes               *string    `json:"notes,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+// GetDefaultInstallmentLabel retorna um label padrão para o número da parcela
+func GetDefaultInstallmentLabel(number int) string {
+	if number == 0 {
+		return "Entrada"
+	}
+	return string(rune('0'+number)) + "ª Parcela"
+}
+
+// FinancialSummary representa um resumo de financeiro para dashboard
+type FinancialSummary struct {
+	TotalToReceive  float64 `json:"total_to_receive"`
+	TotalClientPays float64 `json:"total_client_pays"`
+	AlreadyReceived float64 `json:"already_received"`
+	PendingCount    int     `json:"pending_count"`
+	PaidCount       int     `json:"paid_count"`
+	OverdueCount    int     `json:"overdue_count"`
+}
+
+// PeriodSummary representa o resumo de um período específico (mês)
+type PeriodSummary struct {
+	Period          string  `json:"period"`           // Ex: "2025-01", "2025-02"
+	PeriodLabel     string  `json:"period_label"`     // Ex: "Janeiro 2025", "Fevereiro 2025"
+	TotalToReceive  float64 `json:"total_to_receive"` // Valor total a receber no período
+	TotalClientPays float64 `json:"total_client_pays"`
+	AlreadyReceived float64 `json:"already_received"` // Já recebido no período
+	PendingAmount   float64 `json:"pending_amount"`   // Ainda pendente no período
+	PendingCount    int     `json:"pending_count"`
+	PaidCount       int     `json:"paid_count"`
+	OverdueCount    int     `json:"overdue_count"`
+	OverdueAmount   float64 `json:"overdue_amount"`
+}
+
+// DetailedFinancialSummary representa um resumo detalhado com dados por período
+type DetailedFinancialSummary struct {
+	// Resumo geral
+	TotalToReceive    float64 `json:"total_to_receive"`
+	TotalClientPays   float64 `json:"total_client_pays"`
+	TotalReceived     float64 `json:"total_received"`
+	TotalPending      float64 `json:"total_pending"`
+	TotalOverdue      float64 `json:"total_overdue"`
+	TotalOverdueCount int     `json:"total_overdue_count"`
+
+	// Resumos por período
+	LastMonth    *PeriodSummary `json:"last_month,omitempty"`
+	CurrentMonth *PeriodSummary `json:"current_month,omitempty"`
+	NextMonth    *PeriodSummary `json:"next_month,omitempty"`
+
+	// Lista de meses com dados (para visão expandida)
+	MonthlyBreakdown []PeriodSummary `json:"monthly_breakdown,omitempty"`
+
+	// Metadados
+	GeneratedAt string `json:"generated_at"`
+	CurrentDate string `json:"current_date"`
+}
+
+// UpcomingFinancial representa um financeiro próximo para listagem
+type UpcomingFinancial struct {
+	InstallmentID       string     `json:"installment_id"`
+	ContractFinancialID string     `json:"contract_financial_id"`
+	ContractID          string     `json:"contract_id"`
+	ClientID            string     `json:"client_id"`
+	ClientName          string     `json:"client_name"`
+	ContractModel       string     `json:"contract_model"`
+	InstallmentLabel    *string    `json:"installment_label,omitempty"`
+	ClientValue         float64    `json:"client_value"`
+	ReceivedValue       float64    `json:"received_value"`
+	DueDate             *time.Time `json:"due_date,omitempty"`
+	Status              string     `json:"status"`
+}
+
 // AuditLog representa a tabela 'audit_logs' para rastreamento de auditoria
 type AuditLog struct {
 	ID              string    `json:"id"`
