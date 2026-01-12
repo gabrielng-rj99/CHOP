@@ -33,6 +33,7 @@ import requests
 import time
 import json
 from functools import wraps
+from typing import Any, Dict
 
 
 def catch_connection_errors(func):
@@ -129,9 +130,9 @@ class TestOverflowAttacks:
 class TestDeepNestingJSON:
     """Testes de JSON com aninhamento profundo"""
 
-    def generate_deep_nested_json(self, depth):
+    def generate_deep_nested_json(self, depth: int) -> Dict[str, Any]:
         """Gera JSON com aninhamento profundo"""
-        result = {"value": "test"}
+        result: Dict[str, Any] = {"value": "test"}
         for _ in range(depth):
             result = {"nested": result}
         return result

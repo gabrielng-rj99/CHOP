@@ -172,7 +172,7 @@ class TestAuthorization:
         response = http_client.post(f"{api_url}/users", json={
             "username": f"test_user_{int(time.time())}",
             "display_name": "Test User",
-            "password": "Test123!@#",
+            "password": "Test123!@#abcXYZ7890",
             "role": "user"
         }, headers=headers)
 

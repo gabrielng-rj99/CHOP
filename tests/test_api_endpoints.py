@@ -271,7 +271,7 @@ class TestClientsAPI:
             "name": f"Full Client {int(time.time())}",
             "registration_id": cpf,
             "nickname": "Nickname",
-            "birth_date": "1990-01-15",
+            "birth_date": "1990-01-15T00:00:00Z",
             "email": f"full_{int(time.time())}@test.com",
             "phone": "11888888888",
             "address": "Rua Teste, 123",

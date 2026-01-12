@@ -198,7 +198,7 @@ class TestJWTSecurity:
             pytest.skip("Login falhou")
 
         tokens = login_response.json()
-        refresh_token = tokens.get("refresh_token")
+        refresh_token = tokens.get("refresh_token") or tokens.get("data", {}).get("refresh_token")
 
         if not refresh_token:
             pytest.skip("Refresh token não retornado")

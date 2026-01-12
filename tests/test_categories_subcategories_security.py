@@ -447,6 +447,61 @@ class TestSubcategoriesXSSandSQLi:
             assert "postgresql" not in lower_text or "syntax" not in lower_text
 
 
+class TestSubcategoriesPutXSS:
+    """Testes de XSS para PUT /api/subcategories/{id}"""
+
+    XSS_PAYLOADS = [
+        "<script>alert('XSS')</script>",
+        "javascript:alert('XSS')",
+        "<img src=x onerror=alert('XSS')>",
+        "<svg onload=alert('XSS')>",
+    ]
+
+    def test_xss_in_subcategory_name_on_update(self, http_client, api_url, root_user, timer):
+        """XSS no nome da subcategoria ao atualizar deve ser sanitizado"""
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
+
+        headers = {"Authorization": f"Bearer {root_user['token']}"}
+
+        # Criar categoria válida primeiro
+        cat_resp = http_client.post(
+            f"{api_url}/categories",
+            headers=headers,
+            json={"name": f"Cat for Subcat XSS Update {uuid.uuid4().hex[:8]}"}
+        )
+
+        if cat_resp.status_code == 201:
+            cat_json = cat_resp.json()
+            cat_id = cat_json.get("data", {}).get("id") or cat_json.get("id")
+
+            # Criar subcategoria válida
+            subcat_resp = http_client.post(
+                f"{api_url}/subcategories",
+                headers=headers,
+                json={"name": "Valid Subcategory", "category_id": cat_id}
+            )
+
+            if subcat_resp.status_code == 201:
+                subcat_json = subcat_resp.json()
+                subcat_id = subcat_json.get("data", {}).get("id") or subcat_json.get("id")
+
+                for payload in self.XSS_PAYLOADS:
+                    response = http_client.put(
+                        f"{api_url}/subcategories/{subcat_id}",
+                        headers=headers,
+                        json={"name": payload, "category_id": cat_id}
+                    )
+
+                    # Verificar que XSS não está presente na resposta
+                    assert "<script>" not in response.text, \
+                        f"XSS not sanitized in update: {payload}"
+                    assert "onerror=" not in response.text.lower(), \
+                        f"XSS event handler not sanitized: {payload}"
+                    assert "onload=" not in response.text.lower(), \
+                        f"XSS onload not sanitized: {payload}"
+
+
 class TestSubcategoriesOverflow:
     """Testes de overflow para Subcategories"""
 
@@ -489,8 +544,9 @@ class TestCategoriesSubcategoriesWorkflow:
         )
         assert subcat_resp.status_code == 201, \
             f"Criar subcategoria falhou com {subcat_resp.status_code}: {subcat_resp.text}"
-        subcat_id = subcat_resp.json().get("id")
-        assert subcat_id, "Subcategoria criada mas sem ID retornado"
+        subcat_json = subcat_resp.json()
+        subcat_id = subcat_json.get("data", {}).get("id") or subcat_json.get("id")
+        assert subcat_id, f"Subcategoria criada mas sem ID retornado. Resp: {subcat_resp.text}"
 
         # 3. Listar subcategorias - DEVE funcionar
         list_resp = http_client.get(
@@ -531,4 +587,3 @@ class TestCategoriesSubcategoriesWorkflow:
         )
         assert del_cat_resp.status_code in [200, 204], \
             f"Deletar categoria falhou com {del_cat_resp.status_code}"
-

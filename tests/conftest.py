@@ -46,7 +46,7 @@ DEFAULT_ROOT_PASSWORD = os.getenv(
     "TEST_ROOT_PASSWORD",
     "RootPass123!@#456789%%0321654987+-7dfgacvds"
 )
-DEFAULT_STRONG_PASSWORD = "ValidPass123!@#abc"
+DEFAULT_STRONG_PASSWORD = "ValidPass123!@#abcXYZ"
 
 
 @pytest.fixture(scope="session")
@@ -63,7 +63,6 @@ def api_url():
 def http_client():
     session = requests.Session()
     session.headers.update({"Content-Type": "application/json"})
-    session.timeout = 30
     return session
 
 
@@ -105,8 +104,10 @@ def root_user(http_client, api_url):
         tokens = login_response.json()
         # Suporta ambos os formatos de resposta
         access_token = tokens.get("token") or tokens.get("access_token") or tokens.get("data", {}).get("token")
+        refresh_token = tokens.get("refresh_token") or tokens.get("data", {}).get("refresh_token")
         test_data["tokens"]["root"] = access_token
         test_data["users"]["root"]["token"] = access_token
+        test_data["users"]["root"]["refresh_token"] = refresh_token
         test_data["users"]["root"]["id"] = tokens.get("user_id") or tokens.get("data", {}).get("user_id")
     else:
         # Se login falhou, tenta com senha alternativa
@@ -122,8 +123,10 @@ def root_user(http_client, api_url):
             if login_response.status_code == 200:
                 tokens = login_response.json()
                 access_token = tokens.get("token") or tokens.get("access_token") or tokens.get("data", {}).get("token")
+                refresh_token = tokens.get("refresh_token") or tokens.get("data", {}).get("refresh_token")
                 test_data["tokens"]["root"] = access_token
                 test_data["users"]["root"]["token"] = access_token
+                test_data["users"]["root"]["refresh_token"] = refresh_token
                 test_data["users"]["root"]["password"] = alt_pass
                 break
 
@@ -166,7 +169,9 @@ def admin_user(http_client, api_url, root_user):
         if login_response.status_code == 200:
             tokens = login_response.json()
             access_token = tokens.get("token") or tokens.get("access_token") or tokens.get("data", {}).get("token")
+            refresh_token = tokens.get("refresh_token") or tokens.get("data", {}).get("refresh_token")
             user_data["token"] = access_token
+            user_data["refresh_token"] = refresh_token
             test_data["tokens"]["admin"] = access_token
             test_data["users"]["admin"] = user_data
 
@@ -211,7 +216,9 @@ def regular_user(http_client, api_url, root_user):
         if login_response.status_code == 200:
             tokens = login_response.json()
             access_token = tokens.get("token") or tokens.get("access_token") or tokens.get("data", {}).get("token")
+            refresh_token = tokens.get("refresh_token") or tokens.get("data", {}).get("refresh_token")
             user_data["token"] = access_token
+            user_data["refresh_token"] = refresh_token
             test_data["tokens"]["user"] = access_token
             test_data["users"]["user"] = user_data
 

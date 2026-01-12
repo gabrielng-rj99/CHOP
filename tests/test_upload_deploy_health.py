@@ -479,3 +479,83 @@ class TestAffiliatesAPIComplete:
             # 404 é esperado, mas não deve ter erro SQL
             assert "syntax" not in response.text.lower()
             assert "sql" not in response.text.lower()
+
+    def test_put_affiliate_permission_regular_user(self, http_client, api_url, regular_user, timer):
+        """PUT /api/affiliates/{id} com usuário regular - verificar política de permissão"""
+        if not regular_user or "token" not in regular_user:
+            pytest.skip("Regular user não disponível")
+
+        fake_id = str(uuid.uuid4())
+        response = http_client.put(
+            f"{api_url}/affiliates/{fake_id}",
+            headers={"Authorization": f"Bearer {regular_user['token']}"},
+            json={"name": "Test Affiliate Update"}
+        )
+        # Usuário regular pode receber 400/404 (affiliate não existe) ou 403 (sem permissão)
+        # O importante é que não seja 500 (erro de servidor)
+        assert response.status_code in [200, 400, 403, 404], \
+            f"PUT affiliate by regular user: unexpected status {response.status_code}"
+
+    def test_delete_affiliate_permission_regular_user(self, http_client, api_url, regular_user, timer):
+        """DELETE /api/affiliates/{id} com usuário regular - verificar política de permissão"""
+        if not regular_user or "token" not in regular_user:
+            pytest.skip("Regular user não disponível")
+
+        fake_id = str(uuid.uuid4())
+        response = http_client.delete(
+            f"{api_url}/affiliates/{fake_id}",
+            headers={"Authorization": f"Bearer {regular_user['token']}"}
+        )
+        # Usuário regular pode receber 400/404 (affiliate não existe) ou 403 (sem permissão)
+        assert response.status_code in [200, 400, 403, 404], \
+            f"DELETE affiliate by regular user: unexpected status {response.status_code}"
+
+    def test_overflow_in_affiliate_name(self, http_client, api_url, root_user, timer):
+        """Overflow no campo name de affiliate deve ser tratado gracefully"""
+        fake_id = str(uuid.uuid4())
+        overflow_name = "A" * 10000
+
+        response = http_client.put(
+            f"{api_url}/affiliates/{fake_id}",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={"name": overflow_name},
+            timeout=10
+        )
+        # Deve rejeitar com 400/413 ou retornar 404 (ID não existe), NUNCA crash
+        assert response.status_code in [400, 404, 413], \
+            f"Overflow in affiliate name: unexpected status {response.status_code}"
+
+    def test_overflow_in_affiliate_all_fields(self, http_client, api_url, root_user, timer):
+        """Overflow em todos os campos de affiliate simultaneamente"""
+        fake_id = str(uuid.uuid4())
+        overflow_value = "A" * 5000
+
+        response = http_client.put(
+            f"{api_url}/affiliates/{fake_id}",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={
+                "name": overflow_value,
+                "description": overflow_value,
+                "email": overflow_value,
+                "phone": overflow_value,
+            },
+            timeout=10
+        )
+        # Deve rejeitar ou tratar gracefully, NUNCA crash (500)
+        assert response.status_code in [400, 404, 413], \
+            f"Overflow all affiliate fields: unexpected status {response.status_code}"
+
+    def test_overflow_in_affiliate_description(self, http_client, api_url, root_user, timer):
+        """Overflow no campo description de affiliate"""
+        fake_id = str(uuid.uuid4())
+        overflow_desc = "B" * 20000
+
+        response = http_client.put(
+            f"{api_url}/affiliates/{fake_id}",
+            headers={"Authorization": f"Bearer {root_user['token']}"},
+            json={"name": "Valid Name", "description": overflow_desc},
+            timeout=10
+        )
+        # Deve rejeitar com 400/413 ou retornar 404, NUNCA 500
+        assert response.status_code in [400, 404, 413], \
+            f"Overflow in affiliate description: unexpected status {response.status_code}"

@@ -43,7 +43,7 @@ services:
             DB_SSL_MODE: disable
             API_PORT: 3000
             JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
-            JWT_EXPIRATION_TIME: 60
+            JWT_EXPIRATION_TIME: 3600
             JWT_REFRESH_EXPIRATION_TIME: 10080
             PASSWORD_MIN_LENGTH: 16
             PASSWORD_REQUIRE_UPPERCASE: "true"
