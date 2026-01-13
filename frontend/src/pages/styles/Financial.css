@@ -29,10 +29,12 @@
    ============================================ */
 
 .financial-gradient-section {
-    background: linear-gradient(135deg,
-            var(--content-bg, white) 0%,
-            rgba(44, 62, 80, 0.05) 100%);
-    border-left: 4px solid var(--secondary-color);
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
+    border-left: 0px solid var(--secondary-color);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -154,13 +156,11 @@
 
 .financial-periods-section {
     margin-bottom: 24px;
-    background: linear-gradient(135deg,
-            var(--content-bg, white) 0%,
-            rgba(44, 62, 80, 0.05) 100%);
-    border-left: 4px solid var(--secondary-color);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
 }
 
 .financial-section-title {
@@ -168,96 +168,6 @@
     color: var(--primary-text-color, #2c3e50);
     margin: 0 0 16px 0;
     font-weight: 600;
-}
-
-.financial-periods-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-}
-
-.financial-period-card {
-    background: var(--content-bg, white);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    border-top: 4px solid var(--border-color, #ddd);
-}
-
-.financial-period-past {
-    border-top-color: #95a5a6;
-}
-
-.financial-period-current {
-    border-top-color: #3498db;
-}
-
-.financial-period-future {
-    border-top-color: #9b59b6;
-}
-
-.financial-period-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    background: var(--card-bg, #f8f9fa);
-    border-bottom: 1px solid var(--border-color, #eee);
-}
-
-.financial-period-icon {
-    font-size: 24px;
-}
-
-.financial-period-title h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary-text-color, #2c3e50);
-}
-
-.financial-period-label {
-    font-size: 12px;
-    color: var(--secondary-text-color, #7f8c8d);
-}
-
-.financial-period-body {
-    padding: 16px 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 16px;
-}
-
-.financial-period-stat {
-    text-align: center;
-}
-
-.financial-period-stat-label {
-    display: block;
-    font-size: 11px;
-    color: var(--secondary-text-color, #7f8c8d);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
-
-.financial-period-stat-value {
-    display: block;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.financial-period-stat-count {
-    display: block;
-    font-size: 11px;
-    color: var(--secondary-text-color, #95a5a6);
-}
-
-.financial-period-stat-overdue {
-    background: rgba(231, 76, 60, 0.05);
-    border-radius: 8px;
-    padding: 8px;
-    margin: -8px;
 }
 
 .financial-value-pending {
@@ -320,9 +230,23 @@ details[open] .financial-breakdown-summary::before {
 
 .financial-breakdown-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
     padding: 16px 20px;
+}
+
+/* Mês Atual - sempre 5 colunas em tela grande */
+.financial-breakdown-grid-monthly {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+/* Ano Atual - 6 colunas em tela grande, adapta para centralizado */
+.financial-breakdown-grid-current-year {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+/* Anual e Personalizado - varia de 2 a 6 conforme necessário */
+.financial-breakdown-grid-flexible {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .financial-breakdown-item {
@@ -425,49 +349,81 @@ details[open] .financial-breakdown-summary::before {
    ============================================ */
 
 .financial-tabs-section {
-    background: linear-gradient(135deg,
-            var(--content-bg, white) 0%,
-            rgba(44, 62, 80, 0.05) 100%);
-    border-left: 4px solid var(--secondary-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     margin-bottom: 24px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .financial-tabs {
     display: flex;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    gap: 8px;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--border-color, #e0e0e0);
+    padding-bottom: 12px;
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
+    border-left: 4px solid var(--secondary-color);
+    padding: 20px 20px 12px 20px;
+    border-radius: 8px 8px 0 0;
+}
+
+.financial-periods-section .financial-tabs {
+    margin-top: 0;
 }
 
 .financial-tab {
-    flex: 1;
-    padding: 14px 20px;
-    background: transparent;
+    padding: 12px 24px;
     border: none;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--secondary-text-color, #7f8c8d);
+    background: var(--secondary-color, #2c3e50);
+    color: var(--nav-text-color, white);
+    border-radius: 8px 8px 0 0;
     cursor: pointer;
-    transition: all 0.2s;
-    border-bottom: 2px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-width: 120px;
+    flex-shrink: 0;
 }
 
 .financial-tab:hover {
-    background: var(--hover-bg, #f8f9fa);
-    color: var(--primary-text-color, #2c3e50);
+    background: var(--secondary-light, rgba(255, 255, 255, 0.1));
+    color: var(--nav-text-color, white);
 }
 
 .financial-tab.active {
-    color: var(--primary-color, #3498db);
-    border-bottom-color: var(--primary-color, #3498db);
-    background: var(--hover-bg, #f8f9fa);
+    background: var(--primary-color, #3498db);
+    color: var(--active-nav-text-color, var(--primary-text-color, white));
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .financial-tabs-content {
-    padding: 16px;
-    max-height: 300px;
-    overflow-y: auto;
+    padding: 20px;
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
+    border-left: 4px solid var(--secondary-color);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+}
+
+.financial-periods-section .financial-tabs-content {
+    margin-bottom: 0;
 }
 
 .financial-empty-message {
@@ -732,9 +688,11 @@ details[open] .financial-breakdown-summary::before {
    ============================================ */
 
 .financial-table-wrapper {
-    background: linear-gradient(135deg,
-            var(--content-bg, white) 0%,
-            rgba(44, 62, 80, 0.05) 100%);
+    background: linear-gradient(
+        135deg,
+        var(--content-bg, white) 0%,
+        rgba(44, 62, 80, 0.05) 100%
+    );
     border-left: 4px solid var(--secondary-color);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -752,6 +710,13 @@ details[open] .financial-breakdown-summary::before {
     margin: 0;
     font-size: 18px;
     color: var(--primary-text-color, #2c3e50);
+}
+
+.financial-table-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: var(--secondary-text-color, #7f8c8d);
+    font-weight: 500;
 }
 
 .financial-table {
@@ -1221,6 +1186,32 @@ body.modal-open {
    RESPONSIVE
    ============================================ */
 
+/* Modo Centralizado - telas médias/grandes */
+@media (min-width: 1200px) and (max-width: 1600px) {
+    .financial-breakdown-grid-current-year {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .financial-breakdown-grid-flexible {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+}
+
+/* Modo Tablet - telas médias */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .financial-breakdown-grid-monthly {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .financial-breakdown-grid-current-year {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .financial-breakdown-grid-flexible {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     .financial-header {
         flex-direction: column;
@@ -1232,14 +1223,11 @@ body.modal-open {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .financial-periods-grid {
-        grid-template-columns: 1fr;
+    .financial-breakdown-grid-monthly,
+    .financial-breakdown-grid-current-year,
+    .financial-breakdown-grid-flexible {
+        grid-template-columns: repeat(2, 1fr);
     }
-
-    .financial-breakdown-grid {
-        grid-template-columns: 1fr;
-    }
-
     .financial-filters {
         flex-direction: column;
         align-items: stretch;
@@ -1275,11 +1263,10 @@ body.modal-open {
         font-size: 24px;
     }
 
-    .financial-main-summary {
-        grid-template-columns: 1fr;
-    }
-
-    .financial-period-body {
+    .financial-main-summary,
+    .financial-breakdown-grid-monthly,
+    .financial-breakdown-grid-current-year,
+    .financial-breakdown-grid-flexible {
         grid-template-columns: 1fr;
     }
 
@@ -1334,14 +1321,6 @@ body.modal-open {
     background: var(--card-bg, #3d3d3d);
 }
 
-.dark-mode .financial-period-card {
-    background: var(--content-bg, #2d2d2d);
-}
-
-.dark-mode .financial-period-header {
-    background: var(--card-bg, #3d3d3d);
-}
-
 .dark-mode .financial-breakdown-details {
     background: var(--content-bg, #2d2d2d);
 }
@@ -1356,4 +1335,22 @@ body.modal-open {
 
 .dark-mode .financial-days-badge {
     background: var(--card-bg, #3d3d3d);
+}
+
+/* ============================================
+   DARK MODE TABS
+   ============================================ */
+
+.dark-mode .financial-tab {
+    background: var(--secondary-color, #2d3748);
+    color: var(--nav-text-color, #f7fafc);
+}
+
+.dark-mode .financial-tab:hover {
+    background: var(--secondary-light, rgba(255, 255, 255, 0.15));
+}
+
+.dark-mode .financial-tab.active {
+    background: var(--primary-color, #3498db);
+    color: var(--active-nav-text-color, #f7fafc);
 }

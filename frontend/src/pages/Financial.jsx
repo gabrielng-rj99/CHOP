@@ -58,6 +58,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     const [detailedSummary, setDetailedSummary] = useState(null);
     const [upcomingFinancials, setUpcomingFinancials] = useState([]);
     const [overdueFinancials, setOverdueFinancials] = useState([]);
+    const [upcomingCurrentPage, setUpcomingCurrentPage] = useState(1);
+    const [upcomingItemsPerPage, setUpcomingItemsPerPage] = useState(10);
+    const [overdueCurrentPage, setOverdueCurrentPage] = useState(1);
+    const [overdueItemsPerPage, setOverdueItemsPerPage] = useState(10);
     const filtersContainerRef = useRef(null);
 
     // URL state for filters
@@ -170,7 +174,12 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     const [activeTab, setActiveTab] = useState("overdue");
 
     // Active tab for period view
-    const [periodTab, setPeriodTab] = useState("projecao3");
+    const [periodTab, setPeriodTab] = useState("monthlyExpanded");
+
+    // Custom period configuration
+    const [customPeriodType, setCustomPeriodType] = useState("mensal"); // "mensal" or "anual"
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
 
     // Hook para preservar scroll do modal
     const { scrollRef, saveScrollPosition, restoreScrollPosition } =
@@ -278,7 +287,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         // Date Range filter (using contract dates)
         if (values.startDate) {
             const startLimit = new Date(values.startDate);
-            const contractStart = contract?.start_date ? new Date(contract.start_date) : null;
+            const contractStart = contract?.start_date
+                ? new Date(contract.start_date)
+                : null;
             if (contractStart && contractStart < startLimit) {
                 // Se o contrato começou antes da data de início, talvez queiramos filtrar?
                 // Ou talvez queiramos filtrar se ele está ATIVO no range.
@@ -287,10 +298,12 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         }
 
         if (values.startDate && contract?.end_date) {
-            if (new Date(contract.end_date) < new Date(values.startDate)) return false;
+            if (new Date(contract.end_date) < new Date(values.startDate))
+                return false;
         }
         if (values.endDate && contract?.start_date) {
-            if (new Date(contract.start_date) > new Date(values.endDate)) return false;
+            if (new Date(contract.start_date) > new Date(values.endDate))
+                return false;
         }
 
         // Financial type filter
@@ -498,10 +511,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                 setSelectedFinancial((prev) =>
                     prev
                         ? {
-                            ...prev,
-                            paid_installments: paidCount,
-                            total_installments: totalCount,
-                        }
+                              ...prev,
+                              paid_installments: paidCount,
+                              total_installments: totalCount,
+                          }
                         : null,
                 );
             }
@@ -511,10 +524,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                 prevFinancial.map((p) =>
                     p.id === pid
                         ? {
-                            ...p,
-                            paid_installments: paidCount,
-                            total_installments: totalCount,
-                        }
+                              ...p,
+                              paid_installments: paidCount,
+                              total_installments: totalCount,
+                          }
                         : p,
                 ),
             );
@@ -568,10 +581,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             setSelectedFinancial((prev) =>
                 prev
                     ? {
-                        ...prev,
-                        paid_installments: paidCount,
-                        total_installments: totalCount,
-                    }
+                          ...prev,
+                          paid_installments: paidCount,
+                          total_installments: totalCount,
+                      }
                     : null,
             );
 
@@ -580,10 +593,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                 prevFinancial.map((p) =>
                     p.id === selectedFinancial.id
                         ? {
-                            ...p,
-                            paid_installments: paidCount,
-                            total_installments: totalCount,
-                        }
+                              ...p,
+                              paid_installments: paidCount,
+                              total_installments: totalCount,
+                          }
                         : p,
                 ),
             );
@@ -618,8 +631,8 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             backgroundColor: state.isSelected
                 ? "var(--primary-color, #3498db)"
                 : state.isFocused
-                    ? "var(--hover-bg, #f8f9fa)"
-                    : "var(--content-bg, white)",
+                  ? "var(--hover-bg, #f8f9fa)"
+                  : "var(--content-bg, white)",
             color: state.isSelected
                 ? "white"
                 : "var(--primary-text-color, #333)",
@@ -647,139 +660,43 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     ];
 
     // Render period card
-    const renderPeriodCard = (period, title, icon, colorClass) => {
-        if (!period) return null;
-
-        const pendingValue = period.pending_amount;
-        const [monthName, year] = period.period_label.split(" ");
-        const monthNames = [
-            "Janeiro",
-            "Fevereiro",
-            "Março",
-            "Abril",
-            "Maio",
-            "Junho",
-            "Julho",
-            "Agosto",
-            "Setembro",
-            "Outubro",
-            "Novembro",
-            "Dezembro",
-        ];
-        const monthNum = monthNames.indexOf(monthName) + 1;
-        const now = new Date();
-        const isPast =
-            year < now.getFullYear() ||
-            (year == now.getFullYear() && monthNum < now.getMonth() + 1);
-        const isConcluded =
-            period.pending_count === 0 && period.overdue_count === 0;
-
-        return (
-            <div className={`financial-period-card ${colorClass}`}>
-                <div className="financial-period-header">
-                    <span className="financial-period-icon">{icon}</span>
-                    <div className="financial-period-title">
-                        <h4>{title}</h4>
-                        <span className="financial-period-label">
-                            {period.period_label}
-                        </span>
-                    </div>
-                </div>
-                <div className="financial-period-body">
-                    <div className="financial-period-stat">
-                        <span className="financial-period-stat-label">
-                            A Receber
-                        </span>
-                        <span className="financial-period-stat-value financial-value-pending">
-                            {financialApi.formatCurrency(pendingValue)}
-                        </span>
-                        <span className="financial-period-stat-count">
-                            {period.pending_count} pendentes
-                        </span>
-                    </div>
-                    <div className="financial-period-stat">
-                        <span className="financial-period-stat-label">
-                            Recebido
-                        </span>
-                        <span className="financial-period-stat-value financial-value-received">
-                            {financialApi.formatCurrency(
-                                period.already_received,
-                            )}
-                        </span>
-                        <span className="financial-period-stat-count">
-                            {period.paid_count} pagos
-                        </span>
-                    </div>
-                    {period.overdue_count > 0 && (
-                        <div className="financial-period-stat financial-period-stat-overdue">
-                            <span className="financial-period-stat-label">
-                                Em Atraso
-                            </span>
-                            <span className="financial-period-stat-value financial-value-overdue">
-                                {financialApi.formatCurrency(
-                                    period.overdue_amount,
-                                )}
-                            </span>
-                            <span className="financial-period-stat-count">
-                                {period.overdue_count} atrasados
-                            </span>
-                        </div>
-                    )}
-                    <div
-                        className="financial-period-stat"
-                        style={{
-                            borderTop: "1px dashed var(--border-color, #eee)",
-                            paddingTop: "12px",
-                            gridColumn: "1 / -1",
-                            marginTop: "8px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                        }}
-                    >
-                        <span
-                            className="financial-period-stat-label"
-                            style={{ margin: 0 }}
-                        >
-                            {isPast && isConcluded
-                                ? "Total Recebido:"
-                                : "Total a receber:"}
-                        </span>
-                        <span
-                            className="financial-period-stat-value"
-                            style={{ fontSize: "16px", margin: 0 }}
-                        >
-                            {financialApi.formatCurrency(
-                                period.total_to_receive,
-                            )}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     const renderFinancialBreakdownContent = (month) => {
         const now = new Date();
-        const [monthName, year] = month.period_label.split(" ");
-        const monthNames = [
-            "Janeiro",
-            "Fevereiro",
-            "Março",
-            "Abril",
-            "Maio",
-            "Junho",
-            "Julho",
-            "Agosto",
-            "Setembro",
-            "Outubro",
-            "Novembro",
-            "Dezembro",
-        ];
-        const monthNum = monthNames.indexOf(monthName) + 1;
-        const isPast =
-            year < now.getFullYear() ||
-            (year == now.getFullYear() && monthNum < now.getMonth() + 1);
+
+        // Handle both "Mês Ano" and "Ano" formats
+        let monthName, year, monthNum, isPast;
+
+        if (month.period_label.includes(" ")) {
+            // Monthly format: "Janeiro 2024"
+            [monthName, year] = month.period_label.split(" ");
+            const monthNames = [
+                "Janeiro",
+                "Fevereiro",
+                "Março",
+                "Abril",
+                "Maio",
+                "Junho",
+                "Julho",
+                "Agosto",
+                "Setembro",
+                "Outubro",
+                "Novembro",
+                "Dezembro",
+            ];
+            monthNum = monthNames.indexOf(monthName) + 1;
+            isPast =
+                Number(year) < now.getFullYear() ||
+                (Number(year) == now.getFullYear() &&
+                    monthNum < now.getMonth() + 1);
+        } else {
+            // Yearly format: "2024"
+            year = month.period_label;
+            monthName = null;
+            monthNum = null;
+            isPast = Number(year) < now.getFullYear();
+        }
+
         const isConcluded =
             month.pending_count === 0 && month.overdue_count === 0;
 
@@ -788,23 +705,36 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
 
         return (
             <>
-                {(aReceber > 0 || !isPast) && (
-                    <div className="financial-breakdown-row">
-                        <span>A Receber</span>
-                        <span className="financial-value-pending">
-                            {financialApi.formatCurrency(aReceber)}
-                        </span>
-                    </div>
-                )}
+                {isPast
+                    ? month.overdue_amount > 0 && (
+                          <div className="financial-breakdown-row financial-breakdown-overdue">
+                              <span>A Receber (Atrasado)</span>
+                              <span className="financial-value-overdue">
+                                  {financialApi.formatCurrency(
+                                      month.overdue_amount,
+                                  )}
+                              </span>
+                          </div>
+                      )
+                    : aReceber > 0 && (
+                          <div className="financial-breakdown-row">
+                              <span>A Receber</span>
+                              <span className="financial-value-pending">
+                                  {financialApi.formatCurrency(aReceber)}
+                              </span>
+                          </div>
+                      )}
                 {month.already_received > 0 && (
                     <div className="financial-breakdown-row">
                         <span>Recebido</span>
                         <span className="financial-value-received">
-                            {financialApi.formatCurrency(month.already_received)}
+                            {financialApi.formatCurrency(
+                                month.already_received,
+                            )}
                         </span>
                     </div>
                 )}
-                {month.overdue_amount > 0 && (
+                {!isPast && month.overdue_amount > 0 && (
                     <div className="financial-breakdown-row financial-breakdown-overdue">
                         <span>Atrasado</span>
                         <span className="financial-value-overdue">
@@ -826,6 +756,102 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         );
     };
 
+    // Generate custom period breakdown
+    const getCustomPeriodBreakdown = () => {
+        if (
+            !detailedSummary?.monthly_breakdown ||
+            !customStartDate ||
+            !customEndDate
+        ) {
+            return [];
+        }
+
+        // Parse month inputs (format: YYYY-MM)
+        const [startYear, startMonth] = customStartDate.split("-").map(Number);
+        const [endYear, endMonth] = customEndDate.split("-").map(Number);
+
+        // Create dates - first day of start month, last day of end month
+        const startDate = new Date(startYear, startMonth - 1, 1);
+        const endDate = new Date(endYear, endMonth, 0); // Day 0 = last day of previous month
+        const results = [];
+
+        if (customPeriodType === "mensal") {
+            // Generate monthly cards for the period
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const year = currentDate.getFullYear().toString();
+                const monthNames = [
+                    "Janeiro",
+                    "Fevereiro",
+                    "Março",
+                    "Abril",
+                    "Maio",
+                    "Junho",
+                    "Julho",
+                    "Agosto",
+                    "Setembro",
+                    "Outubro",
+                    "Novembro",
+                    "Dezembro",
+                ];
+                const monthName = monthNames[currentDate.getMonth()];
+                const periodLabel = `${monthName} ${year}`;
+
+                // Find matching month in breakdown
+                const monthData = detailedSummary.monthly_breakdown.find(
+                    (m) => m.period_label === periodLabel,
+                );
+
+                if (monthData) {
+                    results.push(monthData);
+                }
+
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+        } else if (customPeriodType === "anual") {
+            // Generate yearly aggregated cards
+            const yearlyData = {};
+
+            for (let year = startYear; year <= endYear; year++) {
+                const yearStr = year.toString();
+                yearlyData[yearStr] = {
+                    year: yearStr,
+                    total_to_receive: 0,
+                    already_received: 0,
+                    pending_amount: 0,
+                    overdue_amount: 0,
+                    paid_count: 0,
+                    pending_count: 0,
+                    overdue_count: 0,
+                    period_label: yearStr,
+                    period: yearStr, // Add period property for key
+                };
+
+                detailedSummary.monthly_breakdown
+                    .filter((m) => m.period_label.endsWith(yearStr))
+                    .forEach((month) => {
+                        yearlyData[yearStr].total_to_receive +=
+                            month.total_to_receive || 0;
+                        yearlyData[yearStr].already_received +=
+                            month.already_received || 0;
+                        yearlyData[yearStr].pending_amount +=
+                            month.pending_amount || 0;
+                        yearlyData[yearStr].overdue_amount +=
+                            month.overdue_amount || 0;
+                        yearlyData[yearStr].paid_count += month.paid_count || 0;
+                        yearlyData[yearStr].pending_count +=
+                            month.pending_count || 0;
+                        yearlyData[yearStr].overdue_count +=
+                            month.overdue_count || 0;
+                    });
+            }
+
+            results.push(...Object.values(yearlyData));
+        }
+
+        return results;
+    };
+
     if (loading) {
         return (
             <div className="financial-container">
@@ -842,7 +868,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         <div className="financial-container">
             {/* Header */}
             <div className="financial-header">
-                <h1 className="financial-title">💰 Financeiro</h1>
+                <h1 className="financial-title">🪙 Financeiro</h1>
             </div>
 
             {/* Error */}
@@ -875,39 +901,41 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                             </h2>
                             <div className="financial-tabs">
                                 <button
-                                    className={`financial-tab ${periodTab === "projecao3" ? "active" : ""}`}
-                                    onClick={() => setPeriodTab("projecao3")}
+                                    className={`financial-tab ${periodTab === "monthlyExpanded" ? "active" : ""}`}
+                                    onClick={() =>
+                                        setPeriodTab("monthlyExpanded")
+                                    }
                                 >
                                     Mês Atual
                                 </button>
                                 <button
-                                    className={`financial-tab ${periodTab === "7meses" ? "active" : ""}`}
-                                    onClick={() => setPeriodTab("7meses")}
-                                >
-                                    Expandido
-                                </button>
-                                <button
-                                    className={`financial-tab ${periodTab === "anoatual" ? "active" : ""}`}
-                                    onClick={() => setPeriodTab("anoatual")}
+                                    className={`financial-tab ${periodTab === "currentYear" ? "active" : ""}`}
+                                    onClick={() => setPeriodTab("currentYear")}
                                 >
                                     Ano Atual
                                 </button>
                                 <button
-                                    className={`financial-tab ${periodTab === "anual" ? "active" : ""}`}
-                                    onClick={() => setPeriodTab("anual")}
+                                    className={`financial-tab ${periodTab === "yearly" ? "active" : ""}`}
+                                    onClick={() => setPeriodTab("yearly")}
                                 >
                                     Anual
                                 </button>
                                 <button
-                                    className={`financial-tab ${periodTab === "totais" ? "active" : ""}`}
-                                    onClick={() => setPeriodTab("totais")}
+                                    className={`financial-tab ${periodTab === "customRange" ? "active" : ""}`}
+                                    onClick={() => setPeriodTab("customRange")}
+                                >
+                                    📌 Personalizado
+                                </button>
+                                <button
+                                    className={`financial-tab ${periodTab === "allTime" ? "active" : ""}`}
+                                    onClick={() => setPeriodTab("allTime")}
                                 >
                                     Total Completo
                                 </button>
                             </div>
 
                             <div className="financial-tabs-content">
-                                {periodTab === "totais" && (
+                                {periodTab === "allTime" && (
                                     <div className="financial-main-summary">
                                         <div className="financial-summary-card financial-summary-total-pending">
                                             <div className="financial-summary-icon">
@@ -990,11 +1018,11 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     </div>
                                 )}
 
-                                {periodTab === "7meses" &&
+                                {periodTab === "monthlyExpanded" &&
                                     detailedSummary.monthly_breakdown && (
                                         <div
                                             key={periodTab}
-                                            className="financial-breakdown-grid"
+                                            className="financial-breakdown-grid financial-breakdown-grid-monthly"
                                         >
                                             {detailedSummary.monthly_breakdown
                                                 .slice(-7)
@@ -1025,9 +1053,17 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                         ) + 1;
                                                     const isCurrent =
                                                         year ==
-                                                        now.getFullYear() &&
+                                                            now.getFullYear() &&
                                                         monthNum - 1 ==
-                                                        now.getMonth();
+                                                            now.getMonth();
+                                                    const isPast =
+                                                        year <
+                                                            now.getFullYear() ||
+                                                        (year ==
+                                                            now.getFullYear() &&
+                                                            monthNum <
+                                                                now.getMonth() +
+                                                                    1);
                                                     return (
                                                         <div
                                                             key={month.period}
@@ -1048,12 +1084,15 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                     month.paid_count
                                                                 }{" "}
                                                                 pagos ·{" "}
-                                                                {
-                                                                    month.pending_count
-                                                                }{" "}
-                                                                pendentes
-                                                                {month.overdue_count >
-                                                                    0 &&
+                                                                {isPast
+                                                                    ? month.overdue_count
+                                                                    : month.pending_count}{" "}
+                                                                {isPast
+                                                                    ? "atrasados"
+                                                                    : "pendentes"}
+                                                                {!isPast &&
+                                                                    month.overdue_count >
+                                                                        0 &&
                                                                     ` · ${month.overdue_count} atrasados`}
                                                             </div>
                                                         </div>
@@ -1062,34 +1101,11 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                         </div>
                                     )}
 
-                                {periodTab === "projecao3" && (
-                                    <div className="financial-periods-grid">
-                                        {renderPeriodCard(
-                                            detailedSummary.last_month,
-                                            "Mês Passado",
-                                            "📆",
-                                            "financial-period-past",
-                                        )}
-                                        {renderPeriodCard(
-                                            detailedSummary.current_month,
-                                            "Mês Atual",
-                                            "📍",
-                                            "financial-period-current",
-                                        )}
-                                        {renderPeriodCard(
-                                            detailedSummary.next_month,
-                                            "Próximo Mês",
-                                            "🔜",
-                                            "financial-period-future",
-                                        )}
-                                    </div>
-                                )}
-
-                                {periodTab === "anoatual" &&
+                                {periodTab === "currentYear" &&
                                     detailedSummary.monthly_breakdown && (
                                         <div
                                             key={periodTab}
-                                            className="financial-breakdown-grid"
+                                            className="financial-breakdown-grid financial-breakdown-grid-current-year"
                                         >
                                             {(() => {
                                                 const currentYear = new Date()
@@ -1137,11 +1153,23 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                     (name) => {
                                                         const month =
                                                             monthsInYear[name];
+                                                        const now = new Date();
                                                         const isCurrent =
                                                             name ===
                                                             monthNames[
-                                                            new Date().getMonth()
+                                                                new Date().getMonth()
                                                             ];
+                                                        const isPast =
+                                                            currentYear <
+                                                                now.getFullYear() ||
+                                                            (currentYear ==
+                                                                now.getFullYear() &&
+                                                                monthNames.indexOf(
+                                                                    name,
+                                                                ) +
+                                                                    1 <
+                                                                    now.getMonth() +
+                                                                        1);
                                                         if (!month) {
                                                             return (
                                                                 <div
@@ -1178,7 +1206,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                     <div className="financial-breakdown-counts">
                                                                         0 pagos
                                                                         · 0
-                                                                        pendentes
+                                                                        {isPast
+                                                                            ? " atrasados"
+                                                                            : " pendentes"}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -1205,12 +1235,15 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                         month.paid_count
                                                                     }{" "}
                                                                     pagos ·{" "}
-                                                                    {
-                                                                        month.pending_count
-                                                                    }{" "}
-                                                                    pendentes
-                                                                    {month.overdue_count >
-                                                                        0 &&
+                                                                    {isPast
+                                                                        ? month.overdue_count
+                                                                        : month.pending_count}{" "}
+                                                                    {isPast
+                                                                        ? "atrasados"
+                                                                        : "pendentes"}
+                                                                    {!isPast &&
+                                                                        month.overdue_count >
+                                                                            0 &&
                                                                         ` · ${month.overdue_count} atrasados`}
                                                                 </div>
                                                             </div>
@@ -1221,15 +1254,302 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                         </div>
                                     )}
 
-                                {periodTab === "anual" &&
+                                {periodTab === "customRange" && (
+                                    <div className="financial-breakdown-grid">
+                                        <div
+                                            style={{
+                                                gridColumn: "1 / -1",
+                                                display: "flex",
+                                                gap: "16px",
+                                                marginBottom: "20px",
+                                                alignItems: "flex-end",
+                                                flexWrap: "wrap",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "8px",
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <label
+                                                    style={{
+                                                        fontSize: "14px",
+                                                        fontWeight: "500",
+                                                    }}
+                                                >
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={customPeriodType}
+                                                    onChange={(e) =>
+                                                        setCustomPeriodType(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    style={{
+                                                        padding: "8px 12px",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid var(--border-color, #ddd)",
+                                                        backgroundColor:
+                                                            "var(--content-bg, white)",
+                                                        color: "var(--primary-text-color, #2c3e50)",
+                                                        cursor: "pointer",
+                                                        fontSize: "14px",
+                                                    }}
+                                                >
+                                                    <option value="mensal">
+                                                        Mensal
+                                                    </option>
+                                                    <option value="anual">
+                                                        Anual
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "8px",
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <label
+                                                    style={{
+                                                        fontSize: "14px",
+                                                        fontWeight: "500",
+                                                    }}
+                                                >
+                                                    Mês Inicial:
+                                                </label>
+                                                <input
+                                                    type="month"
+                                                    value={customStartDate}
+                                                    onChange={(e) =>
+                                                        setCustomStartDate(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    style={{
+                                                        padding: "8px 12px",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid var(--border-color, #ddd)",
+                                                        backgroundColor:
+                                                            "var(--content-bg, white)",
+                                                        color: "var(--primary-text-color, #2c3e50)",
+                                                        cursor: "pointer",
+                                                        fontSize: "14px",
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "8px",
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <label
+                                                    style={{
+                                                        fontSize: "14px",
+                                                        fontWeight: "500",
+                                                    }}
+                                                >
+                                                    Mês Final:
+                                                </label>
+                                                <input
+                                                    type="month"
+                                                    value={customEndDate}
+                                                    onChange={(e) =>
+                                                        setCustomEndDate(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    style={{
+                                                        padding: "8px 12px",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid var(--border-color, #ddd)",
+                                                        backgroundColor:
+                                                            "var(--content-bg, white)",
+                                                        color: "var(--primary-text-color, #2c3e50)",
+                                                        cursor: "pointer",
+                                                        fontSize: "14px",
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {customStartDate && customEndDate ? (
+                                            (() => {
+                                                const breakdown =
+                                                    getCustomPeriodBreakdown();
+                                                return breakdown.length > 0 ? (
+                                                    <div
+                                                        key={periodTab}
+                                                        className="financial-breakdown-grid financial-breakdown-grid-flexible"
+                                                    >
+                                                        {breakdown.map(
+                                                            (month) => {
+                                                                const now =
+                                                                    new Date();
+
+                                                                // Handle both "Mês Ano" and "Ano" formats
+                                                                let monthName,
+                                                                    year,
+                                                                    monthNum,
+                                                                    isCurrent,
+                                                                    isPast;
+
+                                                                if (
+                                                                    month.period_label.includes(
+                                                                        " ",
+                                                                    )
+                                                                ) {
+                                                                    // Monthly format: "Janeiro 2024"
+                                                                    [
+                                                                        monthName,
+                                                                        year,
+                                                                    ] =
+                                                                        month.period_label.split(
+                                                                            " ",
+                                                                        );
+                                                                    const monthNames =
+                                                                        [
+                                                                            "Janeiro",
+                                                                            "Fevereiro",
+                                                                            "Março",
+                                                                            "Abril",
+                                                                            "Maio",
+                                                                            "Junho",
+                                                                            "Julho",
+                                                                            "Agosto",
+                                                                            "Setembro",
+                                                                            "Outubro",
+                                                                            "Novembro",
+                                                                            "Dezembro",
+                                                                        ];
+                                                                    monthNum =
+                                                                        monthNames.indexOf(
+                                                                            monthName,
+                                                                        ) + 1;
+                                                                    isCurrent =
+                                                                        Number(
+                                                                            year,
+                                                                        ) ==
+                                                                            now.getFullYear() &&
+                                                                        monthNum -
+                                                                            1 ==
+                                                                            now.getMonth();
+                                                                    isPast =
+                                                                        Number(
+                                                                            year,
+                                                                        ) <
+                                                                            now.getFullYear() ||
+                                                                        (Number(
+                                                                            year,
+                                                                        ) ==
+                                                                            now.getFullYear() &&
+                                                                            monthNum <
+                                                                                now.getMonth() +
+                                                                                    1);
+                                                                } else {
+                                                                    // Yearly format: "2024"
+                                                                    year =
+                                                                        month.period_label;
+                                                                    monthName =
+                                                                        null;
+                                                                    monthNum =
+                                                                        null;
+                                                                    isCurrent =
+                                                                        Number(
+                                                                            year,
+                                                                        ) ==
+                                                                        now.getFullYear();
+                                                                    isPast =
+                                                                        Number(
+                                                                            year,
+                                                                        ) <
+                                                                        now.getFullYear();
+                                                                }
+                                                                return (
+                                                                    <div
+                                                                        key={
+                                                                            month.period ||
+                                                                            month.period_label
+                                                                        }
+                                                                        className={`financial-breakdown-item ${isCurrent ? "current-month" : ""}`}
+                                                                    >
+                                                                        <div className="financial-breakdown-month">
+                                                                            {
+                                                                                month.period_label
+                                                                            }
+                                                                        </div>
+                                                                        <div className="financial-breakdown-values">
+                                                                            {renderFinancialBreakdownContent(
+                                                                                month,
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="financial-breakdown-counts">
+                                                                            {
+                                                                                month.paid_count
+                                                                            }{" "}
+                                                                            pagos
+                                                                            ·{" "}
+                                                                            {isPast
+                                                                                ? month.overdue_count
+                                                                                : month.pending_count}{" "}
+                                                                            {isPast
+                                                                                ? "atrasados"
+                                                                                : "pendentes"}
+                                                                            {!isPast &&
+                                                                                month.overdue_count >
+                                                                                    0 &&
+                                                                                ` · ${month.overdue_count} atrasados`}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        style={{
+                                                            gridColumn:
+                                                                "1 / -1",
+                                                            padding: "20px",
+                                                            textAlign: "center",
+                                                            color: "var(--secondary-text-color, #7f8c8d)",
+                                                        }}
+                                                    >
+                                                        Nenhum dado disponível
+                                                        para o período
+                                                        selecionado.
+                                                    </div>
+                                                );
+                                            })()
+                                        ) : (
+                                            <div
+                                                style={{
+                                                    gridColumn: "1 / -1",
+                                                    padding: "20px",
+                                                    textAlign: "center",
+                                                    color: "var(--secondary-text-color, #7f8c8d)",
+                                                }}
+                                            >
+                                                Selecione os meses inicial e
+                                                final para visualizar os dados.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {periodTab === "yearly" &&
                                     detailedSummary.monthly_breakdown && (
                                         <div
                                             key={periodTab}
-                                            className="financial-breakdown-grid"
-                                            style={{
-                                                gridTemplateColumns:
-                                                    "repeat(2, 1fr)",
-                                            }}
+                                            className="financial-breakdown-grid financial-breakdown-grid-flexible"
                                         >
                                             {/* Group by year - simple implementation */}
                                             {(() => {
@@ -1265,7 +1585,8 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                         yearlyData[
                                                             year
                                                         ].pending_amount +=
-                                                            month.pending_amount || 0;
+                                                            month.pending_amount ||
+                                                            0;
                                                         yearlyData[
                                                             year
                                                         ].overdue_amount +=
@@ -1291,11 +1612,15 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 return Object.values(
                                                     yearlyData,
                                                 ).map((yearData) => {
+                                                    const now = new Date();
                                                     const isCurrent =
                                                         yearData.year ===
-                                                        new Date()
+                                                        now
                                                             .getFullYear()
                                                             .toString();
+                                                    const isPast =
+                                                        yearData.year <
+                                                        now.getFullYear();
                                                     return (
                                                         <div
                                                             key={yearData.year}
@@ -1316,42 +1641,58 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                         yearData.pending_amount;
                                                                     const isConcluded =
                                                                         yearData.pending_count ===
-                                                                        0 &&
+                                                                            0 &&
                                                                         yearData.overdue_count ===
-                                                                        0;
+                                                                            0;
 
                                                                     return (
                                                                         <>
-                                                                            {(aReceber >
-                                                                                0 ||
-                                                                                !isPast) && (
-                                                                                    <div className="financial-breakdown-row">
-                                                                                        <span>
-                                                                                            A
-                                                                                            Receber
-                                                                                        </span>
-                                                                                        <span className="financial-value-pending">
-                                                                                            {financialApi.formatCurrency(
-                                                                                                aReceber,
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
+                                                                            {isPast
+                                                                                ? yearData.overdue_amount >
+                                                                                      0 && (
+                                                                                      <div className="financial-breakdown-row financial-breakdown-overdue">
+                                                                                          <span>
+                                                                                              A
+                                                                                              Receber
+                                                                                              (Atrasado)
+                                                                                          </span>
+                                                                                          <span className="financial-value-overdue">
+                                                                                              {financialApi.formatCurrency(
+                                                                                                  yearData.overdue_amount,
+                                                                                              )}
+                                                                                          </span>
+                                                                                      </div>
+                                                                                  )
+                                                                                : aReceber >
+                                                                                      0 && (
+                                                                                      <div className="financial-breakdown-row">
+                                                                                          <span>
+                                                                                              A
+                                                                                              Receber
+                                                                                          </span>
+                                                                                          <span className="financial-value-pending">
+                                                                                              {financialApi.formatCurrency(
+                                                                                                  aReceber,
+                                                                                              )}
+                                                                                          </span>
+                                                                                      </div>
+                                                                                  )}
                                                                             {yearData.already_received >
                                                                                 0 && (
-                                                                                    <div className="financial-breakdown-row">
-                                                                                        <span>
-                                                                                            Recebido
-                                                                                        </span>
-                                                                                        <span className="financial-value-received">
-                                                                                            {financialApi.formatCurrency(
-                                                                                                yearData.already_received,
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
-                                                                            {yearData.overdue_amount >
-                                                                                0 && (
+                                                                                <div className="financial-breakdown-row">
+                                                                                    <span>
+                                                                                        Recebido
+                                                                                    </span>
+                                                                                    <span className="financial-value-received">
+                                                                                        {financialApi.formatCurrency(
+                                                                                            yearData.already_received,
+                                                                                        )}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                            {!isPast &&
+                                                                                yearData.overdue_amount >
+                                                                                    0 && (
                                                                                     <div className="financial-breakdown-row financial-breakdown-overdue">
                                                                                         <span>
                                                                                             Atrasado
@@ -1366,7 +1707,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                             <div className="financial-breakdown-row financial-breakdown-total">
                                                                                 <span>
                                                                                     {isPast &&
-                                                                                        isConcluded
+                                                                                    isConcluded
                                                                                         ? "Total Recebido"
                                                                                         : "Total a receber"}
                                                                                 </span>
@@ -1385,12 +1726,15 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                     yearData.paid_count
                                                                 }{" "}
                                                                 pagos ·{" "}
-                                                                {
-                                                                    yearData.pending_count
-                                                                }{" "}
-                                                                pendentes
-                                                                {yearData.overdue_count >
-                                                                    0 &&
+                                                                {isPast
+                                                                    ? yearData.overdue_count
+                                                                    : yearData.pending_count}{" "}
+                                                                {isPast
+                                                                    ? "atrasados"
+                                                                    : "pendentes"}
+                                                                {!isPast &&
+                                                                    yearData.overdue_count >
+                                                                        0 &&
                                                                     ` · ${yearData.overdue_count} atrasados`}
                                                             </div>
                                                         </div>
@@ -1405,6 +1749,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
 
                     {/* Tabs for Overdue/Upcoming - Overdue first */}
                     <div className="financial-tabs-section financial-gradient-section">
+                        <h2 className="financial-section-title">
+                            💰 Vencimentos
+                        </h2>
                         <div className="financial-tabs">
                             <button
                                 className={`financial-tab ${activeTab === "overdue" ? "active" : ""}`}
@@ -1429,160 +1776,197 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                             Nenhum financeiro em atraso. 🎉
                                         </p>
                                     ) : (
-                                        <table className="financial-mini-table financial-mini-table-overdue">
-                                            <thead>
-                                                <tr>
-                                                    <th>
-                                                        {config.labels
-                                                            ?.client ||
-                                                            "Cliente"}
-                                                    </th>
-                                                    <th>
-                                                        {config.labels
-                                                            ?.contract ||
-                                                            "Contrato"}
-                                                    </th>
-                                                    <th>Parcela</th>
-                                                    <th>Valor</th>
-                                                    <th>Vencimento</th>
-                                                    <th>Atraso</th>
-                                                    <th>Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {overdueFinancials.map(
-                                                    (financial) => {
-                                                        const dueDate =
-                                                            financial.due_date
-                                                                ? new Date(
-                                                                    financial.due_date,
-                                                                )
-                                                                : null;
-                                                        const today =
-                                                            new Date();
-                                                        today.setHours(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0,
-                                                        );
-                                                        const diffDays = dueDate
-                                                            ? Math.abs(
-                                                                Math.ceil(
-                                                                    (today -
-                                                                        dueDate) /
-                                                                    (1000 *
-                                                                        60 *
-                                                                        60 *
-                                                                        24),
-                                                                ),
-                                                            )
-                                                            : null;
+                                        <>
+                                            <table className="financial-mini-table financial-mini-table-overdue">
+                                                <thead>
+                                                    <tr>
+                                                        <th>
+                                                            {config.labels
+                                                                ?.client ||
+                                                                "Cliente"}
+                                                        </th>
+                                                        <th>
+                                                            {config.labels
+                                                                ?.contract ||
+                                                                "Contrato"}
+                                                        </th>
+                                                        <th>Parcela</th>
+                                                        <th>Valor</th>
+                                                        <th>Vencimento</th>
+                                                        <th>Atraso</th>
+                                                        <th>Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {overdueFinancials
+                                                        .slice(
+                                                            (overdueCurrentPage -
+                                                                1) *
+                                                                overdueItemsPerPage,
+                                                            overdueCurrentPage *
+                                                                overdueItemsPerPage,
+                                                        )
+                                                        .map((financial) => {
+                                                            const dueDate =
+                                                                financial.due_date
+                                                                    ? new Date(
+                                                                          financial.due_date,
+                                                                      )
+                                                                    : null;
+                                                            const today =
+                                                                new Date();
+                                                            today.setHours(
+                                                                0,
+                                                                0,
+                                                                0,
+                                                                0,
+                                                            );
+                                                            const diffDays =
+                                                                dueDate
+                                                                    ? Math.abs(
+                                                                          Math.ceil(
+                                                                              (today -
+                                                                                  dueDate) /
+                                                                                  (1000 *
+                                                                                      60 *
+                                                                                      60 *
+                                                                                      24),
+                                                                          ),
+                                                                      )
+                                                                    : null;
 
-                                                        return (
-                                                            <tr
-                                                                key={
-                                                                    financial.installment_id
-                                                                }
-                                                            >
-                                                                <td>
-                                                                    {
-                                                                        financial.client_name
+                                                            return (
+                                                                <tr
+                                                                    key={
+                                                                        financial.installment_id
                                                                     }
-                                                                </td>
-                                                                <td>
-                                                                    {financial.contract_model ||
-                                                                        "—"}
-                                                                </td>
-                                                                <td>
-                                                                    {financial.installment_label ||
-                                                                        "—"}
-                                                                </td>
-                                                                <td>
-                                                                    {financialApi.formatCurrency(
-                                                                        financial.received_value,
-                                                                    )}
-                                                                </td>
-                                                                <td className="financial-overdue-date">
-                                                                    {dueDate
-                                                                        ? dueDate.toLocaleDateString(
-                                                                            "pt-BR",
-                                                                        )
-                                                                        : "—"}
-                                                                </td>
-                                                                <td>
-                                                                    <span className="financial-days-badge financial-days-overdue">
-                                                                        {diffDays !==
-                                                                            null
-                                                                            ? `${diffDays} dias`
+                                                                >
+                                                                    <td>
+                                                                        {
+                                                                            financial.client_name
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        {financial.contract_model ||
+                                                                            "—"}
+                                                                    </td>
+                                                                    <td>
+                                                                        {financial.installment_label ||
+                                                                            "—"}
+                                                                    </td>
+                                                                    <td>
+                                                                        {financialApi.formatCurrency(
+                                                                            financial.received_value,
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="financial-overdue-date">
+                                                                        {dueDate
+                                                                            ? dueDate.toLocaleDateString(
+                                                                                  "pt-BR",
+                                                                              )
                                                                             : "—"}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <button
-                                                                        className="financial-action-btn financial-action-view"
-                                                                        onClick={(
-                                                                            e,
-                                                                        ) => {
-                                                                            console.log(
-                                                                                "Financial object:",
-                                                                                financial,
-                                                                            );
-                                                                            console.log(
-                                                                                "Available financial records:",
-                                                                                financialRecords.map(
-                                                                                    (
-                                                                                        f,
-                                                                                    ) => ({
-                                                                                        id: f.id,
-                                                                                        contract_id:
-                                                                                            f.contract_id,
-                                                                                    }),
-                                                                                ),
-                                                                            );
-                                                                            console.log(
-                                                                                "Looking for contract_financial_id:",
-                                                                                financial.contract_financial_id,
-                                                                            );
-
-                                                                            const financialRecord =
-                                                                                financialRecords.find(
-                                                                                    (
-                                                                                        f,
-                                                                                    ) =>
-                                                                                        f.id ===
-                                                                                        financial.contract_financial_id,
+                                                                    </td>
+                                                                    <td>
+                                                                        <span className="financial-days-badge financial-days-overdue">
+                                                                            {diffDays !==
+                                                                            null
+                                                                                ? `${diffDays} dias`
+                                                                                : "—"}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <button
+                                                                            className="financial-action-btn financial-action-view"
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                console.log(
+                                                                                    "Financial object:",
+                                                                                    financial,
+                                                                                );
+                                                                                console.log(
+                                                                                    "Available financial records:",
+                                                                                    financialRecords.map(
+                                                                                        (
+                                                                                            f,
+                                                                                        ) => ({
+                                                                                            id: f.id,
+                                                                                            contract_id:
+                                                                                                f.contract_id,
+                                                                                        }),
+                                                                                    ),
+                                                                                );
+                                                                                console.log(
+                                                                                    "Looking for contract_financial_id:",
+                                                                                    financial.contract_financial_id,
                                                                                 );
 
-                                                                            console.log(
-                                                                                "Found financial record:",
-                                                                                financialRecord,
-                                                                            );
+                                                                                const financialRecord =
+                                                                                    financialRecords.find(
+                                                                                        (
+                                                                                            f,
+                                                                                        ) =>
+                                                                                            f.id ===
+                                                                                            financial.contract_financial_id,
+                                                                                    );
 
-                                                                            if (
-                                                                                financialRecord
-                                                                            ) {
-                                                                                openFinancialModal(
+                                                                                console.log(
+                                                                                    "Found financial record:",
                                                                                     financialRecord,
-                                                                                    e,
                                                                                 );
-                                                                            } else {
-                                                                                alert(
-                                                                                    "Financial record not found. Check console for details.",
-                                                                                );
-                                                                            }
-                                                                        }}
-                                                                        title="Ver detalhes"
-                                                                    >
-                                                                        👁️
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    },
-                                                )}
-                                            </tbody>
-                                        </table>
+
+                                                                                if (
+                                                                                    financialRecord
+                                                                                ) {
+                                                                                    openFinancialModal(
+                                                                                        financialRecord,
+                                                                                        e,
+                                                                                    );
+                                                                                } else {
+                                                                                    alert(
+                                                                                        "Financial record not found. Check console for details.",
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                            title="Ver detalhes"
+                                                                        >
+                                                                            👁️
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                </tbody>
+                                            </table>
+                                            {overdueFinancials.length > 0 && (
+                                                <div
+                                                    className="financial-pagination"
+                                                    style={{
+                                                        borderTop:
+                                                            "1px solid var(--border-color, #eee)",
+                                                        marginTop: "16px",
+                                                    }}
+                                                >
+                                                    <Pagination
+                                                        currentPage={
+                                                            overdueCurrentPage
+                                                        }
+                                                        totalItems={
+                                                            overdueFinancials.length
+                                                        }
+                                                        itemsPerPage={
+                                                            overdueItemsPerPage
+                                                        }
+                                                        onPageChange={
+                                                            setOverdueCurrentPage
+                                                        }
+                                                        onItemsPerPageChange={
+                                                            setOverdueItemsPerPage
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -1595,173 +1979,211 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                             vencimento nos próximos 30 dias.
                                         </p>
                                     ) : (
-                                        <table className="financial-mini-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>
-                                                        {config.labels
-                                                            ?.client ||
-                                                            "Cliente"}
-                                                    </th>
-                                                    <th>
-                                                        {config.labels
-                                                            ?.contract ||
-                                                            "Contrato"}
-                                                    </th>
-                                                    <th>Parcela</th>
-                                                    <th>Valor</th>
-                                                    <th>Vencimento</th>
-                                                    <th>Dias</th>
-                                                    <th>Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {upcomingFinancials
-                                                    .slice(0, 15)
-                                                    .map((financial) => {
-                                                        const dueDate =
-                                                            financial.due_date
-                                                                ? new Date(
-                                                                    financial.due_date,
-                                                                )
-                                                                : null;
-                                                        const today =
-                                                            new Date();
-                                                        today.setHours(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0,
-                                                        );
-                                                        const diffDays = dueDate
-                                                            ? Math.ceil(
-                                                                (dueDate -
-                                                                    today) /
-                                                                (1000 *
-                                                                    60 *
-                                                                    60 *
-                                                                    24),
-                                                            )
-                                                            : null;
+                                        <>
+                                            <table className="financial-mini-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>
+                                                            {config.labels
+                                                                ?.client ||
+                                                                "Cliente"}
+                                                        </th>
+                                                        <th>
+                                                            {config.labels
+                                                                ?.contract ||
+                                                                "Contrato"}
+                                                        </th>
+                                                        <th>Parcela</th>
+                                                        <th>Valor</th>
+                                                        <th>Vencimento</th>
+                                                        <th>Dias</th>
+                                                        <th>Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {upcomingFinancials
+                                                        .slice(
+                                                            (upcomingCurrentPage -
+                                                                1) *
+                                                                upcomingItemsPerPage,
+                                                            upcomingCurrentPage *
+                                                                upcomingItemsPerPage,
+                                                        )
+                                                        .map((financial) => {
+                                                            const dueDate =
+                                                                financial.due_date
+                                                                    ? new Date(
+                                                                          financial.due_date,
+                                                                      )
+                                                                    : null;
+                                                            const today =
+                                                                new Date();
+                                                            today.setHours(
+                                                                0,
+                                                                0,
+                                                                0,
+                                                                0,
+                                                            );
+                                                            const diffDays =
+                                                                dueDate
+                                                                    ? Math.ceil(
+                                                                          (dueDate -
+                                                                              today) /
+                                                                              (1000 *
+                                                                                  60 *
+                                                                                  60 *
+                                                                                  24),
+                                                                      )
+                                                                    : null;
 
-                                                        return (
-                                                            <tr
-                                                                key={
-                                                                    financial.installment_id
-                                                                }
-                                                            >
-                                                                <td>
-                                                                    {
-                                                                        financial.client_name
+                                                            return (
+                                                                <tr
+                                                                    key={
+                                                                        financial.installment_id
                                                                     }
-                                                                </td>
-                                                                <td>
-                                                                    {financial.contract_model ||
-                                                                        "—"}
-                                                                </td>
-                                                                <td>
-                                                                    {financial.installment_label ||
-                                                                        "—"}
-                                                                </td>
-                                                                <td>
-                                                                    {financialApi.formatCurrency(
-                                                                        financial.received_value,
-                                                                    )}
-                                                                </td>
-                                                                <td>
-                                                                    {dueDate
-                                                                        ? dueDate.toLocaleDateString(
-                                                                            "pt-BR",
-                                                                        )
-                                                                        : "—"}
-                                                                </td>
-                                                                <td>
-                                                                    <span
-                                                                        className={`financial-days-badge ${diffDays <=
-                                                                            3
-                                                                            ? "financial-days-urgent"
-                                                                            : diffDays <=
-                                                                                7
-                                                                                ? "financial-days-soon"
-                                                                                : ""
-                                                                            }`}
-                                                                    >
-                                                                        {diffDays !==
-                                                                            null
-                                                                            ? diffDays ===
-                                                                                0
-                                                                                ? "Hoje"
-                                                                                : diffDays ===
-                                                                                    1
-                                                                                    ? "Amanhã"
-                                                                                    : `${diffDays} dias`
+                                                                >
+                                                                    <td>
+                                                                        {
+                                                                            financial.client_name
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        {financial.contract_model ||
+                                                                            "—"}
+                                                                    </td>
+                                                                    <td>
+                                                                        {financial.installment_label ||
+                                                                            "—"}
+                                                                    </td>
+                                                                    <td>
+                                                                        {financialApi.formatCurrency(
+                                                                            financial.received_value,
+                                                                        )}
+                                                                    </td>
+                                                                    <td>
+                                                                        {dueDate
+                                                                            ? dueDate.toLocaleDateString(
+                                                                                  "pt-BR",
+                                                                              )
                                                                             : "—"}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <button
-                                                                        className="financial-action-btn financial-action-view"
-                                                                        onClick={(
-                                                                            e,
-                                                                        ) => {
-                                                                            console.log(
-                                                                                "Financial object:",
-                                                                                financial,
-                                                                            );
-                                                                            console.log(
-                                                                                "Available financial records:",
-                                                                                financialRecords.map(
-                                                                                    (
-                                                                                        f,
-                                                                                    ) => ({
-                                                                                        id: f.id,
-                                                                                        contract_id:
-                                                                                            f.contract_id,
-                                                                                    }),
-                                                                                ),
-                                                                            );
-                                                                            console.log(
-                                                                                "Looking for contract_financial_id:",
-                                                                                financial.contract_financial_id,
-                                                                            );
-
-                                                                            const financialRecord =
-                                                                                financialRecords.find(
-                                                                                    (
-                                                                                        f,
-                                                                                    ) =>
-                                                                                        f.id ===
-                                                                                        financial.contract_financial_id,
+                                                                    </td>
+                                                                    <td>
+                                                                        <span
+                                                                            className={`financial-days-badge ${
+                                                                                diffDays <=
+                                                                                3
+                                                                                    ? "financial-days-urgent"
+                                                                                    : diffDays <=
+                                                                                        7
+                                                                                      ? "financial-days-soon"
+                                                                                      : ""
+                                                                            }`}
+                                                                        >
+                                                                            {diffDays !==
+                                                                            null
+                                                                                ? diffDays ===
+                                                                                  0
+                                                                                    ? "Hoje"
+                                                                                    : diffDays ===
+                                                                                        1
+                                                                                      ? "Amanhã"
+                                                                                      : `${diffDays} dias`
+                                                                                : "—"}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <button
+                                                                            className="financial-action-btn financial-action-view"
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                console.log(
+                                                                                    "Financial object:",
+                                                                                    financial,
+                                                                                );
+                                                                                console.log(
+                                                                                    "Available financial records:",
+                                                                                    financialRecords.map(
+                                                                                        (
+                                                                                            f,
+                                                                                        ) => ({
+                                                                                            id: f.id,
+                                                                                            contract_id:
+                                                                                                f.contract_id,
+                                                                                        }),
+                                                                                    ),
+                                                                                );
+                                                                                console.log(
+                                                                                    "Looking for contract_financial_id:",
+                                                                                    financial.contract_financial_id,
                                                                                 );
 
-                                                                            console.log(
-                                                                                "Found financial record:",
-                                                                                financialRecord,
-                                                                            );
+                                                                                const financialRecord =
+                                                                                    financialRecords.find(
+                                                                                        (
+                                                                                            f,
+                                                                                        ) =>
+                                                                                            f.id ===
+                                                                                            financial.contract_financial_id,
+                                                                                    );
 
-                                                                            if (
-                                                                                financialRecord
-                                                                            ) {
-                                                                                openFinancialModal(
+                                                                                console.log(
+                                                                                    "Found financial record:",
                                                                                     financialRecord,
-                                                                                    e,
                                                                                 );
-                                                                            } else {
-                                                                                alert(
-                                                                                    "Financial record not found. Check console for details.",
-                                                                                );
-                                                                            }
-                                                                        }}
-                                                                        title="Ver detalhes"
-                                                                    >
-                                                                        👁️
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                            </tbody>
-                                        </table>
+
+                                                                                if (
+                                                                                    financialRecord
+                                                                                ) {
+                                                                                    openFinancialModal(
+                                                                                        financialRecord,
+                                                                                        e,
+                                                                                    );
+                                                                                } else {
+                                                                                    alert(
+                                                                                        "Financial record not found. Check console for details.",
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                            title="Ver detalhes"
+                                                                        >
+                                                                            👁️
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                </tbody>
+                                            </table>
+                                            {upcomingFinancials.length > 0 && (
+                                                <div
+                                                    className="financial-pagination"
+                                                    style={{
+                                                        borderTop:
+                                                            "1px solid var(--border-color, #eee)",
+                                                        marginTop: "16px",
+                                                    }}
+                                                >
+                                                    <Pagination
+                                                        currentPage={
+                                                            upcomingCurrentPage
+                                                        }
+                                                        totalItems={
+                                                            upcomingFinancials.length
+                                                        }
+                                                        itemsPerPage={
+                                                            upcomingItemsPerPage
+                                                        }
+                                                        onPageChange={
+                                                            setUpcomingCurrentPage
+                                                        }
+                                                        onItemsPerPageChange={
+                                                            setUpcomingItemsPerPage
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -1805,9 +2227,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                             value={
                                 clientFilter
                                     ? {
-                                        value: clientFilter,
-                                        label: clientFilter,
-                                    }
+                                          value: clientFilter,
+                                          label: clientFilter,
+                                      }
                                     : null
                             }
                             onChange={(selected) =>
@@ -1834,9 +2256,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                             value={
                                 contractFilter
                                     ? {
-                                        value: contractFilter,
-                                        label: contractFilter,
-                                    }
+                                          value: contractFilter,
+                                          label: contractFilter,
+                                      }
                                     : null
                             }
                             onChange={(selected) =>
@@ -1865,13 +2287,13 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                             value={
                                 categoryFilter
                                     ? {
-                                        value: categoryFilter,
-                                        label:
-                                            categories.find(
-                                                (c) =>
-                                                    c.id === categoryFilter,
-                                            )?.name || "",
-                                    }
+                                          value: categoryFilter,
+                                          label:
+                                              categories.find(
+                                                  (c) =>
+                                                      c.id === categoryFilter,
+                                              )?.name || "",
+                                      }
                                     : null
                             }
                             onChange={(selected) =>
@@ -1900,14 +2322,14 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                             value={
                                 subcategoryFilter
                                     ? {
-                                        value: subcategoryFilter,
-                                        label:
-                                            subcategories.find(
-                                                (s) =>
-                                                    s.id ===
-                                                    subcategoryFilter,
-                                            )?.name || "",
-                                    }
+                                          value: subcategoryFilter,
+                                          label:
+                                              subcategories.find(
+                                                  (s) =>
+                                                      s.id ===
+                                                      subcategoryFilter,
+                                              )?.name || "",
+                                      }
                                     : null
                             }
                             onChange={(selected) =>
@@ -1940,7 +2362,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     <input
                                         type="date"
                                         value={values.startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
+                                        onChange={(e) =>
+                                            setStartDate(e.target.value)
+                                        }
                                         className="financial-date-input"
                                     />
                                 </div>
@@ -1949,7 +2373,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     <input
                                         type="date"
                                         value={values.endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
+                                        onChange={(e) =>
+                                            setEndDate(e.target.value)
+                                        }
                                         className="financial-date-input"
                                     />
                                 </div>
@@ -1991,22 +2417,24 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     value={
                                         sortBy
                                             ? {
-                                                value: sortBy,
-                                                label: (() => {
-                                                    const sortLabels = {
-                                                        client:
-                                                            config.labels?.client ||
-                                                            "Cliente",
-                                                        contract:
-                                                            config.labels?.contract ||
-                                                            "Contrato",
-                                                        type: "Tipo",
-                                                        value: "Valor",
-                                                        progress: "Progresso",
-                                                    };
-                                                    return sortLabels[sortBy];
-                                                })(),
-                                            }
+                                                  value: sortBy,
+                                                  label: (() => {
+                                                      const sortLabels = {
+                                                          client:
+                                                              config.labels
+                                                                  ?.client ||
+                                                              "Cliente",
+                                                          contract:
+                                                              config.labels
+                                                                  ?.contract ||
+                                                              "Contrato",
+                                                          type: "Tipo",
+                                                          value: "Valor",
+                                                          progress: "Progresso",
+                                                      };
+                                                      return sortLabels[sortBy];
+                                                  })(),
+                                              }
                                             : null
                                     }
                                     onChange={(selected) => {
@@ -2017,16 +2445,22 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     options={[
                                         {
                                             value: "client",
-                                            label: config.labels?.client || "Cliente",
+                                            label:
+                                                config.labels?.client ||
+                                                "Cliente",
                                         },
                                         {
                                             value: "contract",
                                             label:
-                                                config.labels?.contract || "Contrato",
+                                                config.labels?.contract ||
+                                                "Contrato",
                                         },
                                         { value: "type", label: "Tipo" },
                                         { value: "value", label: "Valor" },
-                                        { value: "progress", label: "Progresso" },
+                                        {
+                                            value: "progress",
+                                            label: "Progresso",
+                                        },
                                     ]}
                                     isSearchable={false}
                                     placeholder="Ordenar por..."
@@ -2037,12 +2471,12 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     value={
                                         sortOrder
                                             ? {
-                                                value: sortOrder,
-                                                label:
-                                                    sortOrder === "asc"
-                                                        ? "Crescente"
-                                                        : "Decrescente",
-                                            }
+                                                  value: sortOrder,
+                                                  label:
+                                                      sortOrder === "asc"
+                                                          ? "Crescente"
+                                                          : "Decrescente",
+                                              }
                                             : null
                                     }
                                     onChange={(selected) => {
@@ -2069,6 +2503,9 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                 📋 Modelos de Financeiro (
                                 {sortedFinancial.length})
                             </h3>
+                            <p className="financial-table-subtitle">
+                                Vencimentos
+                            </p>
                         </div>
 
                         {paginatedFinancial.length === 0 ? (
@@ -2109,11 +2546,11 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                         const progress =
                                             financial.total_installments > 0
                                                 ? Math.round(
-                                                    ((financial.paid_installments ||
-                                                        0) /
-                                                        financial.total_installments) *
-                                                    100,
-                                                )
+                                                      ((financial.paid_installments ||
+                                                          0) /
+                                                          financial.total_installments) *
+                                                          100,
+                                                  )
                                                 : 0;
 
                                         return (
@@ -2149,18 +2586,18 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 <td>
                                                     {financialApi.formatCurrency(
                                                         financial.total_client_value ||
-                                                        financial.client_value,
+                                                            financial.client_value,
                                                     )}
                                                 </td>
                                                 <td>
                                                     {financialApi.formatCurrency(
                                                         financial.total_received_value ||
-                                                        financial.received_value,
+                                                            financial.received_value,
                                                     )}
                                                 </td>
                                                 <td>
                                                     {financial.financial_type ===
-                                                        "personalizado" ? (
+                                                    "personalizado" ? (
                                                         <div className="financial-progress">
                                                             <div className="financial-progress-bar">
                                                                 <div
@@ -2207,7 +2644,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                         )}
 
                         {/* Pagination */}
-                        {totalItems > itemsPerPage && (
+                        {paginatedFinancial.length > 0 && (
                             <div className="financial-pagination">
                                 <Pagination
                                     currentPage={currentPage}
@@ -2364,21 +2801,21 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 <div className="financial-modal-value-amount">
                                                     {financialApi.formatCurrency(
                                                         selectedFinancial.total_client_value ||
-                                                        selectedFinancial.client_value,
+                                                            selectedFinancial.client_value,
                                                     )}
                                                 </div>
                                                 {selectedFinancial.financial_type ===
                                                     "personalizado" && (
-                                                        <div className="financial-modal-value-paid">
-                                                            {config.labels
-                                                                ?.client ||
-                                                                "Cliente"}{" "}
-                                                            pagou{" "}
-                                                            {financialApi.formatCurrency(
-                                                                paidClientTotal,
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <div className="financial-modal-value-paid">
+                                                        {config.labels
+                                                            ?.client ||
+                                                            "Cliente"}{" "}
+                                                        pagou{" "}
+                                                        {financialApi.formatCurrency(
+                                                            paidClientTotal,
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="financial-modal-value-card financial-modal-value-received">
                                                 <div className="financial-modal-value-label">
@@ -2387,18 +2824,18 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 <div className="financial-modal-value-amount">
                                                     {financialApi.formatCurrency(
                                                         selectedFinancial.total_received_value ||
-                                                        selectedFinancial.received_value,
+                                                            selectedFinancial.received_value,
                                                     )}
                                                 </div>
                                                 {selectedFinancial.financial_type ===
                                                     "personalizado" && (
-                                                        <div className="financial-modal-value-paid">
-                                                            Você recebeu{" "}
-                                                            {financialApi.formatCurrency(
-                                                                paidReceivedTotal,
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <div className="financial-modal-value-paid">
+                                                        Você recebeu{" "}
+                                                        {financialApi.formatCurrency(
+                                                            paidReceivedTotal,
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -2480,7 +2917,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                     )}
                                                                     <div className="financial-modal-installment-actions">
                                                                         {inst.status ===
-                                                                            "pago" ? (
+                                                                        "pago" ? (
                                                                             <button
                                                                                 className="financial-modal-installment-btn financial-modal-installment-unpay"
                                                                                 onClick={(
