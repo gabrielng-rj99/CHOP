@@ -84,6 +84,7 @@ export default function ContractsTable({
                     <th>{labels.client || "Cliente"}</th>
                     <th>{labels.category || "Categoria"}</th>
                     <th>{labels.subcategory || "Subcategoria"}</th>
+                    <th>Início</th>
                     <th>Vencimento</th>
                     <th className="status">Status</th>
                     <th className="actions">Ações</th>
@@ -122,6 +123,7 @@ export default function ContractsTable({
                             <td>
                                 {getSubcategoryName(contract.subcategory_id)}
                             </td>
+                            <td>{formatDate(contract.start_date)}</td>
                             <td>{formatDate(contract.end_date)}</td>
                             <td className="status">
                                 <span

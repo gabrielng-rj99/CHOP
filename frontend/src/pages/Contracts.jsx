@@ -294,7 +294,11 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
             const createdContractId = result?.data?.id;
 
             // Create financial if financial data exists
-            if (createdContractId && financialData && financialData.financial_type) {
+            if (
+                createdContractId &&
+                financialData &&
+                financialData.financial_type
+            ) {
                 try {
                     await financialApi.createFinancial(
                         apiUrl,
@@ -481,9 +485,21 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     aVal = (a.model || "").toLowerCase();
                     bVal = (b.model || "").toLowerCase();
                     break;
+                case "start_date":
+                    // Contratos sem data de início vão para o final
+                    if (!a.start_date && !b.start_date) return 0;
+                    if (!a.start_date) return sortOrder === "asc" ? 1 : -1;
+                    if (!b.start_date) return sortOrder === "asc" ? -1 : 1;
+                    aVal = new Date(a.start_date);
+                    bVal = new Date(b.start_date);
+                    break;
                 case "end_date":
-                    aVal = new Date(a.end_date || 0);
-                    bVal = new Date(b.end_date || 0);
+                    // Contratos sem vencimento vão para o final em crescente, início em decrescente
+                    if (!a.end_date && !b.end_date) return 0;
+                    if (!a.end_date) return sortOrder === "asc" ? 1 : -1;
+                    if (!b.end_date) return sortOrder === "asc" ? -1 : 1;
+                    aVal = new Date(a.end_date);
+                    bVal = new Date(b.end_date);
                     break;
                 case "client":
                     const aClient = clients.find((c) => c.id === a.client_id);
@@ -729,84 +745,109 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     styles={customSelectStyles}
                 />
 
-                <Select
-                    value={
-                        sortBy
-                            ? {
-                                  value: sortBy,
-                                  label: (() => {
-                                      const sortLabels = {
-                                          model:
-                                              config.labels.model ||
-                                              "Nome/Modelo",
-                                          end_date: "Data de Vencimento",
-                                          client:
-                                              config.labels.client || "Cliente",
-                                          status: "Status",
-                                      };
-                                      return sortLabels[sortBy];
-                                  })(),
-                              }
-                            : null
-                    }
-                    onChange={(selected) => {
-                        if (selected) {
-                            setSortBy(selected.value);
-                        }
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
                     }}
-                    options={[
-                        {
-                            value: "model",
-                            label: config.labels.model || "Nome/Modelo",
-                        },
-                        {
-                            value: "end_date",
-                            label: "Data de Vencimento",
-                        },
-                        {
-                            value: "client",
-                            label: config.labels.client || "Cliente",
-                        },
-                        {
-                            value: "category",
-                            label: config.labels.category || "Categoria",
-                        },
-                        {
-                            value: "subcategory",
-                            label: config.labels.subcategory || "Subcategoria",
-                        },
-                        { value: "status", label: "Status" },
-                    ]}
-                    isSearchable={false}
-                    placeholder="Ordenar por..."
-                    styles={customSelectStyles}
-                />
+                >
+                    <span
+                        style={{
+                            fontSize: "14px",
+                            fontWeight: "500",
+                            color: "#2c3e50",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        Ordenar por:
+                    </span>
+                    <Select
+                        value={
+                            sortBy
+                                ? {
+                                      value: sortBy,
+                                      label: (() => {
+                                          const sortLabels = {
+                                              model:
+                                                  config.labels.model ||
+                                                  "Nome/Modelo",
+                                              start_date: "Data de Início",
+                                              end_date: "Data de Vencimento",
+                                              client:
+                                                  config.labels.client ||
+                                                  "Cliente",
+                                              status: "Status",
+                                          };
+                                          return sortLabels[sortBy];
+                                      })(),
+                                  }
+                                : null
+                        }
+                        onChange={(selected) => {
+                            if (selected) {
+                                setSortBy(selected.value);
+                            }
+                        }}
+                        options={[
+                            {
+                                value: "model",
+                                label: config.labels.model || "Nome/Modelo",
+                            },
+                            {
+                                value: "start_date",
+                                label: "Data de Início",
+                            },
+                            {
+                                value: "end_date",
+                                label: "Data de Vencimento",
+                            },
+                            {
+                                value: "client",
+                                label: config.labels.client || "Cliente",
+                            },
+                            {
+                                value: "category",
+                                label: config.labels.category || "Categoria",
+                            },
+                            {
+                                value: "subcategory",
+                                label:
+                                    config.labels.subcategory || "Subcategoria",
+                            },
+                            { value: "status", label: "Status" },
+                        ]}
+                        isSearchable={false}
+                        placeholder="Selecionar..."
+                        styles={customSelectStyles}
+                    />
 
-                <Select
-                    value={
-                        sortOrder
-                            ? {
-                                  value: sortOrder,
-                                  label:
-                                      sortOrder === "asc"
-                                          ? "Crescente"
-                                          : "Decrescente",
-                              }
-                            : null
-                    }
-                    onChange={(selected) => {
-                        if (selected) {
-                            setSortOrder(selected.value);
+                    <Select
+                        value={
+                            sortOrder
+                                ? {
+                                      value: sortOrder,
+                                      label:
+                                          sortOrder === "asc"
+                                              ? "Crescente"
+                                              : "Decrescente",
+                                  }
+                                : null
                         }
-                    }}
-                    options={[
-                        { value: "asc", label: "Crescente" },
-                        { value: "desc", label: "Decrescente" },
-                    ]}
-                    isSearchable={false}
-                    placeholder="Ordem..."
-                    styles={customSelectStyles}
-                />
+                        onChange={(selected) => {
+                            if (selected) {
+                                setSortOrder(selected.value);
+                            }
+                        }}
+                        options={[
+                            { value: "asc", label: "Crescente" },
+                            { value: "desc", label: "Decrescente" },
+                        ]}
+                        isSearchable={false}
+                        placeholder="Ordem..."
+                        styles={customSelectStyles}
+                    />
+                </div>
 
                 <input
                     type="text"
