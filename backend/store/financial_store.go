@@ -794,6 +794,7 @@ func (s *FinancialStore) GetFinancialDetailedSummary() (*domain.DetailedFinancia
 
 // getPeriodSummary retorna o resumo de um período específico (mês/ano)
 func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSummary, error) {
+	// Query para parcelas (financeiros personalizados e únicos)
 	query := `
 		SELECT
 			COALESCE(SUM(pi.received_value), 0) AS total_to_receive,
@@ -826,6 +827,162 @@ func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSu
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Adicionar receitas recorrentes para este período
+	recurrentQuery := `
+		SELECT
+			cf.id,
+			cf.received_value,
+			cf.client_value,
+			cf.recurrence_type,
+			cf.due_day,
+			c.start_date,
+			c.end_date
+		FROM contract_financial cf
+		JOIN contracts c ON c.id = cf.contract_id
+		WHERE c.archived_at IS NULL
+		AND cf.financial_type = 'recorrente'
+		AND cf.is_active = true
+		AND cf.received_value IS NOT NULL
+	`
+
+	rows, err := s.db.Query(recurrentQuery)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar receitas recorrentes: %w", err)
+	}
+	defer rows.Close()
+
+	targetDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+
+	for rows.Next() {
+		var cfID string
+		var receivedValue, clientValue float64
+		var recurrenceType string
+		var dueDay int
+		var startDateStr, endDateStr sql.NullString
+
+		err := rows.Scan(&cfID, &receivedValue, &clientValue, &recurrenceType, &dueDay, &startDateStr, &endDateStr)
+		if err != nil {
+			continue
+		}
+
+		// Parse start_date
+		var contractStartDate time.Time
+		if startDateStr.Valid {
+			contractStartDate, _ = time.Parse("2006-01-02", startDateStr.String)
+		}
+
+		// Parse end_date (vencimento do contrato)
+		var contractEndDate time.Time
+		hasEndDate := false
+		if endDateStr.Valid {
+			contractEndDate, _ = time.Parse("2006-01-02", endDateStr.String)
+			hasEndDate = true
+		}
+
+		// Verificar se o período está dentro da vigência do contrato
+		// Contrato deve ter começado antes ou no mês em questão
+		if !contractStartDate.IsZero() && targetDate.Before(time.Date(contractStartDate.Year(), contractStartDate.Month(), 1, 0, 0, 0, 0, time.UTC)) {
+			continue
+		}
+
+		// Se tem data de fim (vencimento), verificar se já expirou
+		if hasEndDate && !contractEndDate.IsZero() {
+			// Período deve ser antes ou no mesmo mês do vencimento
+			contractEndMonth := time.Date(contractEndDate.Year(), contractEndDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+			if targetDate.After(contractEndMonth) {
+				continue
+			}
+		}
+
+		// Verificar se a recorrência se aplica a este mês
+		shouldInclude := false
+		switch recurrenceType {
+		case "mensal":
+			shouldInclude = true
+		case "trimestral":
+			// Calcular meses desde o início do contrato
+			if !contractStartDate.IsZero() {
+				startMonth := int(contractStartDate.Month())
+				monthsSinceStart := (year-contractStartDate.Year())*12 + (month - startMonth)
+				shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%3 == 0
+			} else {
+				// Se não tem data de início, considerar meses padrão (janeiro, abril, julho, outubro)
+				shouldInclude = month == 1 || month == 4 || month == 7 || month == 10
+			}
+		case "semestral":
+			// Calcular meses desde o início do contrato
+			if !contractStartDate.IsZero() {
+				startMonth := int(contractStartDate.Month())
+				monthsSinceStart := (year-contractStartDate.Year())*12 + (month - startMonth)
+				shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%6 == 0
+			} else {
+				// Se não tem data de início, considerar meses padrão (janeiro e julho)
+				shouldInclude = month == 1 || month == 7
+			}
+		case "anual":
+			// Calcular anos desde o início do contrato
+			if !contractStartDate.IsZero() {
+				startMonth := int(contractStartDate.Month())
+				startYear := contractStartDate.Year()
+				shouldInclude = year >= startYear && month == startMonth && (year-startYear) >= 0
+			} else {
+				// Se não tem data de início, considerar apenas janeiro
+				shouldInclude = month == 1
+			}
+		}
+
+		if shouldInclude {
+			// Verificar se a cobrança já foi paga consultando installments
+			// Para recorrentes que foram convertidos em parcelas
+			dueDate := time.Date(year, time.Month(month), dueDay, 0, 0, 0, 0, time.UTC)
+			if dueDay > 28 {
+				// Ajustar para o último dia do mês se necessário
+				lastDay := time.Date(year, time.Month(month+1), 0, 0, 0, 0, 0, time.UTC).Day()
+				if dueDay > lastDay {
+					dueDate = time.Date(year, time.Month(month), lastDay, 0, 0, 0, 0, time.UTC)
+				}
+			}
+
+			// Verificar se há uma parcela correspondente (caso tenha sido criada manualmente)
+			checkInstallment := `
+				SELECT status FROM financial_installments
+				WHERE contract_financial_id = $1
+				AND EXTRACT(YEAR FROM due_date) = $2
+				AND EXTRACT(MONTH FROM due_date) = $3
+				LIMIT 1
+			`
+			var installmentStatus string
+			err = s.db.QueryRow(checkInstallment, cfID, year, month).Scan(&installmentStatus)
+
+			if err == nil {
+				// Existe parcela, usar o status dela
+				if installmentStatus == "pago" {
+					ps.AlreadyReceived += receivedValue
+					ps.PaidCount++
+				} else if installmentStatus == "pendente" {
+					ps.PendingAmount += receivedValue
+					ps.PendingCount++
+				} else if installmentStatus == "atrasado" {
+					ps.OverdueAmount += receivedValue
+					ps.OverdueCount++
+				}
+			} else {
+				// Não existe parcela, considerar como pendente ou atrasado baseado na data
+				now := time.Now()
+				if dueDate.Before(now) {
+					ps.OverdueAmount += receivedValue
+					ps.OverdueCount++
+				} else {
+					ps.PendingAmount += receivedValue
+					ps.PendingCount++
+				}
+			}
+
+			ps.TotalToReceive += receivedValue
+			ps.TotalClientPays += clientValue
+		}
 	}
 
 	// Formatar período
