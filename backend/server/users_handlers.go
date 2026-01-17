@@ -91,24 +91,54 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Validate role is provided
 	if req.Role == "" {
-		respondError(w, http.StatusBadRequest, "Role is required. Must be 'user', 'admin', or 'root'")
+		respondError(w, http.StatusBadRequest, "Role is required")
 		return
 	}
 
-	// Only root users can create other root users - check via DB
-	if req.Role == "root" {
-		isRoot, err := s.roleStore.IsUserRoot(claims.UserID)
-		if err != nil {
-			log.Printf("❌ Error checking user role: %v", err)
-			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
-			return
-		}
-		if !isRoot {
-			role, _ := s.roleStore.GetUserRole(claims.UserID)
-			log.Printf("🚫 Acesso negado: %s (role: %s) tentou criar usuário root", claims.Username, role)
-			respondError(w, http.StatusForbidden, "Apenas usuários root podem criar outros usuários root")
-			return
-		}
+	// SECURITY: Validate role exists in database
+	if err := s.userStore.ValidateRoleExists(req.Role); err != nil {
+		log.Printf("❌ Invalid role attempt: %s tried to create user with role '%s': %v", claims.Username, req.Role, err)
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// SECURITY: Get target role details for privilege escalation check
+	targetRole, err := s.roleStore.GetAnyRoleByName(req.Role)
+	if err != nil || targetRole == nil {
+		log.Printf("❌ Error fetching role details: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar role")
+		return
+	}
+
+	// SECURITY: Get requester's role details
+	requesterRole, err := s.roleStore.GetUserRole(claims.UserID)
+	if err != nil {
+		log.Printf("❌ Error fetching requester role: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+
+	creatorRoleData, err := s.roleStore.GetAnyRoleByName(requesterRole)
+	if err != nil || creatorRoleData == nil {
+		log.Printf("❌ Error fetching creator role data: %v", err)
+		respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+		return
+	}
+
+	// SECURITY: Prevent privilege escalation
+	// Users cannot create other users with higher priority (more privileges)
+	if targetRole.Priority > creatorRoleData.Priority {
+		log.Printf("🚫 PRIVILEGE ESCALATION BLOCKED: %s (role: %s, priority: %d) tentou criar usuário com role '%s' (priority: %d)",
+			claims.Username, requesterRole, creatorRoleData.Priority, req.Role, targetRole.Priority)
+		respondError(w, http.StatusForbidden, "Você não tem permissão para criar usuários com este role")
+		return
+	}
+
+	// SECURITY: Additional check - only root can create other root users
+	if targetRole.Name == "root" && requesterRole != "root" {
+		log.Printf("🚫 Root creation attempt: %s (role: %s) tentou criar usuário root", claims.Username, requesterRole)
+		respondError(w, http.StatusForbidden, "Apenas usuários root podem criar outros usuários root")
+		return
 	}
 
 	id, err := s.userStore.CreateUser(req.Username, req.DisplayName, req.Password, req.Role)
@@ -379,11 +409,63 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, userna
 	}
 
 	if req.Role != "" {
-		if !isRoot {
-			log.Printf("SEGURANÇA: Tentativa de alterar role por %s com role %s - acesso negado", claims.Username, currentUserRole)
-			respondError(w, http.StatusForbidden, "Apenas root pode alterar role de usuários")
+		// SECURITY: Validate role exists in database
+		if err := s.userStore.ValidateRoleExists(req.Role); err != nil {
+			log.Printf("🚫 Invalid role update attempt: %s tried to set role '%s': %v", claims.Username, req.Role, err)
+			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		// SECURITY: Get target role details
+		targetRoleData, err := s.roleStore.GetAnyRoleByName(req.Role)
+		if err != nil || targetRoleData == nil {
+			log.Printf("❌ Error fetching target role details: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar role")
+			return
+		}
+
+		// SECURITY: Get requester's role details
+		requesterRole, err := s.roleStore.GetUserRole(claims.UserID)
+		if err != nil {
+			log.Printf("❌ Error fetching requester role: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+
+		requesterRoleData, err := s.roleStore.GetAnyRoleByName(requesterRole)
+		if err != nil || requesterRoleData == nil {
+			log.Printf("❌ Error fetching requester role data: %v", err)
+			respondError(w, http.StatusInternalServerError, "Erro ao verificar permissões")
+			return
+		}
+
+		// SECURITY: Prevent privilege escalation - can't assign higher priority role
+		if targetRoleData.Priority > requesterRoleData.Priority {
+			log.Printf("🚫 PRIVILEGE ESCALATION BLOCKED: %s (role: %s, priority: %d) tentou atribuir role '%s' (priority: %d) a %s",
+				claims.Username, requesterRole, requesterRoleData.Priority, req.Role, targetRoleData.Priority, username)
+			respondError(w, http.StatusForbidden, "Você não pode atribuir roles de prioridade superior à sua")
+			return
+		}
+
+		// SECURITY: Get target user's current role for escalation check
+		targetUserRoleData, err := s.roleStore.GetAnyRoleByName(targetUserRole)
+		if err == nil && targetUserRoleData != nil {
+			// Can't downgrade a user with higher or equal priority (prevents lateral privilege change)
+			if targetUserRoleData.Priority >= requesterRoleData.Priority && targetUserRole != req.Role {
+				log.Printf("🚫 PRIVILEGE ESCALATION BLOCKED: %s (priority: %d) tentou alterar role de usuário com prioridade %d",
+					claims.Username, requesterRoleData.Priority, targetUserRoleData.Priority)
+				respondError(w, http.StatusForbidden, "Você não pode alterar role de usuários com prioridade igual ou superior à sua")
+				return
+			}
+		}
+
+		// SECURITY: Only root can assign root role
+		if targetRoleData.Name == "root" && requesterRole != "root" {
+			log.Printf("🚫 Root assignment blocked: %s (role: %s) tentou atribuir role root", claims.Username, requesterRole)
+			respondError(w, http.StatusForbidden, "Apenas root pode atribuir role root")
+			return
+		}
+
 		if err := s.userStore.EditUserRole(claims.Username, username, req.Role); err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return

@@ -110,12 +110,13 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 		return "", errDisplay
 	}
 
-	// Validate role - only "user", "admin" or "root" allowed
-	if role != "" && role != "user" && role != "admin" && role != "root" {
-		return "", errors.New("invalid role: must be 'user', 'admin' or 'root'")
-	}
+	// Validate role exists in database and is active
 	if role == "" {
 		role = "user"
+	}
+
+	if err := s.ValidateRoleExists(role); err != nil {
+		return "", err
 	}
 
 	minLength := GetMinPasswordLengthForRole(role)
@@ -125,18 +126,18 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 
 	// Verifica se já existe usuário com esse nome (ignorando deletados)
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", trimmedUsername).Scan(&count)
-	if err != nil {
-		return "", err
+	queryErr := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND deleted_at IS NULL", trimmedUsername).Scan(&count)
+	if queryErr != nil {
+		return "", queryErr
 	}
 	if count > 0 {
 		return "", errors.New("nome de usuário já existe")
 	}
 
 	id := uuid.New().String()
-	passwordHash, err := HashPassword(password)
-	if err != nil {
-		return "", err
+	passwordHash, hashErr := HashPassword(password)
+	if hashErr != nil {
+		return "", hashErr
 	}
 	createdAt := time.Now()
 	updatedAt := createdAt
@@ -146,11 +147,39 @@ func (s *UserStore) CreateUser(username, displayName, password, role string) (st
 	authSecret := fmt.Sprintf("%x", sha256.Sum256([]byte(authSecretRaw)))
 
 	sqlStatement := `INSERT INTO users (id, username, display_name, password_hash, created_at, updated_at, role, deleted_at, auth_secret) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)`
-	_, err = s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, updatedAt, role, authSecret)
-	if err != nil {
-		return "", err
+	_, execErr := s.db.Exec(sqlStatement, id, trimmedUsername, trimmedDisplayName, passwordHash, createdAt, updatedAt, role, authSecret)
+	if execErr != nil {
+		return "", execErr
 	}
 	return id, nil
+}
+
+// ValidateRoleExists verifica se uma role existe e está ativa no banco de dados
+func (s *UserStore) ValidateRoleExists(roleName string) error {
+	if strings.TrimSpace(roleName) == "" {
+		return errors.New("role não pode estar vazio")
+	}
+
+	query := `
+		SELECT is_active FROM roles
+		WHERE name = $1
+	`
+
+	var isActive bool
+	err := s.db.QueryRow(query, roleName).Scan(&isActive)
+
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("invalid role: role '%s' não existe", roleName)
+	}
+	if err != nil {
+		return fmt.Errorf("erro ao validar role: %w", err)
+	}
+
+	if !isActive {
+		return fmt.Errorf("invalid role: role '%s' não está ativa", roleName)
+	}
+
+	return nil
 }
 
 // Permite que um admin altere seu próprio username
@@ -249,22 +278,57 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 		return nil, errors.New("usuário e senha são obrigatórios")
 	}
 
-	// Load configurable login attempts and block time from system settings
-	loginAttempts := 5
-	loginBlockTime := 300 // seconds
-	rows, err := s.db.Query("SELECT key, value FROM system_settings WHERE key IN ('system.login_attempts', 'system.login_block_time')")
+	// Load progressive lockout levels from system settings
+	level1Attempts := 3
+	level1Duration := 300 // 5 min
+	level2Attempts := 5
+	level2Duration := 900 // 15 min
+	level3Attempts := 10
+	level3Duration := 3600 // 1 hour
+	manualLockAttempts := 15
+
+	rows, err := s.db.Query(`
+		SELECT key, value FROM system_settings
+		WHERE key IN (
+			'security.lock_level_1_attempts', 'security.lock_level_1_duration',
+			'security.lock_level_2_attempts', 'security.lock_level_2_duration',
+			'security.lock_level_3_attempts', 'security.lock_level_3_duration',
+			'security.lock_level_manual_attempts'
+		)
+	`)
 	if err == nil && rows != nil {
 		defer rows.Close()
 		for rows.Next() {
 			var key, value string
 			if err := rows.Scan(&key, &value); err == nil {
-				if key == "system.login_attempts" {
-					if v, e := strconv.Atoi(value); e == nil && v >= 3 && v <= 10 {
-						loginAttempts = v
+				switch key {
+				case "security.lock_level_1_attempts":
+					if v, e := strconv.Atoi(value); e == nil && v >= 1 && v <= 20 {
+						level1Attempts = v
 					}
-				} else if key == "system.login_block_time" {
+				case "security.lock_level_1_duration":
 					if v, e := strconv.Atoi(value); e == nil && v >= 60 && v <= 3600 {
-						loginBlockTime = v
+						level1Duration = v
+					}
+				case "security.lock_level_2_attempts":
+					if v, e := strconv.Atoi(value); e == nil && v >= 1 && v <= 30 {
+						level2Attempts = v
+					}
+				case "security.lock_level_2_duration":
+					if v, e := strconv.Atoi(value); e == nil && v >= 60 && v <= 7200 {
+						level2Duration = v
+					}
+				case "security.lock_level_3_attempts":
+					if v, e := strconv.Atoi(value); e == nil && v >= 1 && v <= 50 {
+						level3Attempts = v
+					}
+				case "security.lock_level_3_duration":
+					if v, e := strconv.Atoi(value); e == nil && v >= 60 && v <= 86400 {
+						level3Duration = v
+					}
+				case "security.lock_level_manual_attempts":
+					if v, e := strconv.Atoi(value); e == nil && v >= 10 && v <= 100 {
+						manualLockAttempts = v
 					}
 				}
 			}
@@ -281,8 +345,9 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	var username_ptr sql.NullString
 	var displayName sql.NullString
 	var role sql.NullString
+	var authSecret sql.NullString
 
-	err = row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &user.AuthSecret)
+	err = row.Scan(&user.ID, &username_ptr, &displayName, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role, &failedAttempts, &lockLevel, &lockedUntil, &authSecret)
 	if err != nil {
 		fmt.Println("Erro no Scan da autenticação:", err)
 		return nil, errors.New("usuário não encontrado")
@@ -298,6 +363,9 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 	if role.Valid {
 		user.Role = &role.String
 	}
+	if authSecret.Valid {
+		user.AuthSecret = authSecret.String
+	}
 
 	now := time.Now()
 	if lockedUntil.Valid && now.Before(lockedUntil.Time) {
@@ -306,20 +374,55 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 
 	// Verifica o hash bcrypt
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
-		// Falha: incrementa tentativas
+		// Falha: incrementa tentativas e aplica bloqueio progressivo
 		failedAttempts++
-		if failedAttempts >= loginAttempts {
-			// Bloqueia por tempo configurado
-			lockUntil := now.Add(time.Duration(loginBlockTime) * time.Second)
-			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1, locked_until = $2, lock_level = 1 WHERE username = $3`, failedAttempts, lockUntil, username)
-			return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockUntil.Format(time.RFC1123))
+		newLockLevel := lockLevel
+		var lockUntil time.Time
+
+		if failedAttempts >= manualLockAttempts {
+			// Bloqueio manual permanente (por 1 ano - requer admin unlock)
+			newLockLevel = 4
+			lockUntil = now.Add(365 * 24 * time.Hour)
+			_, _ = s.db.Exec(
+				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
+				failedAttempts, newLockLevel, lockUntil, username,
+			)
+			return nil, fmt.Errorf("Conta bloqueada permanentemente por segurança. Contate o administrador.")
+		} else if failedAttempts >= level3Attempts {
+			// Nível 3: bloqueio severo (1 hora)
+			newLockLevel = 3
+			lockUntil = now.Add(time.Duration(level3Duration) * time.Second)
+			_, _ = s.db.Exec(
+				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
+				failedAttempts, newLockLevel, lockUntil, username,
+			)
+			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 3 - bloqueio severo). Tente novamente depois.", lockUntil.Format(time.RFC1123))
+		} else if failedAttempts >= level2Attempts {
+			// Nível 2: bloqueio médio (15 min)
+			newLockLevel = 2
+			lockUntil = now.Add(time.Duration(level2Duration) * time.Second)
+			_, _ = s.db.Exec(
+				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
+				failedAttempts, newLockLevel, lockUntil, username,
+			)
+			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 2 - bloqueio médio). Tente novamente depois.", lockUntil.Format(time.RFC1123))
+		} else if failedAttempts >= level1Attempts {
+			// Nível 1: bloqueio inicial (5 min)
+			newLockLevel = 1
+			lockUntil = now.Add(time.Duration(level1Duration) * time.Second)
+			_, _ = s.db.Exec(
+				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
+				failedAttempts, newLockLevel, lockUntil, username,
+			)
+			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 1 - bloqueio inicial). Tente novamente depois.", lockUntil.Format(time.RFC1123))
 		} else {
+			// Apenas incrementa tentativas, sem bloquear ainda
 			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1 WHERE username = $2`, failedAttempts, username)
 		}
 		return nil, errors.New("usuário ou senha inválidos")
 	}
 
-	// Sucesso: reseta tudo
+	// Sucesso: reseta tudo (limpa bloqueio progressivo)
 	_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1`, username)
 	return &user, nil
 }

@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -162,9 +163,10 @@ func TestListClientsHandler(t *testing.T) {
 
 func TestCreateUserHandler(t *testing.T) {
 	s, db := setupTestServer(t)
+	defer store.CloseDB(db)
 
 	// Create ROOT user to be able to create other users
-	if _, err := s.userStore.CreateUser("rootuser", "Root User", "ValidPass123!@#abc", "root"); err != nil {
+	if _, err := s.userStore.CreateUser("rootuser", "Root User", "ValidRootPassword123!@#ab", "root"); err != nil {
 		t.Fatalf("Failed to create rootuser: %v", err)
 	}
 	users, _ := s.userStore.GetUsersByName("rootuser")
@@ -202,6 +204,202 @@ func TestCreateUserHandler(t *testing.T) {
 
 	if w.Code != http.StatusCreated {
 		t.Errorf("Expected 201 Created, got %d. Body: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestCreateUserWithInvalidRole verifies that creating a user with invalid role is rejected
+func TestCreateUserWithInvalidRole(t *testing.T) {
+	s, db := setupTestServer(t)
+	defer store.CloseDB(db)
+
+	// Create ROOT user
+	if _, err := s.userStore.CreateUser("rootuser", "Root User", "ValidRootPassword123!@#ab", "root"); err != nil {
+		t.Fatalf("Failed to create rootuser: %v", err)
+	}
+	users, _ := s.userStore.GetUsersByName("rootuser")
+	user := &users[0]
+
+	var authSecret string
+	_ = db.QueryRow("SELECT auth_secret FROM users WHERE id = $1", user.ID).Scan(&authSecret)
+	user.AuthSecret = authSecret
+	token, _ := GenerateJWT(user)
+
+	// Try to create user with invalid role
+	payload := map[string]string{
+		"username":     "newuser",
+		"display_name": "New User",
+		"password":     "ValidPass123!@#abc",
+		"role":         "invalid_role_xyz",
+	}
+	body, _ := json.Marshal(payload)
+
+	req := httptest.NewRequest("POST", "/api/users", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		s.handleCreateUser(w, r)
+	})))
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 Bad Request for invalid role, got %d", w.Code)
+	}
+
+	var resp map[string]interface{}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	// Check for either "message" or "error" field
+	var errMsg string
+	if msg, ok := resp["message"].(string); ok {
+		errMsg = msg
+	} else if msg, ok := resp["error"].(string); ok {
+		errMsg = msg
+	}
+	if errMsg == "" {
+		t.Errorf("Expected error message in response, got: %v", resp)
+	}
+}
+
+// TestCreateUserWithValidRoles verifies that all system roles are accepted
+func TestCreateUserWithValidRoles(t *testing.T) {
+	s, db := setupTestServer(t)
+	defer store.CloseDB(db)
+
+	// Create ROOT user to be able to create other users
+	if _, err := s.userStore.CreateUser("rootuser_validroles", "Root User", "ValidRootPassword123!@#ab", "root"); err != nil {
+		t.Fatalf("Failed to create rootuser: %v", err)
+	}
+	users, _ := s.userStore.GetUsersByName("rootuser_validroles")
+	if len(users) == 0 {
+		t.Fatalf("Root user not found after creation")
+	}
+	user := &users[0]
+
+	var authSecret string
+	_ = db.QueryRow("SELECT auth_secret FROM users WHERE id = $1", user.ID).Scan(&authSecret)
+	user.AuthSecret = authSecret
+	token, _ := GenerateJWT(user)
+
+	// Test all valid system roles with appropriate password lengths
+	testRoles := []struct {
+		role     string
+		password string
+	}{
+		{"user", "ValidPass123!@#abc"},     // 16 chars
+		{"admin", "ValidAdminPass123!@#a"}, // 20 chars
+		{"viewer", "ValidPass123!@#abc"},   // 16 chars
+	}
+
+	for i, tc := range testRoles {
+		payload := map[string]string{
+			"username":     fmt.Sprintf("newuser_%d_%s", i, tc.role),
+			"display_name": "New User " + tc.role,
+			"password":     tc.password,
+			"role":         tc.role,
+		}
+		body, _ := json.Marshal(payload)
+
+		req := httptest.NewRequest("POST", "/api/users", bytes.NewBuffer(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		handler := s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
+			s.handleCreateUser(w, r)
+		})))
+
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Errorf("Expected 201 Created for role %q, got %d. Body: %s", tc.role, w.Code, w.Body.String())
+		}
+	}
+}
+
+// TestPrivilegeEscalationPrevention verifies that non-root users cannot create root users
+func TestPrivilegeEscalationPrevention(t *testing.T) {
+	s, db := setupTestServer(t)
+	defer store.CloseDB(db)
+
+	// Create ADMIN user (not root)
+	if _, err := s.userStore.CreateUser("adminuser", "Admin User", "ValidAdminPass123!@#a", "admin"); err != nil {
+		t.Fatalf("Failed to create adminuser: %v", err)
+	}
+	users, _ := s.userStore.GetUsersByName("adminuser")
+	user := &users[0]
+
+	var authSecret string
+	_ = db.QueryRow("SELECT auth_secret FROM users WHERE id = $1", user.ID).Scan(&authSecret)
+	user.AuthSecret = authSecret
+	token, _ := GenerateJWT(user)
+
+	// Try to create root user as admin
+	payload := map[string]string{
+		"username":     "newtry_root",
+		"display_name": "Trying to be root",
+		"password":     "ValidPass123!@#abc",
+		"role":         "root",
+	}
+	body, _ := json.Marshal(payload)
+
+	req := httptest.NewRequest("POST", "/api/users", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		s.handleCreateUser(w, r)
+	})))
+
+	handler.ServeHTTP(w, req)
+
+	// Should be forbidden or bad request
+	if w.Code != http.StatusForbidden && w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 403 Forbidden or 400 Bad Request for privilege escalation, got %d", w.Code)
+	}
+}
+
+// TestOnlyRootCanCreateRoot verifies only root users can create root users
+func TestOnlyRootCanCreateRoot(t *testing.T) {
+	s, db := setupTestServer(t)
+	defer store.CloseDB(db)
+
+	// Create ROOT user
+	if _, err := s.userStore.CreateUser("rootuser1", "Root User 1", "ValidRootPassword123!@#ab", "root"); err != nil {
+		t.Fatalf("Failed to create rootuser1: %v", err)
+	}
+	users, _ := s.userStore.GetUsersByName("rootuser1")
+	user := &users[0]
+
+	var authSecret string
+	_ = db.QueryRow("SELECT auth_secret FROM users WHERE id = $1", user.ID).Scan(&authSecret)
+	user.AuthSecret = authSecret
+	token, _ := GenerateJWT(user)
+
+	// Root user creates another root user
+	payload := map[string]string{
+		"username":     "rootuser2",
+		"display_name": "Root User 2",
+		"password":     "ValidRootPassword123!@#ab",
+		"role":         "root",
+	}
+	body, _ := json.Marshal(payload)
+
+	req := httptest.NewRequest("POST", "/api/users", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		s.handleCreateUser(w, r)
+	})))
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected 201 Created for root creating root, got %d. Body: %s", w.Code, w.Body.String())
 	}
 }
 

@@ -20,6 +20,7 @@ package store
 
 import (
 	domain "Open-Generic-Hub/backend/domain"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -636,12 +637,87 @@ func TestCreateUserWithInvalidRoles(t *testing.T) {
 
 	userStore := NewUserStore(db)
 
-	invalidRoles := []string{"superuser", "moderator", "guest", "invalid"}
+	// Test invalid roles that don't exist in the database
+	invalidRoles := []string{"superuser", "moderator", "guest", "invalid_role_xyz"}
 
 	for _, role := range invalidRoles {
 		_, err := userStore.CreateUser("validuser"+role, "Valid Name", "ValidPass123!@#a", role)
 		if err == nil {
-			t.Errorf("CreateUser() should reject invalid role %q", role)
+			t.Errorf("CreateUser() should reject role that doesn't exist in database: %q", role)
+		}
+		if !strings.Contains(err.Error(), "invalid role") {
+			t.Errorf("Expected 'invalid role' error for role %q, got: %v", role, err)
+		}
+	}
+}
+
+// TestCreateUserWithSystemRoles verifies that system roles (user, admin, root, viewer) are valid
+func TestCreateUserWithSystemRoles(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clear users table: %v", err)
+	}
+
+	userStore := NewUserStore(db)
+
+	// Test cases with appropriate password lengths for each role
+	testCases := []struct {
+		role     string
+		password string
+	}{
+		{"user", "ValidPass123!@#abc"},        // user: 16 chars minimum
+		{"admin", "ValidPass123!@#abcdef"},    // admin: 20 chars minimum
+		{"root", "ValidPass123!@#abcdefghij"}, // root: 24 chars minimum
+		{"viewer", "ValidPass123!@#abc"},      // viewer: 16 chars minimum
+	}
+
+	for i, tc := range testCases {
+		username := fmt.Sprintf("sysuser%d", i)
+		_, err := userStore.CreateUser(username, "System User", tc.password, tc.role)
+		if err != nil {
+			t.Errorf("CreateUser() should accept valid system role %q: %v", tc.role, err)
+		}
+	}
+}
+
+// TestValidateRoleExists verifies the dynamic role validation from database
+func TestValidateRoleExists(t *testing.T) {
+	db := setupUserTest(t)
+	defer CloseDB(db)
+
+	userStore := NewUserStore(db)
+
+	testCases := []struct {
+		role        string
+		shouldExist bool
+		description string
+	}{
+		{"user", true, "Standard user role should exist"},
+		{"admin", true, "Admin role should exist"},
+		{"root", true, "Root role should exist"},
+		{"viewer", true, "Viewer role should exist"},
+		{"invalid_role", false, "Invalid role should not exist"},
+		{"superuser", false, "Superuser role should not exist"},
+		{"", false, "Empty role should not be valid"},
+	}
+
+	for _, tc := range testCases {
+		err := userStore.ValidateRoleExists(tc.role)
+		if tc.shouldExist && err != nil {
+			t.Errorf("ValidateRoleExists(%q) should succeed but got error: %v", tc.role, err)
+		}
+		if !tc.shouldExist && err == nil {
+			t.Errorf("ValidateRoleExists(%q) should fail but succeeded", tc.role)
+		}
+		if !tc.shouldExist && err != nil {
+			// Accept both "invalid role" or "role não pode estar vazio" as valid error messages
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, "invalid role") && !strings.Contains(errMsg, "não pode estar vazio") {
+				t.Errorf("ValidateRoleExists(%q) got unexpected error: %v", tc.role, err)
+			}
 		}
 	}
 }
