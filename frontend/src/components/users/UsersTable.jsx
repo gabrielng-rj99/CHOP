@@ -16,13 +16,85 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { getRoleName, formatDate } from "../../utils/userHelpers";
 import "./UsersTable.css";
 import EditIcon from "../../assets/icons/edit.svg";
 import LockIcon from "../../assets/icons/lock.svg";
 import UnlockIcon from "../../assets/icons/unlock.svg";
 import TrashIcon from "../../assets/icons/trash.svg";
+
+// Component for countdown timer
+function LockCountdown({ secondsRemaining }) {
+    const [seconds, setSeconds] = useState(secondsRemaining);
+
+    useEffect(() => {
+        setSeconds(secondsRemaining);
+    }, [secondsRemaining]);
+
+    useEffect(() => {
+        if (seconds <= 0) return;
+
+        const interval = setInterval(() => {
+            setSeconds((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    // Reload page when countdown ends
+                    setTimeout(() => window.location.reload(), 1000);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [seconds]);
+
+    if (seconds <= 0) return null;
+
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    if (minutes >= 60) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return (
+            <span className="lock-countdown">
+                {hours}h {mins}m {secs}s
+            </span>
+        );
+    }
+
+    return (
+        <span className="lock-countdown">
+            {minutes}m {secs}s
+        </span>
+    );
+}
+
+// Component for lock status badge
+function LockStatusBadge({ user }) {
+    if (!user.is_locked) {
+        return <span className="users-table-status active">Ativo</span>;
+    }
+
+    if (user.lock_type === "permanent") {
+        return (
+            <span className="users-table-status blocked permanent">
+                🔒 Bloqueado Permanente (Nível {user.lock_level})
+            </span>
+        );
+    }
+
+    // Temporary lock with countdown
+    return (
+        <span className="users-table-status blocked temporary">
+            🔒 Bloqueado Temp. (Nível {user.lock_level})
+            <br />
+            <LockCountdown secondsRemaining={user.seconds_until_unlock || 0} />
+        </span>
+    );
+}
 
 export default function UsersTable({
     filteredUsers,
@@ -53,7 +125,7 @@ export default function UsersTable({
             </thead>
             <tbody>
                 {filteredUsers.map((user) => {
-                    const isBlocked = user.lock_level >= 3;
+                    const isBlocked = user.is_locked || false;
                     const isCurrentUser =
                         user.username === currentUser?.username;
 
@@ -85,13 +157,7 @@ export default function UsersTable({
                                 </span>
                             </td>
                             <td className="status">
-                                <span
-                                    className={`users-table-status ${
-                                        isBlocked ? "blocked" : "active"
-                                    }`}
-                                >
-                                    {isBlocked ? "Bloqueado" : "Ativo"}
-                                </span>
+                                <LockStatusBadge user={user} />
                             </td>
                             <td className="actions">
                                 <div className="users-table-actions">

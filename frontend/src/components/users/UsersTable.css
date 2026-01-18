@@ -118,6 +118,8 @@
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
+    display: inline-block;
+    min-width: 120px;
 }
 
 .users-table-status.blocked {
@@ -125,9 +127,33 @@
     color: #e74c3c;
 }
 
+.users-table-status.blocked.permanent {
+    background: #8b0000;
+    color: white;
+    font-weight: 700;
+}
+
+.users-table-status.blocked.temporary {
+    background: #ff9800;
+    color: white;
+    padding: 6px 12px;
+}
+
 .users-table-status.active {
     background: #27ae6020;
     color: #27ae60;
+}
+
+.lock-countdown {
+    display: inline-block;
+    font-family: "Courier New", monospace;
+    font-weight: 700;
+    font-size: 11px;
+    margin-top: 2px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    letter-spacing: 0.5px;
 }
 
 .users-table-actions {
