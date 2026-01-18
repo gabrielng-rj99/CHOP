@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // ============= AUTH HANDLERS =============
@@ -83,6 +84,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			RequestMethod: getRequestMethod(r),
 			RequestPath:   getRequestPath(r),
 		})
+
+		// Check if user is locked (blocked) - return 423 instead of 401
+		if strings.Contains(errMsg, "bloqueada") || strings.Contains(errMsg, "bloqueado") || strings.Contains(errMsg, "permanentemente") {
+			respondError(w, http.StatusLocked, "Account is locked. Please contact an administrator.")
+			return
+		}
+
 		respondError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}

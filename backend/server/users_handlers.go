@@ -19,13 +19,78 @@
 package server
 
 import (
-	"Open-Generic-Hub/backend/store"
 	"encoding/json"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
+
+	"Open-Generic-Hub/backend/domain"
+	"Open-Generic-Hub/backend/store"
 )
+
+// UserResponse representa um usuário com informações de bloqueio para o frontend
+type UserResponse struct {
+	ID                 string     `json:"id"`
+	Username           *string    `json:"username"`
+	DisplayName        *string    `json:"display_name"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	DeletedAt          *time.Time `json:"deleted_at,omitempty"`
+	Role               *string    `json:"role"`
+	FailedAttempts     int        `json:"failed_attempts"`
+	LockLevel          int        `json:"lock_level"`
+	LockedUntil        *time.Time `json:"locked_until"`
+	IsLocked           bool       `json:"is_locked"`            // Se está bloqueado agora
+	LockType           string     `json:"lock_type"`            // "none", "temporary", "permanent"
+	LockExpiresAt      *time.Time `json:"lock_expires_at"`      // Quando expira (null se permanente)
+	SecondsUntilUnlock *int64     `json:"seconds_until_unlock"` // Segundos até desbloquear (null se permanente ou não bloqueado)
+}
+
+// convertUserToResponse converte domain.User para UserResponse com informações de bloqueio
+func convertUserToResponse(user domain.User) UserResponse {
+	now := time.Now().UTC()
+
+	response := UserResponse{
+		ID:                 user.ID,
+		Username:           user.Username,
+		DisplayName:        user.DisplayName,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
+		DeletedAt:          user.DeletedAt,
+		Role:               user.Role,
+		FailedAttempts:     user.FailedAttempts,
+		LockLevel:          user.LockLevel,
+		LockedUntil:        user.LockedUntil,
+		IsLocked:           false,
+		LockType:           "none",
+		LockExpiresAt:      nil,
+		SecondsUntilUnlock: nil,
+	}
+
+	// Verifica se está bloqueado
+	if user.LockedUntil != nil {
+		lockedUntilUTC := user.LockedUntil.UTC()
+
+		if now.Before(lockedUntilUTC) {
+			response.IsLocked = true
+			response.LockExpiresAt = &lockedUntilUTC
+
+			// Verifica se é bloqueio permanente (> 30 dias no futuro)
+			if user.LockLevel >= 3 && lockedUntilUTC.After(now.Add(30*24*time.Hour)) {
+				response.LockType = "permanent"
+				// SecondsUntilUnlock permanece nil para bloqueios permanentes
+			} else {
+				response.LockType = "temporary"
+				secondsUntilUnlock := int64(lockedUntilUTC.Sub(now).Seconds())
+				response.SecondsUntilUnlock = &secondsUntilUnlock
+			}
+		}
+	}
+
+	return response
+}
 
 // ============= USER HANDLERS =============
 
@@ -47,7 +112,13 @@ func (s *Server) handleListUsers(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: users})
+	// Converte para UserResponse com informações de bloqueio
+	userResponses := make([]UserResponse, len(users))
+	for i, user := range users {
+		userResponses[i] = convertUserToResponse(user)
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Data: userResponses})
 }
 
 func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {

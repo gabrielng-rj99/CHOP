@@ -367,9 +367,33 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 		user.AuthSecret = authSecret.String
 	}
 
-	now := time.Now()
-	if lockedUntil.Valid && now.Before(lockedUntil.Time) {
-		return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockedUntil.Time.Format(time.RFC1123))
+	// ALWAYS use UTC to avoid timezone issues with database
+	now := time.Now().UTC()
+
+	// Ensure locked_until from DB is also in UTC
+	var lockedUntilUTC time.Time
+	if lockedUntil.Valid {
+		lockedUntilUTC = lockedUntil.Time.UTC()
+	}
+
+	// DEBUG: Log all lock-related values
+	fmt.Printf("🔍 DEBUG Login Check: user=%s, lockedUntil.Valid=%v, lock_level=%d, failed_attempts=%d\n",
+		username, lockedUntil.Valid, lockLevel, failedAttempts)
+
+	if lockedUntil.Valid {
+		fmt.Printf("🔍 DEBUG Time Check: locked_until=%s, now=%s, isBefore=%v\n",
+			lockedUntilUTC.Format(time.RFC1123), now.Format(time.RFC1123), now.Before(lockedUntilUTC))
+	}
+
+	if lockedUntil.Valid && now.Before(lockedUntilUTC) {
+		fmt.Printf("🚫 Login bloqueado: user=%s, lock_level=%d, locked_until=%s, now=%s\n",
+			username, lockLevel, lockedUntilUTC.Format(time.RFC1123), now.Format(time.RFC1123))
+		// Check if this is a manual lock (lock_level = 3 with far future date)
+		// Manual locks should show a specific message
+		if lockLevel >= 3 && lockedUntilUTC.After(now.Add(30*24*time.Hour)) {
+			return nil, fmt.Errorf("Conta bloqueada permanentemente por um administrador. Contate o suporte.")
+		}
+		return nil, fmt.Errorf("Conta bloqueada até %s por múltiplas tentativas. Tente novamente depois.", lockedUntilUTC.Format(time.RFC1123))
 	}
 
 	// Verifica o hash bcrypt
@@ -383,47 +407,110 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 			// Bloqueio manual permanente (por 1 ano - requer admin unlock)
 			newLockLevel = 4
 			lockUntil = now.Add(365 * 24 * time.Hour)
-			_, _ = s.db.Exec(
+			result, err := s.db.Exec(
 				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
 				failedAttempts, newLockLevel, lockUntil, username,
 			)
+			if err != nil {
+				fmt.Printf("❌ ERRO ao bloquear usuário (nível 4): %v\n", err)
+			} else {
+				rows, _ := result.RowsAffected()
+				fmt.Printf("🔒 Bloqueio nível 4 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
+					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
+			}
 			return nil, fmt.Errorf("Conta bloqueada permanentemente por segurança. Contate o administrador.")
 		} else if failedAttempts >= level3Attempts {
 			// Nível 3: bloqueio severo (1 hora)
 			newLockLevel = 3
 			lockUntil = now.Add(time.Duration(level3Duration) * time.Second)
-			_, _ = s.db.Exec(
+			result, err := s.db.Exec(
 				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
 				failedAttempts, newLockLevel, lockUntil, username,
 			)
+			if err != nil {
+				fmt.Printf("❌ ERRO ao bloquear usuário (nível 3): %v\n", err)
+			} else {
+				rows, _ := result.RowsAffected()
+				fmt.Printf("🔒 Bloqueio nível 3 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
+					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
+			}
 			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 3 - bloqueio severo). Tente novamente depois.", lockUntil.Format(time.RFC1123))
 		} else if failedAttempts >= level2Attempts {
 			// Nível 2: bloqueio médio (15 min)
 			newLockLevel = 2
 			lockUntil = now.Add(time.Duration(level2Duration) * time.Second)
-			_, _ = s.db.Exec(
+			result, err := s.db.Exec(
 				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
 				failedAttempts, newLockLevel, lockUntil, username,
 			)
+			if err != nil {
+				fmt.Printf("❌ ERRO ao bloquear usuário (nível 2): %v\n", err)
+			} else {
+				rows, _ := result.RowsAffected()
+				fmt.Printf("🔒 Bloqueio nível 2 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
+					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
+			}
 			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 2 - bloqueio médio). Tente novamente depois.", lockUntil.Format(time.RFC1123))
 		} else if failedAttempts >= level1Attempts {
 			// Nível 1: bloqueio inicial (5 min)
 			newLockLevel = 1
 			lockUntil = now.Add(time.Duration(level1Duration) * time.Second)
-			_, _ = s.db.Exec(
+			result, err := s.db.Exec(
 				`UPDATE users SET failed_attempts = $1, lock_level = $2, locked_until = $3 WHERE username = $4`,
 				failedAttempts, newLockLevel, lockUntil, username,
 			)
+			if err != nil {
+				fmt.Printf("❌ ERRO ao bloquear usuário (nível 1): %v\n", err)
+			} else {
+				rows, _ := result.RowsAffected()
+				fmt.Printf("🔒 Bloqueio nível 1 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
+					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
+			}
 			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 1 - bloqueio inicial). Tente novamente depois.", lockUntil.Format(time.RFC1123))
 		} else {
 			// Apenas incrementa tentativas, sem bloquear ainda
-			_, _ = s.db.Exec(`UPDATE users SET failed_attempts = $1 WHERE username = $2`, failedAttempts, username)
+			result, err := s.db.Exec(`UPDATE users SET failed_attempts = $1 WHERE username = $2`, failedAttempts, username)
+			if err != nil {
+				fmt.Printf("❌ ERRO ao incrementar tentativas: %v\n", err)
+			} else {
+				rows, _ := result.RowsAffected()
+				fmt.Printf("📝 Tentativas incrementadas: user=%s, attempts=%d (rows affected: %d)\n", username, failedAttempts, rows)
+			}
 		}
 		return nil, errors.New("usuário ou senha inválidos")
 	}
 
-	// Sucesso: reseta tudo (limpa bloqueio progressivo)
-	_, _ = s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1`, username)
+	// DEBUG: Log successful login attempt
+	fmt.Printf("🔍 DEBUG Senha correta: user=%s, lock_level=%d, lockedUntil.Valid=%v\n", username, lockLevel, lockedUntil.Valid)
+
+	// Sucesso: reseta APENAS bloqueios automáticos temporários
+	// NÃO limpa bloqueios manuais permanentes (lock_level = 3 com data futura > 30 dias)
+	if lockLevel >= 3 && lockedUntil.Valid && lockedUntilUTC.After(now.Add(30*24*time.Hour)) {
+		// Este é um bloqueio MANUAL permanente - não deve ser limpo
+		fmt.Printf("🚫 Bloqueio manual permanente detectado: user=%s\n", username)
+		return nil, fmt.Errorf("Conta bloqueada permanentemente por um administrador. Contate o suporte.")
+	}
+
+	// IMPORTANTE: Só limpa bloqueios se o tempo já expirou ou se não há bloqueio
+	if lockedUntil.Valid && now.Before(lockedUntilUTC) {
+		// Usuário ainda está bloqueado - NÃO deveria chegar aqui!
+		fmt.Printf("⚠️ ERRO DE LÓGICA: Login com senha correta mas usuário ainda bloqueado! user=%s, locked_until=%s, now=%s\n",
+			username, lockedUntilUTC.Format(time.RFC1123), now.Format(time.RFC1123))
+		return nil, fmt.Errorf("Conta bloqueada até %s. Tente novamente depois.", lockedUntilUTC.Format(time.RFC1123))
+	}
+
+	// Limpa bloqueios automáticos temporários (expirados ou inexistentes)
+	result, err := s.db.Exec(`UPDATE users SET failed_attempts = 0, lock_level = 0, locked_until = NULL WHERE username = $1`, username)
+	if err != nil {
+		fmt.Printf("❌ ERRO ao limpar bloqueio temporário: %v\n", err)
+	} else {
+		rows, _ := result.RowsAffected()
+		if lockedUntil.Valid {
+			fmt.Printf("✅ Login bem-sucedido: user=%s, bloqueio EXPIRADO limpo (rows affected: %d)\n", username, rows)
+		} else {
+			fmt.Printf("✅ Login bem-sucedido: user=%s, sem bloqueio prévio (rows affected: %d)\n", username, rows)
+		}
+	}
 	return &user, nil
 }
 
@@ -732,6 +819,8 @@ func (s *UserStore) UnlockUser(username string) error {
 // BlockUser blocks a user account permanently until unlocked
 func (s *UserStore) BlockUser(username string) error {
 	// Set lock_level to max (3) and locked_until to far future (100 years)
-	_, err := s.db.Exec(`UPDATE users SET lock_level = 3, locked_until = NOW() + INTERVAL '100 years' WHERE username = $1 AND deleted_at IS NULL`, username)
+	// Use TIMEZONE('UTC', NOW()) to ensure UTC timestamp
+	lockedUntil := time.Now().UTC().Add(100 * 365 * 24 * time.Hour)
+	_, err := s.db.Exec(`UPDATE users SET lock_level = 3, locked_until = $1 WHERE username = $2 AND deleted_at IS NULL`, lockedUntil, username)
 	return err
 }

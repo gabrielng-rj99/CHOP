@@ -142,6 +142,17 @@ func ValidateRefreshToken(tokenString string, userStore *store.UserStore) (*Refr
 		return nil, errors.New("token fornecido não é um refresh token válido")
 	}
 
+	// SECURITY: Check if user is blocked - even when refreshing token
+	user, err := userStore.GetUserByID(claims.UserID)
+	if err != nil || user == nil {
+		return nil, errors.New("usuário não encontrado")
+	}
+
+	now := time.Now()
+	if user.LockedUntil != nil && now.Before(*user.LockedUntil) {
+		return nil, errors.New("usuário bloqueado - acesso recusado")
+	}
+
 	return claims, nil
 }
 
@@ -174,6 +185,17 @@ func ValidateJWT(tokenString string, userStore *store.UserStore) (*JWTClaims, er
 	// If token_type is present, this is likely a refresh token and should be rejected
 	if claims.TokenType != "" {
 		return nil, errors.New("token fornecido não é um access token válido")
+	}
+
+	// SECURITY: Check if user is blocked - even with valid token
+	user, err := userStore.GetUserByID(claims.UserID)
+	if err != nil || user == nil {
+		return nil, errors.New("usuário não encontrado")
+	}
+
+	now := time.Now()
+	if user.LockedUntil != nil && now.Before(*user.LockedUntil) {
+		return nil, errors.New("usuário bloqueado - acesso recusado")
 	}
 
 	return claims, nil
