@@ -179,15 +179,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/refresh-token", s.standardMiddleware(s.handleRefreshToken))
 
 	// Users - admin/root only for management operations
-	mux.HandleFunc("/api/users/", s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/block") {
-			s.handleUserBlock(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/unlock") {
-			s.handleUserUnlock(w, r)
-		} else {
-			s.handleUserByUsername(w, r)
-		}
-	}))))
+	// IMPORTANT: /api/users must be registered BEFORE /api/users/ to match exact path first
 	mux.HandleFunc("/api/users", s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Se o path é exatamente /api/users (sem ID), chama handleUsers
 		if r.URL.Path == "/api/users" {
@@ -201,6 +193,15 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 			} else {
 				s.handleUserByUsername(w, r)
 			}
+		}
+	}))))
+	mux.HandleFunc("/api/users/", s.standardMiddleware(s.authMiddleware(s.adminOnlyMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/block") {
+			s.handleUserBlock(w, r)
+		} else if strings.HasSuffix(r.URL.Path, "/unlock") {
+			s.handleUserUnlock(w, r)
+		} else {
+			s.handleUserByUsername(w, r)
 		}
 	}))))
 

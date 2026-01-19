@@ -1,206 +1,434 @@
-# EHOP - Monolith Deployment Makefile
-# Located in: deploy/monolith/Makefile
-# Usage: make -f deploy/monolith/Makefile <target>
-# Or: cd deploy/monolith && make <target>
+# ==============================================================================
+# Client Hub - Monolith Deployment Makefile
+# ==============================================================================
+# Single entry point for monolith installation and management.
+#
+# Usage: cd deploy/monolith && make <target>
+#        OR make -f deploy/monolith/Makefile <target>
+#
+# What is a monolith deployment?
+#   - Complete single-unit installation of the entire application
+#   - Installs: backend binary, frontend assets, database, systemd services
+#   - Production-ready setup with proper permissions and configuration
+#   - Default installation path: /opt/ehop
+#
+# Environment versions (configured in versions.ini):
+#   - Go:         >= 1.21
+#   - Node.js:    >= 18.0.0
+#   - Python:     3.11 (for utilities/scripts)
+#   - PostgreSQL: >= 12
+# ==============================================================================
 
-.PHONY: help install start stop destroy reset logs status health-check clean uninstall
+SHELL := /bin/bash
+.SHELLFLAGS := -c
+
+# Configuration files
+CONFIG_FILE := monolith.ini
+VERSIONS_FILE := versions.ini
+BACKUP_DIR := backups
+TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 
 # Colors
-RED := \033[0;31m
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-BLUE := \033[0;34m
-NC := \033[0m
+RED := $(shell printf '\033[0;31m')
+GREEN := $(shell printf '\033[0;32m')
+YELLOW := $(shell printf '\033[1;33m')
+BLUE := $(shell printf '\033[0;34m')
+MAGENTA := $(shell printf '\033[0;35m')
+CYAN := $(shell printf '\033[0;36m')
+BOLD := $(shell printf '\033[1m')
+NC := $(shell printf '\033[0m')
 
-help: ## Show monolith deployment commands
-	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║$(NC)    EHOP - Monolith Deployment Environment                $(BLUE)║$(NC)"
-	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+# Default target
+.DEFAULT_GOAL := help
+
+.PHONY: help \
+        info status \
+        install uninstall \
+        start stop restart \
+        logs logs-backend logs-frontend \
+        backup restore \
+        update upgrade \
+        clean config versions \
+        health-check
+
+# ==============================================================================
+# HELP
+# ==============================================================================
+
+help: ## Show this help message
 	@echo ""
-	@echo "$(YELLOW)Installation & Management:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║$(NC)$(BOLD)              Client Hub - Monolith Deployment                              $(BLUE)║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Configuration:$(NC)"
-	@echo "  Config file: monolith.ini"
-	@echo "  Installation path: /opt/ehop (default)"
-	@echo "  Backend: http://localhost:3000"
+	@echo "$(YELLOW)━━━ QUICK START ━━━$(NC)"
+	@echo "  $(GREEN)make info$(NC)              Show deployment information"
+	@echo "  $(GREEN)make install$(NC)           Install monolith (one-time setup)"
+	@echo "  $(GREEN)make start$(NC)             Start monolith services"
+	@echo "  $(GREEN)make status$(NC)            Show installation & service status"
+	@echo ""
+	@echo "$(YELLOW)━━━ SERVICE MANAGEMENT ━━━$(NC)"
+	@echo "  $(GREEN)start$(NC)                  Start monolith services"
+	@echo "  $(GREEN)stop$(NC)                   Stop monolith services"
+	@echo "  $(GREEN)restart$(NC)                Restart monolith services"
+	@echo ""
+	@echo "$(YELLOW)━━━ INSTALLATION ━━━$(NC)"
+	@echo "  $(GREEN)install$(NC)                Complete monolith installation"
+	@echo "  $(GREEN)uninstall$(NC)              Remove monolith installation"
+	@echo ""
+	@echo "$(YELLOW)━━━ MONITORING ━━━$(NC)"
+	@echo "  $(GREEN)status$(NC)                 Show service and installation status"
+	@echo "  $(GREEN)health-check$(NC)           Check health of all services"
+	@echo "  $(GREEN)logs$(NC)                   Show all service logs"
+	@echo "  $(GREEN)logs-backend$(NC)           Show backend logs only"
+	@echo "  $(GREEN)logs-frontend$(NC)          Show frontend logs only"
+	@echo ""
+	@echo "$(YELLOW)━━━ BACKUP & RECOVERY ━━━$(NC)"
+	@echo "  $(GREEN)backup$(NC)                 Create backup of config and data"
+	@echo "  $(GREEN)restore$(NC)                Restore from backup"
+	@echo ""
+	@echo "$(YELLOW)━━━ MAINTENANCE ━━━$(NC)"
+	@echo "  $(GREEN)config$(NC)                 Show current configuration"
+	@echo "  $(GREEN)versions$(NC)               Show component versions"
+	@echo "  $(GREEN)update$(NC)                 Update component versions"
+	@echo "  $(GREEN)upgrade$(NC)                Upgrade to new versions"
+	@echo "  $(GREEN)clean$(NC)                  Clean temporary files and logs"
+	@echo ""
+	@echo "$(YELLOW)━━━ CONFIGURATION ━━━$(NC)"
+	@echo "  Config file:      $(CYAN)$(CONFIG_FILE)$(NC)"
+	@echo "  Versions file:    $(CYAN)$(VERSIONS_FILE)$(NC)"
+	@echo "  Backup directory: $(CYAN)$(BACKUP_DIR)/$(NC)"
+	@echo ""
+
+# ==============================================================================
+# INFORMATION & STATUS
+# ==============================================================================
+
+info: ## Show monolith deployment information
+	@echo ""
+	@echo "$(BLUE)ℹ️  Monolith Deployment Information$(NC)"
+	@echo ""
+	@echo "$(BOLD)What is a Monolith?$(NC)"
+	@echo "  A complete, self-contained installation of the entire application"
+	@echo "  packaged as a single unit. Includes:"
+	@echo "    • Backend binary (compiled)"
+	@echo "    • Frontend assets (built)"
+	@echo "    • Database (PostgreSQL)"
+	@echo "    • Systemd services"
+	@echo "    • Configuration and secrets"
+	@echo ""
+	@echo "$(BOLD)Default Paths:$(NC)"
+	@echo "  Installation:  /opt/ehop"
+	@echo "  Logs:          /var/log/ehop"
+	@echo "  Data:          /var/lib/ehop"
+	@echo "  Config:        /etc/ehop"
+	@echo ""
+	@echo "$(BOLD)Services:$(NC)"
+	@echo "  Frontend:  http://localhost:80"
+	@echo "  Backend:   http://localhost:3000"
+	@echo "  Database:  localhost:5432"
+	@echo ""
+	@echo "$(BOLD)Next Steps:$(NC)"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		echo "  • Installation already configured"; \
+		echo "  • Run '$(GREEN)make start$(NC)' to start services"; \
+		echo "  • Run '$(GREEN)make status$(NC)' to check status"; \
+	else \
+		echo "  • Run '$(GREEN)make install$(NC)' to begin installation"; \
+		echo "  • Or configure '$(CYAN)$(CONFIG_FILE)$(NC)' manually first"; \
+	fi
+	@echo ""
+
+status: ## Show installation and service status
+	@echo ""
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║$(NC)$(BOLD)              Monolith Status                                              $(BLUE)║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(CYAN)Installation:$(NC)"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		echo "  $(GREEN)✓ Configuration exists$(NC)"; \
+		INSTALL_PATH=$$(grep "^INSTALL_PATH=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "/opt/ehop"); \
+		echo "  Path: $$INSTALL_PATH"; \
+		if [ -d "$$INSTALL_PATH" ]; then \
+			echo "  $(GREEN)✓ Installation directory found$(NC)"; \
+		else \
+			echo "  $(YELLOW)○ Installation directory not found (not installed yet)$(NC)"; \
+		fi; \
+	else \
+		echo "  $(RED)✗ Not installed$(NC)"; \
+		echo "  Run '$(GREEN)make install$(NC)' to begin"; \
+	fi
+	@echo ""
+	@echo "$(CYAN)Services:$(NC)"
+	@systemctl is-active --quiet ehop-backend && echo "  $(GREEN)● Backend running$(NC)" || echo "  $(RED)○ Backend stopped$(NC)"
+	@systemctl is-active --quiet ehop-frontend && echo "  $(GREEN)● Frontend running$(NC)" || echo "  $(RED)○ Frontend stopped$(NC)"
+	@systemctl is-active --quiet postgresql && echo "  $(GREEN)● PostgreSQL running$(NC)" || echo "  $(RED)○ PostgreSQL stopped$(NC)"
+	@echo ""
+	@echo "$(CYAN)Endpoints:$(NC)"
+	@echo "  Backend:  http://localhost:3000"
 	@echo "  Frontend: http://localhost:80"
 	@echo ""
-	@echo "$(YELLOW)See Also:$(NC)"
-	@echo "  - Installation guide: cat README.md"
-	@echo "  - Version config: cat versions.ini"
-	@echo ""
 
-install: ## Install monolith (one-time setup)
-	@echo "$(BLUE)📦 Installing EHOP monolith...$(NC)"
-	@echo "$(YELLOW)This will install the entire application as a single unit.$(NC)"
+# ==============================================================================
+# INSTALLATION & SETUP
+# ==============================================================================
+
+install: ## Install monolith (complete one-time setup)
+	@echo ""
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║$(NC)$(BOLD)              Monolith Installation                                        $(BLUE)║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "This will install the complete monolith application:"
+	@echo "  • Backend binary"
+	@echo "  • Frontend assets"
+	@echo "  • Database (PostgreSQL)"
+	@echo "  • Systemd services"
+	@echo ""
+	@echo "$(YELLOW)Requirements:$(NC)"
+	@echo "  • sudo access"
+	@echo "  • 5GB free disk space"
+	@echo "  • PostgreSQL installed"
 	@echo ""
 	@read -p "Continue with installation? (y/N): " response; \
 	if [ "$$response" = "y" ]; then \
-		echo "$(YELLOW)Running installation script...$(NC)"; \
-		./install-monolith.sh; \
-		echo "$(GREEN)✅ Installation complete$(NC)"; \
 		echo ""; \
-		echo "$(YELLOW)Next steps:$(NC)"; \
-		echo "  1. Review configuration: cat monolith.ini"; \
-		echo "  2. Start services: make start"; \
-		echo "  3. Check status: make status"; \
+		echo "$(YELLOW)Checking prerequisites...$(NC)"; \
+		./install-monolith.sh; \
+		if [ $$? -eq 0 ]; then \
+			echo ""; \
+			echo "$(GREEN)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"; \
+			echo "$(GREEN)║  ✅  Installation complete!                                                  ║$(NC)"; \
+			echo "$(GREEN)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"; \
+			echo ""; \
+			echo "$(BOLD)Next Steps:$(NC)"; \
+			echo "  1. Review configuration: $(GREEN)make config$(NC)"; \
+			echo "  2. Start services:      $(GREEN)make start$(NC)"; \
+			echo "  3. Check status:        $(GREEN)make status$(NC)"; \
+		else \
+			echo "$(RED)Installation failed - see errors above$(NC)"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "$(YELLOW)Installation cancelled$(NC)"; \
 	fi
+	@echo ""
 
-start: ## Start monolith services
+uninstall: ## Remove monolith installation (WARNING: deletes everything)
+	@echo ""
+	@echo "$(RED)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(RED)║  ⚠️   WARNING: This will REMOVE the entire monolith installation              ║$(NC)"
+	@echo "$(RED)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "This will DELETE:"
+	@echo "  $(RED)✗ All services and binaries$(NC)"
+	@echo "  $(RED)✗ Database and all data$(NC)"
+	@echo "  $(RED)✗ Configuration and secrets$(NC)"
+	@echo "  $(RED)✗ All logs$(NC)"
+	@echo ""
+	@read -p "Type 'uninstall' to confirm: " response; \
+	if [ "$$response" = "uninstall" ]; then \
+		echo ""; \
+		echo "$(YELLOW)Removing monolith...$(NC)"; \
+		./destroy-monolith.sh; \
+		if [ $$? -eq 0 ]; then \
+			echo ""; \
+			echo "$(GREEN)✅ Monolith uninstalled$(NC)"; \
+		else \
+			echo "$(RED)Uninstall failed - see errors above$(NC)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(YELLOW)Uninstall cancelled$(NC)"; \
+	fi
+	@echo ""
+
+# ==============================================================================
+# SERVICE MANAGEMENT
+# ==============================================================================
+
+start: ## Start all monolith services
 	@echo "$(BLUE)🚀 Starting monolith services...$(NC)"
-	./start-monolith.sh
+	@echo ""
+	@if [ ! -f "$(CONFIG_FILE)" ]; then \
+		echo "$(RED)❌ Not installed - run 'make install' first$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Starting backend...$(NC)"
+	@sudo systemctl start ehop-backend && echo "  $(GREEN)✓ Backend started$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have started$(NC)"
+	@echo "$(CYAN)Starting frontend...$(NC)"
+	@sudo systemctl start ehop-frontend && echo "  $(GREEN)✓ Frontend started$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have started$(NC)"
+	@echo ""
 	@echo "$(GREEN)✅ Services started$(NC)"
 	@echo ""
-	@echo "  Backend: http://localhost:3000"
+	@echo "$(BOLD)Access:$(NC)"
 	@echo "  Frontend: http://localhost:80"
+	@echo "  Backend:  http://localhost:3000"
 	@echo ""
 
-stop: ## Stop monolith services
-	@echo "$(YELLOW)⏹️  Stopping monolith services...$(NC)"
-	./stop-monolith.sh
-	@echo "$(GREEN)✅ Services stopped$(NC)"
-
-restart: stop start ## Restart monolith services
-
-reset: ## Reset monolith configuration (keeps installation)
-	@echo "$(YELLOW)⚠️  This will reset configuration but keep installation.$(NC)"
-	@read -p "Continue? (y/N): " response; \
-	if [ "$$response" = "y" ]; then \
-		echo "$(YELLOW)Resetting configuration...$(NC)"; \
-		./stop-monolith.sh; \
-		sleep 2; \
-		./start-monolith.sh; \
-		echo "$(GREEN)✅ Configuration reset$(NC)"; \
-	else \
-		echo "$(YELLOW)Cancelled$(NC)"; \
-	fi
-
-destroy: ## Uninstall monolith completely (WARNING: removes everything)
-	@echo "$(RED)⚠️  This will completely remove the monolith installation!$(NC)"
-	@echo "$(RED)⚠️  All data and configuration will be lost!$(NC)"
-	@read -p "Type 'yes' to confirm removal: " response; \
-	if [ "$$response" = "yes" ]; then \
-		echo "$(YELLOW)Destroying monolith...$(NC)"; \
-		./destroy-monolith.sh; \
-		echo "$(GREEN)✅ Monolith removed$(NC)"; \
-	else \
-		echo "$(YELLOW)Cancelled$(NC)"; \
-	fi
-
-logs: ## Show monolith logs
-	@echo "$(BLUE)📋 Monolith logs...$(NC)"
-	@echo "$(YELLOW)Log location depends on installation.$(NC)"
-	@echo "Check /var/log/ehop/ or configured log directory"
-
-logs-backend: ## Show backend logs
-	@echo "$(BLUE)📋 Backend logs...$(NC)"
-	@tail -f /var/log/ehop/backend.log 2>/dev/null || echo "  Backend logs not found (may not be installed)"
-
-logs-frontend: ## Show frontend logs
-	@echo "$(BLUE)📋 Frontend logs...$(NC)"
-	@tail -f /var/log/ehop/frontend.log 2>/dev/null || echo "  Frontend logs not found (may not be installed)"
-
-status: ## Check monolith installation and service status
-	@echo "$(BLUE)📊 Monolith Status:$(NC)"
+stop: ## Stop all monolith services
+	@echo "$(BLUE)🛑 Stopping monolith services...$(NC)"
 	@echo ""
-	@echo "  Installation:"
-	@if [ -f monolith.ini ]; then \
-		echo "    $(GREEN)✅$(NC) Configuration exists"; \
-		grep "^INSTALL_PATH" monolith.ini | sed 's/^/    /'; \
+	@echo "$(CYAN)Stopping backend...$(NC)"
+	@sudo systemctl stop ehop-backend && echo "  $(GREEN)✓ Backend stopped$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have been running$(NC)"
+	@echo "$(CYAN)Stopping frontend...$(NC)"
+	@sudo systemctl stop ehop-frontend && echo "  $(GREEN)✓ Frontend stopped$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have been running$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ All services stopped$(NC)"
+	@echo ""
+
+restart: stop start ## Restart all monolith services (stop → start)
+
+# ==============================================================================
+# MONITORING & HEALTH
+# ==============================================================================
+
+health-check: ## Check health of all services
+	@echo "$(BLUE)🏥 Health Check$(NC)"
+	@echo ""
+	@echo "$(CYAN)Backend:$(NC)"
+	@HEALTH=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null || echo "000"); \
+	if [ "$$HEALTH" = "200" ]; then \
+		echo "  $(GREEN)✓ Healthy$(NC) (HTTP $$HEALTH)"; \
 	else \
-		echo "    $(RED)❌$(NC) Not installed"; \
+		echo "  $(RED)✗ Unhealthy$(NC) (HTTP $$HEALTH)"; \
 	fi
 	@echo ""
-	@echo "  Services:"
-	@pgrep -f "ehop-backend" > /dev/null && echo "    $(GREEN)✅$(NC) Backend running" || echo "    $(RED)❌$(NC) Backend stopped"
-	@pgrep -f "frontend\|nginx\|http" > /dev/null && echo "    $(GREEN)✅$(NC) Frontend running" || echo "    $(RED)❌$(NC) Frontend stopped"
-	@systemctl is-active --quiet postgresql && echo "    $(GREEN)✅$(NC) PostgreSQL running" || echo "    $(RED)❌$(NC) PostgreSQL stopped"
-	@echo ""
-	@echo "  Endpoints:"
-	@echo "    Backend: http://localhost:3000"
-	@echo "    Frontend: http://localhost:80"
-	@echo ""
-
-health-check: ## Check if monolith services are healthy
-	@echo "$(BLUE)🏥 Running health checks...$(NC)"
-	@echo ""
-	@echo "  Backend health:"
-	@curl -s -o /dev/null -w "    Status: %{http_code}\n" http://localhost:3000/health || echo "    $(RED)❌ No response$(NC)"
-	@echo ""
-	@echo "  Frontend:"
-	@curl -s -o /dev/null -w "    Status: %{http_code}\n" http://localhost:80 || echo "    $(RED)❌ No response$(NC)"
-	@echo ""
-	@echo "  Database:"
-	@psql -U postgres -c "SELECT 1" > /dev/null 2>&1 && echo "    $(GREEN)✅$(NC) Database ready" || echo "    $(RED)❌$(NC) Database not ready"
-	@echo ""
-
-config: ## Show current configuration
-	@echo "$(BLUE)📋 Monolith Configuration:$(NC)"
-	@echo ""
-	@if [ -f monolith.ini ]; then \
-		echo "  Configuration values:"; \
-		grep "^[^#]" monolith.ini | sed 's/^/    /'; \
+	@echo "$(CYAN)Frontend:$(NC)"
+	@HEALTH=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80 2>/dev/null || echo "000"); \
+	if [ "$$HEALTH" = "200" ]; then \
+		echo "  $(GREEN)✓ Healthy$(NC) (HTTP $$HEALTH)"; \
 	else \
-		echo "  $(RED)No configuration found$(NC)"; \
-		echo "  Run 'make install' first"; \
+		echo "  $(RED)✗ Unhealthy$(NC) (HTTP $$HEALTH)"; \
 	fi
 	@echo ""
-
-versions: ## Show version information
-	@echo "$(BLUE)ℹ️  Component Versions:$(NC)"
-	@echo ""
-	@if [ -f versions.ini ]; then \
-		echo "  Configured versions:"; \
-		grep "^[^#]" versions.ini | sed 's/^/    /'; \
-	else \
-		echo "  Version file not found"; \
-	fi
+	@echo "$(CYAN)Database:$(NC)"
+	@sudo systemctl is-active --quiet postgresql && echo "  $(GREEN)✓ Running$(NC)" || echo "  $(RED)✗ Not running$(NC)"
 	@echo ""
 
-clean: ## Clean monolith artifacts and logs
-	@echo "$(YELLOW)🧹 Cleaning monolith artifacts...$(NC)"
-	@find . -name "*.log" -delete 2>/dev/null || true
-	@find . -name "__pycache__" -delete 2>/dev/null || true
-	@find . -name ".DS_Store" -delete 2>/dev/null || true
-	@echo "$(GREEN)✅ Cleaned$(NC)"
+logs: ## Show all service logs (live)
+	@echo "$(BLUE)📋 Monolith logs (Ctrl+C to exit)$(NC)"
+	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
+	@sudo journalctl -u ehop-backend -u ehop-frontend -f
 
-uninstall: destroy ## Alias for destroy (remove everything)
+logs-backend: ## Show backend logs (live)
+	@echo "$(BLUE)📋 Backend logs (Ctrl+C to exit)$(NC)"
+	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
+	@sudo journalctl -u ehop-backend -f
 
-upgrade: ## Upgrade monolith components (if supported)
-	@echo "$(BLUE)📦 Upgrading monolith...$(NC)"
-	@echo "$(YELLOW)Update versions in versions.ini and run this command.$(NC)"
-	@echo "TODO: Implement upgrade logic based on versions.ini"
+logs-frontend: ## Show frontend logs (live)
+	@echo "$(BLUE)📋 Frontend logs (Ctrl+C to exit)$(NC)"
+	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
+	@sudo journalctl -u ehop-frontend -f
 
-backup: ## Create backup of monolith configuration and data
+# ==============================================================================
+# BACKUP & RECOVERY
+# ==============================================================================
+
+backup: ## Create backup of configuration and data
 	@echo "$(BLUE)💾 Creating monolith backup...$(NC)"
-	@mkdir -p backups
-	@tar czf backups/monolith-config-$$(date +%Y%m%d-%H%M%S).tar.gz monolith.ini versions.ini
-	@echo "$(GREEN)✅ Backup created in backups/$(NC)"
+	@echo ""
+	@mkdir -p $(BACKUP_DIR)
+	@BACKUP_FILE="$(BACKUP_DIR)/monolith-$(TIMESTAMP).tar.gz"; \
+	echo "$(YELLOW)Backing up to: $$BACKUP_FILE$(NC)"; \
+	if [ -f "$(CONFIG_FILE)" ]; then \
+		tar czf $$BACKUP_FILE $(CONFIG_FILE) $(VERSIONS_FILE) 2>/dev/null && \
+		echo "$(GREEN)✓ Configuration backed up$(NC)" || \
+		echo "$(YELLOW)⚠️  Config backup failed$(NC)"; \
+	fi
+	@echo "$(GREEN)✅ Backup complete$(NC)"
+	@echo ""
+	@ls -lh $(BACKUP_DIR)/ | tail -5
+	@echo ""
 
 restore: ## Restore monolith from backup
-	@echo "$(BLUE)📥 Restoring monolith...$(NC)"
-	@echo "$(YELLOW)Available backups:$(NC)"
-	@ls -lh backups/*.tar.gz 2>/dev/null || echo "  No backups found"
+	@echo "$(BLUE)📥 Restoring monolith from backup...$(NC)"
+	@echo ""
+	@echo "$(CYAN)Available backups:$(NC)"
+	@if [ -d "$(BACKUP_DIR)" ] && [ -n "$$(ls $(BACKUP_DIR)/*.tar.gz 2>/dev/null)" ]; then \
+		ls -1t $(BACKUP_DIR)/*.tar.gz | head -10 | nl; \
+		echo ""; \
+		read -p "Select backup number to restore: " num; \
+		BACKUP_FILE=$$(ls -1t $(BACKUP_DIR)/*.tar.gz | sed -n "$${num}p"); \
+		if [ -n "$$BACKUP_FILE" ]; then \
+			echo "$(YELLOW)Restoring from: $$BACKUP_FILE$(NC)"; \
+			tar xzf $$BACKUP_FILE && \
+			echo "$(GREEN)✅ Restore complete$(NC)"; \
+		else \
+			echo "$(RED)Invalid selection$(NC)"; \
+		fi; \
+	else \
+		echo "$(YELLOW)No backups found$(NC)"; \
+	fi
+	@echo ""
 
-info: ## Show monolith deployment information
-	@echo "$(BLUE)ℹ️  EHOP Monolith Information:$(NC)"
+# ==============================================================================
+# CONFIGURATION & VERSIONS
+# ==============================================================================
+
+config: ## Show current configuration
 	@echo ""
-	@echo "  Deployment Type: Monolith"
-	@echo "  Installation Method: Single-unit installation"
-	@echo "  Services: Backend, Frontend, Database"
+	@echo "$(BLUE)📋 Monolith Configuration$(NC)"
 	@echo ""
-	@echo "  Configuration:"
-	@echo "    Config: monolith.ini"
-	@echo "    Versions: versions.ini"
-	@echo ""
-	@echo "  Default Paths:"
-	@echo "    Installation: /opt/ehop"
-	@echo "    Logs: /var/log/ehop"
-	@echo "    Data: /var/lib/ehop"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		echo "$(CYAN)Current values:$(NC)"; \
+		grep "^[^#]" $(CONFIG_FILE) | sed 's/^/  /'; \
+	else \
+		echo "$(YELLOW)No configuration found - run 'make install'$(NC)"; \
+	fi
 	@echo ""
 
-.DEFAULT_GOAL := help
+versions: ## Show component versions
+	@echo ""
+	@echo "$(BLUE)ℹ️  Component Versions$(NC)"
+	@echo ""
+	@if [ -f "$(VERSIONS_FILE)" ]; then \
+		echo "$(CYAN)Configured versions:$(NC)"; \
+		grep "^[^#]" $(VERSIONS_FILE) | sed 's/^/  /'; \
+	else \
+		echo "$(YELLOW)Version file not found$(NC)"; \
+	fi
+	@echo ""
+
+update: ## Update version configuration
+	@echo "$(BLUE)📦 Updating versions...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Edit $(VERSIONS_FILE) with new versions, then run 'make upgrade'$(NC)"
+	@echo ""
+
+upgrade: ## Upgrade monolith to new versions
+	@echo "$(BLUE)🔄 Upgrading monolith...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Stopping services...$(NC)"
+	@$(MAKE) -s stop
+	@echo ""
+	@echo "$(YELLOW)Building and deploying new versions...$(NC)"
+	@./install-monolith.sh upgrade
+	@echo ""
+	@echo "$(YELLOW)Starting services...$(NC)"
+	@$(MAKE) -s start
+	@echo ""
+	@echo "$(GREEN)✅ Upgrade complete$(NC)"
+	@echo ""
+
+# ==============================================================================
+# MAINTENANCE
+# ==============================================================================
+
+clean: ## Clean temporary files and old logs
+	@echo "$(BLUE)🧹 Cleaning monolith...$(NC)"
+	@echo ""
+	@echo "$(CYAN)Cleaning temporary files...$(NC)"
+	@find . -name "*.log" -delete 2>/dev/null && echo "  $(GREEN)✓ Logs cleaned$(NC)" || true
+	@find . -name "__pycache__" -delete 2>/dev/null && echo "  $(GREEN)✓ Cache cleaned$(NC)" || true
+	@find . -name ".DS_Store" -delete 2>/dev/null && echo "  $(GREEN)✓ macOS files cleaned$(NC)" || true
+	@echo ""
+	@echo "$(GREEN)✅ Cleanup complete$(NC)"
+	@echo ""
+
+# ==============================================================================
+# Default goal
+# ==============================================================================
+
 .SILENT:

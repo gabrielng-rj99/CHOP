@@ -1,4 +1,4 @@
-# Client Hub - Development Mode
+# Client Hub - Development Environment
 
 Fast development environment with hot reload for Client Hub.
 
@@ -22,39 +22,22 @@ Ensure you have installed:
 - Go 1.21+
 - Node.js 20+
 - PostgreSQL 14+
-- OpenSSL
+- Make
 
-If not, run the monolith installer first:
-```bash
-cd ../monolith
-./install-monolith.sh
-```
-
-### 2. Configure
-
-Edit `dev.ini`:
-
-```ini
-# Leave passwords empty for auto-generation
-DB_PASSWORD=
-JWT_SECRET=
-
-# Ports
-API_PORT=3000
-VITE_PORT=5173
-
-# Database (separate from production)
-DB_NAME=ehopdb_dev
-DB_USER=ehopuser
-```
-
-### 3. Start
+### 2. Start Development Environment
 
 ```bash
-./start-dev.sh
+cd deploy/dev
+make start
 ```
 
-### 4. Access
+That's it! The Makefile handles everything:
+- Checks for port conflicts
+- Detects stale processes
+- Builds the backend
+- Starts all services
+
+### 3. Access
 
 - **Frontend (Vite)**: http://localhost:5173 ⚡ Hot reload!
 - **Backend API**: http://localhost:3000
@@ -62,18 +45,48 @@ DB_USER=ehopuser
 
 ---
 
-## 📝 Commands
+## 📝 Commands Reference
 
-```bash
-# Start development environment
-./start-dev.sh
+All commands are run from `deploy/dev/`:
 
-# Stop all services
-./stop-dev.sh
+### Main Commands
 
-# Destroy dev environment (⚠️ deletes dev database!)
-./destroy-dev.sh
-```
+| Command | Description |
+|---------|-------------|
+| `make start` | Start development environment |
+| `make stop` | Stop all services |
+| `make restart` | Rebuild and restart all services |
+| `make status` | Show status of all services |
+| `make logs` | View backend logs (live) |
+| `make build` | Build the backend binary |
+
+### Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `make db-status` | Check database status and list users |
+| `make db-connect` | Open psql shell to dev database |
+| `make db-reset` | Reset database (⚠️ deletes all data) |
+
+### Maintenance Commands
+
+| Command | Description |
+|---------|-------------|
+| `make clean` | Kill all dev processes and free ports |
+| `make reset` | Clean and restart fresh |
+| `make destroy` | Completely destroy dev environment |
+| `make check-ports` | Check if required ports are available |
+| `make check-processes` | Check for running backend processes |
+| `make health` | Check health of all services |
+| `make install-deps` | Install Go and npm dependencies |
+
+### Log Commands
+
+| Command | Description |
+|---------|-------------|
+| `make logs` | View backend logs (live) |
+| `make logs-frontend` | View Vite logs (live) |
+| `make logs-all` | View all logs (live) |
 
 ---
 
@@ -90,26 +103,56 @@ Development mode uses Vite dev server, which means:
 
 ```bash
 # 1. Start dev environment
-./start-dev.sh
+make start
 
-# 2. Edit frontend code
-cd ../../frontend/src/
-nano components/YourComponent.jsx
+# 2. Edit frontend code - changes appear instantly!
+#    (no restart needed)
 
-# 3. See changes instantly in browser (no restart needed!)
+# 3. Edit backend code - rebuild and restart
+make restart-backend
 
-# 4. Edit backend code
-cd ../../backend/
-nano server/your_handler.go
+# Or restart everything
+make restart
+```
 
-# 5. Rebuild and restart backend
-go build -o ehop-backend-dev ./cmd/server/main.go
-./ehop-backend-dev
+---
 
-# Or use the full restart
-cd ../../deploy/dev
-./stop-dev.sh
-./start-dev.sh
+## 🛡️ Conflict Detection
+
+The Makefile automatically detects and warns about:
+
+### Stale Backend Processes
+
+If an old backend process is running (common cause of "code not updating"):
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ⚠️   WARNING: OLD BACKEND PROCESS DETECTED                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  A stale backend process is running (PID: 12345)
+  This may be using an outdated version of the code!
+
+Options:
+  1. Run 'make clean' to kill all processes and start fresh
+  2. Run 'kill 12345' to kill just this process
+```
+
+### Port Conflicts
+
+If ports 3000 or 5173 are already in use:
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ⚠️   WARNING: PORT 3000 IS ALREADY IN USE                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Process: node (PID: 67890)
+
+Options:
+  1. Run 'make clean' to kill all dev processes
+  2. Run 'kill 67890' to kill this specific process
+  3. Change API_PORT in dev.ini
 ```
 
 ---
@@ -124,213 +167,113 @@ This means:
 - ✅ You can test destructive operations safely
 - ✅ Production data is never affected
 - ✅ You can reset dev database anytime
-- ✅ Both databases can coexist on the same machine
 
-### Initialization
-
-On first run, the database is empty:
-
-1. Access http://localhost:5173
-2. Follow the initialization wizard
-3. Create your first admin user
-
-Check status:
-```bash
-curl http://localhost:3000/api/initialize/status
-```
-
-### Reset Dev Database
+### Check Database Status
 
 ```bash
-# Option 1: Use destroy script (removes everything)
-./destroy-dev.sh
-
-# Option 2: Manual reset (keeps user)
-sudo -u postgres psql -c "DROP DATABASE ehopdb_dev;"
-sudo -u postgres psql -c "CREATE DATABASE ehopdb_dev OWNER ehopuser;"
+make db-status
 ```
 
-### Backup
+Shows tables, users, and lock status.
+
+### Connect Directly
 
 ```bash
-# Backup dev database
-pg_dump -h localhost -U ehopuser ehopdb_dev > dev_backup.sql
-
-# Restore
-psql -h localhost -U ehopuser ehopdb_dev < dev_backup.sql
+make db-connect
 ```
+
+Opens a psql shell to the dev database.
+
+### Reset Database
+
+```bash
+make db-reset
+```
+
+⚠️ This deletes all data and recreates the database.
 
 ---
 
-## 🔐 Security
+## 🔧 Configuration
 
-### Auto-Generated Passwords
-
-Leave `DB_PASSWORD` and `JWT_SECRET` empty in `dev.ini` to auto-generate:
+Edit `dev.ini` to customize:
 
 ```ini
-DB_PASSWORD=
-JWT_SECRET=
-```
+# Ports
+API_PORT=3000
+VITE_PORT=5173
 
-On first run:
-1. Secure passwords are generated
-2. Displayed in terminal (save them!)
-3. Saved to `dev.ini`
-4. Used for all future runs
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ehopdb_dev
+DB_USER=ehopuser
+DB_PASSWORD=your_password
 
-### Manual Passwords
-
-```bash
-# Generate 64-character password
-openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
-```
-
-Then paste into `dev.ini`:
-```ini
-DB_PASSWORD=your_password_here
-JWT_SECRET=your_jwt_secret_here
-```
-
----
-
-## 📊 Monitoring
-
-### Logs
-
-```bash
-# Backend logs
-tail -f ../../logs/backend_dev/server.log
-
-# Vite logs
-tail -f ../../logs/vite-dev.log
-
-# Follow both
-tail -f ../../logs/backend_dev/server.log ../../logs/vite-dev.log
-```
-
-### Health Checks
-
-```bash
-# Backend health
-curl http://localhost:3000/health
-
-# Initialize status
-curl http://localhost:3000/api/initialize/status
-
-# Test API endpoint
-curl http://localhost:3000/api/users \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-### Process Status
-
-```bash
-# Check backend
-cat /tmp/ehop-backend-dev.pid
-ps aux | grep ehop-backend-dev
-
-# Check Vite
-cat /tmp/ehop-vite-dev.pid
-ps aux | grep vite
-
-# Check PostgreSQL
-sudo systemctl status postgresql
+# Security
+JWT_SECRET=your_jwt_secret
 ```
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Port 5173 Already in Use
+### Code Changes Not Reflected
+
+**Most common cause**: A stale backend process is running.
 
 ```bash
-# Find what's using the port
-lsof -i :5173
+# Check for stale processes
+make check-processes
 
-# Kill the process
-kill -9 <PID>
+# Kill all and start fresh
+make clean
+make start
+```
 
-# Or change port in dev.ini
-VITE_PORT=5174
+### Port Already in Use
+
+```bash
+# Check what's using ports
+make check-ports
+
+# Free all ports
+make clean
 ```
 
 ### Backend Not Starting
 
 ```bash
 # Check logs
-tail -50 ../../logs/backend_dev/server.log
+make logs
 
-# Verify database connection
-psql -h localhost -U ehopuser -d ehopdb_dev
+# Or check status
+make status
 
-# Check environment variables
-echo $DB_PASSWORD
-echo $JWT_SECRET
-```
-
-### Vite Not Starting
-
-```bash
-# Check logs
-tail -50 ../../logs/vite-dev.log
-
-# Verify node_modules
-cd ../../frontend
-npm install
-
-# Try manual start
-npm run dev -- --port 5173
+# Try clean rebuild
+make clean
+make build
+make start
 ```
 
 ### Database Connection Failed
 
 ```bash
-# Start PostgreSQL
-sudo systemctl start postgresql
-
-# Check status
+# Check PostgreSQL is running
 sudo systemctl status postgresql
 
-# Test connection
-pg_isready -h localhost -p 5432
+# Start if needed
+sudo systemctl start postgresql
 
-# Verify database exists
-psql -h localhost -U postgres -c "\l" | grep ehopdb_dev
+# Check database status
+make db-status
 ```
-
-### CORS Errors
-
-If you see CORS errors in browser console:
-
-1. Check `CORS_ALLOWED_ORIGINS` in `dev.ini`:
-   ```ini
-   CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-   ```
-
-2. Ensure `VITE_API_URL` points to backend:
-   ```ini
-   VITE_API_URL=http://localhost:3000/api
-   ```
-
-3. Restart both services:
-   ```bash
-   ./stop-dev.sh
-   ./start-dev.sh
-   ```
 
 ### Module Not Found
 
 ```bash
-# Backend
-cd ../../backend
-go mod tidy
-go mod download
-
-# Frontend
-cd ../../frontend
-rm -rf node_modules package-lock.json
-npm install
+# Reinstall dependencies
+make install-deps
 ```
 
 ---
@@ -338,76 +281,60 @@ npm install
 ## 📁 File Structure
 
 ```
-dev/
-├── start-dev.sh          # Start dev environment
-├── stop-dev.sh           # Stop all services
-├── destroy-dev.sh        # Destroy dev environment
+deploy/dev/
+├── Makefile              # Single entry point for all commands
 ├── dev.ini               # Configuration file
-└── README.md             # This file
+├── README.md             # This file
+└── INICIO-RAPIDO.md      # Quick start (Portuguese)
 
 Generated during runtime:
-├── /tmp/ehop-backend-dev.pid    # Backend PID
-├── /tmp/ehop-vite-dev.pid       # Vite PID
-├── ../../logs/backend_dev/      # Backend logs
-└── ../../logs/vite-dev.log      # Vite logs
+├── .dev-pids/            # PID files for process tracking
+│   ├── backend.pid
+│   └── vite.pid
+└── ../../logs/
+    ├── backend_dev/
+    │   └── server.log    # Backend logs
+    └── vite-dev.log      # Vite logs
 ```
 
 ---
 
 ## 🎯 Best Practices
 
-### 1. Use Separate Databases
+### 1. Always Use `make clean` When Stuck
 
-Always use the dev database (`ehopdb_dev`) for development:
-- Never modify production database during development
-- Test migrations on dev database first
-- Keep production data pristine
-
-### 2. Hot Reload Workflow
-
-Take advantage of Vite's hot reload:
-```bash
-# Keep dev environment running
-./start-dev.sh
-
-# Edit frontend → See changes instantly
-# Edit backend → Restart only backend:
-cd ../../backend
-go build -o ehop-backend-dev ./cmd/server/main.go
-pkill ehop-backend-dev
-nohup ./ehop-backend-dev > ../logs/backend_dev/server.log 2>&1 &
-```
-
-### 3. Debug Mode
-
-Enable verbose logging in `dev.ini`:
-```ini
-LOG_LEVEL=debug
-APP_ENV=development
-```
-
-### 4. Test API with curl
+If something isn't working as expected:
 
 ```bash
-# Health check
-curl http://localhost:3000/health
-
-# Login
-curl -X POST http://localhost:3000/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"password"}'
-
-# Get clients (with token)
-curl http://localhost:3000/api/clients \
-  -H "Authorization: Bearer YOUR_TOKEN"
+make clean
+make start
 ```
 
-### 5. Browser DevTools
+This kills all stale processes and starts fresh.
 
-- React DevTools (Chrome/Firefox extension)
-- Network tab for API calls
-- Console for errors and logs
-- Application tab for localStorage/cookies
+### 2. Use `make restart-backend` for Backend Changes
+
+Frontend changes apply instantly, but backend changes need a rebuild:
+
+```bash
+make restart-backend
+```
+
+### 3. Check Status Regularly
+
+```bash
+make status
+```
+
+Shows if services are running and their PIDs.
+
+### 4. Use `make health` to Verify Services
+
+```bash
+make health
+```
+
+Checks HTTP endpoints to verify services are responding.
 
 ---
 
@@ -416,10 +343,10 @@ curl http://localhost:3000/api/clients \
 ### From Development to Production (Monolith)
 
 ```bash
-# 1. Stop dev
-./stop-dev.sh
+# Stop dev
+make stop
 
-# 2. Start monolith
+# Start monolith
 cd ../monolith
 ./start-monolith.sh
 ```
@@ -427,73 +354,15 @@ cd ../monolith
 ### From Development to Docker
 
 ```bash
-# 1. Stop dev
-./stop-dev.sh
+# Stop dev
+make stop
 
-# 2. Start docker
+# Start docker
 cd ../docker
 docker-compose up -d
 ```
 
 **Note**: Each mode uses its own database, so data is not shared.
-
----
-
-## 🐛 Debugging Tips
-
-### Backend Debugging
-
-Add print statements:
-```go
-fmt.Printf("DEBUG: User ID: %d\n", userID)
-log.Printf("DEBUG: Query result: %+v\n", result)
-```
-
-Check logs:
-```bash
-tail -f ../../logs/backend_dev/server.log
-```
-
-### Frontend Debugging
-
-Use console.log:
-```javascript
-console.log('Component mounted:', this.props);
-console.log('API response:', response.data);
-```
-
-Use React DevTools to inspect component state and props.
-
-### Database Debugging
-
-```bash
-# Connect to dev database
-psql -h localhost -U ehopuser -d ehopdb_dev
-
-# List tables
-\dt
-
-# Query data
-SELECT * FROM users;
-
-# Check constraints
-\d users
-```
-
----
-
-## 🆚 Development vs Monolith vs Docker
-
-| Feature               | Development | Monolith | Docker |
-|-----------------------|-------------|----------|--------|
-| **Hot Reload**        | ✅ Yes      | ❌ No    | ❌ No  |
-| **Build Speed**       | ⚡ Fast     | Medium   | Slow   |
-| **Production-like**   | ❌ No       | ✅ Yes   | ✅ Yes |
-| **Isolated**          | ❌ No       | ❌ No    | ✅ Yes |
-| **Debug Friendly**    | ✅ Yes      | ⚠️ Ok    | ⚠️ Ok  |
-| **Database**          | dev only    | prod     | prod   |
-| **SSL**               | ❌ No       | ✅ Yes   | ✅ Yes |
-| **Best For**          | Coding      | Testing  | Deploy |
 
 ---
 
@@ -504,18 +373,6 @@ SELECT * FROM users;
 - [Main README](../README.md) - Overview of all modes
 - [Backend README](../../backend/README.md) - Backend documentation
 - [Frontend README](../../frontend/README.md) - Frontend documentation
-
----
-
-## 🤝 Contributing
-
-When developing new features:
-
-1. Start dev environment: `./start-dev.sh`
-2. Make changes with hot reload
-3. Test on dev database
-4. Test on monolith mode before committing
-5. Document changes in README files
 
 ---
 
