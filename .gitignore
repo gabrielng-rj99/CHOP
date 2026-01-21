@@ -45,6 +45,7 @@ Thumbs.db
 *.tmp
 *.bak
 *.temp
+*.pid
 
 # =========================
 # Binaries
