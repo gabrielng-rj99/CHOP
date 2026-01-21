@@ -79,7 +79,11 @@ export const DataProvider = ({ children, token, apiUrl, onTokenExpired }) => {
                         ...options.headers,
                     };
 
-                    const url = new URL(`${apiUrl}${endpoint}`);
+                    // Handle relative API URLs by using window.location.origin as base
+                    const fullUrl = apiUrl.startsWith("http")
+                        ? `${apiUrl}${endpoint}`
+                        : `${window.location.origin}${apiUrl}${endpoint}`;
+                    const url = new URL(fullUrl);
                     if (options.params) {
                         Object.keys(options.params).forEach((key) =>
                             url.searchParams.append(key, options.params[key]),
