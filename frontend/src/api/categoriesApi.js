@@ -17,6 +17,72 @@
  */
 
 const categoriesApi = {
+    // Direct return method for getting categories (used by AuditLogs)
+    getCategories: async (apiUrl, token, params = {}, onTokenExpired) => {
+        const queryParams = new URLSearchParams();
+        if (params.limit) queryParams.append("limit", params.limit);
+        if (params.include_archived)
+            queryParams.append("include_archived", "true");
+
+        const url = `${apiUrl}/categories${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar categorias");
+        }
+
+        return await response.json();
+    },
+
+    // Direct return method for getting subcategories (used by AuditLogs)
+    getSubcategories: async (
+        apiUrl,
+        token,
+        categoryId,
+        params = {},
+        onTokenExpired,
+    ) => {
+        const queryParams = new URLSearchParams();
+        if (params.limit) queryParams.append("limit", params.limit);
+        if (params.include_archived)
+            queryParams.append("include_archived", "true");
+
+        const url = `${apiUrl}/categories/${categoryId}/subcategories${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar subcategorias");
+        }
+
+        return await response.json();
+    },
+
     loadCategories: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(
             `${apiUrl}/categories?include_archived=true`,

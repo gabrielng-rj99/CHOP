@@ -17,6 +17,34 @@
  */
 
 export const contractsApi = {
+    // Direct return method for getting contracts (used by AuditLogs)
+    getContracts: async (apiUrl, token, params = {}, onTokenExpired) => {
+        const queryParams = new URLSearchParams();
+        if (params.limit) queryParams.append("limit", params.limit);
+
+        const url = `${apiUrl}/contracts${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar contratos");
+        }
+
+        return await response.json();
+    },
+
     loadContracts: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/contracts`, {
             headers: {

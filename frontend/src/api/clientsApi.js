@@ -17,6 +17,35 @@
  */
 
 export const clientsApi = {
+    // Direct return method for getting clients (used by AuditLogs)
+    getClients: async (apiUrl, token, params = {}, onTokenExpired) => {
+        const queryParams = new URLSearchParams();
+        if (params.limit) queryParams.append("limit", params.limit);
+        if (params.include_stats) queryParams.append("include_stats", "true");
+
+        const url = `${apiUrl}/clients${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar clientes");
+        }
+
+        return await response.json();
+    },
+
     loadClients: async (
         apiUrl,
         token,
