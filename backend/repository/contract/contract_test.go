@@ -643,6 +643,7 @@ func TestUpdateContract(t *testing.T) {
 	startDate := time.Now()
 	endDate := startDate.AddDate(1, 0, 0)
 	contractID := uuid.New().String()
+	contractIDForEmptyName := uuid.New().String()
 	_, err = db.Exec(
 		"INSERT INTO contracts (id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		contractID,
@@ -656,6 +657,21 @@ func TestUpdateContract(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert test contract: %v", err)
+	}
+	// Create a separate contract for the empty name test
+	_, err = db.Exec(
+		"INSERT INTO contracts (id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		contractIDForEmptyName,
+		"Original Contract Name",
+		"TEST-KEY-EMPTY",
+		startDate,
+		endDate,
+		subcategoryID,
+		clientID,
+		subClientID,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test contract for empty name: %v", err)
 	}
 
 	tests := []struct {
@@ -690,23 +706,23 @@ func TestUpdateContract(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "erro - nome vazio",
+			name: "sucesso - nome vazio mantém valor atual",
 			contract: domain.Contract{
-				ID:            contractID,
-				ItemKey:       "TEST-KEY-123",
+				ID:            contractIDForEmptyName,
+				ItemKey:       "TEST-KEY-EMPTY-KEEP",
 				StartDate:     timePtr(startDate),
 				EndDate:       timePtr(endDate),
 				SubcategoryID: subcategoryID,
 				ClientID:      clientID,
 			},
-			expectError: true,
+			expectError: false,
 		},
 		{
 			name: "erro - data final antes da inicial",
 			contract: domain.Contract{
 				ID:            contractID,
 				Model:         "Updated Contract",
-				ItemKey:       "TEST-KEY-123",
+				ItemKey:       "TEST-KEY-FINAL",
 				StartDate:     timePtr(endDate),
 				EndDate:       timePtr(startDate),
 				SubcategoryID: subcategoryID,
@@ -734,8 +750,13 @@ func TestUpdateContract(t *testing.T) {
 				if err != nil {
 					t.Errorf("Failed to query updated contract: %v", err)
 				}
-				if model != tt.contract.Model {
-					t.Errorf("Expected model %q but got %q", tt.contract.Model, model)
+				// If Model is empty, it should keep the original value
+				expectedModel := tt.contract.Model
+				if expectedModel == "" {
+					expectedModel = "Original Contract Name"
+				}
+				if model != expectedModel {
+					t.Errorf("Expected model %q but got %q", expectedModel, model)
 				}
 			}
 		})
@@ -1770,7 +1791,7 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 			description: "Update with name too long should fail",
 		},
 		{
-			name: "invalid - update with empty product key",
+			name: "valid - update with empty product key keeps current",
 			contract: domain.Contract{
 				ID:            contractID,
 				Model:         "Updated Contract",
@@ -1780,8 +1801,8 @@ func TestUpdateContractWithInvalidData(t *testing.T) {
 				SubcategoryID: subcategoryID,
 				ClientID:      clientID,
 			},
-			expectError: true,
-			description: "Update with empty product key should fail",
+			expectError: false,
+			description: "Update with empty product key should keep current value",
 		},
 		{
 			name: "invalid - update with end date before start date",

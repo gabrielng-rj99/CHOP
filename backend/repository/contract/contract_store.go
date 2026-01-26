@@ -331,26 +331,56 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 		return errors.New("contract ID cannot be empty")
 	}
 
+	// Check if contract exists and fetch current values for fields that might not be updated
+	var currentModel, currentItemKey string
+	var currentStartDate, currentEndDate sql.NullTime
+	err := s.db.QueryRow("SELECT model, item_key, start_date, end_date FROM contracts WHERE id = $1", contract.ID).Scan(&currentModel, &currentItemKey, &currentStartDate, &currentEndDate)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("contract does not exist")
+		}
+		return err
+	}
+
 	var trimmedModel, trimmedItemKey string
-	var err error
-	// Model is optional - only validate if provided
+
+	// Model is optional - if provided and not empty, validate it; otherwise keep current
 	if contract.Model != "" {
 		trimmedModel, err = repository.ValidateName(contract.Model, 255)
 		if err != nil {
 			return err
 		}
+	} else {
+		trimmedModel = currentModel
 	}
-	// ItemKey is optional - only validate if provided
+
+	// ItemKey is optional - if provided and not empty, validate it; otherwise keep current
 	if contract.ItemKey != "" {
 		trimmedItemKey, err = repository.ValidateName(contract.ItemKey, 255)
 		if err != nil {
 			return err
 		}
+	} else {
+		trimmedItemKey = currentItemKey
 	}
 
-	// Datas são opcionais, mas se ambas forem fornecidas, end_date deve ser maior que start_date
-	if contract.StartDate != nil && contract.EndDate != nil {
-		if contract.EndDate.Before(*contract.StartDate) || contract.EndDate.Equal(*contract.StartDate) {
+	// Handle dates: if not provided, use current values
+	var startDate, endDate sql.NullTime
+	if contract.StartDate != nil {
+		startDate = nullTimeFromTime(contract.StartDate)
+	} else {
+		startDate = currentStartDate
+	}
+
+	if contract.EndDate != nil {
+		endDate = nullTimeFromTime(contract.EndDate)
+	} else {
+		endDate = currentEndDate
+	}
+
+	// Validate date logic: if both are provided/valid, end_date must be after start_date
+	if startDate.Valid && endDate.Valid {
+		if endDate.Time.Before(startDate.Time) || endDate.Time.Equal(startDate.Time) {
 			return errors.New("end date must be after start date")
 		}
 	}
@@ -367,21 +397,8 @@ func (s *ContractStore) UpdateContract(contract domain.Contract) error {
 		}
 	}
 
-	// Check if contract exists
-	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", contract.ID).Scan(&count)
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return errors.New("contract does not exist")
-	}
-
 	sqlStatement := `UPDATE contracts SET model = $1, item_key = $2, start_date = $3, end_date = $4 WHERE id = $5`
-	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedItemKey,
-		nullTimeFromTime(contract.StartDate),
-		nullTimeFromTime(contract.EndDate),
-		contract.ID)
+	result, err := s.db.Exec(sqlStatement, trimmedModel, trimmedItemKey, startDate, endDate, contract.ID)
 	if err != nil {
 		return err
 	}
