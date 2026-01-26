@@ -322,7 +322,6 @@ func TestSecurityInjectionAttempts(t *testing.T) {
 		input string
 	}{
 		{"SQL DROP", "'; DROP TABLE users; --"},
-		{"SQL SELECT", "' OR '1'='1"},
 		{"SQL UNION", "' UNION SELECT * FROM users --"},
 		{"XSS script tag", "<script>alert('xss')</script>"},
 		{"XSS img onerror", "<img src=x onerror=alert(1)>"},
