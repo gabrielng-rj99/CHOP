@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -117,3 +117,41 @@ CREATE TABLE IF NOT EXISTS user_theme_settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_theme_settings_user_id ON user_theme_settings(user_id);
+
+-- ============================================
+-- PERMISSIONS - Usuários
+-- ============================================
+INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
+('b0000000-0000-0000-0000-000000000051', 'users', 'create', 'Criar Usuários', 'Permite criar novos usuários do sistema', 'Usuários'),
+('b0000000-0000-0000-0000-000000000052', 'users', 'read', 'Visualizar Usuários', 'Permite visualizar lista e detalhes de usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000053', 'users', 'update', 'Editar Usuários', 'Permite editar dados de outros usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000054', 'users', 'delete', 'Deletar Usuários', 'Permite deletar usuários permanentemente', 'Usuários'),
+('b0000000-0000-0000-0000-000000000055', 'users', 'block', 'Bloquear/Desbloquear Usuários', 'Permite bloquear e desbloquear acesso de usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000056', 'users', 'manage_roles', 'Gerenciar Papéis de Usuários', 'Permite alterar o papel/role atribuído a usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000101', 'users', 'create_admin', 'Criar Administradores', 'Permite criar usuários com role admin', 'Usuários'),
+('b0000000-0000-0000-0000-000000000102', 'users', 'create_user', 'Criar Usuários Padrão', 'Permite criar usuários com role user', 'Usuários'),
+('b0000000-0000-0000-0000-000000000103', 'users', 'create_viewer', 'Criar Visualizadores', 'Permite criar usuários com role viewer', 'Usuários'),
+('b0000000-0000-0000-0000-000000000104', 'users', 'create_custom', 'Criar Usuários Personalizados', 'Permite criar usuários com roles customizados', 'Usuários'),
+('b0000000-0000-0000-0000-000000000105', 'users', 'manage_sessions', 'Gerenciar Sessões', 'Permite visualizar e encerrar sessões de usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000106', 'users', 'reset_password', 'Resetar Senhas', 'Permite forçar reset de senha de usuários', 'Usuários'),
+('b0000000-0000-0000-0000-000000000107', 'users', 'view_activity', 'Ver Atividade de Usuários', 'Permite visualizar log de atividades de usuários', 'Usuários')
+ON CONFLICT (resource, action) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;
+
+-- ============================================
+-- ROLE PERMISSIONS - Users
+-- ============================================
+
+-- ROOT: Todas as permissões de users
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'users'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Users exceto manage_roles e create_admin
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'users' AND action NOT IN ('manage_roles', 'create_admin')
+ON CONFLICT DO NOTHING;

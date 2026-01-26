@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -57,3 +57,41 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_operation ON audit_logs(operation);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_request_id ON audit_logs(request_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs(status);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_ip ON audit_logs(ip_address);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_object_name ON audit_logs(object_name);
+
+-- ============================================
+-- PERMISSIONS - Auditoria
+-- ============================================
+INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
+('b0000000-0000-0000-0000-000000000061', 'audit_logs', 'read', 'Visualizar Logs de Auditoria', 'Permite visualizar histórico de ações do sistema', 'Auditoria'),
+('b0000000-0000-0000-0000-000000000062', 'audit_logs', 'export', 'Exportar Logs de Auditoria', 'Permite exportar logs de auditoria em diferentes formatos', 'Auditoria'),
+('b0000000-0000-0000-0000-000000000131', 'audit_logs', 'read_all', 'Ver Todos os Logs', 'Permite visualizar logs de auditoria de todo o sistema', 'Auditoria'),
+('b0000000-0000-0000-0000-000000000132', 'audit_logs', 'read_own', 'Ver Logs Próprios', 'Permite visualizar apenas logs das próprias ações', 'Auditoria'),
+('b0000000-0000-0000-0000-000000000133', 'audit_logs', 'delete', 'Deletar Logs', 'Permite remover logs de auditoria (uso crítico)', 'Auditoria'),
+('b0000000-0000-0000-0000-000000000134', 'audit_logs', 'configure', 'Configurar Auditoria', 'Permite configurar retenção e tipos de log', 'Auditoria')
+ON CONFLICT (resource, action) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;
+
+-- ============================================
+-- ROLE PERMISSIONS - Audit Logs
+-- ============================================
+
+-- ROOT: Todas as permissões de audit_logs
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'audit_logs'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Audit logs exceto delete
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'audit_logs' AND action != 'delete'
+ON CONFLICT DO NOTHING;
+
+-- USER: Apenas read_own
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000003', id FROM permissions
+WHERE resource = 'audit_logs' AND action = 'read_own'
+ON CONFLICT DO NOTHING;

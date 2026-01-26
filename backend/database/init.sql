@@ -21,22 +21,21 @@
 -- ============================================
 -- Este arquivo orquestra a execução de todos os módulos do schema.
 --
--- Uso:
+-- Uso (execute de dentro do diretório schema/):
 --   psql -d client_hub -f init.sql
 --
--- Ou diretamente de dentro do diretório schema/:
---   psql -d client_hub -f init.sql
+-- Ou de qualquer lugar apontando para o arquivo:
+--   psql -d client_hub -f backend/database/init.sql
 --
--- Ordem de execução:
+-- Ordem de execução automática (arquivos 01-08):
 --   01_extensions.sql  - Extensões PostgreSQL (citext)
 --   02_core.sql        - Tabelas core: settings, roles, permissions + dados
 --   03_security.sql    - Segurança: políticas de senha/sessão + dados
 --   04_users.sql       - Usuários e preferências de tema
 --   05_clients.sql     - Clientes e filiais
 --   06_contracts.sql   - Categorias, subcategorias e contratos
---   07_audit.sql       - Logs de auditoria
---   08_audit_object_name.sql - Função para nome de objeto em audit
---   09_financial.sql    - Financeiro e parcelas de contratos
+--   07_audit.sql       - Logs de auditoria + permissões
+--   08_financial.sql   - Financeiro e parcelas de contratos
 --
 -- Cada módulo é auto-contido: inclui DDL (CREATE TABLE) e DML (INSERT)
 -- para os dados essenciais daquele módulo.
@@ -46,32 +45,29 @@
 \echo '============================================'
 \echo ''
 
-\echo '[1/9] Loading extensions...'
-\i 01_extensions.sql
+\echo '[1/8] Loading extensions...'
+\i schema/01_extensions.sql
 
-\echo '[2/9] Loading core module (settings, roles, permissions)...'
-\i 02_core.sql
+\echo '[2/8] Loading core module (settings, roles, permissions)...'
+\i schema/02_core.sql
 
-\echo '[3/9] Loading security module (password/session policies)...'
-\i 03_security.sql
+\echo '[3/8] Loading security module (password/session policies)...'
+\i schema/03_security.sql
 
-\echo '[4/9] Loading users module...'
-\i 04_users.sql
+\echo '[4/8] Loading users module...'
+\i schema/04_users.sql
 
-\echo '[5/9] Loading clients module...'
-\i 05_clients.sql
+\echo '[5/8] Loading clients module...'
+\i schema/05_clients.sql
 
-\echo '[6/9] Loading contracts module...'
-\i 06_contracts.sql
+\echo '[6/8] Loading contracts module...'
+\i schema/06_contracts.sql
 
-\echo '[7/9] Loading audit module...'
-\i 07_audit.sql
+\echo '[7/8] Loading audit module...'
+\i schema/07_audit.sql
 
-\echo '[8/9] Loading audit object name function...'
-\i 08_audit_object_name.sql
-
-\echo '[9/9] Loading financial module...'
-\i 09_financial.sql
+\echo '[8/8] Loading financial module...'
+\i schema/08_financial.sql
 
 \echo ''
 \echo '============================================'
@@ -100,8 +96,8 @@
 \echo ''
 \echo 'Default data inserted:'
 \echo '  - 4 roles (root, admin, user, viewer)'
-\echo '  - All permissions (including financial)'
-\echo '  - Role-permission mappings'
+\echo '  - 77 permissions (distributed across 12 categories)'
+\echo '  - 168 role-permission mappings'
 \echo '  - System settings (security, dashboard, notifications, audit)'
 \echo '  - Password policies per role'
 \echo '  - Session policies per role'

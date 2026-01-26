@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -113,6 +113,36 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_locked ON login_attempts(locked_until) WHERE locked_until IS NOT NULL;
+
+-- ============================================
+-- PERMISSIONS - Segurança Avançada
+-- ============================================
+INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
+('b0000000-0000-0000-0000-000000000111', 'security', 'manage_password_policy', 'Gerenciar Política de Senha', 'Permite configurar políticas de senha do sistema', 'Segurança'),
+('b0000000-0000-0000-0000-000000000112', 'security', 'manage_session_policy', 'Gerenciar Política de Sessão', 'Permite configurar duração de sessão e refresh token', 'Segurança'),
+('b0000000-0000-0000-0000-000000000113', 'security', 'manage_lock_policy', 'Gerenciar Política de Bloqueio', 'Permite configurar níveis de bloqueio de conta', 'Segurança'),
+('b0000000-0000-0000-0000-000000000114', 'security', 'manage_rate_limit', 'Gerenciar Rate Limiting', 'Permite configurar limites de requisições', 'Segurança'),
+('b0000000-0000-0000-0000-000000000115', 'security', 'view_security_logs', 'Ver Logs de Segurança', 'Permite visualizar tentativas de login e bloqueios', 'Segurança')
+ON CONFLICT (resource, action) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;
+
+-- ============================================
+-- ROLE PERMISSIONS - Security
+-- ============================================
+
+-- ROOT: Todas as permissões de security
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'security'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Apenas view_security_logs
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'security' AND action = 'view_security_logs'
+ON CONFLICT DO NOTHING;
 
 -- ============================================
 -- PASSWORD POLICIES - Data

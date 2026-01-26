@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published

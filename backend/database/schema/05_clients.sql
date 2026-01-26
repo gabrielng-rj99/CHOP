@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -80,3 +80,87 @@ CREATE TABLE IF NOT EXISTS affiliates (
 CREATE INDEX IF NOT EXISTS idx_affiliates_client_id ON affiliates(client_id);
 CREATE INDEX IF NOT EXISTS idx_affiliates_name ON affiliates(name);
 CREATE INDEX IF NOT EXISTS idx_affiliates_status ON affiliates(status);
+
+-- ============================================
+-- PERMISSIONS - Clientes
+-- ============================================
+INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
+('b0000000-0000-0000-0000-000000000001', 'clients', 'create', 'Criar Clientes', 'Permite criar novos clientes', 'Clientes'),
+('b0000000-0000-0000-0000-000000000002', 'clients', 'read', 'Visualizar Clientes', 'Permite visualizar clientes', 'Clientes'),
+('b0000000-0000-0000-0000-000000000003', 'clients', 'update', 'Editar Clientes', 'Permite editar clientes existentes', 'Clientes'),
+('b0000000-0000-0000-0000-000000000004', 'clients', 'delete', 'Deletar Clientes', 'Permite deletar clientes permanentemente', 'Clientes'),
+('b0000000-0000-0000-0000-000000000005', 'clients', 'archive', 'Arquivar Clientes', 'Permite arquivar/desarquivar clientes', 'Clientes'),
+('b0000000-0000-0000-0000-000000000006', 'clients', 'export', 'Exportar Clientes', 'Permite exportar dados de clientes em diferentes formatos', 'Clientes')
+ON CONFLICT (resource, action) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;
+
+-- ============================================
+-- PERMISSIONS - Filiais (Sub-entidades)
+-- ============================================
+INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
+('b0000000-0000-0000-0000-000000000011', 'affiliates', 'create', 'Criar Filiais', 'Permite criar novas filiais vinculadas a clientes', 'Filiais'),
+('b0000000-0000-0000-0000-000000000012', 'affiliates', 'read', 'Visualizar Filiais', 'Permite visualizar filiais', 'Filiais'),
+('b0000000-0000-0000-0000-000000000013', 'affiliates', 'update', 'Editar Filiais', 'Permite editar filiais existentes', 'Filiais'),
+('b0000000-0000-0000-0000-000000000014', 'affiliates', 'delete', 'Deletar Filiais', 'Permite deletar filiais permanentemente', 'Filiais')
+ON CONFLICT (resource, action) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;
+
+-- ============================================
+-- ROLE PERMISSIONS - Clients
+-- ============================================
+
+-- ROOT: Todas as permissões de clients
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'clients'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Todas as permissões de clients
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'clients'
+ON CONFLICT DO NOTHING;
+
+-- USER: Clients create, read, update, archive (não delete)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000003', id FROM permissions
+WHERE resource = 'clients' AND action IN ('create', 'read', 'update', 'archive')
+ON CONFLICT DO NOTHING;
+
+-- VIEWER: Clients read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000004', id FROM permissions
+WHERE resource = 'clients' AND action = 'read'
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- ROLE PERMISSIONS - Affiliates
+-- ============================================
+
+-- ROOT: Todas as permissões de affiliates
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'affiliates'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Todas as permissões de affiliates
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'affiliates'
+ON CONFLICT DO NOTHING;
+
+-- USER: Affiliates create, read, update (não delete)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000003', id FROM permissions
+WHERE resource = 'affiliates' AND action IN ('create', 'read', 'update')
+ON CONFLICT DO NOTHING;
+
+-- VIEWER: Affiliates read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000004', id FROM permissions
+WHERE resource = 'affiliates' AND action = 'read'
+ON CONFLICT DO NOTHING;

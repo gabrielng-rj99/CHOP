@@ -1,6 +1,6 @@
 /*
  * Client Hub Open Project
- * Copyright (C) 2025 Client Hub Contributors
+ * Copyright (C) 2026 Client Hub Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -159,104 +159,6 @@ VALUES (
     priority = EXCLUDED.priority;
 
 -- ============================================
--- PERMISSIONS - Clientes
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000001', 'clients', 'create', 'Criar Clientes', 'Permite criar novos clientes', 'Clientes'),
-('b0000000-0000-0000-0000-000000000002', 'clients', 'read', 'Visualizar Clientes', 'Permite visualizar clientes', 'Clientes'),
-('b0000000-0000-0000-0000-000000000003', 'clients', 'update', 'Editar Clientes', 'Permite editar clientes existentes', 'Clientes'),
-('b0000000-0000-0000-0000-000000000004', 'clients', 'delete', 'Deletar Clientes', 'Permite deletar clientes permanentemente', 'Clientes'),
-('b0000000-0000-0000-0000-000000000005', 'clients', 'archive', 'Arquivar Clientes', 'Permite arquivar/desarquivar clientes', 'Clientes'),
-('b0000000-0000-0000-0000-000000000006', 'clients', 'export', 'Exportar Clientes', 'Permite exportar dados de clientes em diferentes formatos', 'Clientes')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Filiais (Sub-entidades)
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000011', 'affiliates', 'create', 'Criar Filiais', 'Permite criar novas filiais vinculadas a clientes', 'Filiais'),
-('b0000000-0000-0000-0000-000000000012', 'affiliates', 'read', 'Visualizar Filiais', 'Permite visualizar filiais', 'Filiais'),
-('b0000000-0000-0000-0000-000000000013', 'affiliates', 'update', 'Editar Filiais', 'Permite editar filiais existentes', 'Filiais'),
-('b0000000-0000-0000-0000-000000000014', 'affiliates', 'delete', 'Deletar Filiais', 'Permite deletar filiais permanentemente', 'Filiais')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Contratos
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000021', 'contracts', 'create', 'Criar Contratos', 'Permite criar novos contratos', 'Contratos'),
-('b0000000-0000-0000-0000-000000000022', 'contracts', 'read', 'Visualizar Contratos', 'Permite visualizar contratos', 'Contratos'),
-('b0000000-0000-0000-0000-000000000023', 'contracts', 'update', 'Editar Contratos', 'Permite editar contratos existentes', 'Contratos'),
-('b0000000-0000-0000-0000-000000000024', 'contracts', 'delete', 'Deletar Contratos', 'Permite deletar contratos permanentemente', 'Contratos'),
-('b0000000-0000-0000-0000-000000000025', 'contracts', 'archive', 'Arquivar Contratos', 'Permite arquivar/desarquivar contratos', 'Contratos'),
-('b0000000-0000-0000-0000-000000000026', 'contracts', 'export', 'Exportar Contratos', 'Permite exportar dados de contratos em diferentes formatos', 'Contratos')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Categorias e Subcategorias
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000031', 'categories', 'create', 'Criar Categorias', 'Permite criar novas categorias de contratos', 'Categorias'),
-('b0000000-0000-0000-0000-000000000032', 'categories', 'read', 'Visualizar Categorias', 'Permite visualizar categorias e subcategorias', 'Categorias'),
-('b0000000-0000-0000-0000-000000000033', 'categories', 'update', 'Editar Categorias', 'Permite editar categorias existentes', 'Categorias'),
-('b0000000-0000-0000-0000-000000000034', 'categories', 'delete', 'Deletar Categorias', 'Permite deletar categorias permanentemente', 'Categorias'),
-('b0000000-0000-0000-0000-000000000035', 'categories', 'archive', 'Arquivar Categorias', 'Permite arquivar/desarquivar categorias', 'Categorias'),
-('b0000000-0000-0000-0000-000000000041', 'subcategories', 'create', 'Criar Subcategorias', 'Permite criar novas subcategorias', 'Categorias'),
-('b0000000-0000-0000-0000-000000000042', 'subcategories', 'read', 'Visualizar Subcategorias', 'Permite visualizar subcategorias', 'Categorias'),
-('b0000000-0000-0000-0000-000000000043', 'subcategories', 'update', 'Editar Subcategorias', 'Permite editar subcategorias existentes', 'Categorias'),
-('b0000000-0000-0000-0000-000000000044', 'subcategories', 'delete', 'Deletar Subcategorias', 'Permite deletar subcategorias', 'Categorias')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Usuários
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000051', 'users', 'create', 'Criar Usuários', 'Permite criar novos usuários do sistema', 'Usuários'),
-('b0000000-0000-0000-0000-000000000052', 'users', 'read', 'Visualizar Usuários', 'Permite visualizar lista e detalhes de usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000053', 'users', 'update', 'Editar Usuários', 'Permite editar dados de outros usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000054', 'users', 'delete', 'Deletar Usuários', 'Permite deletar usuários permanentemente', 'Usuários'),
-('b0000000-0000-0000-0000-000000000055', 'users', 'block', 'Bloquear/Desbloquear Usuários', 'Permite bloquear e desbloquear acesso de usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000056', 'users', 'manage_roles', 'Gerenciar Papéis de Usuários', 'Permite alterar o papel/role atribuído a usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000101', 'users', 'create_admin', 'Criar Administradores', 'Permite criar usuários com role admin', 'Usuários'),
-('b0000000-0000-0000-0000-000000000102', 'users', 'create_user', 'Criar Usuários Padrão', 'Permite criar usuários com role user', 'Usuários'),
-('b0000000-0000-0000-0000-000000000103', 'users', 'create_viewer', 'Criar Visualizadores', 'Permite criar usuários com role viewer', 'Usuários'),
-('b0000000-0000-0000-0000-000000000104', 'users', 'create_custom', 'Criar Usuários Personalizados', 'Permite criar usuários com roles customizados', 'Usuários'),
-('b0000000-0000-0000-0000-000000000105', 'users', 'manage_sessions', 'Gerenciar Sessões', 'Permite visualizar e encerrar sessões de usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000106', 'users', 'reset_password', 'Resetar Senhas', 'Permite forçar reset de senha de usuários', 'Usuários'),
-('b0000000-0000-0000-0000-000000000107', 'users', 'view_activity', 'Ver Atividade de Usuários', 'Permite visualizar log de atividades de usuários', 'Usuários')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Auditoria
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000061', 'audit_logs', 'read', 'Visualizar Logs de Auditoria', 'Permite visualizar histórico de ações do sistema', 'Auditoria'),
-('b0000000-0000-0000-0000-000000000062', 'audit_logs', 'export', 'Exportar Logs de Auditoria', 'Permite exportar logs de auditoria em diferentes formatos', 'Auditoria'),
-('b0000000-0000-0000-0000-000000000131', 'audit_logs', 'read_all', 'Ver Todos os Logs', 'Permite visualizar logs de auditoria de todo o sistema', 'Auditoria'),
-('b0000000-0000-0000-0000-000000000132', 'audit_logs', 'read_own', 'Ver Logs Próprios', 'Permite visualizar apenas logs das próprias ações', 'Auditoria'),
-('b0000000-0000-0000-0000-000000000133', 'audit_logs', 'delete', 'Deletar Logs', 'Permite remover logs de auditoria (uso crítico)', 'Auditoria'),
-('b0000000-0000-0000-0000-000000000134', 'audit_logs', 'configure', 'Configurar Auditoria', 'Permite configurar retenção e tipos de log', 'Auditoria')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
 -- PERMISSIONS - Sistema e Segurança
 -- ============================================
 INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
@@ -267,20 +169,6 @@ INSERT INTO permissions (id, resource, action, display_name, description, catego
 ('b0000000-0000-0000-0000-000000000121', 'settings', 'manage_labels', 'Gerenciar Rótulos', 'Permite personalizar rótulos/labels do sistema', 'Sistema'),
 ('b0000000-0000-0000-0000-000000000122', 'settings', 'manage_uploads', 'Gerenciar Uploads', 'Permite fazer upload de arquivos (logos, etc)', 'Sistema'),
 ('b0000000-0000-0000-0000-000000000123', 'settings', 'view_system_info', 'Ver Informações do Sistema', 'Permite visualizar versão, status, estatísticas', 'Sistema')
-ON CONFLICT (resource, action) DO UPDATE SET
-    display_name = EXCLUDED.display_name,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category;
-
--- ============================================
--- PERMISSIONS - Segurança Avançada
--- ============================================
-INSERT INTO permissions (id, resource, action, display_name, description, category) VALUES
-('b0000000-0000-0000-0000-000000000111', 'security', 'manage_password_policy', 'Gerenciar Política de Senha', 'Permite configurar políticas de senha do sistema', 'Segurança'),
-('b0000000-0000-0000-0000-000000000112', 'security', 'manage_session_policy', 'Gerenciar Política de Sessão', 'Permite configurar duração de sessão e refresh token', 'Segurança'),
-('b0000000-0000-0000-0000-000000000113', 'security', 'manage_lock_policy', 'Gerenciar Política de Bloqueio', 'Permite configurar níveis de bloqueio de conta', 'Segurança'),
-('b0000000-0000-0000-0000-000000000114', 'security', 'manage_rate_limit', 'Gerenciar Rate Limiting', 'Permite configurar limites de requisições', 'Segurança'),
-('b0000000-0000-0000-0000-000000000115', 'security', 'view_security_logs', 'Ver Logs de Segurança', 'Permite visualizar tentativas de login e bloqueios', 'Segurança')
 ON CONFLICT (resource, action) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     description = EXCLUDED.description,
@@ -327,58 +215,85 @@ ON CONFLICT (resource, action) DO UPDATE SET
     category = EXCLUDED.category;
 
 -- ============================================
--- ROLE PERMISSIONS MAPPINGS
+-- ROLE PERMISSIONS - Settings
 -- ============================================
 
--- ROOT: Todas as permissões (sempre terá tudo)
+-- ROOT: Todas as permissões de settings
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'settings'
 ON CONFLICT DO NOTHING;
 
--- ADMIN: Maioria das permissões, exceto gestão de roles e segurança crítica
+-- ADMIN: Settings exceto manage_security
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
-WHERE
-    -- Não pode gerenciar roles de sistema
-    resource != 'roles'
-    -- Não pode alterar configurações de segurança crítica
-    AND NOT (resource = 'settings' AND action = 'manage_security')
-    AND NOT (resource = 'security' AND action IN ('manage_password_policy', 'manage_session_policy', 'manage_lock_policy', 'manage_rate_limit'))
-    -- Não pode atribuir roles a usuários (apenas root)
-    AND NOT (resource = 'users' AND action = 'manage_roles')
-    -- Não pode criar admins
-    AND NOT (resource = 'users' AND action = 'create_admin')
-    -- Não pode deletar logs de auditoria
-    AND NOT (resource = 'audit_logs' AND action = 'delete')
+WHERE resource = 'settings' AND action != 'manage_security'
 ON CONFLICT DO NOTHING;
 
--- USER: Operações do dia-a-dia, sem deletar permanentemente
+-- ============================================
+-- ROLE PERMISSIONS - Roles
+-- ============================================
+
+-- ROOT: Todas as permissões de roles
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'roles'
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- ROLE PERMISSIONS - Theme
+-- ============================================
+
+-- ROOT: Todas as permissões de theme
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'theme'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Theme exceto manage_permissions
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'theme' AND action != 'manage_permissions'
+ON CONFLICT DO NOTHING;
+
+-- USER: Theme read e update
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 'a0000000-0000-0000-0000-000000000003', id FROM permissions
-WHERE
-    -- Clientes: criar, ler, editar, arquivar (não deletar)
-    (resource = 'clients' AND action IN ('create', 'read', 'update', 'archive'))
-    -- Filiais: criar, ler, editar (não deletar)
-    OR (resource = 'affiliates' AND action IN ('create', 'read', 'update'))
-    -- Contratos: criar, ler, editar, arquivar (não deletar)
-    OR (resource = 'contracts' AND action IN ('create', 'read', 'update', 'archive'))
-    -- Categorias: apenas ler
-    OR (resource = 'categories' AND action = 'read')
-    OR (resource = 'subcategories' AND action = 'read')
-    -- Tema: ler e editar próprio
-    OR (resource = 'theme' AND action IN ('read', 'update'))
-    -- Dashboard: ler
-    OR (resource = 'dashboard' AND action = 'read')
-    -- Auditoria: ver apenas logs próprios
-    OR (resource = 'audit_logs' AND action = 'read_own')
+WHERE resource = 'theme' AND action IN ('read', 'update')
 ON CONFLICT DO NOTHING;
 
--- VIEWER: Apenas leitura
+-- VIEWER: Theme read
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 'a0000000-0000-0000-0000-000000000004', id FROM permissions
-WHERE
-    action = 'read'
-    AND resource IN ('clients', 'affiliates', 'contracts', 'categories', 'subcategories', 'dashboard', 'theme')
+WHERE resource = 'theme' AND action = 'read'
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- ROLE PERMISSIONS - Dashboard
+-- ============================================
+
+-- ROOT: Todas as permissões de dashboard
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', id FROM permissions
+WHERE resource = 'dashboard'
+ON CONFLICT DO NOTHING;
+
+-- ADMIN: Todas as permissões de dashboard
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE resource = 'dashboard'
+ON CONFLICT DO NOTHING;
+
+-- USER: Dashboard read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000003', id FROM permissions
+WHERE resource = 'dashboard' AND action = 'read'
+ON CONFLICT DO NOTHING;
+
+-- VIEWER: Dashboard read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'a0000000-0000-0000-0000-000000000004', id FROM permissions
+WHERE resource = 'dashboard' AND action = 'read'
 ON CONFLICT DO NOTHING;
 
 -- ============================================
