@@ -96,6 +96,7 @@ var dangerousPatterns = []string{
 	"--", "/*", "*/", ";;", "DROP ", "DELETE ", "INSERT ", "UPDATE ",
 	"UNION ", "SELECT ", "EXEC ", "EXECUTE ", "xp_", "sp_",
 	"eval(", "alert(", "document.", "window.",
+	"' OR '", "\" OR \"", "OR 1=1", "OR '1'='1",
 }
 
 // validateThemeRequest performs comprehensive validation on the theme request

@@ -150,7 +150,7 @@ func TestCreateUserBasic(t *testing.T) {
 			name:        "valid root user",
 			username:    "rootuser",
 			displayName: "Root User",
-			password:    "RootPass123!@#abcdefgh",
+			password:    "RootPass123!@#abcdefghij",
 			role:        "root",
 			expectError: false,
 		},

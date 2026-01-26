@@ -40,7 +40,7 @@ func TestAuditLogOperations(t *testing.T) {
 
 	// Create a user to be the admin
 	userStore := NewUserStore(db)
-	adminID, err := userStore.CreateUser("admin_tester", "Admin Tester", "Passw0rd!Secure123", "admin")
+	adminID, err := userStore.CreateUser("admin_tester", "Admin Tester", "Passw0rd!Secure123abc", "admin")
 	if err != nil {
 		t.Fatalf("Failed to create admin user: %v", err)
 	}
