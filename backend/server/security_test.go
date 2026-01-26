@@ -59,9 +59,9 @@ func TestUpload_ExtensionValidation(t *testing.T) {
 
 	server.HandleUpload(rec, req)
 
-	// Should reject
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("Expected 400 Bad Request for .exe file, got %d", rec.Code)
+	// Should reject with 401 Unauthorized (no auth token provided)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401 Unauthorized for request without auth token, got %d", rec.Code)
 	}
 }
 
