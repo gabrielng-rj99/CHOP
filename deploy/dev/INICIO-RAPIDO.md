@@ -14,13 +14,25 @@ cd deploy/dev
 make start
 ```
 
-Pronto! O Makefile cuida de tudo automaticamente.
+Pronto! O Makefile cuida de tudo automaticamente:
+- ✅ Inicia PostgreSQL automaticamente (com sudo se necessário)
+- ✅ Verifica conflitos de porta
+- ✅ Constrói o backend
+- ✅ Inicia todos os serviços
 
 ## Acessar
 
-- **Frontend**: http://localhost:5173 (hot reload!)
-- **Backend**: http://localhost:3000
-- **Health**: http://localhost:3000/health
+- **Frontend**: http://localhost:45173 ⚡ (hot reload!)
+- **Backend**: http://localhost:43000
+- **Health**: http://localhost:43000/health
+
+## Portas Utilizadas
+
+| Componente | Porta | Motivo |
+|-----------|-------|---------|
+| Backend API | 43000 | Evita conflito com produção (3000) |
+| Frontend (Vite) | 45173 | Evita conflito com outros (5173) |
+| PostgreSQL | 5432 | Porta padrão (sistema nativo) |
 
 ## Comandos Principais
 
@@ -54,6 +66,14 @@ make clean
 
 ```bash
 make logs
+```
+
+### PostgreSQL não inicia automaticamente
+
+```bash
+# Normalmente inicia sozinho, mas se não funcionar:
+sudo systemctl start postgresql
+sudo systemctl status postgresql
 ```
 
 ## Database

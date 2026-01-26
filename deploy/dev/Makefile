@@ -43,9 +43,14 @@ GO_VERSION := 1.21
 NODE_VERSION := 20
 PYTHON_VERSION := 3.11
 
-# Default ports
-API_PORT ?= 3000
-VITE_PORT ?= 5173
+# Default ports (high-range for backend/frontend, standard for postgres)
+# Backend & Frontend: High-range (40000-49999) to avoid conflicts
+# PostgreSQL: ALWAYS 5432 (system native installation)
+# Production uses: 80, 3000, 5432
+# Tests use: 63000, 65080, 65432
+# Dev uses: 43000, 45173, 5432
+API_PORT ?= 43000
+VITE_PORT ?= 45173
 DB_PORT ?= 5432
 
 # Color definitions
@@ -64,8 +69,8 @@ BOLD := $(shell printf '\033[1m')
 # ============================================================================
 
 ifneq (,$(wildcard $(CONFIG_FILE)))
-    API_PORT := $(shell grep -E "^API_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "3000")
-    VITE_PORT := $(shell grep -E "^VITE_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "5173")
+    API_PORT := $(shell grep -E "^API_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "43000")
+    VITE_PORT := $(shell grep -E "^VITE_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "45173")
     DB_PORT := $(shell grep -E "^DB_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "5432")
     DB_HOST := $(shell grep -E "^DB_HOST=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "localhost")
     DB_USER := $(shell grep -E "^DB_USER=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "ehopuser")
@@ -158,10 +163,24 @@ _check-node:
 	fi
 
 _check-postgres:
+	@echo "$(CYAN)🔍 Checking PostgreSQL...$(NC)"
 	@if ! pg_isready -h $(DB_HOST) -p $(DB_PORT) > /dev/null 2>&1; then \
-		echo "$(RED)❌ PostgreSQL is not running on $(DB_HOST):$(DB_PORT)$(NC)"; \
-		echo "$(YELLOW)   Start it with: sudo systemctl start postgresql$(NC)"; \
-		exit 1; \
+		echo "$(YELLOW)⏳ PostgreSQL is not running. Starting with sudo...$(NC)"; \
+		sudo systemctl start postgresql && echo "$(GREEN)✓ PostgreSQL started$(NC)" || { echo "$(RED)❌ Failed to start PostgreSQL$(NC)"; exit 1; }; \
+		sleep 2; \
+		RETRY=0; \
+		while ! pg_isready -h $(DB_HOST) -p $(DB_PORT) > /dev/null 2>&1 && [ $$RETRY -lt 30 ]; do \
+			echo "$(YELLOW)⏳ Waiting for PostgreSQL to be ready... ($$RETRY/30)$(NC)"; \
+			sleep 1; \
+			RETRY=$$((RETRY + 1)); \
+		done; \
+		if ! pg_isready -h $(DB_HOST) -p $(DB_PORT) > /dev/null 2>&1; then \
+			echo "$(RED)❌ PostgreSQL failed to start on $(DB_HOST):$(DB_PORT)$(NC)"; \
+			exit 1; \
+		fi; \
+		echo "$(GREEN)✓ PostgreSQL is ready$(NC)"; \
+	else \
+		echo "$(GREEN)✓ PostgreSQL is already running$(NC)"; \
 	fi
 
 _ensure-dirs:
@@ -235,7 +254,7 @@ build: _check-go ## Build backend binary (from latest code)
 	@echo "$(BLUE)🔧 Building backend...$(NC)"
 	@cd $(BACKEND_DIR) && \
 		rm -f $(BACKEND_BINARY) && \
-		go build -o $(BACKEND_BINARY) ./cmd/server/main.go
+		go build -o $(BACKEND_BINARY) ./main.go
 	@echo "$(GREEN)✓ Backend built successfully$(NC)"
 	@ls -lh $(BACKEND_PATH) | awk '{print "  Size: " $$5 ", Modified: " $$6 " " $$7 " " $$8}'
 
@@ -244,7 +263,7 @@ build-fresh: _check-go ## Clean build (clears Go cache, rebuilds everything)
 	@cd $(BACKEND_DIR) && \
 		rm -f $(BACKEND_BINARY) && \
 		go clean -cache && \
-		go build -o $(BACKEND_BINARY) ./cmd/server/main.go
+		go build -o $(BACKEND_BINARY) ./main.go
 	@echo "$(GREEN)✓ Backend built (cache cleared)$(NC)"
 
 # ============================================================================
@@ -669,7 +688,8 @@ destroy-all: _check-postgres clean ## Completely destroy dev environment (proces
 		echo ""; \
 		echo "$(YELLOW)Cleaning files...$(NC)"; \
 		rm -rf $(LOGS_DIR) 2>/dev/null && echo "$(GREEN)✓ Backend logs deleted$(NC)" || true; \
-		rm -f $(LOGS_DIR)/../vite-dev.log 2>/dev/null && echo "$(GREEN)✓ Frontend logs deleted$(NC)" || true; \
+		rm -f $(PROJECT_ROOT)/logs/vite-dev.log 2>/dev/null && echo "$(GREEN)✓ Frontend logs deleted$(NC)" || true; \
+		rm -rf $(PROJECT_ROOT)/logs 2>/dev/null || true; \
 		rm -f $(BACKEND_PATH) 2>/dev/null && echo "$(GREEN)✓ Backend binary deleted$(NC)" || true; \
 		echo ""; \
 		echo "$(GREEN)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"; \

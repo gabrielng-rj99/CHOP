@@ -8,13 +8,7 @@ services:
             POSTGRES_DB: ${DB_NAME}
         volumes:
             - ${POSTGRES_VOLUME_PATH:-./data/postgres}:/var/lib/postgresql/data
-            - ../../backend/database/schema/01_extensions.sql:/docker-entrypoint-initdb.d/01_extensions.sql:ro
-            - ../../backend/database/schema/02_core.sql:/docker-entrypoint-initdb.d/02_core.sql:ro
-            - ../../backend/database/schema/03_security.sql:/docker-entrypoint-initdb.d/03_security.sql:ro
-            - ../../backend/database/schema/04_users.sql:/docker-entrypoint-initdb.d/04_users.sql:ro
-            - ../../backend/database/schema/05_clients.sql:/docker-entrypoint-initdb.d/05_clients.sql:ro
-            - ../../backend/database/schema/06_contracts.sql:/docker-entrypoint-initdb.d/06_contracts.sql:ro
-            - ../../backend/database/schema/07_audit.sql:/docker-entrypoint-initdb.d/07_audit.sql:ro
+            - ../../backend/database/schema:/docker-entrypoint-initdb.d:ro
         networks:
             - app_network
         restart: unless-stopped

@@ -7,8 +7,9 @@ Fast development environment with hot reload for Client Hub.
 **Development mode** runs:
 - ✅ Backend API (compiled Go binary)
 - ✅ Frontend (Vite dev server with hot reload)
-- ✅ PostgreSQL (native installation)
+- ✅ PostgreSQL (native installation on standard port 5432)
 - ✅ Separate development database (`ehopdb_dev`)
+- ✅ High-range ports for backend/frontend (40000-49999) to avoid conflicts
 
 This mode is optimized for rapid development with instant feedback.
 
@@ -36,12 +37,13 @@ That's it! The Makefile handles everything:
 - Detects stale processes
 - Builds the backend
 - Starts all services
+- **Auto-starts PostgreSQL if not running** (with sudo)
 
 ### 3. Access
 
-- **Frontend (Vite)**: http://localhost:5173 ⚡ Hot reload!
-- **Backend API**: http://localhost:3000
-- **API Health**: http://localhost:3000/health
+- **Frontend (Vite)**: http://localhost:45173 ⚡ Hot reload!
+- **Backend API**: http://localhost:43000
+- **API Health**: http://localhost:43000/health
 
 ---
 
@@ -140,11 +142,11 @@ Options:
 
 ### Port Conflicts
 
-If ports 3000 or 5173 are already in use:
+If ports 43000, 45173, or 5432 are already in use:
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  ⚠️   WARNING: PORT 3000 IS ALREADY IN USE                                   ║
+║  ⚠️   WARNING: PORT 43000 IS ALREADY IN USE                                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
   Process: node (PID: 67890)
@@ -152,7 +154,8 @@ If ports 3000 or 5173 are already in use:
 Options:
   1. Run 'make clean' to kill all dev processes
   2. Run 'kill 67890' to kill this specific process
-  3. Change API_PORT in dev.ini
+  3. Change API_PORT in dev.ini (or VITE_PORT for frontend)
+  4. PostgreSQL always uses 5432 - check 'make db-status' if port 5432 conflict
 ```
 
 ---
@@ -167,6 +170,7 @@ This means:
 - ✅ You can test destructive operations safely
 - ✅ Production data is never affected
 - ✅ You can reset dev database anytime
+- ✅ PostgreSQL is auto-started if not running
 
 ### Check Database Status
 
@@ -199,13 +203,13 @@ make db-reset
 Edit `dev.ini` to customize:
 
 ```ini
-# Ports
-API_PORT=3000
-VITE_PORT=5173
+# Ports (high-range for backend/frontend, standard for postgres)
+API_PORT=43000
+VITE_PORT=45173
+DB_PORT=5432
 
 # Database
 DB_HOST=localhost
-DB_PORT=5432
 DB_NAME=ehopdb_dev
 DB_USER=ehopuser
 DB_PASSWORD=your_password
@@ -213,6 +217,13 @@ DB_PASSWORD=your_password
 # Security
 JWT_SECRET=your_jwt_secret
 ```
+
+**Port Strategy:**
+- **Backend & Frontend**: High-range (40000-49999) to avoid conflicts
+- **PostgreSQL**: Always 5432 (system native installation, standard port)
+- **Production**: 80, 3000, 5432
+- **Tests**: 63000, 65080, 65432
+- **Dev**: 43000, 45173, 5432
 
 ---
 
@@ -258,14 +269,13 @@ make start
 
 ### Database Connection Failed
 
+PostgreSQL should auto-start when running `make start`. If it doesn't:
+
 ```bash
 # Check PostgreSQL is running
 sudo systemctl status postgresql
 
-# Start if needed
-sudo systemctl start postgresql
-
-# Check database status
+# Or check database status
 make db-status
 ```
 
@@ -362,7 +372,7 @@ cd ../docker
 docker-compose up -d
 ```
 
-**Note**: Each mode uses its own database, so data is not shared.
+**Note**: Each mode uses its own ports and database, so there are no conflicts.
 
 ---
 

@@ -13,7 +13,7 @@ BLUE := \033[0;34m
 NC := \033[0m
 
 BINARY_NAME := ehop-backend-dev
-MAIN_PATH := ./cmd/server/main.go
+MAIN_PATH := ./main.go
 
 help: ## Show backend build commands
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"

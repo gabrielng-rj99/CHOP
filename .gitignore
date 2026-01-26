@@ -46,6 +46,7 @@ Thumbs.db
 *.bak
 *.temp
 *.pid
+*.dev-pids
 
 # =========================
 # Binaries
@@ -59,7 +60,7 @@ deploy-manager
 deploy-manager-*
 Licenses-Manager
 backend/cli
-backend/cmd/server/server
+backend/server/server
 
 # =========================
 # Build artifacts

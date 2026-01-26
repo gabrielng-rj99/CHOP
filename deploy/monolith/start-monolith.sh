@@ -177,7 +177,7 @@ echo ""
 # Build Backend
 echo "🔧 Building Backend..."
 cd "$PROJECT_ROOT/backend"
-if go build -o ehop-backend ./cmd/server/main.go; then
+if go build -o ehop-backend ./main.go; then
     echo -e "${GREEN}✓ Backend built successfully${NC}"
 else
     echo -e "${RED}❌ Backend build failed!${NC}"
