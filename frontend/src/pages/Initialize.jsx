@@ -107,7 +107,7 @@ const Initialize = ({ onInitializationComplete }) => {
             // Proceed to admin creation
             setTimeout(() => {
                 setStep("create-admin");
-            }, 800);
+            }, 300);
         } catch (error) {
             setErrors([error.message]);
             setStatus({
