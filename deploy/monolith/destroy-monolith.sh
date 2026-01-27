@@ -171,8 +171,8 @@ echo ""
 echo "🗑️  Removing files and directories..."
 
 # Backend binary
-if [ -f "$PROJECT_ROOT/backend/ehop-backend" ]; then
-    rm -f "$PROJECT_ROOT/backend/ehop-backend"
+if [ -f "$PROJECT_ROOT/backend/ehop-backend.bin" ]; then
+    rm -f "$PROJECT_ROOT/backend/ehop-backend.bin"
     echo -e "${GREEN}✓ Removed backend binary${NC}"
 fi
 
@@ -227,8 +227,8 @@ if [ -f "/tmp/Client-Hub-monolith.conf" ]; then
 fi
 
 # PID files
-if [ -f "/tmp/ehop-backend.pid" ]; then
-    rm -f /tmp/ehop-backend.pid
+if [ -f "/tmp/ehop-backend.bin.pid" ]; then
+    rm -f /tmp/ehop-backend.bin.pid
     echo -e "${GREEN}✓ Removed PID file${NC}"
 fi
 

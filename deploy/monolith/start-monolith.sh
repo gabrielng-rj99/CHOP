@@ -177,7 +177,7 @@ echo ""
 # Build Backend
 echo "🔧 Building Backend..."
 cd "$PROJECT_ROOT/backend"
-if go build -o ehop-backend ./main.go; then
+if go build -o ehop-backend.bin ./main.go; then
     echo -e "${GREEN}✓ Backend built successfully${NC}"
 else
     echo -e "${RED}❌ Backend build failed!${NC}"
@@ -354,7 +354,7 @@ LOG_DIR="$PROJECT_ROOT/logs/backend"
 mkdir -p "$LOG_DIR"
 
 # Create a PID file location
-PID_FILE="/tmp/ehop-backend.pid"
+PID_FILE="/tmp/ehop-backend.bin.pid"
 
 # Export all necessary environment variables for the backend
 export DB_HOST="$DB_HOST"
@@ -366,7 +366,7 @@ export JWT_SECRET="$JWT_SECRET"
 export API_PORT="$API_PORT"
 
 # Start backend in background
-nohup ./ehop-backend > "$LOG_DIR/server.log" 2>&1 &
+nohup ./ehop-backend.bin > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > "$PID_FILE"
 
@@ -380,10 +380,10 @@ for i in {1..30}; do
         break
     fi
     if [ $i -eq 30 ]; then
-        echo -e "${YELLOW}⚠️  Backend may not be fully ready yet. Check logs: $LOG_DIR/server.log${NC}"
+        echo -e "${YELLOW}⚠️  Backend may not be fully ready yet. Check logs: $LOG_DIR/backend.log${NC}"
         echo ""
         echo "Last 20 lines of backend log:"
-        tail -20 "$LOG_DIR/server.log"
+        tail -20 "$LOG_DIR/backend.log"
     fi
     sleep 1
 done
@@ -397,7 +397,7 @@ echo "  Application (HTTP):  http://localhost:${FRONTEND_PORT}"
 echo "  Backend API:         http://localhost:${API_PORT}"
 echo ""
 echo -e "${BOLD}Logs:${NC}"
-echo "  Backend:  $LOG_DIR/server.log"
+echo "  Backend:  $LOG_DIR/backend.log"
 echo "  Nginx:    /tmp/ehop_access.log, /tmp/ehop_error.log"
 echo ""
 echo -e "${BOLD}Process IDs:${NC}"
