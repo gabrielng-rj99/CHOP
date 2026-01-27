@@ -1,8 +1,8 @@
 # 📋 Testes Pendentes de Correção
 
 ## Status Geral
-- **Total de Pacotes**: 10
-- **Pacotes com Sucesso**: 7 ✅
+- **Total de Pacotes**: 9
+- **Pacotes com Sucesso**: 8 ✅
 - **Pacotes com Falhas**: 1 ⚠️
 - **Pacotes Sem Testes**: 2
 
@@ -12,7 +12,6 @@
 
 | Pacote | Status | Observações |
 |--------|--------|-------------|
-| `backend/cmd/server` | ✅ PASS | Testes de inicialização do servidor |
 | `backend/domain` | ✅ PASS | Validações de domínio e modelos |
 | `backend/repository` | ✅ PASS | Interfaces e helpers do repositório |
 | `backend/repository/audit` | ✅ PASS | Logs de auditoria |
@@ -20,7 +19,7 @@
 | `backend/repository/client` | ✅ PASS | Clientes e afiliados |
 | `backend/repository/user` | ✅ PASS | Usuários e temas |
 | `backend/repository/settings` | ✅ PASS | Configurações do sistema |
-| `backend/server` | ✅ PASS | Handlers e endpoints HTTP |
+| `backend/server` | ✅ PASS | Handlers, endpoints HTTP e testes de inicialização |
 | `backend/utils` | ✅ PASS | Funções utilitárias |
 
 ---

@@ -145,7 +145,7 @@ func validateSecrets(cfg *config.Config) {
 		log.Println("⚠️  SECURITY: Secrets must NEVER be in config.ini")
 		log.Println("   They must come from environment variables only:")
 		log.Println("")
-		log.Println("   Development:  export JWT_SECRET=... && go run cmd/server/main.go")
+		log.Println("   Development:  export JWT_SECRET=... && go run main.go")
 		log.Println("   Production:   docker run -e DB_PASSWORD=... -e JWT_SECRET=...")
 		log.Println("   CI/CD:        Use your secrets management system")
 		log.Println("")
