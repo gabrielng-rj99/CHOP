@@ -414,6 +414,7 @@ _detect-conflicts:
 
 _start-backend:
 	@echo "$(CYAN)Starting backend...$(NC)"
+	@mkdir -p $(PID_DIR) $(LOGS_DIR)
 	@cd $(BACKEND_DIR) && \
 		DB_HOST=$(DB_HOST) \
 		DB_PORT=$(DB_PORT) \
@@ -423,19 +424,26 @@ _start-backend:
 		JWT_SECRET="$(JWT_SECRET)" \
 		API_PORT=$(API_PORT) \
 		APP_ENV=development \
-		nohup ./$(BACKEND_BINARY) > $(LOGS_DIR)/server.log 2>&1 & \
-		echo $$! > $(BACKEND_PID_FILE)
+		./$(BACKEND_BINARY) > $(LOGS_DIR)/server.log 2>&1 & \
+		echo $$! > $(BACKEND_PID_FILE) && \
+		echo "PID written to $(BACKEND_PID_FILE)"
 	@sleep 2
 	@if [ -f "$(BACKEND_PID_FILE)" ]; then \
 		PID=$$(cat $(BACKEND_PID_FILE)); \
-		if kill -0 $$PID 2>/dev/null; then \
+		if [ -n "$$PID" ]; then \
 			echo "$(GREEN)✓ Backend started (PID: $$PID)$(NC)"; \
 		else \
-			echo "$(RED)❌ Backend failed to start$(NC)"; \
+			echo "$(RED)❌ Backend failed to start (empty PID)$(NC)"; \
 			echo "$(YELLOW)   Check logs: $(LOGS_DIR)/server.log$(NC)"; \
 			tail -20 $(LOGS_DIR)/server.log 2>/dev/null || true; \
+			rm -f $(BACKEND_PID_FILE); \
 			exit 1; \
 		fi; \
+	else \
+		echo "$(RED)❌ PID file not created at $(BACKEND_PID_FILE)$(NC)"; \
+		echo "$(YELLOW)   Check logs: $(LOGS_DIR)/server.log$(NC)"; \
+		tail -20 $(LOGS_DIR)/server.log 2>/dev/null || true; \
+		exit 1; \
 	fi
 
 _start-frontend:
@@ -446,12 +454,12 @@ _start-frontend:
 			npm install --silent; \
 		fi && \
 		VITE_PORT=$(VITE_PORT) API_PORT=$(API_PORT) \
-		nohup npm run dev > $(LOGS_DIR)/../vite-dev.log 2>&1 & \
+		npm run dev > $(LOGS_DIR)/../vite-dev.log 2>&1 & \
 		echo $$! > $(VITE_PID_FILE)
 	@sleep 3
 	@if [ -f "$(VITE_PID_FILE)" ]; then \
 		PID=$$(cat $(VITE_PID_FILE)); \
-		if kill -0 $$PID 2>/dev/null; then \
+		if [ -n "$$PID" ]; then \
 			echo "$(GREEN)✓ Frontend started (PID: $$PID)$(NC)"; \
 		else \
 			echo "$(RED)❌ Frontend failed to start$(NC)"; \
@@ -633,29 +641,14 @@ db-reset: _check-postgres ## Reset database (delete all data, recreate schema)
 clean: ## Kill all dev processes and clean up (keeps code & config)
 	@echo "$(BLUE)🧹 Cleaning development environment...$(NC)"
 	@echo ""
-	@echo "$(CYAN)Killing backend processes...$(NC)"
-	@ps aux 2>/dev/null | grep "[e]hop-backend" | awk '{print $$2}' | while read pid; do \
-		if [ -n "$$pid" ]; then \
-			kill -9 $$pid 2>/dev/null && echo "  $(GREEN)✓ Killed backend (PID: $$pid)$(NC)" || true; \
-		fi; \
-	done
-	@echo "$(CYAN)Killing Vite processes...$(NC)"
-	@ps aux 2>/dev/null | grep "[n]ode.*vite" | awk '{print $$2}' | while read pid; do \
-		if [ -n "$$pid" ]; then \
-			kill -9 $$pid 2>/dev/null && echo "  $(GREEN)✓ Killed Vite (PID: $$pid)$(NC)" || true; \
-		fi; \
-	done
-	@echo "$(CYAN)Freeing ports...$(NC)"
-	@API_PID=$$(lsof -ti :$(API_PORT) 2>/dev/null | head -1); \
-	if [ -n "$$API_PID" ]; then \
-		kill -9 $$API_PID 2>/dev/null && echo "  $(GREEN)✓ Freed port $(API_PORT) (PID: $$API_PID)$(NC)" || true; \
-	fi
-	@VITE_PID=$$(lsof -ti :$(VITE_PORT) 2>/dev/null | head -1); \
-	if [ -n "$$VITE_PID" ]; then \
-		kill -9 $$VITE_PID 2>/dev/null && echo "  $(GREEN)✓ Freed port $(VITE_PORT) (PID: $$VITE_PID)$(NC)" || true; \
-	fi
+	@echo "$(CYAN)Killing processes by port (most reliable)...$(NC)"
+	@lsof -ti :$(API_PORT) 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+	@sleep 0.3
+	@echo "  $(GREEN)✓ Port $(API_PORT) freed$(NC)"
+	@lsof -ti :$(VITE_PORT) 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+	@sleep 0.3
+	@echo "  $(GREEN)✓ Port $(VITE_PORT) freed$(NC)"
 	@echo "$(CYAN)Cleaning PID files...$(NC)"
-	@rm -f $(BACKEND_PID_FILE) $(VITE_PID_FILE) 2>/dev/null || true
 	@rm -rf $(PID_DIR) 2>/dev/null || true
 	@echo "  $(GREEN)✓ PID files cleaned$(NC)"
 	@echo ""
