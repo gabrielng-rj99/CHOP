@@ -25,8 +25,8 @@ export DB_PASSWORD=postgres
 docker-compose up -d postgres
 
 # Build and run
-go build -o bin/server main.go
-./bin/server
+go build -o ehop-backend main.go
+./ehop-backend
 
 # Or run directly
 go run main.go
@@ -45,8 +45,15 @@ backend/
 ├── config/               # Configuration management
 ├── database/             # PostgreSQL connection & schema
 ├── domain/               # Business models
+├── repository/           # Domain-organized data access layer
+│   ├── audit/
+│   ├── category/
+│   ├── client/
+│   ├── contract/
+│   ├── role/
+│   ├── settings/
+│   └── user/
 ├── server/               # HTTP server, routes, handlers, middleware
-├── store/                # Data access layer (repositories)
 ├── utils/                # Shared utilities
 ├── uploads/              # File upload directory
 ├── go.mod
@@ -64,7 +71,7 @@ See [BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md) for detailed documentat
 |---------|---------------|
 | `main.go` | Entry point - load config, connect DB, start server |
 | `server` | HTTP routing, middleware, handlers, JWT |
-| `store` | Data access - SQL queries, repository pattern |
+| `repository/*` | Domain-organized data access layer |
 | `domain` | Business models and validation |
 | `config` | Configuration from INI files and environment |
 | `database` | Connection pooling, schema management |
@@ -98,7 +105,7 @@ PORT=8080
 
 ### Build
 ```bash
-go build -o bin/server main.go
+go build -o ehop-backend main.go
 ```
 
 ### Run Tests
