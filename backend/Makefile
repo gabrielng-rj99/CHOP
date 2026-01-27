@@ -12,7 +12,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m
 
-BINARY_NAME := ehop-backend-dev
+BINARY_NAME := ehop-backend-dev.bin
 MAIN_PATH := ./main.go
 
 help: ## Show backend build commands
