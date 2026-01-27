@@ -510,7 +510,7 @@ status: ## Show status of all services
 			echo "  $(RED)○ Stopped$(NC) (stale PID file)"; \
 		fi; \
 	else \
-		RUNNING=$$(pgrep -f "$(BACKEND_BINARY)" 2>/dev/null || true); \
+		RUNNING=$$(lsof -ti :$(API_PORT) 2>/dev/null || true); \
 		if [ -n "$$RUNNING" ]; then \
 			echo "  $(YELLOW)● Running$(NC) (PID: $$RUNNING) - No PID file"; \
 		else \
