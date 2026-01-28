@@ -26,6 +26,10 @@ SHELL := /bin/bash
 CONFIG_FILE := monolith.ini
 VERSIONS_FILE := versions.ini
 BACKUP_DIR := backups
+BACKUP_DB_DIR := backups/db
+BACKUP_DB_DAYS := 90
+BACKUP_DB_MAX_BYTES := 524288000
+BACKUP_DB_COMPRESS := true
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 
 # Colors
@@ -46,7 +50,7 @@ NC := $(shell printf '\033[0m')
         install uninstall \
         start stop restart \
         logs logs-backend logs-frontend \
-        backup restore \
+        backup backup-db restore restore-db \
         update upgrade \
         clean config versions \
         health-check
@@ -85,7 +89,9 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)━━━ BACKUP & RECOVERY ━━━$(NC)"
 	@echo "  $(GREEN)backup$(NC)                 Create backup of config and data"
+	@echo "  $(GREEN)backup-db$(NC)              Create database snapshot with retention"
 	@echo "  $(GREEN)restore$(NC)                Restore from backup"
+	@echo "  $(GREEN)restore-db$(NC)             Restore database from snapshot"
 	@echo ""
 	@echo "$(YELLOW)━━━ MAINTENANCE ━━━$(NC)"
 	@echo "  $(GREEN)config$(NC)                 Show current configuration"
@@ -342,6 +348,12 @@ backup: ## Create backup of configuration and data
 	@ls -lh $(BACKUP_DIR)/ | tail -5
 	@echo ""
 
+backup-db: ## Create database snapshot with retention
+	@echo "$(BLUE)💾 Creating database snapshot...$(NC)"
+	@echo ""
+	@INI_FILE="$(CONFIG_FILE)" BACKUP_DIR="$(BACKUP_DB_DIR)" DAYS_KEEP="$(BACKUP_DB_DAYS)" MAX_TOTAL_BYTES="$(BACKUP_DB_MAX_BYTES)" COMPRESS="$(BACKUP_DB_COMPRESS)" ../backup/backup-db.sh
+	@echo ""
+
 restore: ## Restore monolith from backup
 	@echo "$(BLUE)📥 Restoring monolith from backup...$(NC)"
 	@echo ""
@@ -360,6 +372,32 @@ restore: ## Restore monolith from backup
 		fi; \
 	else \
 		echo "$(YELLOW)No backups found$(NC)"; \
+	fi
+	@echo ""
+
+restore-db: ## Restore database from snapshot
+	@echo "$(BLUE)📥 Restoring database from snapshot...$(NC)"
+	@echo ""
+	@echo "$(CYAN)Available database backups:$(NC)"
+	@if [ -d "$(BACKUP_DB_DIR)" ] && [ -n "$$(ls $(BACKUP_DB_DIR)/ehop_*.sql* 2>/dev/null)" ]; then \
+		ls -1t $(BACKUP_DB_DIR)/ehop_*.sql* | head -10 | nl; \
+		echo ""; \
+		read -p "Select backup number to restore: " num; \
+		BACKUP_FILE=$$(ls -1t $(BACKUP_DB_DIR)/ehop_*.sql* | sed -n "$${num}p"); \
+		if [ -n "$$BACKUP_FILE" ]; then \
+			echo "$(YELLOW)Restoring from: $$BACKUP_FILE$(NC)"; \
+			set -a; . $(CONFIG_FILE); set +a; \
+			if [[ "$$BACKUP_FILE" == *.gz ]]; then \
+				gunzip -c $$BACKUP_FILE | PGPASSWORD=$$DB_PASSWORD psql -h $${DB_HOST:-localhost} -p $${DB_PORT:-5432} -U $$DB_USER -d $$DB_NAME; \
+			else \
+				PGPASSWORD=$$DB_PASSWORD psql -h $${DB_HOST:-localhost} -p $${DB_PORT:-5432} -U $$DB_USER -d $$DB_NAME < $$BACKUP_FILE; \
+			fi; \
+			echo "$(GREEN)✅ Database restore complete$(NC)"; \
+		else \
+			echo "$(RED)Invalid selection$(NC)"; \
+		fi; \
+	else \
+		echo "$(YELLOW)No database backups found$(NC)"; \
 	fi
 	@echo ""
 

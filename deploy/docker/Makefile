@@ -53,7 +53,7 @@ PYTHON_VERSION := 3.11
 .PHONY: help info status health build up down restart \
         logs logs-backend logs-frontend logs-db \
         shell shell-backend shell-frontend shell-db \
-        validate env-check clean prune backup restore \
+        validate env-check clean prune backup backup-rotate restore migrate \
         pull ps update upgrade \
         install-go install-node install-python install-deps
 
@@ -101,10 +101,12 @@ help: ## Show available commands
 	@echo "  $(GREEN)prune$(NC)                  Remove unused Docker resources"
 	@echo "  $(GREEN)validate$(NC)               Validate docker-compose.yml"
 	@echo "  $(GREEN)backup$(NC)                 Backup database volume"
+	@echo "  $(GREEN)backup-rotate$(NC)          Backup database with retention policy"
 	@echo "  $(GREEN)restore$(NC)                Restore database from backup"
 	@echo ""
 	@echo "$(YELLOW)━━━ UPDATES ━━━$(NC)"
 	@echo "  $(GREEN)pull$(NC)                   Pull latest images"
+	@echo "  $(GREEN)migrate$(NC)                Run database migrations"
 	@echo "  $(GREEN)update$(NC)                 Update and restart"
 	@echo "  $(GREEN)upgrade$(NC)                Full rebuild and restart"
 	@echo ""
@@ -372,6 +374,19 @@ backup: ## Backup database volume
 	echo "$(RED)❌ Backup failed$(NC)"
 	@echo ""
 
+backup-rotate: ## Backup database with retention policy (backup service)
+	@echo "$(BLUE)💾 Running rotating backup...$(NC)"
+	@echo ""
+	@$(DOCKER_CMD) up -d backup
+	@$(DOCKER_CMD) exec -T backup /usr/local/bin/backup-db.sh
+	@echo ""
+
+migrate: ## Run database migrations (one-shot)
+	@echo "$(BLUE)🧭 Running database migrations...$(NC)"
+	@echo ""
+	@$(DOCKER_CMD) --profile migrations run --rm migrator
+	@echo ""
+
 restore: ## Restore database from backup
 	@echo "$(BLUE)📥 Restoring database from backup...$(NC)"
 	@echo ""
@@ -435,7 +450,7 @@ prune: ## Remove all unused Docker resources (frees disk space)
 # UPDATES & UPGRADES
 # ==============================================================================
 
-update: pull restart ## Update images and restart containers
+update: pull migrate restart ## Update images, run migrations, restart containers
 	@echo ""
 	@echo "$(GREEN)✅ Update complete - services restarted$(NC)"
 	@echo ""

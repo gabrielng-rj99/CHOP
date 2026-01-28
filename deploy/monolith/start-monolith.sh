@@ -184,6 +184,16 @@ else
     exit 1
 fi
 
+# Run Migrations
+echo "🧭 Running database migrations..."
+MIGRATE_ONLY=true AUTO_MIGRATIONS=true ./ehop-backend.bin
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Database migrations applied${NC}"
+else
+    echo -e "${RED}❌ Database migrations failed!${NC}"
+    exit 1
+fi
+
 # Build Frontend
 echo "🎨 Building Frontend..."
 cd "$PROJECT_ROOT/frontend"

@@ -50,6 +50,55 @@ services:
             - app_network
         restart: unless-stopped
 
+    migrator:
+        profiles:
+            - migrations
+        build:
+            context: ../..
+            dockerfile: deploy/docker/Dockerfile.backend
+            args:
+                GO_VERSION: "1.25"
+        container_name: ehop_migrator
+        env_file: .env
+        environment:
+            DB_HOST: ${DB_HOST:-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            API_PORT: ${API_PORT:-3000}
+            MIGRATE_ONLY: "true"
+        depends_on:
+            - postgres
+        networks:
+            - app_network
+        restart: "no"
+
+    backup:
+        image: postgres:16-alpine
+        container_name: ehop_backup
+        env_file: .env
+        environment:
+            DB_HOST: ${DB_HOST:-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            DB_USER: ${DB_USER}
+            DB_PASSWORD: ${DB_PASSWORD}
+            DB_NAME: ${DB_NAME}
+            BACKUP_DIR: /backups
+            DAYS_KEEP: ${BACKUP_DAYS_KEEP:-90}
+            MAX_TOTAL_BYTES: ${BACKUP_MAX_TOTAL_BYTES:-524288000}
+            COMPRESS: ${BACKUP_COMPRESS:-true}
+            BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+        volumes:
+            - ${BACKUP_DIR_PATH:-./backups}:/backups
+            - ../../deploy/backup/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+        command:
+            - /bin/sh
+            - -lc
+            - "chmod +x /usr/local/bin/backup-db.sh && while true; do /usr/local/bin/backup-db.sh; sleep ${BACKUP_INTERVAL_SECONDS:-86400}; done"
+        depends_on:
+            - postgres
+        networks:
+            - app_network
+        restart: unless-stopped
+
 networks:
     app_network:
         name: ehop_network
