@@ -92,7 +92,7 @@ services:
         command:
             - /bin/sh
             - -lc
-            - "chmod +x /usr/local/bin/backup-db.sh && while true; do /usr/local/bin/backup-db.sh; sleep ${BACKUP_INTERVAL_SECONDS:-86400}; done"
+            - "while true; do /usr/local/bin/backup-db.sh; sleep ${BACKUP_INTERVAL_SECONDS:-86400}; done"
         depends_on:
             - postgres
         networks:
