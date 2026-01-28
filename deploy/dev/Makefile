@@ -195,6 +195,15 @@ _check-postgres:
 _ensure-dirs:
 	@mkdir -p "$(PID_DIR)" "$(LOGS_DIR)"
 
+_ensure-db-schema:
+	@echo "$(BLUE)🔍 Checking database schema...$(NC)"
+	@if PGPASSWORD="$(DB_PASSWORD)" psql -h "$(DB_HOST)" -p "$(DB_PORT)" -U "$(DB_USER)" -d "$(DB_NAME)" -c "SELECT 1 FROM users LIMIT 1;" > /dev/null 2>&1; then \
+		echo "$(GREEN)✓ Database schema is present$(NC)"; \
+	else \
+		echo "$(YELLOW)⏳ Database schema not found, initializing...$(NC)"; \
+		$(MAKE) -s db-init; \
+	fi
+
 _detect-conflicts:
 	@API_PID=$$(lsof -ti :$(API_PORT) 2>/dev/null || true); \
 	VITE_PID=$$(lsof -ti :$(VITE_PORT) 2>/dev/null || true); \
@@ -676,7 +685,7 @@ db-update: _check-postgres ## Apply pending migrations (reinitialize schema)
 # QUICK START TARGETS (Aliases & Combined)
 # ============================================================================
 
-start: _check-config _ensure-dirs ## Start dev environment (backend + frontend)
+start: _check-config _ensure-dirs _check-postgres _ensure-db-schema ## Start dev environment (backend + frontend)
 	@echo ""
 	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(BLUE)║$(NC)$(BOLD)              Starting Development Environment                                $(BLUE)║$(NC)"
