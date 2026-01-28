@@ -39,6 +39,9 @@ func main() {
 	// Validate required secrets are set
 	validateSecrets(cfg)
 
+	migrateOnly := isMigrateOnly()
+	autoMigrate := isAutoMigrateEnabled()
+
 	// Configure logging based on config
 	if cfg.Logging.Enabled {
 		logFile := &lumberjack.Logger{
@@ -63,7 +66,7 @@ func main() {
 		server.SetGlobalDB(db)
 
 		// Check if database is initialized, if not, initialize it
-		if !database.IsDatabaseInitialized(db) {
+		if db != nil && !database.IsDatabaseInitialized(db) {
 			log.Printf("📋 Database not initialized, initializing schema...\n")
 			fmt.Printf("📋 Database not initialized, initializing schema...\n")
 			if err := database.InitDB(db); err != nil {
@@ -76,6 +79,28 @@ func main() {
 				log.Printf("✅ Database schema initialized (includes essential data)\n")
 				fmt.Printf("✅ Database schema initialized (includes essential data)\n")
 			}
+		}
+
+		if db != nil && (autoMigrate || migrateOnly) {
+			if err := database.RunMigrationsFromConfig(db); err != nil {
+				log.Printf("❌ Failed to run migrations: %v\n", err)
+				fmt.Printf("❌ Failed to run migrations: %v\n", err)
+				db.Close()
+				db = nil
+				server.SetGlobalDB(nil)
+			} else {
+				log.Printf("✅ Database migrations applied\n")
+				fmt.Printf("✅ Database migrations applied\n")
+			}
+		}
+
+		if migrateOnly {
+			if db != nil {
+				_ = db.Close()
+			}
+			log.Printf("✅ Migrations complete. Exiting because MIGRATE_ONLY is set.\n")
+			fmt.Printf("✅ Migrations complete. Exiting because MIGRATE_ONLY is set.\n")
+			return
 		}
 	}
 
@@ -159,4 +184,17 @@ func validateSecrets(cfg *config.Config) {
 			log.Println("   Consider using a longer, more secure secret key")
 		}
 	}
+}
+
+func isMigrateOnly() bool {
+	value := os.Getenv("MIGRATE_ONLY")
+	return value == "1" || value == "true" || value == "TRUE" || value == "yes" || value == "YES"
+}
+
+func isAutoMigrateEnabled() bool {
+	value := os.Getenv("AUTO_MIGRATIONS")
+	if value == "" {
+		return true
+	}
+	return value == "1" || value == "true" || value == "TRUE" || value == "yes" || value == "YES"
 }
