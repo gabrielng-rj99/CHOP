@@ -20,6 +20,8 @@ SHELL := /bin/bash
 # Configuration files
 COMPOSE_FILE := docker-compose.yml
 ENV_FILE := .env
+REGISTRY_COMPOSE_FILE := docker-compose.registry.yml
+REGISTRY_ENV_FILE := .env.registry
 BACKUP_DIR := backups
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 
@@ -41,6 +43,7 @@ NC := $(shell printf '\033[0m')
 
 # Docker Compose command
 DOCKER_CMD := docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT)
+REGISTRY_DOCKER_CMD := docker compose -f $(REGISTRY_COMPOSE_FILE) -p $(COMPOSE_PROJECT) --env-file $(REGISTRY_ENV_FILE)
 
 # Version requirements
 GO_VERSION := 1.21
@@ -54,7 +57,7 @@ PYTHON_VERSION := 3.11
         logs logs-backend logs-frontend logs-db \
         shell shell-backend shell-frontend shell-db \
         validate env-check clean prune backup backup-rotate restore migrate \
-        pull ps update upgrade \
+        pull ps update upgrade registry-pull registry-migrate registry-update \
         install-go install-node install-python install-deps
 
 # ==============================================================================
@@ -109,6 +112,9 @@ help: ## Show available commands
 	@echo "  $(GREEN)migrate$(NC)                Run database migrations"
 	@echo "  $(GREEN)update$(NC)                 Update and restart"
 	@echo "  $(GREEN)upgrade$(NC)                Full rebuild and restart"
+	@echo "  $(GREEN)registry-pull$(NC)          Pull images from registry (use .env.registry)"
+	@echo "  $(GREEN)registry-migrate$(NC)       Run migrations using registry images"
+	@echo "  $(GREEN)registry-update$(NC)        Pull, migrate, and restart from registry"
 	@echo ""
 	@echo "$(YELLOW)━━━ LANGUAGE INSTALLATION (for build host) ━━━$(NC)"
 	@echo "  $(GREEN)install-go$(NC)             Install Go $(MAGENTA)1.21$(NC) (requires sudo)"
@@ -453,6 +459,24 @@ prune: ## Remove all unused Docker resources (frees disk space)
 update: pull migrate restart ## Update images, run migrations, restart containers
 	@echo ""
 	@echo "$(GREEN)✅ Update complete - services restarted$(NC)"
+	@echo ""
+
+registry-pull: ## Pull images from registry (uses docker-compose.registry.yml)
+	@echo "$(BLUE)📥 Pulling registry images...$(NC)"
+	@echo ""
+	@$(REGISTRY_DOCKER_CMD) pull
+	@echo ""
+
+registry-migrate: ## Run migrations using registry images
+	@echo "$(BLUE)🧭 Running registry migrations...$(NC)"
+	@echo ""
+	@$(REGISTRY_DOCKER_CMD) --profile migrations run --rm migrator
+	@echo ""
+
+registry-update: ## Pull registry images, run migrations, restart containers
+	@echo "$(BLUE)🚀 Running registry auto-update...$(NC)"
+	@echo ""
+	@bash ./auto-update-registry.sh
 	@echo ""
 
 upgrade: rebuild ## Full rebuild and restart (same as rebuild)
