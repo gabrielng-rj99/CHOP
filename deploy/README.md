@@ -129,7 +129,7 @@ nano dev.ini  # Leave DB_PASSWORD and JWT_SECRET empty to auto-generate
 ```bash
 cd deploy/docker
 
-# Start
+# Start (local build)
 docker-compose up -d
 
 # View logs
@@ -145,13 +145,69 @@ docker-compose down
 docker-compose down -v
 ```
 
-### .env File
+### Registry-based Deployment (CI/CD)
+
+Use the registry flow when you want updates from published images (no local build on the host).
+
+```bash
+cd deploy/docker
+
+# 1. Configure .env.registry
+# 2. Pull images from the registry
+docker compose -f docker-compose.registry.yml --env-file .env.registry pull
+
+# 3. Run migrations (one-shot)
+docker compose -f docker-compose.registry.yml --env-file .env.registry --profile migrations run --rm migrator
+
+# 4. Start services using registry images
+docker compose -f docker-compose.registry.yml --env-file .env.registry up -d backend frontend
+```
+
+You can also run the automated flow:
+
+```bash
+./auto-update-registry.sh
+```
+
+This script will:
+- pull new images,
+- run backups (optional),
+- run migrations,
+- restart services,
+- run a health check,
+- rollback to previous images if health check fails (when enabled).
+
+Rollback note:
+- Rollback only works if the previous images are still present on the host.
+- If you use digest-based tags (image@sha256:...), the script creates a temporary :rollback tag to restore.
+
+### .env File (Local build)
 
 ```bash
 # Minimal Example
 DB_PASSWORD=your_secure_password_here
 JWT_SECRET=your_jwt_secret_min_64_chars
 SSL_DOMAIN=localhost
+```
+
+### .env.registry (Registry-based deployment)
+
+Use this file with `docker-compose.registry.yml` and `auto-update-registry.sh`.
+
+```bash
+# Registry images (required)
+BACKEND_IMAGE=ghcr.io/owner/client-hub-backend:main
+FRONTEND_IMAGE=ghcr.io/owner/client-hub-frontend:main
+
+# Database & app secrets (same as .env)
+DB_PASSWORD=your_secure_password_here
+JWT_SECRET=your_jwt_secret_min_64_chars
+SSL_DOMAIN=localhost
+
+# Optional registry login for private registries
+REGISTRY_HOST=ghcr.io
+REGISTRY_USERNAME=your_registry_user
+REGISTRY_PASSWORD=your_registry_token
 ```
 
 Generate secure passwords:
@@ -215,6 +271,29 @@ FRONTEND_HTTPS_PORT=443
 
 # Destroy all (removes data, etc)
 ./destroy-monolith.sh
+```
+
+### Cron Auto-Update (Monolith)
+
+Use the cron wrapper to keep the monolith updated without manual intervention. It performs:
+
+- `git fetch` + `git pull` (only if there are updates)
+- backup (optional)
+- rebuild + migrations + restart
+
+```bash
+# Example cron (daily at 03:00)
+0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /var/log/client-hub-monolith-update.log 2>&1
+```
+
+Optional environment variables:
+
+```bash
+REPO_DIR=/path/to/repo
+BRANCH=main
+INI_FILE=/path/to/deploy/monolith/monolith.ini
+AUTO_BACKUP=true
+LOG_FILE=/var/log/client-hub-monolith-update.log
 ```
 
 ### What happens at start

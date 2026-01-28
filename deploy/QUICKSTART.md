@@ -133,6 +133,23 @@ make restore                 # Restore from backup
 make uninstall               # Remove everything
 ```
 
+### Cron Auto-Update (Monolith)
+
+```bash
+# Example cron (daily at 03:00)
+0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /var/log/client-hub-monolith-update.log 2>&1
+```
+
+Optional environment variables:
+
+```bash
+REPO_DIR=/path/to/repo
+BRANCH=main
+INI_FILE=/path/to/deploy/monolith/monolith.ini
+AUTO_BACKUP=true
+LOG_FILE=/var/log/client-hub-monolith-update.log
+```
+
 ### Docker Workflow
 
 ```bash
@@ -155,6 +172,19 @@ make clean                   # Remove containers (keep volumes)
 make rebuild                 # Full rebuild (no cache)
 make down                    # Stop and remove containers
 ```
+
+### Registry Workflow (CI/CD)
+
+```bash
+cd deploy/docker
+
+# Configure .env.registry with BACKEND_IMAGE and FRONTEND_IMAGE
+make registry-pull
+make registry-migrate
+make registry-update
+```
+
+Note: `auto-update-registry.sh` performs a health check and rolls back to the previous images if the health check fails.
 
 ---
 
