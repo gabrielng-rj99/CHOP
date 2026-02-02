@@ -62,6 +62,14 @@ func (s *FinancialStore) CreateContractFinancial(financial domain.ContractFinanc
 		}
 	}
 
+	// Buscar datas do contrato
+	var contractStartDate, contractEndDate *time.Time
+	contractQuery := `SELECT start_date, end_date FROM contracts WHERE id = $1`
+	err := s.db.QueryRow(contractQuery, financial.ContractID).Scan(&contractStartDate, &contractEndDate)
+	if err != nil {
+		return "", fmt.Errorf("erro ao buscar datas do contrato: %w", err)
+	}
+
 	// Gerar UUID
 	id := uuid.New().String()
 
@@ -74,7 +82,7 @@ func (s *FinancialStore) CreateContractFinancial(financial domain.ContractFinanc
 	`
 
 	now := time.Now()
-	_, err := s.db.Exec(query,
+	_, err = s.db.Exec(query,
 		id,
 		financial.ContractID,
 		financial.FinancialType,
@@ -92,6 +100,16 @@ func (s *FinancialStore) CreateContractFinancial(financial domain.ContractFinanc
 			return "", errors.New("este contrato já possui um modelo de financeiro configurado")
 		}
 		return "", fmt.Errorf("erro ao criar financeiro: %w", err)
+	}
+
+	// Criar parcelas automaticamente para 'unico' e 'recorrente'
+	if financial.FinancialType == "unico" || financial.FinancialType == "recorrente" {
+		err = s.createAutomaticInstallments(id, financial, contractStartDate, contractEndDate)
+		if err != nil {
+			// Rollback: deletar o financeiro criado
+			s.db.Exec(`DELETE FROM contract_financial WHERE id = $1`, id)
+			return "", fmt.Errorf("erro ao criar parcelas automáticas: %w", err)
+		}
 	}
 
 	return id, nil
@@ -1070,6 +1088,89 @@ func isUniqueViolation(err error) bool {
 
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+// createAutomaticInstallments cria parcelas automaticamente para financeiro 'unico' e 'recorrente'
+func (s *FinancialStore) createAutomaticInstallments(financialID string, financial domain.ContractFinancial, startDate, endDate *time.Time) error {
+	if startDate == nil {
+		return errors.New("contrato deve ter data de início para criar financeiro automático")
+	}
+
+	var installments []domain.FinancialInstallment
+
+	if financial.FinancialType == "unico" {
+		// Para único, criar uma parcela com due_date = start_date
+		installment := domain.FinancialInstallment{
+			ContractFinancialID: financialID,
+			InstallmentNumber:   1,
+			ClientValue:         *financial.ClientValue,
+			ReceivedValue:       *financial.ReceivedValue,
+			DueDate:             startDate,
+			Status:              "pendente",
+		}
+		installments = append(installments, installment)
+	} else if financial.FinancialType == "recorrente" {
+		// Para recorrente, criar parcelas baseadas na recorrência
+		if financial.RecurrenceType == nil || financial.DueDay == nil {
+			return errors.New("recorrência e dia de vencimento são obrigatórios para financeiro recorrente")
+		}
+
+		recurrenceType := *financial.RecurrenceType
+		dueDay := *financial.DueDay
+
+		// Calcular parcelas para os próximos 12 meses (ou até end_date se definido)
+		currentDate := *startDate
+		installmentNumber := 1
+		maxInstallments := 12 // Limitar a 12 parcelas por padrão
+
+		for i := 0; i < maxInstallments; i++ {
+			// Calcular due_date baseado na recorrência
+			var dueDate time.Time
+			switch recurrenceType {
+			case "mensal":
+				dueDate = time.Date(currentDate.Year(), time.Month(int(currentDate.Month())+i), dueDay, 0, 0, 0, 0, time.UTC)
+			case "trimestral":
+				dueDate = time.Date(currentDate.Year(), time.Month(int(currentDate.Month())+(i*3)), dueDay, 0, 0, 0, 0, time.UTC)
+			case "semestral":
+				dueDate = time.Date(currentDate.Year(), time.Month(int(currentDate.Month())+(i*6)), dueDay, 0, 0, 0, 0, time.UTC)
+			case "anual":
+				dueDate = time.Date(currentDate.Year()+i, currentDate.Month(), dueDay, 0, 0, 0, 0, time.UTC)
+			default:
+				return errors.New("tipo de recorrência inválido")
+			}
+
+			// Ajustar para o último dia do mês se dueDay > dias do mês
+			if dueDay > 28 {
+				lastDay := time.Date(dueDate.Year(), time.Month(int(dueDate.Month())+1), 0, 0, 0, 0, 0, time.UTC).Day()
+				if dueDay > lastDay {
+					dueDate = time.Date(dueDate.Year(), dueDate.Month(), lastDay, 0, 0, 0, 0, time.UTC)
+				}
+			}
+
+			// Parar se passou da end_date
+			if endDate != nil && dueDate.After(*endDate) {
+				break
+			}
+
+			installment := domain.FinancialInstallment{
+				ContractFinancialID: financialID,
+				InstallmentNumber:   installmentNumber,
+				ClientValue:         *financial.ClientValue,
+				ReceivedValue:       *financial.ReceivedValue,
+				DueDate:             &dueDate,
+				Status:              "pendente",
+			}
+			installments = append(installments, installment)
+			installmentNumber++
+		}
+	}
+
+	// Criar as parcelas em lote
+	if len(installments) > 0 {
+		return s.CreateInstallmentsBatch(financialID, installments)
+	}
+
+	return nil
 }
 
 func containsHelper(s, substr string) bool {
