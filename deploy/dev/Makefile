@@ -92,13 +92,13 @@ endif
 .PHONY: help \
         backend-build backend-build-fresh backend-start backend-stop backend-restart backend-logs backend-status \
         frontend-start frontend-stop frontend-restart frontend-logs frontend-status \
-        db-init db-reset db-destroy db-update db-status db-connect \
+        db-init db-reset db-destroy db-update db-status db-connect db-stop db-start \
         start stop restart status health \
         logs logs-frontend logs-all \
         clean destroy-all check-ports check-processes \
         install-deps install-go install-python install-node \
         test test-coverage \
-        _check-config _check-go _check-node _check-postgres _ensure-dirs _detect-conflicts _show-started
+        _check-config _check-go _check-node _check-postgres _ensure-dirs _detect-conflicts _detect-backend-conflicts _detect-frontend-conflicts _show-started
 
 # ============================================================================
 # HELP
@@ -238,6 +238,42 @@ _detect-conflicts:
 		fi; \
 	fi
 
+_detect-backend-conflicts:
+	@API_PID=$$(lsof -ti :$(API_PORT) 2>/dev/null || true); \
+	if [ -n "$$API_PID" ]; then \
+		KNOWN_PID=""; \
+		if [ -f "$(BACKEND_PID_FILE)" ]; then \
+			KNOWN_PID=$$(cat "$(BACKEND_PID_FILE)" 2>/dev/null); \
+		fi; \
+		if [ "$$API_PID" != "$$KNOWN_PID" ]; then \
+			echo "$(RED)❌ Port $(API_PORT) is already in use (PID: $$API_PID)$(NC)"; \
+			echo "  Options:"; \
+			echo "  1. Run '$(GREEN)make clean$(NC)' to free ports"; \
+			echo "  2. Run '$(GREEN)kill $$API_PID$(NC)' to kill the process"; \
+			echo "  3. Change API_PORT in dev.ini"; \
+			echo ""; \
+			exit 1; \
+		fi; \
+	fi
+
+_detect-frontend-conflicts:
+	@VITE_PID=$$(lsof -ti :$(VITE_PORT) 2>/dev/null || true); \
+	if [ -n "$$VITE_PID" ]; then \
+		KNOWN_PID=""; \
+		if [ -f "$(FRONTEND_PID_FILE)" ]; then \
+			KNOWN_PID=$$(cat "$(FRONTEND_PID_FILE)" 2>/dev/null); \
+		fi; \
+		if [ "$$VITE_PID" != "$$KNOWN_PID" ]; then \
+			echo "$(RED)❌ Port $(VITE_PORT) is already in use (PID: $$VITE_PID)$(NC)"; \
+			echo "  Options:"; \
+			echo "  1. Run '$(GREEN)make clean$(NC)' to free ports"; \
+			echo "  2. Run '$(GREEN)kill $$VITE_PID$(NC)' to kill the process"; \
+			echo "  3. Change VITE_PORT in dev.ini"; \
+			echo ""; \
+			exit 1; \
+		fi; \
+	fi
+
 # ============================================================================
 # LANGUAGE INSTALLATION
 # ============================================================================
@@ -319,7 +355,7 @@ backend-start: _check-config _ensure-dirs ## Start backend server
 		echo "$(YELLOW)Binary not found, building...$(NC)"; \
 		cd "$(BACKEND_DIR)" && go build -o "$(BACKEND_BINARY)" ./main.go; \
 	fi
-	@$(MAKE) -s _detect-conflicts
+	@$(MAKE) -s _detect-backend-conflicts
 	@cd "$(BACKEND_DIR)" && \
 		DB_HOST="$(DB_HOST)" \
 		DB_PORT="$(DB_PORT)" \
@@ -389,7 +425,7 @@ backend-restart: _check-config _ensure-dirs ## Rebuild and restart backend (or s
 		go build -o "$(BACKEND_BINARY)" ./main.go
 	@echo "$(GREEN)✓ Backend built$(NC)"
 	@# Start
-	@$(MAKE) -s _detect-conflicts
+	@$(MAKE) -s _detect-backend-conflicts
 	@echo "$(CYAN)Starting backend...$(NC)"
 	@cd "$(BACKEND_DIR)" && \
 		DB_HOST="$(DB_HOST)" \
@@ -463,7 +499,7 @@ frontend-start: _check-node _ensure-dirs ## Start frontend dev server (Vite)
 			echo "$(YELLOW)   Installing npm dependencies...$(NC)"; \
 			npm install --silent || { echo "$(RED)npm install failed$(NC)"; exit 1; }; \
 		fi
-	@$(MAKE) -s _detect-conflicts
+	@$(MAKE) -s _detect-frontend-conflicts
 	@cd "$(FRONTEND_DIR)" && \
 		VITE_PORT="$(VITE_PORT)" \
 		nohup npm run dev >> "$(FRONTEND_LOG_FILE)" 2>&1 &
@@ -534,7 +570,7 @@ frontend-restart: _check-node _ensure-dirs ## Rebuild and restart frontend (or s
 			npm install --silent || { echo "$(RED)npm install failed$(NC)"; exit 1; }; \
 		fi
 	@# Start
-	@$(MAKE) -s _detect-conflicts
+	@$(MAKE) -s _detect-frontend-conflicts
 	@echo "$(CYAN)Starting frontend...$(NC)"
 	@cd "$(FRONTEND_DIR)" && \
 		VITE_PORT="$(VITE_PORT)" \
@@ -602,9 +638,24 @@ db-connect: _check-postgres ## Open interactive PostgreSQL shell
 	@echo "$(BLUE)🗄️  Connecting to $(DB_NAME)...$(NC)"
 	@PGPASSWORD="$(DB_PASSWORD)" psql -h "$(DB_HOST)" -p "$(DB_PORT)" -U "$(DB_USER)" -d "$(DB_NAME)"
 
+db-stop: ## Stop PostgreSQL service
+	@echo "$(BLUE)⏹️  Stopping PostgreSQL...$(NC)"
+	@sudo systemctl stop postgresql && echo "$(GREEN)✓ PostgreSQL stopped$(NC)" || echo "$(RED)❌ Failed to stop PostgreSQL$(NC)"
+
+db-start: ## Start PostgreSQL service and ensure database is initialized
+	@echo "$(BLUE)▶️  Starting PostgreSQL and ensuring database setup...$(NC)"
+	@$(MAKE) -s _check-postgres
+	@$(MAKE) -s _ensure-db-schema
+	@echo "$(GREEN)✅ PostgreSQL started and database ready$(NC)"
+
 db-init: _check-postgres ## Initialize database from scratch
 	@echo ""
 	@echo "$(BLUE)🗄️  Initializing database $(DB_NAME)...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Creating user...$(NC)"
+	@sudo -u postgres psql -c "CREATE USER $(DB_USER) WITH PASSWORD '$(DB_PASSWORD)' SUPERUSER;" 2>/dev/null && \
+		echo "$(GREEN)✅ User created$(NC)" || \
+		echo "$(YELLOW)User may already exist$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Creating database...$(NC)"
 	@sudo -u postgres psql -c "CREATE DATABASE $(DB_NAME) OWNER $(DB_USER);" 2>/dev/null && \
@@ -631,6 +682,10 @@ db-reset: _check-postgres ## Reset database (clear all data, reinitialize schema
 		echo ""; \
 		echo "$(YELLOW)Terminating connections...$(NC)"; \
 		sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME)';" > /dev/null 2>&1 || true; \
+		echo "$(YELLOW)Creating user...$(NC)"; \
+		sudo -u postgres psql -c "CREATE USER $(DB_USER) WITH PASSWORD '$(DB_PASSWORD)' SUPERUSER;" 2>/dev/null && \
+			echo "$(GREEN)✅ User created$(NC)" || \
+			echo "$(YELLOW)User may already exist$(NC)"; \
 		echo "$(YELLOW)Dropping database...$(NC)"; \
 		sudo -u postgres psql -c "DROP DATABASE IF EXISTS $(DB_NAME);" > /dev/null 2>&1; \
 		echo "$(YELLOW)Recreating database...$(NC)"; \
@@ -664,6 +719,10 @@ db-destroy: _check-postgres ## Destroy database completely
 		sudo -u postgres psql -c "DROP DATABASE IF EXISTS $(DB_NAME);" > /dev/null 2>&1 && \
 			echo "$(GREEN)✅ Database destroyed$(NC)" || \
 			echo "$(YELLOW)Database did not exist$(NC)"; \
+		echo "$(YELLOW)Dropping user...$(NC)"; \
+		sudo -u postgres psql -c "DROP ROLE IF EXISTS $(DB_USER);" > /dev/null 2>&1 && \
+			echo "$(GREEN)✅ User destroyed$(NC)" || \
+			echo "$(YELLOW)User did not exist$(NC)"; \
 		echo ""; \
 		echo "To recreate: $(CYAN)make db-init$(NC)"; \
 	else \
