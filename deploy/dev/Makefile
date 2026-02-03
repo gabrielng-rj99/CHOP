@@ -1011,3 +1011,13 @@ test-coverage: _check-go ## Run tests with coverage report
 	@echo "$(BLUE)🧪 Running tests with coverage...$(NC)"
 	@cd "$(BACKEND_DIR)" && go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out -o coverage.html
 	@echo "$(GREEN)✓ Coverage report: $(BACKEND_DIR)/coverage.html$(NC)"
+
+populate: _check-postgres ## Populate database with test data
+	@echo "$(BLUE)📊 Populating database with test data...$(NC)"
+	@export SERVER_URL=http://localhost:$(API_PORT) && \
+	export BASE_URL=http://localhost:$(API_PORT)/api && \
+	export DB_USER=$(DB_USER) && \
+	export DB_PASSWORD=$(DB_PASSWORD) && \
+	export USERNAME=root && \
+	export PASSWORD=$(DB_PASSWORD) && \
+	../../backend/tools/populate.sh
