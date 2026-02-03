@@ -17,7 +17,7 @@
 #   ./backend/tools/populate.sh [--dry-run] [--verbose]
 #
 # Environment Variables:
-#   BASE_URL          API base URL (default: http://localhost:43000/api)
+#   BASE_URL          API base URL (default: http://localhost:3000/api)
 #   USERNAME          Login username (default: root)
 #   PASSWORD          Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
 #   TIMESTAMP         Custom timestamp (auto-generated if not set)
@@ -27,9 +27,12 @@
 set -euo pipefail
 
 # Configuration
-BASE_URL="${BASE_URL:-http://localhost:43000/api}"
+SERVER_URL="${SERVER_URL:-http://localhost:3000}"
+BASE_URL="${BASE_URL:-http://localhost:3000/api}"
 USERNAME="${USERNAME:-root}"
 PASSWORD="${PASSWORD:-THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc}"
+DB_USER="${DB_USER:-chopuser_dev}"
+DB_PASSWORD="${DB_PASSWORD:-THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc}"
 TIMESTAMP=$(date +%s%N | cut -b1-10)
 DRY_RUN="${DRY_RUN:-false}"
 VERBOSE="${VERBOSE:-false}"
@@ -114,12 +117,23 @@ extract_id() {
     echo "$response" | jq -r '.data.id // empty' 2>/dev/null || echo ""
 }
 
+# Ensure database user exists
+ensure_db_user() {
+    log_info "Ensuring database user exists..."
+
+    if sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' SUPERUSER;" 2>/dev/null; then
+        log_success "Database user created"
+    else
+        log_warning "Database user may already exist or failed to create"
+    fi
+}
+
 # Check server health
 check_server() {
     log_info "Checking server health..."
 
-    if ! curl -s -f "$BASE_URL/health" > /dev/null 2>&1; then
-        log_error "Server is not responding at $BASE_URL"
+    if ! curl -s -f "$SERVER_URL/health" > /dev/null 2>&1; then
+        log_error "Server is not responding at $SERVER_URL"
         log_error "Make sure the server is running: cd backend && go run main.go"
         exit 1
     fi
@@ -363,7 +377,8 @@ Options:
   --help            Show this help message
 
 Environment Variables:
-  BASE_URL          API base URL (default: http://localhost:43000/api)
+  SERVER_URL        Server base URL (default: http://localhost:3000)
+  BASE_URL          API base URL (default: http://localhost:3000/api)
   USERNAME          Login username (default: root)
   PASSWORD          Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
 
@@ -374,8 +389,8 @@ Examples:
   # Dry run to see what would be created
   $0 --dry-run
 
-  # Use custom API URL
-  BASE_URL=http://api.example.com:3000/api $0
+  # Use custom server and API URLs
+  SERVER_URL=http://api.example.com:3000 BASE_URL=http://api.example.com:3000/api $0
 
 EOF
 }
@@ -424,6 +439,7 @@ done
     log_info "Timestamp: $TIMESTAMP"
     echo ""
 
+    ensure_db_user
     check_server
     login
     echo ""
