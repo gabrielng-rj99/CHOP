@@ -744,7 +744,7 @@ db-update: _check-postgres ## Apply pending migrations (reinitialize schema)
 # QUICK START TARGETS (Aliases & Combined)
 # ============================================================================
 
-start: _check-config _ensure-dirs _check-postgres _ensure-db-schema ## Start dev environment (backend + frontend)
+start: _check-config _ensure-dirs _check-postgres _ensure-db-schema  ## Start dev environment (backend + frontend)
 	@echo ""
 	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(BLUE)║$(NC)$(BOLD)              Starting Development Environment                                $(BLUE)║$(NC)"
@@ -760,6 +760,14 @@ start: _check-config _ensure-dirs _check-postgres _ensure-db-schema ## Start dev
 	@echo "$(YELLOW)Starting services...$(NC)"
 	@echo ""
 	@$(MAKE) -s backend-start
+	@echo ""
+	@echo "$(YELLOW)Initializing root user...$(NC)"
+	@sleep 2
+	@curl -s -X POST http://localhost:$(API_PORT)/api/initialize/admin \
+		-H "Content-Type: application/json" \
+		-d '{"username":"root","display_name":"System Administrator","password":"$(DB_PASSWORD)"}' > /dev/null 2>&1 && \
+		echo "$(GREEN)✅ Root user initialized$(NC)" || \
+		echo "$(YELLOW)⚠️  Root user may already exist$(NC)"
 	@echo ""
 	@$(MAKE) -s frontend-start
 	@echo ""
@@ -1018,6 +1026,6 @@ populate: _check-postgres ## Populate database with test data
 	export BASE_URL=http://localhost:$(API_PORT)/api && \
 	export DB_USER=$(DB_USER) && \
 	export DB_PASSWORD=$(DB_PASSWORD) && \
-	export USERNAME=root && \
-	export PASSWORD=$(DB_PASSWORD) && \
+	export API_USERNAME=root && \
+	export API_PASSWORD=$(DB_PASSWORD) && \
 	../../backend/tools/populate.sh

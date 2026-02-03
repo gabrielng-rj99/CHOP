@@ -122,6 +122,28 @@ This API uses Role-Based Access Control (RBAC) with granular permissions. Each e
 - `client_value`: Amount the client pays
 - `received_value`: Amount you receive (commission, etc.)
 
+**Example: Create a custom financial with installments**
+```bash
+curl -X POST http://localhost:3000/api/financial \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_id": "550e8400-e29b-41d4-a716-446655440000",
+    "financial_type": "personalizado",
+    "description": "3-month payment plan"
+  }'
+```
+
+Response:
+```json
+{
+  "message": "Financial created successfully",
+  "data": {
+    "id": "660e8400-e29b-41d4-a716-446655440001"
+  }
+}
+```
+
 ---
 
 ## Financial Installments
@@ -141,6 +163,44 @@ This API uses Role-Based Access Control (RBAC) with granular permissions. Each e
 
 **Installment Labels:** `installment_number` 0 = "Entrada", 1 = "1ª Parcela", etc.
 
+**Example: Create an installment**
+```bash
+curl -X POST http://localhost:3000/api/financial/660e8400-e29b-41d4-a716-446655440001/installments \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "installment_number": 0,
+    "client_value": 1000.00,
+    "received_value": 800.00,
+    "installment_label": "Entrada",
+    "due_date": "2025-02-15T00:00:00Z"
+  }'
+```
+
+Response:
+```json
+{
+  "message": "Installment created successfully",
+  "data": {
+    "id": "770e8400-e29b-41d4-a716-446655440002"
+  }
+}
+```
+
+**Example: Mark installment as paid**
+```bash
+curl -X PUT http://localhost:3000/api/financial/660e8400-e29b-41d4-a716-446655440001/installments/770e8400-e29b-41d4-a716-446655440002/pay \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+Response:
+```json
+{
+  "message": "Installment marked as paid"
+}
+```
+
 ---
 
 ## Financial Dashboard
@@ -153,6 +213,27 @@ This API uses Role-Based Access Control (RBAC) with granular permissions. Each e
 | `GET` | `/api/financial/detailed-summary` | Authenticated with `financial:read` permission | N/A | Detailed summary with period breakdown (see below) |
 | `GET` | `/api/financial/upcoming` | Authenticated with `financial:read` permission | Optional Query: `days` (default: 30) | List of Upcoming Financial (`installment_id`, `contract_id`, `client_id`, `client_name`, `contract_model`, `installment_label`, `client_value`, `received_value`, `due_date`, `status`) |
 | `GET` | `/api/financial/overdue` | Authenticated with `financial:read` permission | N/A | List of Overdue Financial (same fields as upcoming) |
+
+**Example: Get financial summary**
+```bash
+curl -X GET "http://localhost:3000/api/financial/summary?year=2025&month=2" \
+  -H "Authorization: Bearer <token>"
+```
+
+Response:
+```json
+{
+  "message": "Financial summary retrieved",
+  "data": {
+    "total_to_receive": 50000.00,
+    "total_client_pays": 62500.00,
+    "already_received": 35000.00,
+    "pending_count": 15,
+    "paid_count": 8,
+    "overdue_count": 2
+  }
+}
+```
 
 **Detailed Summary Response Fields:**
 - `total_to_receive`: Total amount to receive across all contracts

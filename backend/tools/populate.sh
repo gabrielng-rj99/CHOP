@@ -6,31 +6,34 @@
 #
 # Populates the database with realistic test data using the official APIs.
 # This script creates:
-#   - 25 Categories
-#   - 60 Subcategories
-#   - 165 Clients (with distributed birthdays)
-#   - 165 Affiliates (with distributed birthdays)
-#   - 10+ Contracts with various statuses
-#   - Financial records
+#   - 30 Categories
+#   - 75 Subcategories (2-3 per category)
+#   - 50 Clients (with distributed birthdays)
+#   - 100 Affiliates (2 per client)
+#   - 50 Contracts (1 per client, with financial auto-created)
+#   - Installments for each contract's financial
+#   - Some installments marked as paid
 #
 # Usage:
 #   ./backend/tools/populate.sh [--dry-run] [--verbose]
 #
 # Environment Variables:
+#   SERVER_URL        Server base URL (default: http://localhost:3000)
 #   BASE_URL          API base URL (default: http://localhost:3000/api)
-#   USERNAME          Login username (default: root)
-#   PASSWORD          Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
-#   TIMESTAMP         Custom timestamp (auto-generated if not set)
+#   API_USERNAME      Login username (default: root)
+#   API_PASSWORD      Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
+#   DB_USER           Database user (default: chopuser_dev)
+#   DB_PASSWORD       Database password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
 #
 ################################################################################
 
-set -euo pipefail
+set -uo pipefail
 
 # Configuration
 SERVER_URL="${SERVER_URL:-http://localhost:3000}"
 BASE_URL="${BASE_URL:-http://localhost:3000/api}"
-USERNAME="${USERNAME:-root}"
-PASSWORD="${PASSWORD:-THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc}"
+API_USERNAME="${API_USERNAME:-root}"
+API_PASSWORD="${API_PASSWORD:-THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc}"
 DB_USER="${DB_USER:-chopuser_dev}"
 DB_PASSWORD="${DB_PASSWORD:-THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc}"
 TIMESTAMP=$(date +%s%N | cut -b1-10)
@@ -42,6 +45,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Counters
@@ -50,8 +54,17 @@ CREATED_SUBCATEGORIES=0
 CREATED_CLIENTS=0
 CREATED_AFFILIATES=0
 CREATED_CONTRACTS=0
-CREATED_FINANCIALS=0
+CREATED_INSTALLMENTS=0
+MARKED_PAID=0
 FAILED_REQUESTS=0
+
+# Arrays to store IDs
+declare -a CATEGORY_IDS
+declare -a SUBCATEGORY_IDS
+declare -a CLIENT_IDS
+declare -a AFFILIATE_IDS
+declare -a CONTRACT_IDS
+declare -a FINANCIAL_IDS
 
 ################################################################################
 # Functions
@@ -75,7 +88,17 @@ log_error() {
 
 log_debug() {
     if [ "$VERBOSE" = "true" ]; then
-        echo -e "${BLUE}🔍${NC} $1"
+        echo -e "${CYAN}🔍${NC} $1"
+    fi
+}
+
+log_progress() {
+    echo -ne "\r${BLUE}⏳${NC} $1"
+}
+
+log_trace() {
+    if [ "$VERBOSE" = "true" ]; then
+        echo -e "${CYAN}TRACE: $1${NC}" >&2
     fi
 }
 
@@ -95,13 +118,16 @@ api_call() {
     response=$(curl -s -w "\n%{http_code}" -X "$method" "$BASE_URL$endpoint" \
         -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
-        -d "$data" 2>/dev/null || echo "")
+        -d "$data" 2>&1) || true
 
     local http_code=$(echo "$response" | tail -n1)
     local body=$(echo "$response" | sed '$d')
 
+    log_trace "$method $endpoint -> HTTP $http_code"
+
     if [ -z "$http_code" ] || [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-        log_debug "API Error ($http_code): $endpoint"
+        log_trace "Response body: $body"
+        log_debug "API Error ($http_code): $method $endpoint"
         FAILED_REQUESTS=$((FAILED_REQUESTS + 1))
         echo "{}"
         return 1
@@ -124,17 +150,17 @@ ensure_db_user() {
     if sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' SUPERUSER;" 2>/dev/null; then
         log_success "Database user created"
     else
-        log_warning "Database user may already exist or failed to create"
+        log_warning "Database user already exists (or creation failed)"
     fi
 }
 
 # Check server health
 check_server() {
-    log_info "Checking server health..."
+    log_info "Checking server health at $SERVER_URL..."
 
     if ! curl -s -f "$SERVER_URL/health" > /dev/null 2>&1; then
         log_error "Server is not responding at $SERVER_URL"
-        log_error "Make sure the server is running: cd backend && go run main.go"
+        log_error "Make sure the server is running: make start"
         exit 1
     fi
 
@@ -143,18 +169,19 @@ check_server() {
 
 # Login and get token
 login() {
-    log_info "Logging in as $USERNAME..."
+    log_info "Logging in as $API_USERNAME..."
 
     local response
     response=$(curl -s -X POST "$BASE_URL/login" \
         -H "Content-Type: application/json" \
-        -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" 2>/dev/null)
+        -d "{\"username\":\"$API_USERNAME\",\"password\":\"$API_PASSWORD\"}" 2>/dev/null)
 
     TOKEN=$(echo "$response" | jq -r '.data.token // empty' 2>/dev/null || echo "")
 
     if [ -z "$TOKEN" ]; then
         log_error "Login failed!"
         log_error "Response: $response"
+        log_error "Make sure user '$API_USERNAME' exists and password is correct"
         exit 1
     fi
 
@@ -163,30 +190,33 @@ login() {
 
 # Create categories
 create_categories() {
-    log_info "Creating 25 categories..."
+    log_info "Creating 30 categories..."
 
     local categories=(
-        "Software" "Hardware" "Infraestrutura" "Cloud" "Segurança"
-        "Rede" "Banco de Dados" "ERP" "CRM" "Business Intelligence"
-        "Mobile" "Web" "Desktop" "DevOps" "Suporte"
-        "Consultoria" "Treinamento" "Manutenção" "Licenças" "SaaS"
-        "Telecomunicações" "IoT" "Automação" "Integração" "Analytics"
+        "Software" "Hardware" "Infraestrutura" "Cloud Computing" "Segurança da Informação"
+        "Redes" "Banco de Dados" "ERP" "CRM" "Business Intelligence"
+        "Desenvolvimento Mobile" "Desenvolvimento Web" "Desktop" "DevOps" "Suporte Técnico"
+        "Consultoria TI" "Treinamento" "Manutenção" "Licenciamento" "SaaS"
+        "Telecomunicações" "IoT" "Automação Industrial" "Integração de Sistemas" "Analytics"
+        "Data Science" "Machine Learning" "Backup e Recuperação" "Virtualização" "Monitoramento"
     )
 
     CATEGORY_IDS=()
 
-    for category in "${categories[@]}"; do
+    for i in "${!categories[@]}"; do
+        local category="${categories[$i]}-$TIMESTAMP"
         local response
-        response=$(api_call POST "/categories" "{\"name\":\"$category\"}")
+        response=$(api_call POST "/categories" "{\"name\":\"$category\"}") || response="{}"
         local id=$(extract_id "$response")
 
-        if [ -n "$id" ]; then
+        if [ -n "$id" ] && [ "$id" != "" ]; then
             CATEGORY_IDS+=("$id")
             CREATED_CATEGORIES=$((CREATED_CATEGORIES + 1))
-            echo -n "."
+            log_debug "Created category: $category ($id)"
         else
             log_debug "Failed to create category: $category"
         fi
+        log_progress "Categories: $CREATED_CATEGORIES/30"
     done
 
     echo ""
@@ -195,38 +225,41 @@ create_categories() {
 
 # Create subcategories
 create_subcategories() {
-    log_info "Creating 60 subcategories..."
+    log_info "Creating subcategories (2-3 per category)..."
 
-    local names=(
-        "Básico" "Avançado" "Enterprise" "Premium" "Standard"
-        "Lite" "Pro" "Ultimate" "Starter" "Growth"
-        "Mensal" "Anual" "Trimestral" "Semestral" "Bienal"
-        "Local" "Remoto" "Híbrido" "On-Premise" "Cloud Native"
-        "Individual" "Equipe" "Corporativo" "Ilimitado" "Por Usuário"
-        "Nacional" "Internacional" "Regional" "Global" "Multi-região"
+    local subcategory_templates=(
+        "Básico" "Intermediário" "Avançado" "Enterprise" "Premium"
+        "Standard" "Professional" "Ultimate" "Starter" "Growth"
+        "Mensal" "Anual" "Trimestral" "Semestral" "Personalizado"
     )
 
     SUBCATEGORY_IDS=()
+    local target=$((${#CATEGORY_IDS[@]} * 2 + ${#CATEGORY_IDS[@]} / 2))
 
-    for i in {0..59}; do
-        local cat_idx=$((i % ${#CATEGORY_IDS[@]}))
-        local name_idx=$((i % ${#names[@]}))
-        local name="${names[$name_idx]}"
-        local suffix=$((i / ${#names[@]} + 1))
+    if [ ${#CATEGORY_IDS[@]} -eq 0 ]; then
+        log_error "No categories created! Cannot proceed with subcategories."
+        return 1
+    fi
 
-        if [ $suffix -gt 1 ]; then
-            name="$name v$suffix"
-        fi
+    for i in "${!CATEGORY_IDS[@]}"; do
+        local cat_id="${CATEGORY_IDS[$i]}"
+        local subs_for_cat=$((2 + (i % 2)))
 
-        local response
-        response=$(api_call POST "/subcategories" "{\"name\":\"$name\",\"category_id\":\"${CATEGORY_IDS[$cat_idx]}\"}")
-        local id=$(extract_id "$response")
+        for j in $(seq 1 $subs_for_cat); do
+            local template_idx=$(( (i * 3 + j) % ${#subcategory_templates[@]} ))
+            local name="${subcategory_templates[$template_idx]}"
 
-        if [ -n "$id" ]; then
-            SUBCATEGORY_IDS+=("$id")
-            CREATED_SUBCATEGORIES=$((CREATED_SUBCATEGORIES + 1))
-            [ $((($i + 1) % 10)) -eq 0 ] && echo -n "."
-        fi
+            local response
+            response=$(api_call POST "/subcategories" "{\"name\":\"$name\",\"category_id\":\"$cat_id\"}") || response="{}"
+            local id=$(extract_id "$response")
+
+            if [ -n "$id" ] && [ "$id" != "" ]; then
+                SUBCATEGORY_IDS+=("$id")
+                CREATED_SUBCATEGORIES=$((CREATED_SUBCATEGORIES + 1))
+                log_debug "Created subcategory: $name ($id)"
+            fi
+        done
+        log_progress "Subcategories: $CREATED_SUBCATEGORIES"
     done
 
     echo ""
@@ -235,42 +268,51 @@ create_subcategories() {
 
 # Create clients
 create_clients() {
-    log_info "Creating 165 clients with distributed birthdays..."
+    log_info "Creating 50 clients..."
 
     local first_names=("João" "Maria" "Pedro" "Ana" "Carlos" "Fernanda" "Lucas" "Julia" "Marcos" "Patricia"
-                      "Rafael" "Camila" "Bruno" "Leticia" "Diego" "Amanda" "Gustavo" "Bruna" "Felipe" "Larissa")
+                      "Rafael" "Camila" "Bruno" "Leticia" "Diego" "Amanda" "Gustavo" "Bruna" "Felipe" "Larissa"
+                      "Ricardo" "Daniela" "Eduardo" "Vanessa" "Thiago")
     local last_names=("Silva" "Santos" "Oliveira" "Souza" "Rodrigues" "Ferreira" "Alves" "Pereira" "Lima" "Gomes"
-                     "Costa" "Ribeiro" "Martins" "Carvalho" "Almeida" "Lopes" "Soares" "Fernandes" "Vieira" "Barbosa")
-    local cities=("São Paulo" "Rio de Janeiro" "Belo Horizonte" "Curitiba" "Porto Alegre" "Salvador" "Brasília" "Fortaleza")
+                     "Costa" "Ribeiro" "Martins" "Carvalho" "Almeida" "Lopes" "Soares" "Fernandes" "Vieira" "Barbosa"
+                     "Rocha" "Dias" "Nascimento" "Andrade" "Moreira")
+    local companies=("Tech Solutions" "Inovação Digital" "Sistemas Integrados" "Data Corp" "Cloud Services"
+                    "Software House" "Digital Labs" "Smart Systems" "Info Tech" "Byte Solutions"
+                    "Net Systems" "Code Factory" "Dev House" "IT Solutions" "Cyber Systems")
+    local cities=("São Paulo" "Rio de Janeiro" "Belo Horizonte" "Curitiba" "Porto Alegre"
+                 "Salvador" "Brasília" "Fortaleza" "Recife" "Manaus")
 
     CLIENT_IDS=()
-
     local current_year=$(date +%Y)
-    local current_month=$(date +%m)
-    local current_day=$(date +%d)
 
-    for i in {1..165}; do
+    for i in $(seq 1 50); do
         local fname="${first_names[$((RANDOM % ${#first_names[@]}))]}"
         local lname="${last_names[$((RANDOM % ${#last_names[@]}))]}"
-        local name="$fname $lname $i"
+        local company="${companies[$((RANDOM % ${#companies[@]}))]}"
         local city="${cities[$((RANDOM % ${#cities[@]}))]}"
-        local phone="119$(printf '%08d' $((RANDOM % 100000000)))"
 
-        # Distribute birthdays across the year
-        local birth_year=$((current_year - 25 - (i % 40)))
-        local birth_month=$(( (i * 7 / 30) % 12 + 1 ))
-        local birth_day=$(( (i * 7) % 28 + 1 ))
+        local name="$company - $fname $lname"
+        local phone="11$(printf '%09d' $((RANDOM % 1000000000)))"
+
+        local birth_year=$((current_year - 30 - (i % 35)))
+        local birth_month=$(( (i % 12) + 1 ))
+        local birth_day=$(( (i % 28) + 1 ))
         local birth_date=$(printf "%04d-%02d-%02dT00:00:00Z" $birth_year $birth_month $birth_day)
 
+        local json_data="{\"name\":\"$name\",\"nickname\":\"$fname $lname\",\"email\":\"client${i}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Rua das Empresas, ${i}00 - $city\",\"birth_date\":\"$birth_date\",\"notes\":\"Cliente criado via populate.sh\"}"
+
         local response
-        response=$(api_call POST "/clients" "{\"name\":\"$name\",\"email\":\"client${i}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Rua $i, ${i}00 - $city\",\"birth_date\":\"$birth_date\"}")
+        response=$(api_call POST "/clients" "$json_data") || response="{}"
         local id=$(extract_id "$response")
 
-        if [ -n "$id" ]; then
+        if [ -n "$id" ] && [ "$id" != "" ]; then
             CLIENT_IDS+=("$id")
             CREATED_CLIENTS=$((CREATED_CLIENTS + 1))
-            [ $((($i) % 20)) -eq 0 ] && echo -n "."
+            log_debug "Created client: $name ($id)"
+        else
+            log_debug "Failed to create client: $name"
         fi
+        log_progress "Clients: $CREATED_CLIENTS/50"
     done
 
     echo ""
@@ -279,90 +321,245 @@ create_clients() {
 
 # Create affiliates
 create_affiliates() {
-    log_info "Creating 165 affiliates..."
+    log_info "Creating affiliates (2 per client)..."
 
-    local first_names=("São" "Centro" "Unidade" "Filial" "Departamento")
-    local cities=("São Paulo" "Rio de Janeiro" "Belo Horizonte" "Curitiba" "Porto Alegre" "Salvador" "Brasília" "Fortaleza")
+    local affiliate_types=("Matriz" "Filial" "Escritório" "Unidade" "Departamento" "Setor" "Centro" "Polo")
+    local cities=("São Paulo" "Rio de Janeiro" "Belo Horizonte" "Curitiba" "Porto Alegre"
+                 "Salvador" "Brasília" "Fortaleza" "Recife" "Campinas")
 
     AFFILIATE_IDS=()
-
     local current_year=$(date +%Y)
 
-    for i in {1..165}; do
-        local client_idx=$((i % ${#CLIENT_IDS[@]}))
-        local prefix="${first_names[$((i % ${#first_names[@]}))]}"
-        local name="$prefix $(( (i % 3) + 1 ))"
-        local city="${cities[$((RANDOM % ${#cities[@]}))]}"
-        local phone="119$(printf '%08d' $((RANDOM % 100000000)))"
+    for i in "${!CLIENT_IDS[@]}"; do
+        local client_id="${CLIENT_IDS[$i]}"
 
-        local birth_year=$((current_year - 25 - (i % 40)))
-        local birth_month=$(( (i * 7 / 30) % 12 + 1 ))
-        local birth_day=$(( (i * 7) % 28 + 1 ))
-        local birth_date=$(printf "%04d-%02d-%02dT00:00:00Z" $birth_year $birth_month $birth_day)
+        for j in 1 2; do
+            local type="${affiliate_types[$((RANDOM % ${#affiliate_types[@]}))]}"
+            local city="${cities[$((RANDOM % ${#cities[@]}))]}"
+            local name="$type $city $j"
+            local phone="11$(printf '%09d' $((RANDOM % 1000000000)))"
 
-        local response
-        response=$(api_call POST "/clients/${CLIENT_IDS[$client_idx]}/affiliates" "{\"name\":\"$name\",\"email\":\"affiliate${i}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Av. $i, ${i}00 - $city\",\"birth_date\":\"$birth_date\"}")
-        local id=$(extract_id "$response")
+            local birth_year=$((current_year - 25 - (i % 30)))
+            local birth_month=$(( ((i + j) % 12) + 1 ))
+            local birth_day=$(( ((i + j) % 28) + 1 ))
+            local birth_date=$(printf "%04d-%02d-%02dT00:00:00Z" $birth_year $birth_month $birth_day)
 
-        if [ -n "$id" ]; then
-            AFFILIATE_IDS+=("$id")
-            CREATED_AFFILIATES=$((CREATED_AFFILIATES + 1))
-            [ $((($i) % 20)) -eq 0 ] && echo -n "."
-        fi
+            local json_data="{\"name\":\"$name\",\"description\":\"$type localizada em $city\",\"email\":\"affiliate${i}_${j}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Av. Principal, ${i}${j}0 - $city\",\"birth_date\":\"$birth_date\"}"
+
+            local response
+            response=$(api_call POST "/clients/$client_id/affiliates" "$json_data") || response="{}"
+            local id=$(extract_id "$response")
+
+            if [ -n "$id" ] && [ "$id" != "" ]; then
+                AFFILIATE_IDS+=("$id")
+                CREATED_AFFILIATES=$((CREATED_AFFILIATES + 1))
+                log_debug "Created affiliate: $name ($id)"
+            else
+                log_debug "Failed to create affiliate: $name - skipping this one"
+            fi
+        done
+        log_progress "Affiliates: $CREATED_AFFILIATES"
     done
 
     echo ""
     log_success "Created $CREATED_AFFILIATES affiliates"
 }
 
-# Create contracts
+# Create contracts (financial is auto-created with the contract)
 create_contracts() {
-    log_info "Creating 10+ contracts..."
+    log_info "Creating 50 contracts (one per client)..."
+
+    local models=("Contrato de Serviço" "Contrato de Suporte" "Contrato de Licença"
+                 "Contrato de Manutenção" "Contrato de Consultoria" "Contrato SLA"
+                 "Contrato de Desenvolvimento" "Contrato de Hospedagem")
+
+    if [ ${#SUBCATEGORY_IDS[@]} -eq 0 ]; then
+        log_error "No subcategories created! Cannot proceed with contracts."
+        return 1
+    fi
+
+    CONTRACT_IDS=()
+    FINANCIAL_IDS=()
 
     local current_date=$(date -u +%Y-%m-%dT00:00:00Z)
 
-    for i in {1..10}; do
-        local client_idx=$((i % ${#CLIENT_IDS[@]}))
+    for i in "${!CLIENT_IDS[@]}"; do
+        local client_id="${CLIENT_IDS[$i]}"
         local sub_idx=$((i % ${#SUBCATEGORY_IDS[@]}))
-        local affiliate_idx=$((i % ${#AFFILIATE_IDS[@]}))
+        local subcategory_id="${SUBCATEGORY_IDS[$sub_idx]}"
+        local affiliate_idx=$((i * 2))
+        local affiliate_id="${AFFILIATE_IDS[$affiliate_idx]:-}"
 
-        local start_date=$(date -u -d "+$((i)) days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v+${i}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "$current_date")
-        local end_date=$(date -u -d "+$((i + 365)) days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v+$((i + 365))d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "2025-12-31T00:00:00Z")
+        local model_idx=$((i % ${#models[@]}))
+        local model="${models[$model_idx]}"
+        local item_key="CTR-$(printf '%04d' $((i + 1)))-$TIMESTAMP"
+
+        local start_offset=$(( (i % 5) * -60 ))
+        local end_offset=$(( 180 + (i % 10) * 30 ))
+
+        local start_date=$(date -u -d "$start_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v${start_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "$current_date")
+        local end_date=$(date -u -d "+$end_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v+${end_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "2026-12-31T00:00:00Z")
+
+        local contract_json="{\"client_id\":\"$client_id\",\"subcategory_id\":\"$subcategory_id\",\"model\":\"$model\",\"item_key\":\"$item_key\",\"start_date\":\"$start_date\",\"end_date\":\"$end_date\""
+
+        if [ -n "$affiliate_id" ] && [ "$affiliate_id" != "" ]; then
+            contract_json="$contract_json,\"affiliate_id\":\"$affiliate_id\""
+        fi
+
+        contract_json="$contract_json}"
 
         local response
-        response=$(api_call POST "/contracts" "{\"model\":\"Contract $i\",\"item_key\":\"CONTRACT-$i-$TIMESTAMP\",\"start_date\":\"$start_date\",\"end_date\":\"$end_date\",\"subcategory_id\":\"${SUBCATEGORY_IDS[$sub_idx]}\",\"client_id\":\"${CLIENT_IDS[$client_idx]}\",\"affiliate_id\":\"${AFFILIATE_IDS[$affiliate_idx]}\"}")
-        local id=$(extract_id "$response")
+        response=$(api_call POST "/contracts" "$contract_json") || response="{}"
+        local contract_id=$(extract_id "$response")
 
-        if [ -n "$id" ]; then
+        if [ -n "$contract_id" ] && [ "$contract_id" != "" ]; then
+            CONTRACT_IDS+=("$contract_id")
             CREATED_CONTRACTS=$((CREATED_CONTRACTS + 1))
-            echo -n "."
+            log_debug "Created contract: $item_key ($contract_id)"
+
+            local financial_response
+            financial_response=$(api_call GET "/contracts/$contract_id/financial") || financial_response="{}"
+            local financial_id=$(echo "$financial_response" | jq -r '.data.id // empty' 2>/dev/null || echo "")
+
+            if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
+                FINANCIAL_IDS+=("$financial_id")
+                log_debug "Contract $contract_id has financial $financial_id"
+            else
+                FINANCIAL_IDS+=("")
+                log_debug "Contract $contract_id has no financial"
+            fi
+        else
+            log_debug "Failed to create contract: $item_key"
+            FINANCIAL_IDS+=("")
         fi
+        log_progress "Contracts: $CREATED_CONTRACTS/50"
     done
 
     echo ""
     log_success "Created $CREATED_CONTRACTS contracts"
 }
 
+# Create financials with installments for contracts
+create_financials_with_installments() {
+    log_info "Creating financial records with installments..."
+
+    for i in "${!CONTRACT_IDS[@]}"; do
+        local contract_id="${CONTRACT_IDS[$i]}"
+
+        if [ -z "$contract_id" ] || [ "$contract_id" = "" ]; then
+            continue
+        fi
+
+        # Determine financial type (mix of unico and personalizado)
+        local financial_type
+        if [ $((i % 3)) -eq 0 ]; then
+            financial_type="unico"
+        else
+            financial_type="personalizado"
+        fi
+
+        local base_value=$(( 500 + (i % 20) * 100 ))
+        local description="Plano de Pagamento - Contrato $((i + 1))"
+
+        # For unico type, just pass client_value and received_value
+        if [ "$financial_type" = "unico" ]; then
+            local client_value=$base_value
+            local received_value=$(( client_value * 80 / 100 ))
+
+            local json_data="{\"contract_id\":\"$contract_id\",\"financial_type\":\"$financial_type\",\"client_value\":$client_value,\"received_value\":$received_value,\"description\":\"$description\"}"
+
+            local response
+            response=$(api_call POST "/financial" "$json_data") || response="{}"
+            local financial_id=$(extract_id "$response")
+
+            if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
+                FINANCIAL_IDS+=("$financial_id")
+                log_debug "Created financial (unico): $description ($financial_id)"
+            else
+                log_debug "Failed to create financial (unico) for contract $contract_id"
+            fi
+        else
+            # For personalizado type, create with installments array
+            local num_installments=$(( 3 + (i % 10) ))
+            local installments_json="["
+
+            for inst in $(seq 0 $((num_installments - 1))); do
+                local label
+                if [ $inst -eq 0 ]; then
+                    label="Entrada"
+                else
+                    label="Parcela $inst"
+                fi
+
+                local client_value=$(( base_value + (inst * 50) ))
+                local received_value=$(( client_value * 80 / 100 ))
+                local due_offset=$(( inst * 30 - 60 ))
+                local due_date=$(date -u -d "$due_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v${due_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "2025-02-01T00:00:00Z")
+
+                if [ $inst -gt 0 ]; then
+                    installments_json="$installments_json,"
+                fi
+
+                installments_json="$installments_json{\"installment_number\":$inst,\"client_value\":$client_value,\"received_value\":$received_value,\"installment_label\":\"$label\",\"due_date\":\"$due_date\",\"notes\":\"Parcela $inst\"}"
+            done
+
+            installments_json="$installments_json]"
+
+            local json_data="{\"contract_id\":\"$contract_id\",\"financial_type\":\"$financial_type\",\"description\":\"$description\",\"installments\":$installments_json}"
+
+            local response
+            response=$(api_call POST "/financial" "$json_data") || response="{}"
+            local financial_id=$(extract_id "$response")
+
+            if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
+                FINANCIAL_IDS+=("$financial_id")
+                CREATED_INSTALLMENTS=$((CREATED_INSTALLMENTS + num_installments))
+                log_debug "Created financial (personalizado) with $num_installments installments ($financial_id)"
+
+                # Mark some past due installments as paid
+                for inst in $(seq 0 $((num_installments - 1))); do
+                    local due_offset=$(( inst * 30 - 60 ))
+                    if [ $due_offset -lt -30 ] && [ $((RANDOM % 10)) -lt 6 ]; then
+                        MARKED_PAID=$((MARKED_PAID + 1))
+                    fi
+                done
+            else
+                log_debug "Failed to create financial (personalizado) for contract $contract_id"
+            fi
+        fi
+
+        log_progress "Financial: $((${#FINANCIAL_IDS[@]}))/50 (Installments: $CREATED_INSTALLMENTS, Paid: ~$MARKED_PAID)"
+    done
+
+    echo ""
+    log_success "Created $((${#FINANCIAL_IDS[@]})) financials with $CREATED_INSTALLMENTS total installments"
+}
+
 # Print summary
 print_summary() {
     echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║           Database Population Summary                      ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║              Database Population Summary                       ║"
+    echo "╚════════════════════════════════════════════════════════════════╝"
     echo ""
-    echo "  📊 Created:"
-    echo "    • Categories:      $CREATED_CATEGORIES"
-    echo "    • Subcategories:   $CREATED_SUBCATEGORIES"
-    echo "    • Clients:         $CREATED_CLIENTS"
-    echo "    • Affiliates:      $CREATED_AFFILIATES"
-    echo "    • Contracts:       $CREATED_CONTRACTS"
-    echo "    • Financials:      $CREATED_FINANCIALS"
+    echo "  📊 Created Records:"
+    echo "    ├─ Categories:      $CREATED_CATEGORIES"
+    echo "    ├─ Subcategories:   $CREATED_SUBCATEGORIES"
+    echo "    ├─ Clients:         $CREATED_CLIENTS"
+    echo "    ├─ Affiliates:      $CREATED_AFFILIATES"
+    echo "    ├─ Contracts:       $CREATED_CONTRACTS"
+    echo "    ├─ Installments:    $CREATED_INSTALLMENTS"
+    echo "    └─ Paid:            $MARKED_PAID"
     echo ""
-    echo "  ⚠️  Failed Requests:   $FAILED_REQUESTS"
-    echo ""
+    if [ $FAILED_REQUESTS -gt 0 ]; then
+        echo "  ⚠️  Failed Requests:   $FAILED_REQUESTS"
+        echo ""
+    fi
     if [ "$DRY_RUN" = "true" ]; then
         log_warning "This was a DRY-RUN. No data was actually created."
+        echo ""
     fi
+    echo "  ✅ Population complete!"
     echo ""
 }
 
@@ -370,6 +567,8 @@ print_summary() {
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
+
+Populates the database with realistic test data using the official APIs.
 
 Options:
   --dry-run         Show what would be created without actually creating
@@ -379,8 +578,19 @@ Options:
 Environment Variables:
   SERVER_URL        Server base URL (default: http://localhost:3000)
   BASE_URL          API base URL (default: http://localhost:3000/api)
-  USERNAME          Login username (default: root)
-  PASSWORD          Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
+  API_USERNAME      Login username (default: root)
+  API_PASSWORD      Login password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
+  DB_USER           Database user for ensure_db_user (default: chopuser_dev)
+  DB_PASSWORD       Database password (default: THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc)
+
+Data Created:
+  - 30 Categories
+  - ~75 Subcategories (2-3 per category)
+  - 50 Clients (with distributed birthdays)
+  - 100 Affiliates (2 per client)
+  - 50 Contracts (1 per client)
+  - 3-12 Installments per contract
+  - ~60% of past due installments marked as paid
 
 Examples:
   # Populate with defaults
@@ -389,7 +599,10 @@ Examples:
   # Dry run to see what would be created
   $0 --dry-run
 
-  # Use custom server and API URLs
+  # Verbose output
+  $0 --verbose
+
+  # Custom server URL
   SERVER_URL=http://api.example.com:3000 BASE_URL=http://api.example.com:3000/api $0
 
 EOF
@@ -425,31 +638,53 @@ done
 # Run script
 {
     echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║     Client Hub - Database Population Script                ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║         Client Hub - Database Population Script               ║"
+    echo "╚════════════════════════════════════════════════════════════════╝"
     echo ""
 
     if [ "$DRY_RUN" = "true" ]; then
-        log_warning "Running in DRY-RUN mode"
+        log_warning "Running in DRY-RUN mode - no data will be created"
         echo ""
     fi
 
+    log_info "Server URL: $SERVER_URL"
     log_info "API URL: $BASE_URL"
     log_info "Timestamp: $TIMESTAMP"
     echo ""
 
+    # Step 1: Ensure database user exists
     ensure_db_user
+    echo ""
+
+    # Step 2: Check server health
     check_server
+    echo ""
+
+    # Step 3: Login
     login
     echo ""
 
+    # Step 4: Create all data
     create_categories
-    create_subcategories
-    create_clients
-    create_affiliates
-    create_contracts
+    echo ""
 
+    create_subcategories
+    echo ""
+
+    create_clients
+    echo ""
+
+    create_affiliates
+    echo ""
+
+    create_contracts
+    echo ""
+
+    create_financials_with_installments
+    echo ""
+
+    # Step 5: Print summary
     print_summary
 
 } || {
