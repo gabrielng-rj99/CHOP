@@ -740,6 +740,12 @@ db-update: _check-postgres ## Apply pending migrations (reinitialize schema)
 		echo "$(YELLOW)⚠️  Failed to apply schema. Check database connection.$(NC)"
 	@echo ""
 
+db-clean: _check-postgres ## Clean all data from database (keep schema and root user)
+	@echo "$(BLUE)🧹 Cleaning database data...$(NC)"
+	@PGPASSWORD="$(DB_PASSWORD)" psql -h "$(DB_HOST)" -p "$(DB_PORT)" -U "$(DB_USER)" -d "$(DB_NAME)" -c "BEGIN; DELETE FROM audit_logs; DELETE FROM financial_installments; DELETE FROM contract_financial; DELETE FROM contracts; DELETE FROM affiliates; DELETE FROM clients; DELETE FROM subcategories; DELETE FROM categories; DELETE FROM user_theme_settings; DELETE FROM login_attempts; DELETE FROM password_history; DELETE FROM users WHERE username != 'root'; COMMIT;" > /dev/null 2>&1 && \
+		echo "$(GREEN)✅ Database cleaned successfully$(NC)" || \
+		echo "$(RED)❌ Failed to clean database$(NC)"
+
 # ============================================================================
 # QUICK START TARGETS (Aliases & Combined)
 # ============================================================================
