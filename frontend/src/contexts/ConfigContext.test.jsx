@@ -4,6 +4,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { ConfigProvider, useConfig } from "./ConfigContext";
 
+vi.mock("../api/themeApi.js", () => ({
+    themeApi: {
+        getUserTheme: vi.fn().mockResolvedValue({
+            can_edit: false,
+            permissions: {
+                users_can_edit_theme: false,
+                admins_can_edit_theme: true,
+            },
+            allowed_themes: [],
+            global_theme: null,
+            settings: null,
+        }),
+        apiToFrontend: vi.fn((value) => value),
+        frontendToApi: vi.fn((value) => value),
+        updateUserTheme: vi.fn().mockResolvedValue({}),
+    },
+}));
+
 // Mock component to consume context
 const TestComponent = () => {
     const { config, setConfig, updateSettings } = useConfig();
@@ -24,7 +42,7 @@ const TestComponent = () => {
 
 describe("ConfigContext", () => {
     beforeEach(() => {
-        vi.resetAllMocks();
+        vi.clearAllMocks();
         global.fetch = vi.fn();
         // Reset document style
         document.documentElement.style.cssText = "";
@@ -42,7 +60,7 @@ describe("ConfigContext", () => {
         );
 
         expect(screen.getByTestId("app-name").textContent).toBe("Client Hub");
-        expect(screen.getByTestId("primary-color").textContent).toBe("#3498db");
+        expect(screen.getByTestId("primary-color").textContent).toBe("#0284c7");
     });
 
     it("fetches settings from API on mount", async () => {
@@ -56,8 +74,10 @@ describe("ConfigContext", () => {
             json: async () => mockSettings,
         });
 
+        localStorage.setItem("accessToken", "test-token");
+
         render(
-            <ConfigProvider apiUrl="/api" token="test-token">
+            <ConfigProvider>
                 <TestComponent />
             </ConfigProvider>,
         );
@@ -68,6 +88,10 @@ describe("ConfigContext", () => {
         });
 
         // Check if fetch was called
-        expect(global.fetch).toHaveBeenCalledWith("/api/settings");
+        expect(global.fetch).toHaveBeenCalledWith("/api/settings", {
+            headers: {
+                Authorization: "Bearer test-token",
+            },
+        });
     });
 });

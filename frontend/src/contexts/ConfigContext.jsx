@@ -835,9 +835,19 @@ export const ConfigProvider = ({ children }) => {
 
     // Check system theme preference
     const checkSystemTheme = () => {
-        const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)",
-        ).matches;
+        if (
+            typeof window === "undefined" ||
+            typeof window.matchMedia !== "function"
+        ) {
+            return "light";
+        }
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const prefersDark =
+            mediaQuery && typeof mediaQuery.matches === "boolean"
+                ? mediaQuery.matches
+                : false;
+
         return prefersDark ? "dark" : "light";
     };
 
@@ -852,12 +862,24 @@ export const ConfigProvider = ({ children }) => {
     // Listen for system theme changes
     useEffect(() => {
         updateResolvedMode();
+        if (
+            typeof window === "undefined" ||
+            typeof window.matchMedia !== "function"
+        ) {
+            return undefined;
+        }
+
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        if (!mediaQuery || typeof mediaQuery.addEventListener !== "function") {
+            return undefined;
+        }
+
         const handler = (e) => {
             if (themeMode === "system") {
                 setResolvedMode(e.matches ? "dark" : "light");
             }
         };
+
         mediaQuery.addEventListener("change", handler);
         return () => mediaQuery.removeEventListener("change", handler);
     }, [themeMode, updateResolvedMode]);

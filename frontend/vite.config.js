@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 // Read from environment or use defaults
@@ -44,5 +44,10 @@ export default defineConfig({
     build: {
         outDir: "dist",
         sourcemap: true,
+    },
+    test: {
+        environment: "jsdom",
+        setupFiles: "./src/test/setup.js",
+        exclude: ["e2e/**", "node_modules/**"],
     },
 });
