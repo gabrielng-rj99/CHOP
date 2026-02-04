@@ -822,6 +822,11 @@ details[open] .financial-breakdown-summary::before {
 }
 
 /* Action Buttons */
+.financial-action-group {
+    display: flex;
+    gap: 8px;
+}
+
 .financial-action-btn {
     width: 32px;
     height: 32px;
@@ -845,12 +850,22 @@ details[open] .financial-breakdown-summary::before {
 }
 
 .financial-action-pay {
-    background: #27ae60;
-    color: white;
+    background: #fff9db;
+    color: #218739;
+    border: 1.5px solid #ffe066;
+    box-shadow: none;
+    transition:
+        border-color 0.2s,
+        color 0.2s,
+        background 0.2s;
 }
 
-.financial-action-pay:hover {
-    background: #229954;
+.financial-action-pay:hover,
+.financial-action-pay:focus {
+    background: #ffe066;
+    color: #18642a;
+    border-color: #ffd60a;
+    outline: 2px solid #27ae60;
 }
 
 .financial-action-view {

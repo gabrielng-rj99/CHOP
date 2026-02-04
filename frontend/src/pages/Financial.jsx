@@ -437,20 +437,16 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         setSelectedFinancial(financial);
         setModalMode("view");
 
-        // Load installments if personalizado
-        if (financial.financial_type === "personalizado") {
-            try {
-                const installments = await financialApi.getInstallments(
-                    apiUrl,
-                    token,
-                    financial.id,
-                    onTokenExpired,
-                );
-                setSelectedInstallments(installments || []);
-            } catch (err) {
-                setSelectedInstallments([]);
-            }
-        } else {
+        // Load installments for any financial type
+        try {
+            const installments = await financialApi.getInstallments(
+                apiUrl,
+                token,
+                financial.id,
+                onTokenExpired,
+            );
+            setSelectedInstallments(installments || []);
+        } catch (err) {
             setSelectedInstallments([]);
         }
 
@@ -1875,63 +1871,80 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                         </span>
                                                                     </td>
                                                                     <td>
-                                                                        <button
-                                                                            className="financial-action-btn financial-action-view"
-                                                                            onClick={(
-                                                                                e,
-                                                                            ) => {
-                                                                                console.log(
-                                                                                    "Financial object:",
-                                                                                    financial,
-                                                                                );
-                                                                                console.log(
-                                                                                    "Available financial records:",
-                                                                                    financialRecords.map(
-                                                                                        (
-                                                                                            f,
-                                                                                        ) => ({
-                                                                                            id: f.id,
-                                                                                            contract_id:
-                                                                                                f.contract_id,
-                                                                                        }),
-                                                                                    ),
-                                                                                );
-                                                                                console.log(
-                                                                                    "Looking for contract_financial_id:",
-                                                                                    financial.contract_financial_id,
-                                                                                );
-
-                                                                                const financialRecord =
-                                                                                    financialRecords.find(
-                                                                                        (
-                                                                                            f,
-                                                                                        ) =>
-                                                                                            f.id ===
-                                                                                            financial.contract_financial_id,
-                                                                                    );
-
-                                                                                console.log(
-                                                                                    "Found financial record:",
-                                                                                    financialRecord,
-                                                                                );
-
-                                                                                if (
-                                                                                    financialRecord
-                                                                                ) {
-                                                                                    openFinancialModal(
-                                                                                        financialRecord,
+                                                                        <div className="financial-action-group">
+                                                                            <button
+                                                                                className="financial-action-btn financial-action-pay"
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    handleMarkPaid(
+                                                                                        financial.installment_id,
+                                                                                        financial.contract_financial_id,
                                                                                         e,
-                                                                                    );
-                                                                                } else {
-                                                                                    alert(
-                                                                                        "Financial record not found. Check console for details.",
-                                                                                    );
+                                                                                    )
                                                                                 }
-                                                                            }}
-                                                                            title="Ver detalhes"
-                                                                        >
-                                                                            👁️
-                                                                        </button>
+                                                                                title="Marcar como pago"
+                                                                            >
+                                                                                🤑
+                                                                            </button>
+                                                                            <button
+                                                                                className="financial-action-btn financial-action-view"
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    console.log(
+                                                                                        "Financial object:",
+                                                                                        financial,
+                                                                                    );
+                                                                                    console.log(
+                                                                                        "Available financial records:",
+                                                                                        financialRecords.map(
+                                                                                            (
+                                                                                                f,
+                                                                                            ) => ({
+                                                                                                id: f.id,
+                                                                                                contract_id:
+                                                                                                    f.contract_id,
+                                                                                            }),
+                                                                                        ),
+                                                                                    );
+                                                                                    console.log(
+                                                                                        "Looking for contract_financial_id:",
+                                                                                        financial.contract_financial_id,
+                                                                                    );
+
+                                                                                    const financialRecord =
+                                                                                        financialRecords.find(
+                                                                                            (
+                                                                                                f,
+                                                                                            ) =>
+                                                                                                f.id ===
+                                                                                                financial.contract_financial_id,
+                                                                                        );
+
+                                                                                    console.log(
+                                                                                        "Found financial record:",
+                                                                                        financialRecord,
+                                                                                    );
+
+                                                                                    if (
+                                                                                        financialRecord
+                                                                                    ) {
+                                                                                        openFinancialModal(
+                                                                                            financialRecord,
+                                                                                            e,
+                                                                                        );
+                                                                                    } else {
+                                                                                        alert(
+                                                                                            "Financial record not found. Check console for details.",
+                                                                                        );
+                                                                                    }
+                                                                                }}
+                                                                                title="Ver detalhes"
+                                                                            >
+                                                                                👁️
+                                                                            </button>
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             );
@@ -2092,63 +2105,80 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                                         </span>
                                                                     </td>
                                                                     <td>
-                                                                        <button
-                                                                            className="financial-action-btn financial-action-view"
-                                                                            onClick={(
-                                                                                e,
-                                                                            ) => {
-                                                                                console.log(
-                                                                                    "Financial object:",
-                                                                                    financial,
-                                                                                );
-                                                                                console.log(
-                                                                                    "Available financial records:",
-                                                                                    financialRecords.map(
-                                                                                        (
-                                                                                            f,
-                                                                                        ) => ({
-                                                                                            id: f.id,
-                                                                                            contract_id:
-                                                                                                f.contract_id,
-                                                                                        }),
-                                                                                    ),
-                                                                                );
-                                                                                console.log(
-                                                                                    "Looking for contract_financial_id:",
-                                                                                    financial.contract_financial_id,
-                                                                                );
-
-                                                                                const financialRecord =
-                                                                                    financialRecords.find(
-                                                                                        (
-                                                                                            f,
-                                                                                        ) =>
-                                                                                            f.id ===
-                                                                                            financial.contract_financial_id,
-                                                                                    );
-
-                                                                                console.log(
-                                                                                    "Found financial record:",
-                                                                                    financialRecord,
-                                                                                );
-
-                                                                                if (
-                                                                                    financialRecord
-                                                                                ) {
-                                                                                    openFinancialModal(
-                                                                                        financialRecord,
+                                                                        <div className="financial-action-group">
+                                                                            <button
+                                                                                className="financial-action-btn financial-action-pay"
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    handleMarkPaid(
+                                                                                        financial.installment_id,
+                                                                                        financial.contract_financial_id,
                                                                                         e,
-                                                                                    );
-                                                                                } else {
-                                                                                    alert(
-                                                                                        "Financial record not found. Check console for details.",
-                                                                                    );
+                                                                                    )
                                                                                 }
-                                                                            }}
-                                                                            title="Ver detalhes"
-                                                                        >
-                                                                            👁️
-                                                                        </button>
+                                                                                title="Marcar como pago"
+                                                                            >
+                                                                                🤑
+                                                                            </button>
+                                                                            <button
+                                                                                className="financial-action-btn financial-action-view"
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    console.log(
+                                                                                        "Financial object:",
+                                                                                        financial,
+                                                                                    );
+                                                                                    console.log(
+                                                                                        "Available financial records:",
+                                                                                        financialRecords.map(
+                                                                                            (
+                                                                                                f,
+                                                                                            ) => ({
+                                                                                                id: f.id,
+                                                                                                contract_id:
+                                                                                                    f.contract_id,
+                                                                                            }),
+                                                                                        ),
+                                                                                    );
+                                                                                    console.log(
+                                                                                        "Looking for contract_financial_id:",
+                                                                                        financial.contract_financial_id,
+                                                                                    );
+
+                                                                                    const financialRecord =
+                                                                                        financialRecords.find(
+                                                                                            (
+                                                                                                f,
+                                                                                            ) =>
+                                                                                                f.id ===
+                                                                                                financial.contract_financial_id,
+                                                                                        );
+
+                                                                                    console.log(
+                                                                                        "Found financial record:",
+                                                                                        financialRecord,
+                                                                                    );
+
+                                                                                    if (
+                                                                                        financialRecord
+                                                                                    ) {
+                                                                                        openFinancialModal(
+                                                                                            financialRecord,
+                                                                                            e,
+                                                                                        );
+                                                                                    } else {
+                                                                                        alert(
+                                                                                            "Financial record not found. Check console for details.",
+                                                                                        );
+                                                                                    }
+                                                                                }}
+                                                                                title="Ver detalhes"
+                                                                            >
+                                                                                👁️
+                                                                            </button>
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             );
@@ -2841,121 +2871,117 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                     </div>
 
                                     {/* Installments */}
-                                    {selectedFinancial.financial_type ===
-                                        "personalizado" &&
-                                        selectedInstallments.length > 0 && (
-                                            <div className="financial-modal-section">
-                                                <h3>
-                                                    Parcelas (
-                                                    {selectedFinancial.paid_installments ||
-                                                        0}
-                                                    /
-                                                    {
-                                                        selectedFinancial.total_installments
-                                                    }{" "}
-                                                    pagas)
-                                                </h3>
-                                                <div className="financial-modal-installments">
-                                                    {selectedInstallments.map(
-                                                        (inst) => {
-                                                            const statusInfo =
-                                                                financialApi.getInstallmentStatusInfo(
-                                                                    inst.status,
-                                                                );
-                                                            return (
-                                                                <div
-                                                                    key={
-                                                                        inst.id
-                                                                    }
-                                                                    className={`financial-modal-installment financial-modal-installment-${inst.status}`}
-                                                                >
-                                                                    <div className="financial-modal-installment-info">
-                                                                        <span className="financial-modal-installment-label">
-                                                                            {inst.installment_label ||
-                                                                                financialApi.getInstallmentLabel(
-                                                                                    inst.installment_number,
-                                                                                )}
-                                                                        </span>
-                                                                        <span
-                                                                            className="financial-modal-installment-status"
-                                                                            style={{
-                                                                                color: statusInfo.color,
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                statusInfo.label
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="financial-modal-installment-values">
-                                                                        <span>
-                                                                            {config
-                                                                                .labels
-                                                                                ?.client ||
-                                                                                "Cliente"}
-                                                                            :{" "}
-                                                                            {financialApi.formatCurrency(
-                                                                                inst.client_value,
+                                    {selectedInstallments.length > 0 && (
+                                        <div className="financial-modal-section">
+                                            <h3>
+                                                Parcelas (
+                                                {selectedFinancial.paid_installments ||
+                                                    0}
+                                                /
+                                                {
+                                                    selectedFinancial.total_installments
+                                                }{" "}
+                                                pagas)
+                                            </h3>
+                                            <div className="financial-modal-installments">
+                                                {selectedInstallments.map(
+                                                    (inst) => {
+                                                        const statusInfo =
+                                                            financialApi.getInstallmentStatusInfo(
+                                                                inst.status,
+                                                            );
+                                                        return (
+                                                            <div
+                                                                key={inst.id}
+                                                                className={`financial-modal-installment financial-modal-installment-${inst.status}`}
+                                                            >
+                                                                <div className="financial-modal-installment-info">
+                                                                    <span className="financial-modal-installment-label">
+                                                                        {inst.installment_label ||
+                                                                            financialApi.getInstallmentLabel(
+                                                                                inst.installment_number,
                                                                             )}
-                                                                        </span>
-                                                                        <span>
-                                                                            Recebido:{" "}
-                                                                            {financialApi.formatCurrency(
-                                                                                inst.received_value,
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
-                                                                    {inst.due_date && (
-                                                                        <div className="financial-modal-installment-date">
-                                                                            Vence:{" "}
-                                                                            {new Date(
-                                                                                inst.due_date,
-                                                                            ).toLocaleDateString(
-                                                                                "pt-BR",
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="financial-modal-installment-actions">
-                                                                        {inst.status ===
-                                                                        "pago" ? (
-                                                                            <button
-                                                                                className="financial-modal-installment-btn financial-modal-installment-unpay"
-                                                                                onClick={(
-                                                                                    e,
-                                                                                ) =>
-                                                                                    handleMarkPending(
-                                                                                        inst.id,
-                                                                                        e,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                Desfazer
-                                                                            </button>
-                                                                        ) : (
-                                                                            <button
-                                                                                className="financial-modal-installment-btn financial-modal-installment-pay"
-                                                                                onClick={(
-                                                                                    e,
-                                                                                ) =>
-                                                                                    handleMarkPaid(
-                                                                                        inst.id,
-                                                                                        null,
-                                                                                        e,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                Marcar
-                                                                                Pago
-                                                                            </button>
+                                                                    </span>
+                                                                    <span
+                                                                        className="financial-modal-installment-status"
+                                                                        style={{
+                                                                            color: statusInfo.color,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            statusInfo.label
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                                <div className="financial-modal-installment-values">
+                                                                    <span>
+                                                                        {config
+                                                                            .labels
+                                                                            ?.client ||
+                                                                            "Cliente"}
+                                                                        :{" "}
+                                                                        {financialApi.formatCurrency(
+                                                                            inst.client_value,
+                                                                        )}
+                                                                    </span>
+                                                                    <span>
+                                                                        Recebido:{" "}
+                                                                        {financialApi.formatCurrency(
+                                                                            inst.received_value,
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                                {inst.due_date && (
+                                                                    <div className="financial-modal-installment-date">
+                                                                        Vence:{" "}
+                                                                        {new Date(
+                                                                            inst.due_date,
+                                                                        ).toLocaleDateString(
+                                                                            "pt-BR",
                                                                         )}
                                                                     </div>
+                                                                )}
+                                                                <div className="financial-modal-installment-actions">
+                                                                    {inst.status ===
+                                                                    "pago" ? (
+                                                                        <button
+                                                                            className="financial-modal-installment-btn financial-modal-installment-unpay"
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) =>
+                                                                                handleMarkPending(
+                                                                                    inst.id,
+                                                                                    e,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Desfazer
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            className="financial-modal-installment-btn financial-modal-installment-pay"
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) =>
+                                                                                handleMarkPaid(
+                                                                                    inst.id,
+                                                                                    null,
+                                                                                    e,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Marcar
+                                                                            Pago
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                            );
-                                                        },
-                                                    )}
-                                                </div>
+                                                            </div>
+                                                        );
+                                                    },
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="financial-modal-footer">
