@@ -8,11 +8,14 @@
 # This script creates:
 #   - 30 Categories
 #   - 75 Subcategories (2-3 per category)
-#   - 50 Clients (with distributed birthdays)
-#   - 100 Affiliates (2 per client)
-#   - 50 Contracts (1 per client, with financial auto-created)
+#   - 120 Clients (with distributed birthdays, including today's)
+#   - 240 Affiliates (2 per client)
+#   - 0-5 Contracts per client (mixed statuses, with financial auto-created)
 #   - Installments for each contract's financial
 #   - Some installments marked as paid
+#   - Users and roles (admin, operador, visualizador)
+#   - Archived clients
+#   - Contracts expiring soon (using today)
 #
 # Usage:
 #   ./backend/tools/populate.sh [--dry-run] [--verbose]
@@ -63,8 +66,11 @@ declare -a CATEGORY_IDS
 declare -a SUBCATEGORY_IDS
 declare -a CLIENT_IDS
 declare -a AFFILIATE_IDS
+declare -a CLIENT_AFFILIATES_LIST  # Cada posição corresponde ao índice do cliente em CLIENT_IDS, valor é string de afiliados separados por vírgula
 declare -a CONTRACT_IDS
 declare -a FINANCIAL_IDS
+declare -a USER_IDS
+
 
 ################################################################################
 # Functions
@@ -100,6 +106,24 @@ log_trace() {
     if [ "$VERBOSE" = "true" ]; then
         echo -e "${CYAN}TRACE: $1${NC}" >&2
     fi
+}
+
+today() {
+    date -u +%Y-%m-%d
+}
+
+rand_between() {
+    local min=$1
+    local max=$2
+    echo $((RANDOM % (max - min + 1) + min))
+}
+
+date_with_offset() {
+    local offset=$1
+    local fallback=${2:-$(date -u +%Y-%m-%dT00:00:00Z)}
+    date -u -d "$offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null \
+        || date -u -v${offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null \
+        || echo "$fallback"
 }
 
 # Make an API call
@@ -188,6 +212,61 @@ login() {
     log_success "Logged in successfully"
 }
 
+# Create roles if needed (admin, operador, visualizador)
+create_roles() {
+    log_info "Ensuring roles exist..."
+
+    local roles=("admin" "operador" "visualizador")
+    local display_names=("Administrador" "Operador" "Visualizador")
+    local descriptions=("Acesso administrativo" "Acesso operacional" "Acesso somente leitura")
+
+    for i in "${!roles[@]}"; do
+        local name="${roles[$i]}"
+        local display_name="${display_names[$i]}"
+        local description="${descriptions[$i]}"
+        local response
+        response=$(curl -s -X POST "$BASE_URL/roles" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"$name\",\"display_name\":\"$display_name\",\"description\":\"$description\"}") || response="{}"
+        log_debug "Role $name: $response"
+    done
+    log_success "Roles ensured (admin, operador, visualizador)"
+}
+
+# Create users and assign roles
+create_users() {
+    log_info "Creating users..."
+
+    local usernames=("admin" "operador" "visual")
+    local display_names=("Administrador" "Operador" "Visualizador")
+    local passwords=("Admin123!@#" "Operador123!@#" "Visual123!@#")
+    local roles=("admin" "operador" "visualizador")
+
+    USER_IDS=()
+
+    for i in "${!usernames[@]}"; do
+        local username="${usernames[$i]}"
+        local display_name="${display_names[$i]}"
+        local password="${passwords[$i]}"
+        local role="${roles[$i]}"
+        local email="${username}@example.com"
+        local response
+        response=$(curl -s -X POST "$BASE_URL/users" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$username\",\"display_name\":\"$display_name\",\"password\":\"$password\",\"role\":\"$role\",\"email\":\"$email\"}") || response="{}"
+        local id=$(echo "$response" | jq -r '.data.id // empty' 2>/dev/null || echo "")
+        if [ -n "$id" ] && [ "$id" != "" ]; then
+            USER_IDS+=("$id")
+            log_debug "Created user: $username ($id)"
+        else
+            log_debug "Failed to create user: $username"
+        fi
+    done
+    log_success "Created users (admin, operador, visualizador)"
+}
+
 # Create categories
 create_categories() {
     log_info "Creating 30 categories..."
@@ -268,7 +347,7 @@ create_subcategories() {
 
 # Create clients
 create_clients() {
-    log_info "Creating 50 clients..."
+    log_info "Creating 120 clients (incluindo arquivados)..."
 
     local first_names=("João" "Maria" "Pedro" "Ana" "Carlos" "Fernanda" "Lucas" "Julia" "Marcos" "Patricia"
                       "Rafael" "Camila" "Bruno" "Leticia" "Diego" "Amanda" "Gustavo" "Bruna" "Felipe" "Larissa"
@@ -284,8 +363,12 @@ create_clients() {
 
     CLIENT_IDS=()
     local current_year=$(date +%Y)
+    local total_clients=120
+    local today_str=$(today)
+    local today_month=${today_str:5:2}
+    local today_day=${today_str:8:2}
 
-    for i in $(seq 1 50); do
+    for i in $(seq 1 $total_clients); do
         local fname="${first_names[$((RANDOM % ${#first_names[@]}))]}"
         local lname="${last_names[$((RANDOM % ${#last_names[@]}))]}"
         local company="${companies[$((RANDOM % ${#companies[@]}))]}"
@@ -293,13 +376,34 @@ create_clients() {
 
         local name="$company - $fname $lname"
         local phone="11$(printf '%09d' $((RANDOM % 1000000000)))"
+        local notes="Cliente criado via populate.sh"
+        if [ $((i % 12)) -eq 0 ]; then
+            notes="$notes | Aniversariante hoje"
+        fi
+        if [ $((i % 10)) -eq 0 ]; then
+            notes="$notes | VIP"
+        fi
 
-        local birth_year=$((current_year - 30 - (i % 35)))
-        local birth_month=$(( (i % 12) + 1 ))
-        local birth_day=$(( (i % 28) + 1 ))
-        local birth_date=$(printf "%04d-%02d-%02dT00:00:00Z" $birth_year $birth_month $birth_day)
+        local birth_year=$((current_year - 18 - (RANDOM % 45)))
+        local birth_month=$((1 + RANDOM % 12))
+        local birth_day=$((1 + RANDOM % 28))
+        if [ $((i % 12)) -eq 0 ]; then
+            birth_month=$((10#$today_month))
+            birth_day=$((10#$today_day))
+        fi
+        local birth_date=$(printf "%04d-%02d-%02dT00:00:00Z" "$birth_year" "$birth_month" "$birth_day")
 
-        local json_data="{\"name\":\"$name\",\"nickname\":\"$fname $lname\",\"email\":\"client${i}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Rua das Empresas, ${i}00 - $city\",\"birth_date\":\"$birth_date\",\"notes\":\"Cliente criado via populate.sh\"}"
+        # 10% dos clientes serão arquivados
+        local archived_at=""
+        if [ $((i % 10)) -eq 1 ]; then
+            archived_at="\"archived_at\":\"$(date -u +%Y-%m-%dT00:00:00Z)\""
+        fi
+
+        local json_data="{\"name\":\"$name\",\"nickname\":\"$fname $lname\",\"email\":\"client${i}_${TIMESTAMP}@example.com\",\"phone\":\"$phone\",\"address\":\"Rua das Empresas, ${i}00 - $city\",\"birth_date\":\"$birth_date\",\"notes\":\"$notes\""
+        if [ -n "$archived_at" ]; then
+            json_data="$json_data, $archived_at"
+        fi
+        json_data="$json_data}"
 
         local response
         response=$(api_call POST "/clients" "$json_data") || response="{}"
@@ -312,16 +416,16 @@ create_clients() {
         else
             log_debug "Failed to create client: $name"
         fi
-        log_progress "Clients: $CREATED_CLIENTS/50"
+        log_progress "Clients: $CREATED_CLIENTS/$total_clients"
     done
 
     echo ""
-    log_success "Created $CREATED_CLIENTS clients"
+    log_success "Created $CREATED_CLIENTS clients (incluindo arquivados)"
 }
 
 # Create affiliates
 create_affiliates() {
-    log_info "Creating affiliates (2 per client)..."
+    log_info "Creating affiliates (0 a 5 por cliente)..."
 
     local affiliate_types=("Matriz" "Filial" "Escritório" "Unidade" "Departamento" "Setor" "Centro" "Polo")
     local cities=("São Paulo" "Rio de Janeiro" "Belo Horizonte" "Curitiba" "Porto Alegre"
@@ -332,8 +436,10 @@ create_affiliates() {
 
     for i in "${!CLIENT_IDS[@]}"; do
         local client_id="${CLIENT_IDS[$i]}"
+        local num_affiliates=$((RANDOM % 6)) # 0 a 5 afiliados
+        local client_affiliates_str=""
 
-        for j in 1 2; do
+        for j in $(seq 1 $num_affiliates); do
             local type="${affiliate_types[$((RANDOM % ${#affiliate_types[@]}))]}"
             local city="${cities[$((RANDOM % ${#cities[@]}))]}"
             local name="$type $city $j"
@@ -354,10 +460,17 @@ create_affiliates() {
                 AFFILIATE_IDS+=("$id")
                 CREATED_AFFILIATES=$((CREATED_AFFILIATES + 1))
                 log_debug "Created affiliate: $name ($id)"
+                # Adiciona afiliado à string do cliente
+                if [ -z "$client_affiliates_str" ]; then
+                    client_affiliates_str="$id"
+                else
+                    client_affiliates_str="$client_affiliates_str,$id"
+                fi
             else
                 log_debug "Failed to create affiliate: $name - skipping this one"
             fi
         done
+        CLIENT_AFFILIATES_LIST[$i]="$client_affiliates_str"
         log_progress "Affiliates: $CREATED_AFFILIATES"
     done
 
@@ -367,11 +480,12 @@ create_affiliates() {
 
 # Create contracts (financial is auto-created with the contract)
 create_contracts() {
-    log_info "Creating 50 contracts (one per client)..."
+    log_info "Creating contracts with varied counts per client..."
 
     local models=("Contrato de Serviço" "Contrato de Suporte" "Contrato de Licença"
                  "Contrato de Manutenção" "Contrato de Consultoria" "Contrato SLA"
-                 "Contrato de Desenvolvimento" "Contrato de Hospedagem")
+                 "Contrato de Desenvolvimento" "Contrato de Hospedagem"
+                 "Contrato de Monitoramento" "Contrato de Backup" "Contrato de Segurança")
 
     if [ ${#SUBCATEGORY_IDS[@]} -eq 0 ]; then
         log_error "No subcategories created! Cannot proceed with contracts."
@@ -385,54 +499,101 @@ create_contracts() {
 
     for i in "${!CLIENT_IDS[@]}"; do
         local client_id="${CLIENT_IDS[$i]}"
-        local sub_idx=$((i % ${#SUBCATEGORY_IDS[@]}))
+        local sub_idx=$((RANDOM % ${#SUBCATEGORY_IDS[@]}))
         local subcategory_id="${SUBCATEGORY_IDS[$sub_idx]}"
-        local affiliate_idx=$((i * 2))
-        local affiliate_id="${AFFILIATE_IDS[$affiliate_idx]:-}"
-
-        local model_idx=$((i % ${#models[@]}))
-        local model="${models[$model_idx]}"
-        local item_key="CTR-$(printf '%04d' $((i + 1)))-$TIMESTAMP"
-
-        local start_offset=$(( (i % 5) * -60 ))
-        local end_offset=$(( 180 + (i % 10) * 30 ))
-
-        local start_date=$(date -u -d "$start_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v${start_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "$current_date")
-        local end_date=$(date -u -d "+$end_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v+${end_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "2026-12-31T00:00:00Z")
-
-        local contract_json="{\"client_id\":\"$client_id\",\"subcategory_id\":\"$subcategory_id\",\"model\":\"$model\",\"item_key\":\"$item_key\",\"start_date\":\"$start_date\",\"end_date\":\"$end_date\""
-
-        if [ -n "$affiliate_id" ] && [ "$affiliate_id" != "" ]; then
-            contract_json="$contract_json,\"affiliate_id\":\"$affiliate_id\""
+        # Seleciona afiliado de forma mista: 50% de chance de ter afiliado, e sorteia qual
+        local affiliate_id=""
+        local client_affiliates_raw="${CLIENT_AFFILIATES_LIST[$i]}"
+        IFS=',' read -ra client_affiliates <<< "$client_affiliates_raw"
+        if [ -n "$client_affiliates_raw" ] && [ "${#client_affiliates[@]}" -gt 0 ] && [ $((RANDOM % 2)) -eq 0 ]; then
+            # 50% de chance de usar afiliado, sorteia qual
+            local pick=$((RANDOM % ${#client_affiliates[@]}))
+            affiliate_id="${client_affiliates[$pick]}"
         fi
 
-        contract_json="$contract_json}"
-
-        local response
-        response=$(api_call POST "/contracts" "$contract_json") || response="{}"
-        local contract_id=$(extract_id "$response")
-
-        if [ -n "$contract_id" ] && [ "$contract_id" != "" ]; then
-            CONTRACT_IDS+=("$contract_id")
-            CREATED_CONTRACTS=$((CREATED_CONTRACTS + 1))
-            log_debug "Created contract: $item_key ($contract_id)"
-
-            local financial_response
-            financial_response=$(api_call GET "/contracts/$contract_id/financial") || financial_response="{}"
-            local financial_id=$(echo "$financial_response" | jq -r '.data.id // empty' 2>/dev/null || echo "")
-
-            if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
-                FINANCIAL_IDS+=("$financial_id")
-                log_debug "Contract $contract_id has financial $financial_id"
-            else
-                FINANCIAL_IDS+=("")
-                log_debug "Contract $contract_id has no financial"
-            fi
+        local contracts_for_client
+        if [ $((i % 20)) -eq 0 ]; then
+            contracts_for_client=0
+        elif [ $((i % 15)) -eq 0 ]; then
+            contracts_for_client=5
         else
-            log_debug "Failed to create contract: $item_key"
-            FINANCIAL_IDS+=("")
+            contracts_for_client=$((1 + (RANDOM % 4)))
         fi
-        log_progress "Contracts: $CREATED_CONTRACTS/50"
+
+        # Garante pelo menos 10 contratos expirando em breve (hoje+3, +7, +15)
+        local expiring_soon=0
+        if [ $i -lt 10 ]; then
+            expiring_soon=1
+        fi
+
+        if [ "$contracts_for_client" -eq 0 ]; then
+            log_debug "Client $client_id with 0 contracts"
+            continue
+        fi
+
+        for c in $(seq 1 $contracts_for_client); do
+            local model_idx=$((RANDOM % ${#models[@]}))
+            local model="${models[$model_idx]}"
+            local item_key="CTR-$(printf '%04d' $((i + 1)))-$(printf '%02d' $c)-$TIMESTAMP"
+
+            local status_roll=$((RANDOM % 100))
+            local start_offset
+            local end_offset
+
+            if [ "$expiring_soon" = "1" ]; then
+                start_offset=$(( -1 * $(rand_between 120 360) ))
+                # Expira em breve: entre hoje+3 e hoje+15
+                end_offset=$(( $(rand_between 3 15) ))
+            elif [ $status_roll -lt 30 ]; then
+                start_offset=$(( -1 * $(rand_between 365 900) ))
+                end_offset=$(( -1 * $(rand_between 30 180) ))
+            elif [ $status_roll -lt 75 ]; then
+                start_offset=$(( -1 * $(rand_between 120 360) ))
+                end_offset=$(rand_between 30 360)
+            else
+                start_offset=$(rand_between 30 180)
+                end_offset=$(( start_offset + $(rand_between 90 540) ))
+            fi
+
+            local start_date
+            local end_date
+            start_date=$(date_with_offset "$start_offset" "$current_date")
+            end_date=$(date_with_offset "$end_offset" "2026-12-31T00:00:00Z")
+
+            local contract_json="{\"client_id\":\"$client_id\",\"subcategory_id\":\"$subcategory_id\",\"model\":\"$model\",\"item_key\":\"$item_key\",\"start_date\":\"$start_date\",\"end_date\":\"$end_date\""
+
+            if [ -n "$affiliate_id" ] && [ "$affiliate_id" != "" ]; then
+                contract_json="$contract_json,\"affiliate_id\":\"$affiliate_id\""
+            fi
+
+            contract_json="$contract_json}"
+
+            local response
+            response=$(api_call POST "/contracts" "$contract_json") || response="{}"
+            local contract_id=$(extract_id "$response")
+
+            if [ -n "$contract_id" ] && [ "$contract_id" != "" ]; then
+                CONTRACT_IDS+=("$contract_id")
+                CREATED_CONTRACTS=$((CREATED_CONTRACTS + 1))
+                log_debug "Created contract: $item_key ($contract_id)"
+
+                local financial_response
+                financial_response=$(api_call GET "/contracts/$contract_id/financial") || financial_response="{}"
+                local financial_id=$(echo "$financial_response" | jq -r '.data.id // empty' 2>/dev/null || echo "")
+
+                if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
+                    FINANCIAL_IDS+=("$financial_id")
+                    log_debug "Contract $contract_id has financial $financial_id"
+                else
+                    FINANCIAL_IDS+=("")
+                    log_debug "Contract $contract_id has no financial"
+                fi
+            else
+                log_debug "Failed to create contract: $item_key"
+                FINANCIAL_IDS+=("")
+            fi
+            log_progress "Contracts: $CREATED_CONTRACTS"
+        done
     done
 
     echo ""
@@ -443,6 +604,8 @@ create_contracts() {
 create_financials_with_installments() {
     log_info "Creating financial records with installments..."
 
+    local recurrence_types=("mensal" "trimestral" "semestral" "anual")
+
     for i in "${!CONTRACT_IDS[@]}"; do
         local contract_id="${CONTRACT_IDS[$i]}"
 
@@ -450,15 +613,18 @@ create_financials_with_installments() {
             continue
         fi
 
-        # Determine financial type (mix of unico and personalizado)
+        # Determine financial type (mix of unico, personalizado, recorrente)
         local financial_type
-        if [ $((i % 3)) -eq 0 ]; then
+        local type_roll=$((RANDOM % 100))
+        if [ $type_roll -lt 35 ]; then
             financial_type="unico"
-        else
+        elif [ $type_roll -lt 70 ]; then
             financial_type="personalizado"
+        else
+            financial_type="recorrente"
         fi
 
-        local base_value=$(( 500 + (i % 20) * 100 ))
+        local base_value=$(( 300 + (RANDOM % 40) * 50 ))
         local description="Plano de Pagamento - Contrato $((i + 1))"
 
         # For unico type, just pass client_value and received_value
@@ -478,10 +644,31 @@ create_financials_with_installments() {
             else
                 log_debug "Failed to create financial (unico) for contract $contract_id"
             fi
+        elif [ "$financial_type" = "recorrente" ]; then
+            local client_value=$base_value
+            local received_value=$(( client_value * 80 / 100 ))
+            local recurrence_type="${recurrence_types[$((RANDOM % ${#recurrence_types[@]}))]}"
+            local due_day=$((1 + RANDOM % 28))
+
+            local json_data="{\"contract_id\":\"$contract_id\",\"financial_type\":\"$financial_type\",\"recurrence_type\":\"$recurrence_type\",\"due_day\":$due_day,\"client_value\":$client_value,\"received_value\":$received_value,\"description\":\"$description\"}"
+
+            local response
+            response=$(api_call POST "/financial" "$json_data") || response="{}"
+            local financial_id=$(extract_id "$response")
+
+            if [ -n "$financial_id" ] && [ "$financial_id" != "" ]; then
+                FINANCIAL_IDS+=("$financial_id")
+                log_debug "Created financial (recorrente): $description ($financial_id)"
+            else
+                log_debug "Failed to create financial (recorrente) for contract $contract_id"
+            fi
         else
             # For personalizado type, create with installments array
-            local num_installments=$(( 3 + (i % 10) ))
+            local num_installments
+            num_installments=$(rand_between 3 12)
             local installments_json="["
+
+            local base_due_offset=$(( -120 + (RANDOM % 90) ))
 
             for inst in $(seq 0 $((num_installments - 1))); do
                 local label
@@ -491,10 +678,12 @@ create_financials_with_installments() {
                     label="Parcela $inst"
                 fi
 
-                local client_value=$(( base_value + (inst * 50) ))
+                local client_value=$(( base_value + (inst * 40) ))
                 local received_value=$(( client_value * 80 / 100 ))
-                local due_offset=$(( inst * 30 - 60 ))
-                local due_date=$(date -u -d "$due_offset days" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v${due_offset}d +%Y-%m-%dT00:00:00Z 2>/dev/null || echo "2025-02-01T00:00:00Z")
+                local jitter=$((RANDOM % 7 - 3))
+                local due_offset=$(( base_due_offset + inst * 30 + jitter ))
+                local due_date
+                due_date=$(date_with_offset "$due_offset" "2025-02-01T00:00:00Z")
 
                 if [ $inst -gt 0 ]; then
                     installments_json="$installments_json,"
@@ -516,9 +705,9 @@ create_financials_with_installments() {
                 CREATED_INSTALLMENTS=$((CREATED_INSTALLMENTS + num_installments))
                 log_debug "Created financial (personalizado) with $num_installments installments ($financial_id)"
 
-                # Mark some past due installments as paid
+                # Mark some past due installments as paid (stat-only)
                 for inst in $(seq 0 $((num_installments - 1))); do
-                    local due_offset=$(( inst * 30 - 60 ))
+                    local due_offset=$(( base_due_offset + inst * 30 ))
                     if [ $due_offset -lt -30 ] && [ $((RANDOM % 10)) -lt 6 ]; then
                         MARKED_PAID=$((MARKED_PAID + 1))
                     fi
@@ -528,7 +717,7 @@ create_financials_with_installments() {
             fi
         fi
 
-        log_progress "Financial: $((${#FINANCIAL_IDS[@]}))/50 (Installments: $CREATED_INSTALLMENTS, Paid: ~$MARKED_PAID)"
+        log_progress "Financial: $((${#FINANCIAL_IDS[@]})) (Installments: $CREATED_INSTALLMENTS, Paid: ~$MARKED_PAID)"
     done
 
     echo ""
@@ -586,9 +775,9 @@ Environment Variables:
 Data Created:
   - 30 Categories
   - ~75 Subcategories (2-3 per category)
-  - 50 Clients (with distributed birthdays)
-  - 100 Affiliates (2 per client)
-  - 50 Contracts (1 per client)
+  - 120 Clients (with distributed birthdays, including today's)
+  - 240 Affiliates (2 per client)
+  - 0-5 Contracts per client
   - 3-12 Installments per contract
   - ~60% of past due installments marked as paid
 
@@ -666,6 +855,12 @@ done
     echo ""
 
     # Step 4: Create all data
+    create_roles
+    echo ""
+
+    create_users
+    echo ""
+
     create_categories
     echo ""
 
