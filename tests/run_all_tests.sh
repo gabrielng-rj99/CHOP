@@ -131,6 +131,7 @@ pytest \
     --tb=short \
     --strict-markers \
     --disable-warnings \
+    -c "$SCRIPT_DIR/pytest.ini" \
     tests/
 
 TEST_EXIT_CODE=$?

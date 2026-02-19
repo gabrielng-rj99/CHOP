@@ -155,7 +155,9 @@ start_backend() {
   mkdir -p "$LOG_DIR"
   chown -R appuser:appuser "$LOG_DIR"
   su-exec appuser "$BACKEND_BIN" &
-  echo $! > /tmp/ehop-backend.pid
+  mkdir -p /app/pids
+  chown -R appuser:appuser /app/pids
+  echo $! > /app/pids/ehop-backend.pid
 }
 
 start_nginx() {
@@ -169,8 +171,8 @@ start_nginx() {
 
 stop_all() {
   log "Shutting down..."
-  if [ -f /tmp/ehop-backend.pid ]; then
-    kill "$(cat /tmp/ehop-backend.pid)" 2>/dev/null || true
+  if [ -f /app/pids/ehop-backend.pid ]; then
+    kill "$(cat /app/pids/ehop-backend.pid)" 2>/dev/null || true
   fi
   nginx -s quit 2>/dev/null || true
   run_as_postgres "pg_ctl -D '$POSTGRES_DATA_DIR' stop -m fast" || true
@@ -190,7 +192,7 @@ log "All services started."
 
 # Wait indefinitely while services run
 while true; do
-  if ! kill -0 "$(cat /tmp/ehop-backend.pid 2>/dev/null || echo 0)" 2>/dev/null; then
+  if ! kill -0 "$(cat /app/pids/ehop-backend.pid 2>/dev/null || echo 0)" 2>/dev/null; then
     log "Backend process stopped. Exiting."
     stop_all
     exit 1

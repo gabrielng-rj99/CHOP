@@ -204,7 +204,7 @@ class TestAppearanceAPISecurity:
     def test_allowed_themes_invalid_theme_rejected(self):
         """Invalid theme names should be rejected."""
         payload = {
-            "allowed_themes": ["default", "invalid_theme_name"]
+            "allowed_themes": ["default", "invalid/theme"]
         }
         response = requests.put(
             f"{self.base_url}/api/settings/allowed-themes",

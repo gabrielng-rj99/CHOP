@@ -275,6 +275,14 @@ func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Block path traversal / encoded traversal payloads
+	if strings.Contains(username, "/") || strings.Contains(username, "\\") ||
+		strings.Contains(username, "..") || strings.Contains(username, "%") {
+		log.Printf("ERROR: Invalid username path segment: '%s'", username)
+		respondError(w, http.StatusBadRequest, "Invalid username")
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		s.handleGetUser(w, r, username)

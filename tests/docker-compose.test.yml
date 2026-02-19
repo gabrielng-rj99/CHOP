@@ -36,6 +36,7 @@ services:
             DB_NAME: contracts_test
             DB_SSL_MODE: disable
             API_PORT: 3000
+            LOG_FILE: /app/logs/backend.log
             JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
             JWT_EXPIRATION_TIME: 3600
             JWT_REFRESH_EXPIRATION_TIME: 10080
@@ -60,7 +61,7 @@ services:
         ports:
             - "63000:3000"
         volumes:
-            - ../logs:/app/logs
+            - ../app/tests/logs:/app/logs
         depends_on:
             postgres_test:
                 condition: service_healthy

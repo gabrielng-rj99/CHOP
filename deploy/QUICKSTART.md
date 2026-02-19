@@ -137,7 +137,7 @@ make uninstall               # Remove everything
 
 ```bash
 # Example cron (daily at 03:00)
-0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /var/log/client-hub-monolith-update.log 2>&1
+0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /path/to/repo/app/monolith/logs/auto-update-cron.log 2>&1
 ```
 
 Optional environment variables:
@@ -147,7 +147,7 @@ REPO_DIR=/path/to/repo
 BRANCH=main
 INI_FILE=/path/to/deploy/monolith/monolith.ini
 AUTO_BACKUP=true
-LOG_FILE=/var/log/client-hub-monolith-update.log
+LOG_FILE=/path/to/repo/app/monolith/logs/auto-update-cron.log
 ```
 
 ### Docker Workflow

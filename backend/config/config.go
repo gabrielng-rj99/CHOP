@@ -157,7 +157,7 @@ func LoadConfig() (*Config, error) {
 			Enabled:    getEnvBool("LOG_ENABLED", true),
 			Level:      getEnv("LOG_LEVEL", "info"),
 			Format:     getEnv("LOG_FORMAT", "json"),
-			File:       getEnv("LOG_FILE", "logs/app.log"),
+			File:       getEnv("LOG_FILE", "app/dev/logs/app.log"),
 			MaxSize:    getEnvInt("LOG_MAX_SIZE", 100),
 			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 3),
 			MaxAge:     getEnvInt("LOG_MAX_AGE", 28),

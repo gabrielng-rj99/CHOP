@@ -6,14 +6,14 @@
 # - Writes logs to a file for cron usage
 #
 # Usage (cron):
-#   0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /var/log/client-hub-monolith-update.log 2>&1
+#   0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /path/to/repo/app/monolith/logs/auto-update-cron.log 2>&1
 #
 # Optional env:
 #   REPO_DIR=/path/to/repo
 #   BRANCH=main
 #   INI_FILE=/path/to/deploy/monolith/monolith.ini
 #   AUTO_BACKUP=true|false
-#   LOG_FILE=/var/log/client-hub-monolith-update.log
+#   LOG_FILE=/path/to/repo/app/monolith/logs/auto-update-cron.log
 #
 # Notes:
 # - This script is safe to run on hosts without other container privileges.
@@ -25,12 +25,13 @@ REPO_DIR="${REPO_DIR:-}"
 BRANCH="${BRANCH:-main}"
 INI_FILE="${INI_FILE:-}"
 AUTO_BACKUP="${AUTO_BACKUP:-true}"
-LOG_FILE="${LOG_FILE:-}"
-LOCK_DIR="${LOCK_DIR:-/tmp/client-hub-monolith-update.lock}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_REPO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 DEFAULT_INI_FILE="${SCRIPT_DIR}/monolith.ini"
+LOG_FILE="${LOG_FILE:-$DEFAULT_REPO_DIR/app/monolith/logs/auto-update-cron.log}"
+LOCK_DIR="${LOCK_DIR:-$DEFAULT_REPO_DIR/app/monolith/pids/auto-update-cron.lock}"
+mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$LOCK_DIR")"
 
 if [[ -z "$REPO_DIR" ]]; then
   REPO_DIR="$DEFAULT_REPO_DIR"

@@ -22,17 +22,24 @@ Pronto! O Makefile cuida de tudo automaticamente:
 
 ## Acessar
 
-- **Frontend**: http://localhost:45173 ⚡ (hot reload!)
-- **Backend**: http://localhost:43000
-- **Health**: http://localhost:43000/health
+- **Frontend**: http://localhost:5173 ⚡ (hot reload!)
+- **Backend**: http://localhost:3000
+- **Health**: http://localhost:3000/health
 
 ## Portas Utilizadas
 
 | Componente | Porta | Motivo |
 |-----------|-------|---------|
-| Backend API | 43000 | Evita conflito com produção (3000) |
-| Frontend (Vite) | 45173 | Evita conflito com outros (5173) |
+| Backend API | 3000 | Padrão do dev.ini (API_PORT) |
+| Frontend (Vite) | 5173 | Padrão do dev.ini (VITE_PORT) |
 | PostgreSQL | 5432 | Porta padrão (sistema nativo) |
+
+## Paths de Runtime (app/)
+
+- Logs: `app/dev/logs/`
+- PIDs: `app/dev/pids/`
+- Binários: `app/dev/bin/`
+- Dados: `app/dev/data/`
 
 ## Comandos Principais
 
@@ -44,6 +51,7 @@ Pronto! O Makefile cuida de tudo automaticamente:
 | `make status` | Ver status dos serviços |
 | `make logs` | Ver logs do backend |
 | `make clean` | Limpar processos órfãos |
+| `make destroy-all` | Destruir ambiente (DB + logs + binário) |
 | `make help` | Ver todos os comandos |
 
 ## Problemas Comuns
@@ -87,7 +95,7 @@ make db-reset     # Resetar (⚠️ apaga dados!)
 ## Destruir Ambiente
 
 ```bash
-make destroy
+make destroy-all
 ```
 
 ⚠️ Remove banco de dados, logs e binários.

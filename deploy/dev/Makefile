@@ -28,17 +28,18 @@ SCRIPT_DIR := $(CURDIR)
 PROJECT_ROOT := $(shell cd $(CURDIR)/../.. && pwd)
 BACKEND_DIR := $(PROJECT_ROOT)/backend
 FRONTEND_DIR := $(PROJECT_ROOT)/frontend
-LOGS_DIR := $(PROJECT_ROOT)/logs
+RUNTIME_DIR := $(PROJECT_ROOT)/app/dev
+LOGS_DIR := $(RUNTIME_DIR)/logs
 CONFIG_FILE := $(SCRIPT_DIR)/dev.ini
 
 # Binary and log file names (standardized with .bin and .log extensions)
 BACKEND_BINARY := ehop-backend-dev.bin
-BACKEND_PATH := $(BACKEND_DIR)/$(BACKEND_BINARY)
-BACKEND_LOG_FILE := $(LOGS_DIR)/backend.log
-FRONTEND_LOG_FILE := $(LOGS_DIR)/frontend.log
+BACKEND_PATH := $(RUNTIME_DIR)/bin/$(BACKEND_BINARY)
+BACKEND_LOG_FILE := $(RUNTIME_DIR)/logs/backend.log
+FRONTEND_LOG_FILE := $(RUNTIME_DIR)/logs/frontend.log
 
 # PID files
-PID_DIR := $(PROJECT_ROOT)/.dev-pids
+PID_DIR := $(RUNTIME_DIR)/pids
 BACKEND_PID_FILE := $(PID_DIR)/backend.pid
 FRONTEND_PID_FILE := $(PID_DIR)/frontend.pid
 
@@ -193,7 +194,7 @@ _check-postgres:
 	fi
 
 _ensure-dirs:
-	@mkdir -p "$(PID_DIR)" "$(LOGS_DIR)"
+	@mkdir -p "$(PID_DIR)" "$(LOGS_DIR)" "$(RUNTIME_DIR)/bin"
 
 _ensure-db-schema:
 	@echo "$(BLUE)🔍 Checking database schema...$(NC)"
@@ -326,17 +327,17 @@ install-deps: _check-go _check-node ## Install all project dependencies (Go + np
 backend-build: _check-go ## Build backend binary (from latest code)
 	@echo "$(BLUE)🔧 Building backend...$(NC)"
 	@cd "$(BACKEND_DIR)" && \
-		rm -f "$(BACKEND_BINARY)" && \
-		go build -o "$(BACKEND_BINARY)" ./main.go
+		rm -f "$(BACKEND_PATH)" && \
+		go build -o "$(BACKEND_PATH)" ./main.go
 	@echo "$(GREEN)✓ Backend built successfully$(NC)"
 	@ls -lh "$(BACKEND_PATH)" | awk '{print "  Size: " $$5 ", Modified: " $$6 " " $$7 " " $$8}'
 
 backend-build-fresh: _check-go ## Clean build (clears Go cache, rebuilds everything)
 	@echo "$(BLUE)🔧 Clean build backend...$(NC)"
 	@cd "$(BACKEND_DIR)" && \
-		rm -f "$(BACKEND_BINARY)" && \
+		rm -f "$(BACKEND_PATH)" && \
 		go clean -cache && \
-		go build -o "$(BACKEND_BINARY)" ./main.go
+		go build -o "$(BACKEND_PATH)" ./main.go
 	@echo "$(GREEN)✓ Backend built (cache cleared)$(NC)"
 
 backend-start: _check-config _ensure-dirs ## Start backend server
@@ -353,7 +354,7 @@ backend-start: _check-config _ensure-dirs ## Start backend server
 	fi
 	@if [ ! -f "$(BACKEND_PATH)" ]; then \
 		echo "$(YELLOW)Binary not found, building...$(NC)"; \
-		cd "$(BACKEND_DIR)" && go build -o "$(BACKEND_BINARY)" ./main.go; \
+		cd "$(BACKEND_DIR)" && go build -o "$(BACKEND_PATH)" ./main.go; \
 	fi
 	@$(MAKE) -s _detect-backend-conflicts
 	@cd "$(BACKEND_DIR)" && \
@@ -364,8 +365,9 @@ backend-start: _check-config _ensure-dirs ## Start backend server
 		DB_NAME="$(DB_NAME)" \
 		JWT_SECRET="$(JWT_SECRET)" \
 		API_PORT="$(API_PORT)" \
+		LOG_FILE="$(BACKEND_LOG_FILE)" \
 		APP_ENV="development" \
-		nohup ./$(BACKEND_BINARY) >> "$(BACKEND_LOG_FILE)" 2>&1 &
+		nohup "$(BACKEND_PATH)" >> "$(BACKEND_LOG_FILE)" 2>&1 &
 	@sleep 2
 	@PID=$$(pidof $(BACKEND_BINARY) 2>/dev/null | awk '{print $$1}'); \
 	if [ -n "$$PID" ]; then \
@@ -421,8 +423,8 @@ backend-restart: _check-config _ensure-dirs ## Rebuild and restart backend (or s
 	@# Build
 	@echo "$(CYAN)Building backend...$(NC)"
 	@cd "$(BACKEND_DIR)" && \
-		rm -f "$(BACKEND_BINARY)" && \
-		go build -o "$(BACKEND_BINARY)" ./main.go
+		rm -f "$(BACKEND_PATH)" && \
+		go build -o "$(BACKEND_PATH)" ./main.go
 	@echo "$(GREEN)✓ Backend built$(NC)"
 	@# Start
 	@$(MAKE) -s _detect-backend-conflicts
@@ -435,8 +437,9 @@ backend-restart: _check-config _ensure-dirs ## Rebuild and restart backend (or s
 		DB_NAME="$(DB_NAME)" \
 		JWT_SECRET="$(JWT_SECRET)" \
 		API_PORT="$(API_PORT)" \
+		LOG_FILE="$(BACKEND_LOG_FILE)" \
 		APP_ENV="development" \
-		nohup ./$(BACKEND_BINARY) >> "$(BACKEND_LOG_FILE)" 2>&1 &
+		nohup "$(BACKEND_PATH)" >> "$(BACKEND_LOG_FILE)" 2>&1 &
 	@sleep 2
 	@PID=$$(pidof $(BACKEND_BINARY) 2>/dev/null | awk '{print $$1}'); \
 	if [ -n "$$PID" ]; then \
@@ -759,7 +762,7 @@ start: _check-config _ensure-dirs _check-postgres _ensure-db-schema  ## Start de
 	@# Build backend first
 	@if [ ! -f "$(BACKEND_PATH)" ]; then \
 		echo "$(YELLOW)Building backend...$(NC)"; \
-		cd "$(BACKEND_DIR)" && go build -o "$(BACKEND_BINARY)" ./main.go; \
+		cd "$(BACKEND_DIR)" && go build -o "$(BACKEND_PATH)" ./main.go; \
 		echo "$(GREEN)✓ Backend built$(NC)"; \
 		echo ""; \
 	fi

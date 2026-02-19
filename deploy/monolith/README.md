@@ -155,13 +155,13 @@ sudo -u postgres psql -c "CREATE DATABASE ehopdb OWNER ehopuser;"
 
 Nginx is automatically configured to:
 
-- ✅ Serve frontend static files from `frontend/dist/`
+- ✅ Serve frontend static files from `app/monolith/frontend/`
 - ✅ Proxy `/api/*` requests to backend (port 3000)
 - ✅ Handle SSL/TLS (ports 80 → HTTP, 443 → HTTPS)
 - ✅ Enable gzip compression
 - ✅ Set security headers
 
-Configuration is generated at: `nginx-runtime.conf`
+Configuration is generated at: `app/monolith/nginx-runtime.conf`
 
 ### Custom Domain
 
@@ -192,13 +192,13 @@ To use a custom domain (e.g., `ehop.home.arpa`):
 
 ```bash
 # Backend logs
-tail -f ../../logs/backend/server.log
+tail -f ../../app/monolith/logs/backend/backend.log
 
 # Nginx access log
-tail -f /tmp/ehop_access.log
+tail -f ../../app/monolith/logs/nginx_access.log
 
 # Nginx error log
-tail -f /tmp/ehop_error.log
+tail -f ../../app/monolith/logs/nginx_error.log
 ```
 
 ### Health Check
@@ -215,7 +215,7 @@ curl http://localhost/api/initialize/status
 
 ```bash
 # Check backend
-cat /tmp/ehop-backend.pid
+cat ../../app/monolith/pids/ehop-backend.bin.pid
 ps aux | grep ehop-backend
 
 # Check Nginx
@@ -254,7 +254,7 @@ sudo pkill -9 nginx
 
 ```bash
 # Check logs
-tail -50 ../../logs/backend/server.log
+tail -50 ../../app/monolith/logs/backend/backend.log
 
 # Check if database is accessible
 psql -h localhost -U ehopuser -d ehopdb
@@ -281,7 +281,7 @@ pg_isready -h localhost -p 5432
 
 ```bash
 # Verify build exists
-ls -la ../../frontend/dist/
+ls -la ../../app/monolith/frontend/
 
 # Rebuild frontend
 cd ../../frontend
@@ -292,12 +292,12 @@ npm run build
 
 ```bash
 # Regenerate certificates
-rm -rf ../../deploy/certs/ssl
+rm -rf ../../app/monolith/certs
 ./start-monolith.sh
 
 # Or manually
 cd ..
-./generate-ssl.sh ./certs/ssl
+./generate-ssl.sh ./app/monolith/certs
 ```
 
 ---
@@ -312,14 +312,14 @@ monolith/
 ├── destroy-monolith.sh      # Destroy everything
 ├── monolith.ini             # Configuration file
 ├── versions.ini             # Dependency versions
-├── nginx-runtime.conf       # Generated Nginx config
+├── nginx-runtime.conf       # Generated Nginx config (copied to app/monolith/nginx-runtime.conf)
 └── README.md                # This file
 
 Generated during runtime:
-├── /tmp/ehop-backend.pid    # Backend process ID
-├── /tmp/ehop_access.log     # Nginx access log
-├── /tmp/ehop_error.log      # Nginx error log
-└── ../../logs/backend/      # Backend logs
+├── ../../app/monolith/pids/ehop-backend.bin.pid    # Backend process ID
+├── ../../app/monolith/logs/nginx_access.log        # Nginx access log
+├── ../../app/monolith/logs/nginx_error.log         # Nginx error log
+└── ../../app/monolith/logs/backend/                # Backend logs
 ```
 
 ---
@@ -394,7 +394,7 @@ crontab -e
 
 - **Documentation**: `../../docs/`
 - **API Docs**: http://localhost:3000/docs (when running)
-- **Logs**: Check `../../logs/backend/server.log` first
+- **Logs**: Check `../../app/monolith/logs/backend/backend.log` first
 - **Issues**: Open an issue on GitHub
 
 ---

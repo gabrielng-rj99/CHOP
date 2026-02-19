@@ -18,7 +18,7 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 INI_FILE="${INI_FILE:-$SCRIPT_DIR/monolith.ini}"
 
 AUTO_BACKUP="${AUTO_BACKUP:-true}"
-BACKUP_DB_DIR="${BACKUP_DB_DIR:-$SCRIPT_DIR/backups/db}"
+BACKUP_DB_DIR="${BACKUP_DB_DIR:-$PROJECT_ROOT/app/monolith/backups/db}"
 BACKUP_DB_DAYS="${BACKUP_DB_DAYS:-90}"
 BACKUP_DB_MAX_BYTES="${BACKUP_DB_MAX_BYTES:-524288000}"
 BACKUP_DB_COMPRESS="${BACKUP_DB_COMPRESS:-true}"
@@ -90,7 +90,7 @@ if [[ "$HEALTH_CODE" == "200" ]]; then
   echo "✅ Backend healthy (HTTP $HEALTH_CODE)"
 else
   echo "⚠️ Backend not healthy yet (HTTP $HEALTH_CODE)"
-  echo "Check logs: tail -f $PROJECT_ROOT/logs/backend/backend.log"
+  echo "Check logs: tail -f $PROJECT_ROOT/app/monolith/logs/backend/backend.log"
 fi
 
 echo ""

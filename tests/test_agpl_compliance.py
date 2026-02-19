@@ -253,7 +253,15 @@ class TestHeaderConsistency:
                     content = f.read(300)
 
                 if 'Client Hub Open Project' in content:
-                    assert content.startswith('/*'), "Go file header should start with /*"
+                    header_lines = content.splitlines()
+                    while header_lines and header_lines[0].startswith("//go:build"):
+                        header_lines = header_lines[1:]
+                    while header_lines and header_lines[0].startswith("// +build"):
+                        header_lines = header_lines[1:]
+                    while header_lines and header_lines[0].strip() == "":
+                        header_lines = header_lines[1:]
+                    normalized = "\n".join(header_lines)
+                    assert normalized.startswith("/*"), "Go file header should start with /*"
                     assert 'GNU Affero General Public License' in content
 
     def test_python_file_header_format(self):

@@ -17,6 +17,7 @@ BOLD='\033[1m'
 # Resolve Paths
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+RUNTIME_DIR="$PROJECT_ROOT/app/monolith"
 CONFIG_FILE="$SCRIPT_DIR/monolith.ini"
 
 # Function to generate secure 64-character password
@@ -177,7 +178,8 @@ echo ""
 # Build Backend
 echo "🔧 Building Backend..."
 cd "$PROJECT_ROOT/backend"
-if go build -o ehop-backend.bin ./main.go; then
+mkdir -p "$RUNTIME_DIR/bin"
+if go build -o "$RUNTIME_DIR/bin/ehop-backend.bin" ./main.go; then
     echo -e "${GREEN}✓ Backend built successfully${NC}"
 else
     echo -e "${RED}❌ Backend build failed!${NC}"
@@ -186,7 +188,7 @@ fi
 
 # Run Migrations
 echo "🧭 Running database migrations..."
-MIGRATE_ONLY=true AUTO_MIGRATIONS=true ./ehop-backend.bin
+MIGRATE_ONLY=true AUTO_MIGRATIONS=true "$RUNTIME_DIR/bin/ehop-backend.bin"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Database migrations applied${NC}"
 else
@@ -221,6 +223,11 @@ else
     exit 1
 fi
 
+FRONTEND_BUILD_DIR="$RUNTIME_DIR/frontend"
+mkdir -p "$FRONTEND_BUILD_DIR"
+rm -rf "$FRONTEND_BUILD_DIR"/*
+mv dist/* "$FRONTEND_BUILD_DIR"/
+
 # Setup nginx
 echo "🌐 Setting up nginx..."
 if ! command -v nginx >/dev/null 2>&1; then
@@ -230,7 +237,7 @@ fi
 
 # Generate SSL certificates using centralized script
 echo "🔐 Generating SSL certificates..."
-SSL_DIR="$PROJECT_ROOT/deploy/certs/ssl"
+SSL_DIR="$RUNTIME_DIR/certs"
 mkdir -p "$SSL_DIR"
 
 if [ -f "$PROJECT_ROOT/deploy/generate-ssl.sh" ]; then
@@ -251,7 +258,7 @@ fi
 echo -e "${GREEN}✓ SSL certificates ready${NC}"
 
 # Create nginx config in project directory
-NGINX_CONF="$PROJECT_ROOT/deploy/monolith/nginx-runtime.conf"
+NGINX_CONF="$RUNTIME_DIR/nginx-runtime.conf"
 cat > "$NGINX_CONF" << 'NGINX_EOF'
 # Client Hub Monolith Nginx Config
 events {
@@ -263,8 +270,8 @@ http {
     default_type application/octet-stream;
 
     # Logs
-    access_log /tmp/ehop_access.log;
-    error_log /tmp/ehop_error.log;
+    access_log PROJECT_ROOT_PLACEHOLDER/app/monolith/logs/nginx_access.log;
+    error_log PROJECT_ROOT_PLACEHOLDER/app/monolith/logs/nginx_error.log;
 
     # Gzip compression
     gzip on;
@@ -277,7 +284,7 @@ http {
         server_name localhost;
 
         # Frontend Static Files
-        root "PROJECT_ROOT_PLACEHOLDER/frontend/dist";
+        root "PROJECT_ROOT_PLACEHOLDER/app/monolith/frontend";
         index index.html;
 
         location / {
@@ -307,7 +314,7 @@ http {
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_ciphers HIGH:!aNULL:!MD5;
 
-        root "PROJECT_ROOT_PLACEHOLDER/frontend/dist";
+        root "PROJECT_ROOT_PLACEHOLDER/app/monolith/frontend";
         index index.html;
 
         location / {
@@ -360,11 +367,11 @@ echo "🔧 Starting backend service..."
 cd "$PROJECT_ROOT/backend"
 
 # Ensure logs directory exists
-LOG_DIR="$PROJECT_ROOT/logs/backend"
-mkdir -p "$LOG_DIR"
+LOG_DIR="$RUNTIME_DIR/logs/backend"
+mkdir -p "$LOG_DIR" "$RUNTIME_DIR/pids"
 
 # Create a PID file location
-PID_FILE="/tmp/ehop-backend.bin.pid"
+PID_FILE="$RUNTIME_DIR/pids/ehop-backend.bin.pid"
 
 # Export all necessary environment variables for the backend
 export DB_HOST="$DB_HOST"
@@ -374,9 +381,10 @@ export DB_PASSWORD="$DB_PASSWORD"
 export DB_NAME="$DB_NAME"
 export JWT_SECRET="$JWT_SECRET"
 export API_PORT="$API_PORT"
+export LOG_FILE="$LOG_DIR/backend.log"
 
 # Start backend in background
-nohup ./ehop-backend.bin > "$LOG_DIR/backend.log" 2>&1 &
+nohup "$RUNTIME_DIR/bin/ehop-backend.bin" > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > "$PID_FILE"
 
@@ -408,7 +416,7 @@ echo "  Backend API:         http://localhost:${API_PORT}"
 echo ""
 echo -e "${BOLD}Logs:${NC}"
 echo "  Backend:  $LOG_DIR/backend.log"
-echo "  Nginx:    /tmp/ehop_access.log, /tmp/ehop_error.log"
+echo "  Nginx:    $RUNTIME_DIR/logs/nginx_access.log, $RUNTIME_DIR/logs/nginx_error.log"
 echo ""
 echo -e "${BOLD}Process IDs:${NC}"
 echo "  Backend PID: $BACKEND_PID (saved to $PID_FILE)"

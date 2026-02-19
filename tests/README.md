@@ -119,8 +119,13 @@ General security validations:
 ### Environment Variables
 
 ```bash
-# API Base URL (default: http://localhost:3000/api)
+# API Base URL (priority: API_URL, then TEST_API_URL, then http://localhost:3000/api)
 export API_URL="http://localhost:3000/api"
+# Alternative override (same effect if API_URL is not set)
+export TEST_API_URL="http://localhost:3000/api"
+
+# Root user password used by tests (defaults to dev.ini)
+export TEST_ROOT_PASSWORD="THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc"
 
 # Database connection (for local integration tests)
 export DB_HOST="localhost"

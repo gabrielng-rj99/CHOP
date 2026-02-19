@@ -25,8 +25,8 @@ SHELL := /bin/bash
 # Configuration files
 CONFIG_FILE := monolith.ini
 VERSIONS_FILE := versions.ini
-BACKUP_DIR := backups
-BACKUP_DB_DIR := backups/db
+BACKUP_DIR := ../app/monolith/backups
+BACKUP_DB_DIR := ../app/monolith/backups/db
 BACKUP_DB_DAYS := 90
 BACKUP_DB_MAX_BYTES := 524288000
 BACKUP_DB_COMPRESS := true

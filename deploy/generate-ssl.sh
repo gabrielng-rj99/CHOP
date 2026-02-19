@@ -30,14 +30,14 @@ get_config() {
 # Determine certificate directory
 # First argument is cert directory path, can be:
 # - Absolute path (from container): /etc/nginx/ssl
-# - Relative path (from monolith): ./certs/ssl
-# - Default: ./certs/ssl
+# - Relative path (from monolith): ./app/monolith/certs
+# - Default: ./app/monolith/certs
 if [ -n "$1" ] && [[ "$1" == /* ]]; then
     # Absolute path provided (from container)
     CERT_DIR="$1"
 else
     # Relative path or default
-    CERT_DIR="${1:-.}/certs/ssl"
+    CERT_DIR="${1:-.}/app/monolith/certs"
 fi
 
 # Check if config file exists

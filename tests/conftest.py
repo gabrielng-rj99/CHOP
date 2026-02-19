@@ -24,7 +24,7 @@ from typing import Dict, Optional
 
 # Configuração base - usando portas de teste
 # Configuração base - usando portas de teste
-raw_url = os.getenv("TEST_API_URL", "http://localhost:63000")
+raw_url = os.getenv("API_URL") or os.getenv("TEST_API_URL", "http://localhost:3000/api")
 BASE_URL = raw_url.rstrip("/")
 if BASE_URL.endswith("/api"):
     BASE_URL = BASE_URL[:-4]
@@ -44,7 +44,7 @@ test_data = {
 # Senhas padrão para testes
 DEFAULT_ROOT_PASSWORD = os.getenv(
     "TEST_ROOT_PASSWORD",
-    "RootPass123!@#456789%%0321654987+-7dfgacvds"
+    "THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc"
 )
 DEFAULT_STRONG_PASSWORD = "ValidPass123!@#abcXYZ"
 
@@ -391,10 +391,9 @@ def setup_teardown(http_client, api_url):
     print(f"{'='*70}")
     print(f"📍 Backend URL: {BASE_URL}")
     print(f"📍 API URL: {api_url}")
-    print(f"🔧 Test Environment Ports:")
-    print(f"   - Database: 65432")
-    print(f"   - Backend: 63000")
-    print(f"   - Frontend: 65080")
+    print(f"🔧 Test Environment:")
+    print(f"   - Base URL: {BASE_URL}")
+    print(f"   - API URL: {api_url}")
     print(f"{'='*70}\n")
 
     # Verificar se backend está online

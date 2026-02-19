@@ -32,7 +32,7 @@ echo -e "${YELLOW}This will permanently delete:${NC}"
 echo -e "  ${RED}✗${NC} Database: ${BOLD}ehopdb${NC} (all data will be lost)"
 echo -e "  ${RED}✗${NC} Database user: ${BOLD}ehopuser${NC}"
 echo -e "  ${RED}✗${NC} Backend logs"
-echo -e "  ${RED}✗${NC} Frontend build (dist/)"
+echo -e "  ${RED}✗${NC} Frontend build (app/monolith/frontend/)"
 echo -e "  ${RED}✗${NC} SSL certificates"
 echo -e "  ${RED}✗${NC} Compiled binaries"
 echo -e "  ${RED}✗${NC} All temporary files"
@@ -171,52 +171,38 @@ echo ""
 echo "🗑️  Removing files and directories..."
 
 # Backend binary
-if [ -f "$PROJECT_ROOT/backend/ehop-backend.bin" ]; then
-    rm -f "$PROJECT_ROOT/backend/ehop-backend.bin"
+if [ -f "$PROJECT_ROOT/app/monolith/bin/ehop-backend.bin" ]; then
+    rm -f "$PROJECT_ROOT/app/monolith/bin/ehop-backend.bin"
     echo -e "${GREEN}✓ Removed backend binary${NC}"
 fi
 
 # Frontend build
-if [ -d "$PROJECT_ROOT/frontend/dist" ]; then
-    rm -rf "$PROJECT_ROOT/frontend/dist"
-    echo -e "${GREEN}✓ Removed frontend build (dist/)${NC}"
+if [ -d "$PROJECT_ROOT/app/monolith/frontend" ]; then
+    rm -rf "$PROJECT_ROOT/app/monolith/frontend"
+    echo -e "${GREEN}✓ Removed frontend build${NC}"
 fi
 
 # Logs
-if [ -d "$PROJECT_ROOT/logs/backend" ]; then
-    rm -rf "$PROJECT_ROOT/logs/backend"
-    echo -e "${GREEN}✓ Removed backend logs${NC}"
-fi
-
-if [ -d "$PROJECT_ROOT/logs" ] && [ -z "$(ls -A "$PROJECT_ROOT/logs" 2>/dev/null)" ]; then
-    rm -rf "$PROJECT_ROOT/logs"
-    echo -e "${GREEN}✓ Removed logs directory${NC}"
+if [ -d "$PROJECT_ROOT/app/monolith/logs" ]; then
+    rm -rf "$PROJECT_ROOT/app/monolith/logs"
+    echo -e "${GREEN}✓ Removed logs${NC}"
 fi
 
 # SSL certificates
-if [ -d "$PROJECT_ROOT/deploy/certs/ssl" ]; then
-    rm -rf "$PROJECT_ROOT/deploy/certs/ssl"
+if [ -d "$PROJECT_ROOT/app/monolith/certs" ]; then
+    rm -rf "$PROJECT_ROOT/app/monolith/certs"
     echo -e "${GREEN}✓ Removed SSL certificates${NC}"
 fi
 
-if [ -d "$PROJECT_ROOT/deploy/certs" ] && [ -z "$(ls -A "$PROJECT_ROOT/deploy/certs" 2>/dev/null)" ]; then
-    rm -rf "$PROJECT_ROOT/deploy/certs"
-    echo -e "${GREEN}✓ Removed certs directory${NC}"
-fi
-
 # Data directory (if exists)
-if [ -d "$PROJECT_ROOT/data/db" ]; then
-    rm -rf "$PROJECT_ROOT/data/db"
+if [ -d "$PROJECT_ROOT/app/monolith/data" ]; then
+    rm -rf "$PROJECT_ROOT/app/monolith/data"
     echo -e "${GREEN}✓ Removed data directory${NC}"
 fi
 
-if [ -d "$PROJECT_ROOT/data" ] && [ -z "$(ls -A "$PROJECT_ROOT/data" 2>/dev/null)" ]; then
-    rm -rf "$PROJECT_ROOT/data"
-fi
-
 # Nginx runtime config
-if [ -f "$SCRIPT_DIR/nginx-runtime.conf" ]; then
-    rm -f "$SCRIPT_DIR/nginx-runtime.conf"
+if [ -f "$PROJECT_ROOT/app/monolith/nginx-runtime.conf" ]; then
+    rm -f "$PROJECT_ROOT/app/monolith/nginx-runtime.conf"
     echo -e "${GREEN}✓ Removed nginx runtime config${NC}"
 fi
 
@@ -227,20 +213,20 @@ if [ -f "/tmp/Client-Hub-monolith.conf" ]; then
 fi
 
 # PID files
-if [ -f "/tmp/ehop-backend.bin.pid" ]; then
-    rm -f /tmp/ehop-backend.bin.pid
+if [ -f "$PROJECT_ROOT/app/monolith/pids/ehop-backend.bin.pid" ]; then
+    rm -f "$PROJECT_ROOT/app/monolith/pids/ehop-backend.bin.pid"
     echo -e "${GREEN}✓ Removed PID file${NC}"
 fi
 
 # Nginx logs
-if [ -f "/tmp/ehop_access.log" ]; then
-    sudo rm -f /tmp/ehop_access.log 2>/dev/null || true
+if [ -f "$PROJECT_ROOT/app/monolith/logs/nginx_access.log" ]; then
+    sudo rm -f "$PROJECT_ROOT/app/monolith/logs/nginx_access.log" 2>/dev/null || true
     echo -e "${GREEN}✓ Removed nginx access log${NC}"
 fi
 
 # Nginx logs
-if [ -f "/tmp/ehop_error.log" ]; then
-    sudo rm -f /tmp/ehop_error.log 2>/dev/null || true
+if [ -f "$PROJECT_ROOT/app/monolith/logs/nginx_error.log" ]; then
+    sudo rm -f "$PROJECT_ROOT/app/monolith/logs/nginx_error.log" 2>/dev/null || true
     echo -e "${GREEN}✓ Removed nginx error log${NC}"
 fi
 

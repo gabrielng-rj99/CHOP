@@ -55,5 +55,5 @@ name = Contract Manager
 [paths]
 schema_dir = ../database/schema
 migrations_dir = ../migrations
-logs_dir = ./logs
-reports_dir = ./reports
+logs_dir = ../app/tests/logs
+reports_dir = ../app/tests/reports

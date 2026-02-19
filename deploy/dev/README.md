@@ -5,11 +5,12 @@ Fast development environment with hot reload for Client Hub.
 ## 📋 Overview
 
 **Development mode** runs:
-- ✅ Backend API (compiled Go binary)
-- ✅ Frontend (Vite dev server with hot reload)
-- ✅ PostgreSQL (native installation on standard port 5432)
-- ✅ Separate development database (`ehopdb_dev`)
-- ✅ High-range ports for backend/frontend (40000-49999) to avoid conflicts
+- ✅ Backend API (compiled Go binary: `app/dev/bin/ehop-backend-dev.bin`)
+- ✅ Frontend (Vite dev server; no `dist/` output)
+- ✅ Logs: `app/dev/logs/backend.log`, `app/dev/logs/frontend.log`
+- ✅ PID files: `app/dev/pids/backend.pid`, `app/dev/pids/frontend.pid`
+- ✅ PostgreSQL (native install on `DB_PORT` from `dev.ini`, default 5432)
+- ✅ Ports are read from `deploy/dev/dev.ini` (Makefile defaults: API 43000, Vite 45173 when `dev.ini` is absent)
 
 This mode is optimized for rapid development with instant feedback.
 
@@ -41,9 +42,9 @@ That's it! The Makefile handles everything:
 
 ### 3. Access
 
-- **Frontend (Vite)**: http://localhost:45173 ⚡ Hot reload!
-- **Backend API**: http://localhost:43000
-- **API Health**: http://localhost:43000/health
+- **Frontend (Vite)**: http://localhost:5173 ⚡ Hot reload! (from `dev.ini` → `VITE_PORT`)
+- **Backend API**: http://localhost:3000 (from `dev.ini` → `API_PORT`)
+- **API Health**: http://localhost:3000/health
 
 ---
 
@@ -60,7 +61,7 @@ All commands are run from `deploy/dev/`:
 | `make restart` | Rebuild and restart all services |
 | `make status` | Show status of all services |
 | `make logs` | View backend logs (live) |
-| `make build` | Build the backend binary |
+| `make backend-build` | Build the backend binary |
 
 ### Database Commands
 
@@ -75,8 +76,8 @@ All commands are run from `deploy/dev/`:
 | Command | Description |
 |---------|-------------|
 | `make clean` | Kill all dev processes and free ports |
-| `make reset` | Clean and restart fresh |
-| `make destroy` | Completely destroy dev environment |
+| `make restart` | Rebuild and restart all services |
+| `make destroy-all` | Completely destroy dev environment (processes + DB + logs + binary) |
 | `make check-ports` | Check if required ports are available |
 | `make check-processes` | Check for running backend processes |
 | `make health` | Check health of all services |
@@ -111,7 +112,7 @@ make start
 #    (no restart needed)
 
 # 3. Edit backend code - rebuild and restart
-make restart-backend
+make backend-restart
 
 # Or restart everything
 make restart
@@ -203,9 +204,9 @@ make db-reset
 Edit `dev.ini` to customize:
 
 ```ini
-# Ports (high-range for backend/frontend, standard for postgres)
-API_PORT=43000
-VITE_PORT=45173
+# Ports (read from dev.ini; adjust to avoid conflicts)
+API_PORT=3000
+VITE_PORT=5173
 DB_PORT=5432
 
 # Database
@@ -219,11 +220,11 @@ JWT_SECRET=your_jwt_secret
 ```
 
 **Port Strategy:**
-- **Backend & Frontend**: High-range (40000-49999) to avoid conflicts
+- **Backend & Frontend**: From `dev.ini` (template: 3000/5173); Makefile defaults to 43000/45173 if `dev.ini` is absent
 - **PostgreSQL**: Always 5432 (system native installation, standard port)
 - **Production**: 80, 3000, 5432
 - **Tests**: 63000, 65080, 65432
-- **Dev**: 43000, 45173, 5432
+- **Dev**: from `dev.ini` (template: 3000, 5173, 5432)
 
 ---
 
@@ -263,7 +264,7 @@ make status
 
 # Try clean rebuild
 make clean
-make build
+make backend-build
 make start
 ```
 
@@ -298,13 +299,12 @@ deploy/dev/
 └── INICIO-RAPIDO.md      # Quick start (Portuguese)
 
 Generated during runtime:
-├── .dev-pids/            # PID files for process tracking
+├── ../../app/dev/pids/   # PID files for process tracking
 │   ├── backend.pid
-│   └── vite.pid
-└── ../../logs/
-    ├── backend_dev/
-    │   └── server.log    # Backend logs
-    └── vite-dev.log      # Vite logs
+│   └── frontend.pid
+└── ../../app/dev/logs/
+    ├── backend.log       # Backend logs
+    └── frontend.log      # Vite logs
 ```
 
 ---
@@ -322,12 +322,12 @@ make start
 
 This kills all stale processes and starts fresh.
 
-### 2. Use `make restart-backend` for Backend Changes
+### 2. Use `make backend-restart` for Backend Changes
 
 Frontend changes apply instantly, but backend changes need a rebuild:
 
 ```bash
-make restart-backend
+make backend-restart
 ```
 
 ### 3. Check Status Regularly

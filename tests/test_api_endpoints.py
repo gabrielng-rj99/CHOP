@@ -785,7 +785,7 @@ class TestContractsAPI:
         contract_id = contract_response.json().get("data", {}).get("id") or contract_response.json().get("id")
 
         # Arquivar
-        archive_response = http_client.post(f"{api_url}/contracts/{contract_id}/archive", headers=headers)
+        archive_response = http_client.put(f"{api_url}/contracts/{contract_id}/archive", headers=headers)
         assert archive_response.status_code in [200, 204], "Deve permitir arquivamento"
 
 

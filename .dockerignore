@@ -1,0 +1,30 @@
+# Runtime artifacts
+app/
+logs/
+data/
+backups/
+.dev-pids/
+
+# Frontend build output
+frontend/dist/
+
+# Docker/compose runtime data
+deploy/docker/data/
+deploy/docker/logs/
+deploy/docker/backups/
+deploy/certs/ssl/
+
+# VCS
+.git
+.gitignore
+
+# Node/Python caches
+node_modules/
+tests/.venv/
+tests/.pytest_cache/
+**/__pycache__/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/

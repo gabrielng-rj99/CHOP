@@ -12,7 +12,8 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m
 
-BINARY_NAME := ehop-backend-dev.bin
+OUTPUT_DIR := ../app/dev/bin
+BINARY_NAME := $(OUTPUT_DIR)/ehop-backend-dev.bin
 MAIN_PATH := ./main.go
 
 help: ## Show backend build commands
@@ -31,6 +32,7 @@ help: ## Show backend build commands
 
 build: ## Build backend binary
 	@echo "$(BLUE)🔨 Building backend...$(NC)"
+	@mkdir -p $(OUTPUT_DIR)
 	@go build -o $(BINARY_NAME) $(MAIN_PATH)
 	@echo "$(GREEN)✅ Build complete: $(BINARY_NAME)$(NC)"
 
@@ -38,7 +40,7 @@ rebuild: clean build ## Clean and rebuild backend
 
 run: build ## Build and run backend
 	@echo "$(BLUE)🚀 Running backend...$(NC)"
-	@./$(BINARY_NAME)
+	@$(BINARY_NAME)
 
 dev: ## Run backend in development mode with hot reload (requires air)
 	@echo "$(BLUE)🔄 Running with hot reload...$(NC)"

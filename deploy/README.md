@@ -39,8 +39,9 @@ deploy/
 │   └── versions.ini
 │
 ├── dev/                      # Development environment
-│   ├── start-dev.sh
-│   ├── stop-dev.sh
+│   ├── Makefile
+│   ├── README.md
+│   ├── INICIO-RAPIDO.md
 │   └── dev.ini
 │
 ├── certs/                    # SSL Certificates
@@ -99,7 +100,7 @@ cd deploy/dev
 nano dev.ini  # Leave DB_PASSWORD and JWT_SECRET empty to auto-generate
 
 # 2. Start
-./start-dev.sh
+make start
 
 # 3. Access
 # http://localhost:5173  (Vite dev server)
@@ -119,6 +120,103 @@ nano dev.ini  # Leave DB_PASSWORD and JWT_SECRET empty to auto-generate
 | **Frontend**          | Nginx (build)   | Nginx (build)    | Vite dev server  |
 | **SSL**               | ✅ Auto         | ✅ Auto          | ❌ Optional      |
 | **Portability**       | ✅ Max          | ⚠️ Requires deps | ⚠️ Requires deps |
+
+---
+
+## 📦 Build Outputs & Storage Paths (Authoritative)
+
+This section reflects the actual build outputs, runtime files, and storage paths observed in the repo scripts/configs. If you automate or backup, use these paths.
+
+### ✅ Development (`deploy/dev`)
+**Backend binary**
+- `app/dev/bin/ehop-backend-dev.bin` (built by `deploy/dev/Makefile`)
+
+**Frontend**
+- Vite dev server (no static build output by default)
+
+**Logs**
+- `app/dev/logs/backend.log`
+- `app/dev/logs/frontend.log`
+
+**PIDs**
+- `app/dev/pids/backend.pid`
+- `app/dev/pids/frontend.pid`
+
+**Database**
+- Uses native PostgreSQL on host (`DB_HOST`/`DB_PORT` from `deploy/dev/dev.ini`)
+- `deploy/dev/dev.ini` declares `POSTGRES_VOLUME_PATH=./app/dev/data` (directory used if you wire a local volume)
+
+### ✅ Monolith (`deploy/monolith`)
+**Backend binary**
+- `app/monolith/bin/ehop-backend.bin` (built by `deploy/monolith/start-monolith.sh`)
+
+**Frontend build**
+- `app/monolith/frontend/` (Vite build output)
+
+**Nginx runtime config**
+- `app/monolith/nginx-runtime.conf`
+
+**SSL certificates**
+- `app/monolith/certs/`
+
+**Logs**
+- Backend: `app/monolith/logs/backend/backend.log`
+- Nginx: `app/monolith/logs/nginx_access.log`, `app/monolith/logs/nginx_error.log`
+
+**PIDs**
+- `app/monolith/pids/ehop-backend.bin.pid`
+
+**Backups**
+- Config backup: `app/monolith/backups/monolith-<timestamp>.tar.gz`
+- DB snapshots: `app/monolith/backups/db/ehop_<timestamp>.sql(.gz)` (via `deploy/backup/backup-db.sh`)
+
+**Database**
+- Native PostgreSQL on host (`DB_HOST`/`DB_PORT` from `deploy/monolith/monolith.ini`)
+- `deploy/monolith/monolith.ini` declares `POSTGRES_VOLUME_PATH=./app/monolith/data` (used if you wire a local volume)
+
+### ✅ Docker Compose (`deploy/docker`)
+**Backend image build output**
+- Binary inside container: `/app/main` (from `deploy/docker/Dockerfile.backend`)
+
+**Frontend build output**
+- Static files inside container: `/usr/share/nginx/html` (from `deploy/docker/Dockerfile.frontend`)
+
+**Database data**
+- Host path: `${POSTGRES_VOLUME_PATH:-./app/docker/data/postgres}`
+- Container path: `/var/lib/postgresql/data`
+
+**Backend logs**
+- Host path: `${BACKEND_LOGS_PATH:-./app/docker/logs/backend}`
+- Container path: `/app/logs`
+
+**Backups (service `backup`)**
+- Host path: `${BACKUP_DIR_PATH:-./app/docker/backups}`
+- Container path: `/backups`
+- Script: `deploy/backup/backup-db.sh` (mounted into container)
+
+**Schema init**
+- Mounted read-only: `backend/database/schema` → `/docker-entrypoint-initdb.d`
+
+### ✅ All‑in‑One Docker Image (`deploy/docker/Dockerfile.all-in-one`)
+**Backend binary**
+- `/app/main`
+
+**Frontend build**
+- `/usr/share/nginx/html`
+
+**Database data (inside container)**
+- `PGDATA=/var/lib/postgresql/data` (default)
+
+**Logs**
+- `/app/logs` (backend)
+- Nginx logs inside container unless redirected
+
+### ✅ Test Stack (`tests/docker-compose.test.yml`)
+**Postgres volume**
+- Named volume: `ehop_test_postgres_data` → `/var/lib/postgresql/data`
+
+**Backend logs (host)**
+- `app/tests/logs/backend` → `/app/logs` (mounted)
 
 ---
 
@@ -283,7 +381,7 @@ Use the cron wrapper to keep the monolith updated without manual intervention. I
 
 ```bash
 # Example cron (daily at 03:00)
-0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /var/log/client-hub-monolith-update.log 2>&1
+0 3 * * * /path/to/deploy/monolith/auto-update-cron.sh >> /path/to/repo/app/monolith/logs/auto-update-cron.log 2>&1
 ```
 
 Optional environment variables:
@@ -293,7 +391,7 @@ REPO_DIR=/path/to/repo
 BRANCH=main
 INI_FILE=/path/to/deploy/monolith/monolith.ini
 AUTO_BACKUP=true
-LOG_FILE=/var/log/client-hub-monolith-update.log
+LOG_FILE=/path/to/repo/app/monolith/logs/auto-update-cron.log
 ```
 
 ### What happens at start
@@ -303,15 +401,15 @@ LOG_FILE=/var/log/client-hub-monolith-update.log
 3. ✅ Checks PostgreSQL
 4. ✅ Creates database and user
 5. ✅ Compiles backend (Go)
-6. ✅ Compiles frontend (Vite build → dist/)
+6. ✅ Compiles frontend (Vite build → app/monolith/frontend/)
 7. ✅ Generates SSL certificates
 8. ✅ Configures and starts Nginx
 9. ✅ Starts backend API
 
 ### Logs
 
-- Backend: `logs/backend/server.log`
-- Nginx: `/tmp/ehop_access.log`, `/tmp/ehop_error.log`
+- Backend: `app/monolith/logs/backend/backend.log`
+- Nginx: `app/monolith/logs/nginx_access.log`, `app/monolith/logs/nginx_error.log`
 
 ---
 
@@ -345,10 +443,10 @@ VITE_PORT=5173
 cd deploy/dev
 
 # Start
-./start-dev.sh
+make start
 
 # Stop
-./stop-dev.sh
+make stop
 ```
 
 ### What happens at start
@@ -370,8 +468,8 @@ cd deploy/dev
 
 ### Logs
 
-- Backend: `logs/backend_dev/server.log`
-- Vite: `logs/vite-dev.log`
+- Backend: `app/dev/logs/backend.log`
+- Vite: `app/dev/logs/frontend.log`
 
 ---
 
@@ -399,7 +497,7 @@ key_size=2048
 ### Generate Manually
 
 ```bash
-./generate-ssl.sh ./certs/ssl
+./generate-ssl.sh ./app/monolith/certs
 ```
 
 ### Custom Domain
@@ -464,9 +562,9 @@ sudo pkill -9 nginx
 
 ### Frontend does not load
 
-1. Check if build was created: `ls frontend/dist/`
-2. View Nginx logs: `tail -f /tmp/ehop_error.log`
-3. Check permissions: `ls -la frontend/dist/`
+1. Check if build was created: `ls app/monolith/frontend/`
+2. View Nginx logs: `tail -f app/monolith/logs/nginx_error.log`
+3. Check permissions: `ls -la app/monolith/frontend/`
 
 ### Backend cannot connect to database
 

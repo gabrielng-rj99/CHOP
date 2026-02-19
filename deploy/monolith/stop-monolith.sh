@@ -18,7 +18,7 @@ echo -e "${BLUE}======================================${NC}"
 echo ""
 
 # PID file location
-PID_FILE="/tmp/ehop-backend.bin.pid"
+PID_FILE="$(cd "$(dirname "$0")/../.." && pwd)/app/monolith/pids/ehop-backend.bin.pid"
 
 # Stop backend
 echo "Stopping backend..."

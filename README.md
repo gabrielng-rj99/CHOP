@@ -237,7 +237,7 @@ We welcome contributions from developers of all skill levels! Here's how to get 
 - **Testing**: Maintain >80% test coverage
 - **Code Style**: Follow Go and React best practices
 
-## 📜 License
+## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 

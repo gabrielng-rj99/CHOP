@@ -56,12 +56,15 @@ class TestEncodingBypass:
             # Deve ser rápido
             assert response.elapsed.total_seconds() < 2
 
-    def test_base64_encoded_xss_attempt(self, http_client, api_url, root_user, timer):
+    def test_base64_encoded_xss_attempt(self, http_client, api_url, root_token, timer):
         """XSS com Base64 encoding"""
         xss_payloads = [
             "<script>alert('XSS')</script>",
             "javascript:alert('XSS')",
         ]
+
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
 
         for xss in xss_payloads:
             encoded = base64.b64encode(xss.encode()).decode()
@@ -69,7 +72,7 @@ class TestEncodingBypass:
             # Tentar como nome de cliente
             response = http_client.post(
                 f"{api_url}/clients",
-                headers={"Authorization": f"Bearer {root_user['token']}"},
+                headers={"Authorization": f"Bearer {root_token}"},
                 json={"name": f"data:text/html;base64,{encoded}"}
             )
 
@@ -78,7 +81,7 @@ class TestEncodingBypass:
                 data = response.json()
                 get_resp = http_client.get(
                     f"{api_url}/clients/{data.get('id')}",
-                    headers={"Authorization": f"Bearer {root_user['token']}"}
+                    headers={"Authorization": f"Bearer {root_token}"}
                 )
                 if get_resp.status_code == 200:
                     client_data = get_resp.json()
@@ -118,7 +121,7 @@ class TestEncodingBypass:
             )
             assert response.status_code in [400, 401]
 
-    def test_html_entity_encoded_xss(self, http_client, api_url, root_user, timer):
+    def test_html_entity_encoded_xss(self, http_client, api_url, root_token, timer):
         """XSS com HTML entities"""
         payloads = [
             "&lt;script&gt;alert('XSS')&lt;/script&gt;",
@@ -127,10 +130,13 @@ class TestEncodingBypass:
             "&quot;onclick=alert('XSS')&quot;",
         ]
 
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for payload in payloads:
             response = http_client.post(
                 f"{api_url}/clients",
-                headers={"Authorization": f"Bearer {root_user['token']}"},
+                headers={"Authorization": f"Bearer {root_token}"},
                 json={"name": payload}
             )
             # Pode aceitar (entities são texto válido) ou rejeitar
@@ -140,7 +146,7 @@ class TestEncodingBypass:
 class TestCaseSensitivityBypass:
     """Testes de bypass usando case sensitivity"""
 
-    def test_role_case_variations(self, http_client, api_url, root_user, timer):
+    def test_role_case_variations(self, http_client, api_url, root_token, timer):
         """Tentar criar usuário com role em diferentes cases"""
         role_variations = [
             "ROOT", "Root", "rOOT", "rooT",
@@ -148,10 +154,13 @@ class TestCaseSensitivityBypass:
             "USER", "User", "uSER",
         ]
 
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for role in role_variations:
             response = http_client.post(
                 f"{api_url}/users",
-                headers={"Authorization": f"Bearer {root_user['token']}"},
+                headers={"Authorization": f"Bearer {root_token}"},
                 json={
                     "username": f"testcase_{role.lower()}",
                     "display_name": "Test Case User",
@@ -184,14 +193,17 @@ class TestCaseSensitivityBypass:
             except Exception:
                 pass  # Método inválido pode causar exceção
 
-    def test_header_case_bypass(self, http_client, api_url, root_user, timer):
+    def test_header_case_bypass(self, http_client, api_url, root_token, timer):
         """Authorization header com case diferente"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         headers_variations = [
-            {"authorization": f"Bearer {root_user['token']}"},
-            {"AUTHORIZATION": f"Bearer {root_user['token']}"},
-            {"Authorization": f"bearer {root_user['token']}"},
-            {"Authorization": f"BEARER {root_user['token']}"},
-            {"Authorization": f"BeArEr {root_user['token']}"},
+            {"authorization": f"Bearer {root_token}"},
+            {"AUTHORIZATION": f"Bearer {root_token}"},
+            {"Authorization": f"bearer {root_token}"},
+            {"Authorization": f"BEARER {root_token}"},
+            {"Authorization": f"BeArEr {root_token}"},
         ]
 
         for headers in headers_variations:
@@ -200,7 +212,7 @@ class TestCaseSensitivityBypass:
             # Mas Bearer keyword pode ser case-sensitive
             assert response.status_code in [200, 401]
 
-    def test_endpoint_case_bypass(self, http_client, api_url, root_user, timer):
+    def test_endpoint_case_bypass(self, http_client, api_url, root_token, timer):
         """Endpoints com case diferente"""
         endpoints = [
             "/USERS", "/Users", "/uSERS",
@@ -208,10 +220,13 @@ class TestCaseSensitivityBypass:
             "/LOGIN", "/Login",
         ]
 
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for endpoint in endpoints:
             response = http_client.get(
                 f"{api_url}{endpoint}",
-                headers={"Authorization": f"Bearer {root_user['token']}"}
+                headers={"Authorization": f"Bearer {root_token}"}
             )
             # Deve retornar 404 para case incorreto (URLs são case-sensitive)
             assert response.status_code in [200, 404, 405]
@@ -238,12 +253,15 @@ class TestPathTraversalBypass:
         "....//....//....//etc//passwd",
     ]
 
-    def test_path_traversal_in_username_lookup(self, http_client, api_url, root_user, timer):
+    def test_path_traversal_in_username_lookup(self, http_client, api_url, root_token, timer):
         """Path traversal no lookup de username"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for payload in self.PATH_TRAVERSAL_PAYLOADS:
             response = http_client.get(
                 f"{api_url}/users/{payload}",
-                headers={"Authorization": f"Bearer {root_user['token']}"}
+                headers={"Authorization": f"Bearer {root_token}"}
             )
             # DEVE retornar 404 ou 400, NUNCA 500 (erro interno)
             # 500 indica vulnerabilidade - backend não validou input
@@ -254,21 +272,27 @@ class TestPathTraversalBypass:
             assert "root:" not in text  # /etc/passwd content
             assert "bin/bash" not in text
 
-    def test_path_traversal_in_client_id(self, http_client, api_url, root_user, timer):
+    def test_path_traversal_in_client_id(self, http_client, api_url, root_token, timer):
         """Path traversal no ID do cliente"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for payload in self.PATH_TRAVERSAL_PAYLOADS:
             response = http_client.get(
                 f"{api_url}/clients/{payload}",
-                headers={"Authorization": f"Bearer {root_user['token']}"}
+                headers={"Authorization": f"Bearer {root_token}"}
             )
             assert response.status_code in [400, 404]
 
-    def test_path_traversal_in_audit_resource(self, http_client, api_url, root_user, timer):
+    def test_path_traversal_in_audit_resource(self, http_client, api_url, root_token, timer):
         """Path traversal no endpoint de audit logs por resource"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         for payload in self.PATH_TRAVERSAL_PAYLOADS[:5]:
             response = http_client.get(
                 f"{api_url}/audit-logs/resource/{payload}/test",
-                headers={"Authorization": f"Bearer {root_user['token']}"}
+                headers={"Authorization": f"Bearer {root_token}"}
             )
             # 200 é aceitável se não houve match nos logs
             assert response.status_code in [200, 400, 403, 404]
@@ -293,11 +317,14 @@ class TestNullByteBypass:
             )
             assert response.status_code in [400, 401]
 
-    def test_null_byte_in_client_name(self, http_client, api_url, root_user, timer):
+    def test_null_byte_in_client_name(self, http_client, api_url, root_token, timer):
         """Null byte no nome do cliente"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         response = http_client.post(
             f"{api_url}/clients",
-            headers={"Authorization": f"Bearer {root_user['token']}"},
+            headers={"Authorization": f"Bearer {root_token}"},
             json={"name": "Test\x00<script>alert(1)</script>"}
         )
 
@@ -306,7 +333,7 @@ class TestNullByteBypass:
             # Verificar que XSS não passou
             get_resp = http_client.get(
                 f"{api_url}/clients/{data.get('id')}",
-                headers={"Authorization": f"Bearer {root_user['token']}"}
+                headers={"Authorization": f"Bearer {root_token}"}
             )
             if get_resp.status_code == 200:
                 client = get_resp.json()
@@ -316,12 +343,15 @@ class TestNullByteBypass:
 class TestHTTPParameterPollution:
     """Testes de HTTP Parameter Pollution"""
 
-    def test_duplicate_query_params(self, http_client, api_url, root_user, timer):
+    def test_duplicate_query_params(self, http_client, api_url, root_token, timer):
         """Parâmetros de query duplicados"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         # Tentar passar dois valores para mesmo parâmetro
         response = http_client.get(
             f"{api_url}/clients?include_stats=true&include_stats=false",
-            headers={"Authorization": f"Bearer {root_user['token']}"}
+            headers={"Authorization": f"Bearer {root_token}"}
         )
         # Deve usar um valor consistente
         assert response.status_code in [200, 400]
@@ -343,8 +373,11 @@ class TestHTTPParameterPollution:
 class TestHTTPMethodOverride:
     """Testes de HTTP Method Override bypass"""
 
-    def test_method_override_header(self, http_client, api_url, root_user, timer):
+    def test_method_override_header(self, http_client, api_url, root_token, timer):
         """Tentar override de método via header"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         override_headers = [
             "X-HTTP-Method-Override",
             "X-HTTP-Method",
@@ -357,19 +390,22 @@ class TestHTTPMethodOverride:
             response = http_client.post(
                 f"{api_url}/users/root",
                 headers={
-                    "Authorization": f"Bearer {root_user['token']}",
+                    "Authorization": f"Bearer {root_token}",
                     header: "DELETE"
                 }
             )
             # Não deve deletar o usuário root
             assert response.status_code in [400, 403, 404, 405]
 
-    def test_method_override_query_param(self, http_client, api_url, root_user, timer):
+    def test_method_override_query_param(self, http_client, api_url, root_token, timer):
         """Tentar override de método via query param"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         # Tentar fazer DELETE via GET
         response = http_client.get(
             f"{api_url}/users/root?_method=DELETE",
-            headers={"Authorization": f"Bearer {root_user['token']}"}
+            headers={"Authorization": f"Bearer {root_token}"}
         )
         # Não deve deletar
         assert response.status_code in [200, 400, 403, 404, 405]
@@ -518,8 +554,11 @@ class TestUnicodeNormalizationBypass:
             # Não deve confundir com 'admin' real
             assert response.status_code in [400, 401]
 
-    def test_homograph_attack(self, http_client, api_url, root_user, timer):
+    def test_homograph_attack(self, http_client, api_url, root_token, timer):
         """Ataque homograph - caracteres visualmente idênticos"""
+        if not root_token:
+            pytest.skip("Root token not available for authenticated test.")
+
         # Tentar criar usuário que parece 'admin' mas não é
         homographs = [
             "аdmin",  # Cyrillic 'а' (U+0430)
@@ -530,7 +569,7 @@ class TestUnicodeNormalizationBypass:
         for homograph in homographs:
             response = http_client.post(
                 f"{api_url}/users",
-                headers={"Authorization": f"Bearer {root_user['token']}"},
+                headers={"Authorization": f"Bearer {root_token}"},
                 json={
                     "username": homograph,
                     "display_name": "Fake Admin",

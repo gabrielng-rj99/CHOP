@@ -14,7 +14,7 @@ DB_PORT=${DB_PORT:-5432}
 DB_NAME=${DB_NAME:-contract_manager}
 DB_USER=${DB_USER:-postgres}
 
-BACKUP_DIR="backups"
+BACKUP_DIR="app/backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql"
 
