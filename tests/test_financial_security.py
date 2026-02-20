@@ -21,20 +21,20 @@ Testes de Segurança Agressivos para API de Financials
 NOTA: Estes testes são RIGOROSOS - se falharem, a API tem problema de segurança
 
 Cobertura:
-- GET /api/financials: Auth, Permission, SQL Injection
-- POST /api/financials: Empty Request, XSS, SQL Injection, Overflow, NULL handling
-- GET /api/financials/{id}: Auth, Not Found, UUID validation
-- PUT /api/financials/{id}: Auth, XSS, SQL Injection, Overflow
-- DELETE /api/financials/{id}: Auth, Permission
-- GET /api/financials/{id}/installments: Auth
-- POST /api/financials/{id}/installments: Empty Request, XSS, SQL Injection
-- PUT /api/financials/{id}/installments/{inst_id}: Auth, validation
-- DELETE /api/financials/{id}/installments/{inst_id}: Auth
-- PUT /api/financials/{id}/installments/{inst_id}/pay: Auth, Permission
-- PUT /api/financials/{id}/installments/{inst_id}/unpay: Auth, Permission
-- GET /api/financials/summary: Auth, Permission
-- GET /api/financials/upcoming: Auth, SQL Injection
-- GET /api/financials/overdue: Auth
+- GET /api/financial: Auth, Permission, SQL Injection
+- POST /api/financial: Empty Request, XSS, SQL Injection, Overflow, NULL handling
+- GET /api/financial/{id}: Auth, Not Found, UUID validation
+- PUT /api/financial/{id}: Auth, XSS, SQL Injection, Overflow
+- DELETE /api/financial/{id}: Auth, Permission
+- GET /api/financial/{id}/installments: Auth
+- POST /api/financial/{id}/installments: Empty Request, XSS, SQL Injection
+- PUT /api/financial/{id}/installments/{inst_id}: Auth, validation
+- DELETE /api/financial/{id}/installments/{inst_id}: Auth
+- PUT /api/financial/{id}/installments/{inst_id}/pay: Auth, Permission
+- PUT /api/financial/{id}/installments/{inst_id}/unpay: Auth, Permission
+- GET /api/financial/summary: Auth, Permission
+- GET /api/financial/upcoming: Auth, SQL Injection
+- GET /api/financial/overdue: Auth
 """
 
 import pytest
@@ -139,7 +139,7 @@ def test_financial(http_client, api_url, admin_user, test_contract):
     }
 
     response = http_client.post(
-        f"{api_url}/financials",
+        f"{api_url}/financial",
         json=financial_data,
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
@@ -153,7 +153,7 @@ def test_financial(http_client, api_url, admin_user, test_contract):
 
     # Cleanup
     http_client.delete(
-        f"{api_url}/financials/{financial['id']}",
+        f"{api_url}/financial/{financial['id']}",
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
 
@@ -190,7 +190,7 @@ def test_financial_with_installments(http_client, api_url, admin_user, test_cont
     }
 
     response = http_client.post(
-        f"{api_url}/financials",
+        f"{api_url}/financial",
         json=financial_data,
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
@@ -204,30 +204,30 @@ def test_financial_with_installments(http_client, api_url, admin_user, test_cont
 
     # Cleanup
     http_client.delete(
-        f"{api_url}/financials/{financial['id']}",
+        f"{api_url}/financial/{financial['id']}",
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
 
 
 # =============================================================================
-# GET /api/financials - Auth and Permission Tests
+# GET /api/financial - Auth and Permission Tests
 # =============================================================================
 
 class TestGetFinancialsAuth:
-    """Testes de autenticação para GET /api/financials"""
+    """Testes de autenticação para GET /api/financial"""
 
     @catch_connection_errors
     def test_get_financials_without_token_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials sem token DEVE retornar 401"""
-        response = http_client.get(f"{api_url}/financials")
+        """GET /api/financial sem token DEVE retornar 401"""
+        response = http_client.get(f"{api_url}/financial")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_get_financials_with_invalid_token_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials com token inválido DEVE retornar 401"""
+        """GET /api/financial com token inválido DEVE retornar 401"""
         response = http_client.get(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             headers={"Authorization": "Bearer invalid_token_here"}
         )
         assert response.status_code == 401, \
@@ -235,7 +235,7 @@ class TestGetFinancialsAuth:
 
     @catch_connection_errors
     def test_get_financials_with_malformed_auth_header_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials com header mal formado DEVE retornar 401"""
+        """GET /api/financial com header mal formado DEVE retornar 401"""
         malformed_headers = [
             {"Authorization": "NotBearer token"},
             {"Authorization": "Bearer"},
@@ -243,13 +243,13 @@ class TestGetFinancialsAuth:
             {"Authorization": "Bearer "},
         ]
         for header in malformed_headers:
-            response = http_client.get(f"{api_url}/financials", headers=header)
+            response = http_client.get(f"{api_url}/financial", headers=header)
             assert response.status_code == 401, \
                 f"🔴 FALHA: Expected 401 with header {header}, got {response.status_code}"
 
 
 class TestGetFinancialsPermission:
-    """Testes de permissão para GET /api/financials"""
+    """Testes de permissão para GET /api/financial"""
 
     @catch_connection_errors
     def test_regular_user_can_list_financials(self, http_client, api_url, regular_user, timer):
@@ -258,7 +258,7 @@ class TestGetFinancialsPermission:
             pytest.skip("Regular user não disponível")
 
         response = http_client.get(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             headers={"Authorization": f"Bearer {regular_user['token']}"}
         )
         assert response.status_code in [200, 404], \
@@ -266,11 +266,11 @@ class TestGetFinancialsPermission:
 
 
 # =============================================================================
-# GET /api/financials - SQL Injection Tests
+# GET /api/financial - SQL Injection Tests
 # =============================================================================
 
 class TestGetFinancialsSQLInjection:
-    """Testes de SQL Injection para GET /api/financials"""
+    """Testes de SQL Injection para GET /api/financial"""
 
     @catch_connection_errors
     def test_sql_injection_in_query_params(self, http_client, api_url, admin_user, timer):
@@ -293,7 +293,7 @@ class TestGetFinancialsSQLInjection:
         for payload in sql_payloads:
             # Testar em diferentes query params se houver
             response = http_client.get(
-                f"{api_url}/financials?search={payload}",
+                f"{api_url}/financial?search={payload}",
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
 
@@ -311,20 +311,20 @@ class TestGetFinancialsSQLInjection:
 
 
 # =============================================================================
-# POST /api/financials - Empty Request Tests
+# POST /api/financial - Empty Request Tests
 # =============================================================================
 
 class TestCreateFinancialEmptyRequest:
-    """Testes de requisição vazia para POST /api/financials"""
+    """Testes de requisição vazia para POST /api/financial"""
 
     @catch_connection_errors
     def test_create_financial_with_empty_body_returns_400(self, http_client, api_url, admin_user, timer):
-        """POST /api/financials com body vazio DEVE retornar 400"""
+        """POST /api/financial com body vazio DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         response = http_client.post(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             json={},
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -333,12 +333,12 @@ class TestCreateFinancialEmptyRequest:
 
     @catch_connection_errors
     def test_create_financial_with_null_body_returns_400(self, http_client, api_url, admin_user, timer):
-        """POST /api/financials com body null DEVE retornar 400"""
+        """POST /api/financial com body null DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         response = http_client.post(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             json=None,
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -347,7 +347,7 @@ class TestCreateFinancialEmptyRequest:
 
     @catch_connection_errors
     def test_create_financial_missing_required_fields_returns_400(self, http_client, api_url, admin_user, timer):
-        """POST /api/financials sem campos obrigatórios DEVE retornar 400"""
+        """POST /api/financial sem campos obrigatórios DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -359,7 +359,7 @@ class TestCreateFinancialEmptyRequest:
 
         for payload in incomplete_payloads:
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=payload,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
@@ -368,11 +368,11 @@ class TestCreateFinancialEmptyRequest:
 
 
 # =============================================================================
-# POST /api/financials - XSS Tests
+# POST /api/financial - XSS Tests
 # =============================================================================
 
 class TestCreateFinancialXSS:
-    """Testes de XSS para POST /api/financials"""
+    """Testes de XSS para POST /api/financial"""
 
     @catch_connection_errors
     def test_xss_in_description_field(self, http_client, api_url, admin_user, test_contract, timer):
@@ -399,7 +399,7 @@ class TestCreateFinancialXSS:
             }
 
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=financial_data,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
@@ -424,17 +424,17 @@ class TestCreateFinancialXSS:
                 # Cleanup
                 if financial_id:
                     http_client.delete(
-                        f"{api_url}/financials/{financial_id}",
+                        f"{api_url}/financial/{financial_id}",
                         headers={"Authorization": f"Bearer {admin_user['token']}"}
                     )
 
 
 # =============================================================================
-# POST /api/financials - SQL Injection Tests
+# POST /api/financial - SQL Injection Tests
 # =============================================================================
 
 class TestCreateFinancialSQLInjection:
-    """Testes de SQL Injection para POST /api/financials"""
+    """Testes de SQL Injection para POST /api/financial"""
 
     @catch_connection_errors
     def test_sql_injection_in_text_fields(self, http_client, api_url, admin_user, test_contract, timer):
@@ -460,7 +460,7 @@ class TestCreateFinancialSQLInjection:
             }
 
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=financial_data,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
@@ -474,13 +474,13 @@ class TestCreateFinancialSQLInjection:
                 # Cleanup
                 if financial_id:
                     http_client.delete(
-                        f"{api_url}/financials/{financial_id}",
+                        f"{api_url}/financial/{financial_id}",
                         headers={"Authorization": f"Bearer {admin_user['token']}"}
                     )
 
 
 # =============================================================================
-# POST /api/financials - NULL Handling Tests
+# POST /api/financial - NULL Handling Tests
 # =============================================================================
 
 class TestCreateFinancialNullHandling:
@@ -503,7 +503,7 @@ class TestCreateFinancialNullHandling:
         }
 
         response = http_client.post(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             json=financial_data,
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -517,7 +517,7 @@ class TestCreateFinancialNullHandling:
             # Cleanup
             if financial_id:
                 http_client.delete(
-                    f"{api_url}/financials/{financial_id}",
+                    f"{api_url}/financial/{financial_id}",
                     headers={"Authorization": f"Bearer {admin_user['token']}"}
                 )
 
@@ -550,7 +550,7 @@ class TestCreateFinancialNullHandling:
 
         for payload in null_required_payloads:
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=payload,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
@@ -559,11 +559,11 @@ class TestCreateFinancialNullHandling:
 
 
 # =============================================================================
-# POST /api/financials - Overflow Tests
+# POST /api/financial - Overflow Tests
 # =============================================================================
 
 class TestCreateFinancialOverflow:
-    """Testes de overflow para POST /api/financials"""
+    """Testes de overflow para POST /api/financial"""
 
     @catch_connection_errors
     def test_extremely_large_values_rejected(self, http_client, api_url, admin_user, test_contract, timer):
@@ -594,7 +594,7 @@ class TestCreateFinancialOverflow:
 
         for payload in overflow_payloads:
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=payload,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
@@ -609,7 +609,7 @@ class TestCreateFinancialOverflow:
                 if financial_id:
                     # Verificar se o valor foi armazenado corretamente
                     get_response = http_client.get(
-                        f"{api_url}/financials/{financial_id}",
+                        f"{api_url}/financial/{financial_id}",
                         headers={"Authorization": f"Bearer {admin_user['token']}"}
                     )
                     if get_response.status_code == 200:
@@ -621,7 +621,7 @@ class TestCreateFinancialOverflow:
 
                     # Cleanup
                     http_client.delete(
-                        f"{api_url}/financials/{financial_id}",
+                        f"{api_url}/financial/{financial_id}",
                         headers={"Authorization": f"Bearer {admin_user['token']}"}
                     )
 
@@ -642,7 +642,7 @@ class TestCreateFinancialOverflow:
         }
 
         response = http_client.post(
-            f"{api_url}/financials",
+            f"{api_url}/financial",
             json=financial_data,
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -656,34 +656,34 @@ class TestCreateFinancialOverflow:
             financial_id = response.json().get("id")
             if financial_id:
                 http_client.delete(
-                    f"{api_url}/financials/{financial_id}",
+                    f"{api_url}/financial/{financial_id}",
                     headers={"Authorization": f"Bearer {admin_user['token']}"}
                 )
 
 
 # =============================================================================
-# GET /api/financials/{id} - Auth and Validation Tests
+# GET /api/financial/{id} - Auth and Validation Tests
 # =============================================================================
 
 class TestGetFinancialByID:
-    """Testes para GET /api/financials/{id}"""
+    """Testes para GET /api/financial/{id}"""
 
     @catch_connection_errors
     def test_get_financial_without_token_returns_401(self, http_client, api_url, test_financial, timer):
-        """GET /api/financials/{id} sem token DEVE retornar 401"""
-        response = http_client.get(f"{api_url}/financials/{test_financial['id']}")
+        """GET /api/financial/{id} sem token DEVE retornar 401"""
+        response = http_client.get(f"{api_url}/financial/{test_financial['id']}")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_get_nonexistent_financial_returns_404(self, http_client, api_url, admin_user, timer):
-        """GET /api/financials/{id} com ID inexistente DEVE retornar 404"""
+        """GET /api/financial/{id} com ID inexistente DEVE retornar 404"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         fake_id = str(uuid.uuid4())
         response = http_client.get(
-            f"{api_url}/financials/{fake_id}",
+            f"{api_url}/financial/{fake_id}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         assert response.status_code == 404, \
@@ -691,7 +691,7 @@ class TestGetFinancialByID:
 
     @catch_connection_errors
     def test_get_financial_with_invalid_uuid_returns_400(self, http_client, api_url, admin_user, timer):
-        """GET /api/financials/{id} com UUID inválido DEVE retornar 400"""
+        """GET /api/financial/{id} com UUID inválido DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -705,7 +705,7 @@ class TestGetFinancialByID:
 
         for invalid_id in invalid_uuids:
             response = http_client.get(
-                f"{api_url}/financials/{invalid_id}",
+                f"{api_url}/financial/{invalid_id}",
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
             # Deve retornar 400 ou 404, mas NÃO 500
@@ -714,20 +714,20 @@ class TestGetFinancialByID:
 
 
 # =============================================================================
-# PUT /api/financials/{id} - Update Tests
+# PUT /api/financial/{id} - Update Tests
 # =============================================================================
 
 class TestUpdateFinancial:
-    """Testes para PUT /api/financials/{id}"""
+    """Testes para PUT /api/financial/{id}"""
 
     @catch_connection_errors
     def test_update_financial_without_token_returns_401(self, http_client, api_url, test_financial, timer):
-        """PUT /api/financials/{id} sem token DEVE retornar 401"""
+        """PUT /api/financial/{id} sem token DEVE retornar 401"""
         update_data = {
             "description": "Updated description"
         }
         response = http_client.put(
-            f"{api_url}/financials/{test_financial['id']}",
+            f"{api_url}/financial/{test_financial['id']}",
             json=update_data
         )
         assert response.status_code == 401, \
@@ -735,7 +735,7 @@ class TestUpdateFinancial:
 
     @catch_connection_errors
     def test_update_financial_with_xss_sanitizes(self, http_client, api_url, admin_user, test_financial, timer):
-        """PUT /api/financials/{id} com XSS DEVE sanitizar"""
+        """PUT /api/financial/{id} com XSS DEVE sanitizar"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -745,7 +745,7 @@ class TestUpdateFinancial:
         }
 
         response = http_client.put(
-            f"{api_url}/financials/{test_financial['id']}",
+            f"{api_url}/financial/{test_financial['id']}",
             json=update_data,
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -762,28 +762,28 @@ class TestUpdateFinancial:
 
 
 # =============================================================================
-# DELETE /api/financials/{id} - Delete Tests
+# DELETE /api/financial/{id} - Delete Tests
 # =============================================================================
 
 class TestDeleteFinancial:
-    """Testes para DELETE /api/financials/{id}"""
+    """Testes para DELETE /api/financial/{id}"""
 
     @catch_connection_errors
     def test_delete_financial_without_token_returns_401(self, http_client, api_url, test_financial, timer):
-        """DELETE /api/financials/{id} sem token DEVE retornar 401"""
-        response = http_client.delete(f"{api_url}/financials/{test_financial['id']}")
+        """DELETE /api/financial/{id} sem token DEVE retornar 401"""
+        response = http_client.delete(f"{api_url}/financial/{test_financial['id']}")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_delete_nonexistent_financial_returns_404(self, http_client, api_url, admin_user, timer):
-        """DELETE /api/financials/{id} com ID inexistente DEVE retornar 404"""
+        """DELETE /api/financial/{id} com ID inexistente DEVE retornar 404"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         fake_id = str(uuid.uuid4())
         response = http_client.delete(
-            f"{api_url}/financials/{fake_id}",
+            f"{api_url}/financial/{fake_id}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         assert response.status_code == 404, \
@@ -799,21 +799,21 @@ class TestFinancialInstallments:
 
     @catch_connection_errors
     def test_get_installments_without_token_returns_401(self, http_client, api_url, test_financial_with_installments, timer):
-        """GET /api/financials/{id}/installments sem token DEVE retornar 401"""
+        """GET /api/financial/{id}/installments sem token DEVE retornar 401"""
         response = http_client.get(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments"
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments"
         )
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_create_installment_with_empty_body_returns_400(self, http_client, api_url, admin_user, test_financial_with_installments, timer):
-        """POST /api/financials/{id}/installments com body vazio DEVE retornar 400"""
+        """POST /api/financial/{id}/installments com body vazio DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         response = http_client.post(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments",
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments",
             json={},
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -822,7 +822,7 @@ class TestFinancialInstallments:
 
     @catch_connection_errors
     def test_create_installment_with_xss_sanitizes(self, http_client, api_url, admin_user, test_financial_with_installments, timer):
-        """POST /api/financials/{id}/installments com XSS DEVE sanitizar"""
+        """POST /api/financial/{id}/installments com XSS DEVE sanitizar"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -835,7 +835,7 @@ class TestFinancialInstallments:
         }
 
         response = http_client.post(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments",
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments",
             json=installment_data,
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
@@ -855,7 +855,7 @@ class TestFinancialInstallments:
             # Cleanup
             if installment_id:
                 http_client.delete(
-                    f"{api_url}/financials/{test_financial_with_installments['id']}/installments/{installment_id}",
+                    f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{installment_id}",
                     headers={"Authorization": f"Bearer {admin_user['token']}"}
                 )
 
@@ -869,10 +869,10 @@ class TestMarkInstallmentPaid:
 
     @catch_connection_errors
     def test_mark_installment_paid_without_token_returns_401(self, http_client, api_url, test_financial_with_installments, timer):
-        """PUT /api/financials/{id}/installments/{inst_id}/pay sem token DEVE retornar 401"""
+        """PUT /api/financial/{id}/installments/{inst_id}/pay sem token DEVE retornar 401"""
         # Pegar primeira parcela
         response = http_client.get(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments",
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments",
             headers={"Authorization": f"Bearer {test_financial_with_installments.get('_test_admin_token', '')}"}
         )
 
@@ -887,20 +887,20 @@ class TestMarkInstallmentPaid:
 
         # Tentar marcar como paga sem token
         response = http_client.put(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments/{first_installment['id']}/pay"
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{first_installment['id']}/pay"
         )
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_mark_nonexistent_installment_paid_returns_400_or_404(self, http_client, api_url, admin_user, test_financial_with_installments, timer):
-        """PUT /api/financials/{id}/installments/{inst_id}/pay com parcela inexistente DEVE retornar 400 ou 404"""
+        """PUT /api/financial/{id}/installments/{inst_id}/pay com parcela inexistente DEVE retornar 400 ou 404"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         fake_installment_id = str(uuid.uuid4())
         response = http_client.put(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments/{fake_installment_id}/pay",
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{fake_installment_id}/pay",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         assert response.status_code in [400, 404], \
@@ -908,13 +908,13 @@ class TestMarkInstallmentPaid:
 
     @catch_connection_errors
     def test_mark_installment_paid_with_invalid_uuid_returns_400(self, http_client, api_url, admin_user, test_financial_with_installments, timer):
-        """PUT /api/financials/{id}/installments/{inst_id}/pay com UUID inválido DEVE retornar 400"""
+        """PUT /api/financial/{id}/installments/{inst_id}/pay com UUID inválido DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
         invalid_id = "'; DROP TABLE financial_installments; --"
         response = http_client.put(
-            f"{api_url}/financials/{test_financial_with_installments['id']}/installments/{invalid_id}/pay",
+            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{invalid_id}/pay",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         # Não deve crashar
@@ -931,28 +931,28 @@ class TestFinancialDashboard:
 
     @catch_connection_errors
     def test_get_summary_without_token_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials/summary sem token DEVE retornar 401"""
-        response = http_client.get(f"{api_url}/financials/summary")
+        """GET /api/financial/summary sem token DEVE retornar 401"""
+        response = http_client.get(f"{api_url}/financial/summary")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_get_upcoming_without_token_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials/upcoming sem token DEVE retornar 401"""
-        response = http_client.get(f"{api_url}/financials/upcoming")
+        """GET /api/financial/upcoming sem token DEVE retornar 401"""
+        response = http_client.get(f"{api_url}/financial/upcoming")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_get_overdue_without_token_returns_401(self, http_client, api_url, timer):
-        """GET /api/financials/overdue sem token DEVE retornar 401"""
-        response = http_client.get(f"{api_url}/financials/overdue")
+        """GET /api/financial/overdue sem token DEVE retornar 401"""
+        response = http_client.get(f"{api_url}/financial/overdue")
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
 
     @catch_connection_errors
     def test_get_upcoming_with_sql_injection_in_params(self, http_client, api_url, admin_user, timer):
-        """GET /api/financials/upcoming com SQL Injection em params NÃO DEVE afetar DB"""
+        """GET /api/financial/upcoming com SQL Injection em params NÃO DEVE afetar DB"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -964,7 +964,7 @@ class TestFinancialDashboard:
 
         for payload in sql_payloads:
             response = http_client.get(
-                f"{api_url}/financials/upcoming?days={payload}",
+                f"{api_url}/financial/upcoming?days={payload}",
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
 
@@ -997,7 +997,7 @@ class TestFinancialsEdgeCases:
                 "description": f"Concurrent test {uuid.uuid4().hex[:8]}"
             }
             return http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=financial_data,
                 headers={"Authorization": f"Bearer {admin_user['token']}"},
                 timeout=5
@@ -1019,7 +1019,7 @@ class TestFinancialsEdgeCases:
                 financial_id = result.json().get("id")
                 if financial_id:
                     http_client.delete(
-                        f"{api_url}/financials/{financial_id}",
+                        f"{api_url}/financial/{financial_id}",
                         headers={"Authorization": f"Bearer {admin_user['token']}"}
                     )
 
@@ -1047,7 +1047,7 @@ class TestFinancialsEdgeCases:
             }
 
             response = http_client.post(
-                f"{api_url}/financials",
+                f"{api_url}/financial",
                 json=financial_data,
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )

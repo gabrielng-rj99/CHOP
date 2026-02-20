@@ -20,6 +20,7 @@ import pytest
 import requests
 import time
 import os
+import itertools
 from typing import Dict, Optional
 
 
@@ -117,6 +118,14 @@ DEFAULT_ROOT_PASSWORD = os.getenv(
 )
 DEFAULT_STRONG_PASSWORD = "ValidPass123!@#abcXYZ"
 
+_ip_counter = itertools.count(1)
+
+
+def _next_ip() -> str:
+    # Use a deterministic, rotating IP to avoid rate limiting during tests
+    octet = next(_ip_counter) % 254 + 1
+    return f"10.99.0.{octet}"
+
 
 @pytest.fixture(scope="session")
 def base_url():
@@ -132,6 +141,16 @@ def api_url():
 def http_client():
     session = requests.Session()
     session.headers.update({"Content-Type": "application/json"})
+
+    original_request = session.request
+
+    def request_with_ip(method, url, **kwargs):
+        headers = kwargs.pop("headers", {}) or {}
+        headers.setdefault("X-Forwarded-For", _next_ip())
+        kwargs["headers"] = headers
+        return original_request(method, url, **kwargs)
+
+    session.request = request_with_ip
     return session
 
 
