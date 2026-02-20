@@ -11,9 +11,11 @@ This document summarizes the recent actions taken to centralize runtime artifact
 - [x] Rebuilt dev DB and started dev services (`deploy/dev`).
 - [x] Removed legacy runtime artifacts outside `app/`.
 - [x] Moved frontend build output from `frontend/dist` to `app/monolith/frontend`.
+- [x] Added Docker preflight checks for buildx and volume permissions in `deploy/docker/Makefile`.
+- [x] Aligned test scripts to use `TEST_ROOT_PASSWORD` (default `THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc`).
 
 ## ⚠️ Blockers / Needs Attention
-- [ ] Fix ownership/permissions of `app/dev/data/postgres` (requires elevated privileges) so Docker build context can read it.
+- [ ] Fix ownership/permissions of `app/docker/data/postgres` (requires elevated privileges); preflight check now detects this, but still needs a sudo chown to remediate.
 - [ ] Install/enable Docker buildx to allow `docker compose build`.
 - [ ] Reconcile Python API/security tests with current refactored backend behavior.
 - [ ] Restore/confirm test environment seeding and auth flows for API tests.

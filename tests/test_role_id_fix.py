@@ -7,11 +7,12 @@ are now accepted when setting role permissions.
 
 import requests
 import json
+import os
 
 # Configuration
 BASE_URL = "http://localhost:3000"
 ROOT_USER = "root"
-ROOT_PASSWORD = "THIS_IS_A_DEV_ENVIRONMENT_PASSWORD@123abc"
+ROOT_PASSWORD = os.getenv("TEST_ROOT_PASSWORD", "THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc")
 
 # Test role ID (the "user" role from schema)
 TEST_ROLE_ID = "a0000000-0000-0000-0000-000000000003"
@@ -20,7 +21,7 @@ def login():
     """Login as root user and return token"""
     print("🔐 Logging in as root...")
     response = requests.post(
-        f"{BASE_URL}/api/auth/login",
+        f"{BASE_URL}/api/login",
         json={"username": ROOT_USER, "password": ROOT_PASSWORD}
     )
 
@@ -30,7 +31,11 @@ def login():
         return None
 
     data = response.json()
-    token = data.get("token")
+    token = data.get("data", {}).get("token")
+    if not token:
+        print("❌ Login response missing token")
+        print(f"   Response: {response.text}")
+        return None
     print(f"✅ Login successful! Token: {token[:20]}...")
     return token
 

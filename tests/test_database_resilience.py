@@ -34,6 +34,16 @@ class TestDatabaseResilience:
         Verifies that the API handles database outages gracefully (503/500),
         and recovers when the database comes back online.
         """
+        # 0. Skip if not running against the docker test environment.
+        # The dev backend (localhost:3000) uses its own DB — stopping
+        # postgres_test has no effect on it, causing a false failure.
+        api_port = api_url.split(":")[-1].split("/")[0]
+        if api_port not in ("63000",):
+            pytest.skip(
+                f"Database resilience tests require the docker test environment "
+                f"(port 63000), but tests are running against port {api_port}"
+            )
+
         # 1. Verify system is healthy initially
         self._wait_for_health(base_url, http_client, expected_status="healthy")
 

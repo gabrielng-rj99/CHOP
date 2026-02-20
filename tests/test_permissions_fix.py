@@ -6,6 +6,7 @@ Testa se IDs hardcoded (b0000000-...) são aceitos pela API
 
 import requests
 import sys
+import os
 
 API_URL = "http://localhost:3000/api"
 
@@ -22,7 +23,7 @@ def main():
             f"{API_URL}/login",
             json={
                 "username": "root",
-                "password": "THIS_IS_A_DEV_ENVIRONMENT_PASSWORD@123abc"
+                "password": os.getenv("TEST_ROOT_PASSWORD", "THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc")
             },
             timeout=5
         )

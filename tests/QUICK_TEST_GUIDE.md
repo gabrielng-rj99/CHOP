@@ -120,7 +120,7 @@ make test-coverage --html
 # Get root token first
 TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"root","password":"THIS_IS_A_DEV_ENVIRONMENT_PASSWORD@123abc"}' \
+  -d '{"username":"root","password":"THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc"}' \
   | jq -r '.data.token')
 
 # Get users list with lock status

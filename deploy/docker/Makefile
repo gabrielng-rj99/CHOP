@@ -56,7 +56,7 @@ PYTHON_VERSION := 3.11
 .PHONY: help info status health build up down restart \
         logs logs-backend logs-frontend logs-db \
         shell shell-backend shell-frontend shell-db \
-        validate env-check clean prune backup backup-rotate restore migrate \
+        validate env-check buildx-check volume-perms-check clean prune backup backup-rotate restore migrate \
         pull ps update upgrade registry-pull registry-migrate registry-update \
         install-go install-node install-python install-deps
 
@@ -225,11 +225,46 @@ validate: ## Validate docker-compose.yml configuration
 		(echo "$(RED)❌ Configuration errors found:$(NC)"; $(DOCKER_CMD) config)
 	@echo ""
 
+buildx-check: ## Ensure Docker buildx is available
+	@echo "$(BLUE)🔍 Checking Docker buildx...$(NC)"
+	@if docker buildx version > /dev/null 2>&1; then \
+		echo "$(GREEN)✓ Docker buildx is available$(NC)"; \
+	else \
+		echo "$(RED)❌ Docker buildx is not available$(NC)"; \
+		echo "$(YELLOW)   Install/enable buildx to proceed with builds$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+
+volume-perms-check: ## Ensure PostgreSQL volume path is readable/writable
+	@echo "$(BLUE)🔍 Checking PostgreSQL volume permissions...$(NC)"
+	@POSTGRES_PATH=$$(grep -E "^POSTGRES_VOLUME_PATH=" $(ENV_FILE) 2>/dev/null | cut -d'=' -f2); \
+	if [ -z "$$POSTGRES_PATH" ]; then POSTGRES_PATH="./app/docker/data/postgres"; fi; \
+	if [ ! -d "$$POSTGRES_PATH" ]; then \
+		echo "$(YELLOW)Creating missing volume directory: $$POSTGRES_PATH$(NC)"; \
+		mkdir -p "$$POSTGRES_PATH"; \
+	fi; \
+	if [ ! -r "$$POSTGRES_PATH" ] || [ ! -w "$$POSTGRES_PATH" ]; then \
+		echo "$(YELLOW)Attempting to fix permissions for: $$POSTGRES_PATH$(NC)"; \
+		if command -v sudo > /dev/null 2>&1; then \
+			sudo chown -R $$(id -u):$$(id -g) "$$POSTGRES_PATH" || true; \
+		else \
+			echo "$(YELLOW)sudo not available; run: chown -R $$(id -u):$$(id -g) $$POSTGRES_PATH$(NC)"; \
+		fi; \
+	fi; \
+	if [ ! -r "$$POSTGRES_PATH" ] || [ ! -w "$$POSTGRES_PATH" ]; then \
+		echo "$(RED)❌ Volume path not readable/writable: $$POSTGRES_PATH$(NC)"; \
+		echo "$(YELLOW)   Fix with: sudo chown -R $$(id -u):$$(id -g) $$POSTGRES_PATH$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(GREEN)✓ Volume permissions OK: $$POSTGRES_PATH$(NC)"
+	@echo ""
+
 # ==============================================================================
 # BUILD
 # ==============================================================================
 
-build: env-check validate ## Build Docker images
+build: env-check validate buildx-check volume-perms-check ## Build Docker images
 	@echo "$(BLUE)🐳 Building Docker images...$(NC)"
 	@echo ""
 	@$(DOCKER_CMD) build
@@ -266,7 +301,7 @@ rebuild: ## Full rebuild (no cache, clears build state)
 # CONTAINER MANAGEMENT
 # ==============================================================================
 
-up: env-check ## Start all containers (detached)
+up: env-check volume-perms-check ## Start all containers (detached)
 	@echo "$(BLUE)🚀 Starting containers...$(NC)"
 	@echo ""
 	@$(DOCKER_CMD) up -d
