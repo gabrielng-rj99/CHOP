@@ -419,7 +419,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 				fmt.Printf("🔒 Bloqueio nível 4 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
 					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
 			}
-			return nil, fmt.Errorf("Conta bloqueada permanentemente por segurança. Contate o administrador.")
+			return nil, errors.New("usuário ou senha inválidos")
 		} else if failedAttempts >= level3Attempts {
 			// Nível 3: bloqueio severo (1 hora)
 			newLockLevel = 3
@@ -435,7 +435,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 				fmt.Printf("🔒 Bloqueio nível 3 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
 					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
 			}
-			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 3 - bloqueio severo). Tente novamente depois.", lockUntil.Format(time.RFC1123))
+			return nil, errors.New("usuário ou senha inválidos")
 		} else if failedAttempts >= level2Attempts {
 			// Nível 2: bloqueio médio (15 min)
 			newLockLevel = 2
@@ -451,7 +451,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 				fmt.Printf("🔒 Bloqueio nível 2 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
 					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
 			}
-			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 2 - bloqueio médio). Tente novamente depois.", lockUntil.Format(time.RFC1123))
+			return nil, errors.New("usuário ou senha inválidos")
 		} else if failedAttempts >= level1Attempts {
 			// Nível 1: bloqueio inicial (5 min)
 			newLockLevel = 1
@@ -467,7 +467,7 @@ func (s *UserStore) AuthenticateUser(username, password string) (*domain.User, e
 				fmt.Printf("🔒 Bloqueio nível 1 aplicado: user=%s, attempts=%d, locked_until=%s (rows affected: %d)\n",
 					username, failedAttempts, lockUntil.Format(time.RFC1123), rows)
 			}
-			return nil, fmt.Errorf("Conta bloqueada até %s (Nível 1 - bloqueio inicial). Tente novamente depois.", lockUntil.Format(time.RFC1123))
+			return nil, errors.New("usuário ou senha inválidos")
 		} else {
 			// Apenas incrementa tentativas, sem bloquear ainda
 			result, err := s.db.Exec(`UPDATE users SET failed_attempts = $1 WHERE username = $2`, failedAttempts, username)
