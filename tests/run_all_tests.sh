@@ -136,6 +136,22 @@ cd "$PROJECT_ROOT"
 echo -e "${BLUE}🐳 Starting test containers...${NC}"
 docker compose -f "$TEST_COMPOSE_FILE" up -d postgres_test backend_test frontend_test
 
+# Wait for backend health before running tests
+echo -e "${BLUE}⏳ Waiting for backend healthcheck...${NC}"
+for _ in {1..30}; do
+    backend_status=$(docker inspect -f '{{.State.Health.Status}}' chop_test_backend 2>/dev/null || true)
+    if [ "$backend_status" = "healthy" ]; then
+        echo -e "${GREEN}✅ Backend is healthy${NC}"
+        break
+    fi
+    sleep 2
+done
+
+if [ "$backend_status" != "healthy" ]; then
+    echo -e "${RED}❌ Backend did not become healthy in time${NC}"
+    exit 1
+fi
+
 # Run pytest with configuration
 echo -e "${BLUE}🚀 Running test suite...${NC}"
 echo ""
