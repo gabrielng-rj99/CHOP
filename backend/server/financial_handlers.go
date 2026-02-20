@@ -66,9 +66,21 @@ func (s *Server) handleCreateFinancial(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "contract_id é obrigatório")
 		return
 	}
+	if err := domain.ValidateUUID(req.ContractID); err != nil {
+		respondError(w, http.StatusBadRequest, "contract_id inválido")
+		return
+	}
 
 	if req.FinancialType == "" {
 		respondError(w, http.StatusBadRequest, "financial_type é obrigatório")
+		return
+	}
+	if req.ClientValue == nil {
+		respondError(w, http.StatusBadRequest, "client_value é obrigatório")
+		return
+	}
+	if req.ReceivedValue == nil {
+		respondError(w, http.StatusBadRequest, "received_value é obrigatório")
 		return
 	}
 
@@ -183,9 +195,22 @@ func (s *Server) handleFinancialByID(w http.ResponseWriter, r *http.Request) {
 
 // handleGetFinancial retorna um financeiro específico
 func (s *Server) handleGetFinancial(w http.ResponseWriter, r *http.Request, financialID string) {
+	if err := domain.ValidateUUID(financialID); err != nil {
+		respondError(w, http.StatusNotFound, "Financeiro não encontrado")
+		return
+	}
+
 	financial, err := s.financialStore.GetContractFinancialByID(financialID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "não encontrado") ||
+			strings.Contains(errMsg, "invalid input syntax for type uuid") ||
+			strings.Contains(errMsg, "invalid UUID") ||
+			strings.Contains(errMsg, "SQLSTATE 22P02") {
+			respondError(w, http.StatusNotFound, "Financeiro não encontrado")
+		} else {
+			respondError(w, http.StatusInternalServerError, errMsg)
+		}
 		return
 	}
 
@@ -208,7 +233,19 @@ func (s *Server) handleUpdateFinancial(w http.ResponseWriter, r *http.Request, f
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
-	oldFinancial, _ := s.financialStore.GetContractFinancialByID(financialID)
+	oldFinancial, err := s.financialStore.GetContractFinancialByID(financialID)
+	if err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "não encontrado") ||
+			strings.Contains(errMsg, "invalid input syntax for type uuid") ||
+			strings.Contains(errMsg, "invalid UUID") ||
+			strings.Contains(errMsg, "SQLSTATE 22P02") {
+			respondError(w, http.StatusNotFound, "Financeiro não encontrado")
+		} else {
+			respondError(w, http.StatusInternalServerError, errMsg)
+		}
+		return
+	}
 	if oldFinancial == nil {
 		respondError(w, http.StatusNotFound, "Financeiro não encontrado")
 		return
@@ -292,6 +329,11 @@ func (s *Server) handleUpdateFinancial(w http.ResponseWriter, r *http.Request, f
 
 // handleDeleteFinancial deleta um financeiro
 func (s *Server) handleDeleteFinancial(w http.ResponseWriter, r *http.Request, financialID string) {
+	if err := domain.ValidateUUID(financialID); err != nil {
+		respondError(w, http.StatusNotFound, "Financeiro não encontrado")
+		return
+	}
+
 	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
 
 	// Get old value for audit
@@ -317,8 +359,11 @@ func (s *Server) handleDeleteFinancial(w http.ResponseWriter, r *http.Request, f
 				RequestPath:   getRequestPath(r),
 			})
 		}
-		if strings.Contains(err.Error(), "não encontrado") {
-			respondError(w, http.StatusNotFound, err.Error())
+		if strings.Contains(errMsg, "não encontrado") ||
+			strings.Contains(errMsg, "invalid input syntax for type uuid") ||
+			strings.Contains(errMsg, "invalid UUID") ||
+			strings.Contains(errMsg, "SQLSTATE 22P02") {
+			respondError(w, http.StatusNotFound, "Financeiro não encontrado")
 			return
 		}
 		respondError(w, http.StatusBadRequest, err.Error())
@@ -415,6 +460,16 @@ func (s *Server) handleListInstallments(w http.ResponseWriter, r *http.Request, 
 func (s *Server) handleCreateInstallment(w http.ResponseWriter, r *http.Request, financialID string) {
 	var installment domain.FinancialInstallment
 	if err := json.NewDecoder(r.Body).Decode(&installment); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if installment.InstallmentNumber == 0 &&
+		installment.ClientValue == 0 &&
+		installment.ReceivedValue == 0 &&
+		installment.DueDate == nil &&
+		installment.InstallmentLabel == nil &&
+		installment.Notes == nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}

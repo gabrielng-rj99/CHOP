@@ -718,7 +718,7 @@ func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var response []PermissionResponse
+	response := make([]PermissionResponse, 0, len(permissions))
 	for _, p := range permissions {
 		response = append(response, PermissionResponse{
 			ID:          p.ID,
@@ -728,6 +728,11 @@ func (s *Server) HandleGetRolePermissions(w http.ResponseWriter, r *http.Request
 			Description: p.Description,
 			Category:    p.Category,
 		})
+	}
+
+	if len(response) == 0 {
+		respondJSON(w, http.StatusOK, []PermissionResponse{})
+		return
 	}
 
 	respondJSON(w, http.StatusOK, response)

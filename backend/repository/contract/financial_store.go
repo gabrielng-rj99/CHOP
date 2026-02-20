@@ -62,6 +62,14 @@ func (s *FinancialStore) CreateContractFinancial(financial domain.ContractFinanc
 		}
 	}
 
+	// Validar valores obrigatórios
+	if financial.ClientValue == nil {
+		return "", errors.New("client_value é obrigatório")
+	}
+	if financial.ReceivedValue == nil {
+		return "", errors.New("received_value é obrigatório")
+	}
+
 	// Buscar datas do contrato
 	var contractStartDate, contractEndDate *time.Time
 	contractQuery := `SELECT start_date, end_date FROM contracts WHERE id = $1`

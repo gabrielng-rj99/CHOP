@@ -266,12 +266,23 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUserByUsername(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handleUserByUsername: method=%s, path=%s", r.Method, r.URL.Path)
+	if strings.Contains(r.URL.Path, "%00") {
+		log.Printf("ERROR: Invalid path contains raw null byte encoding: '%s'", r.URL.Path)
+		respondError(w, http.StatusBadRequest, "Invalid username")
+		return
+	}
 	username := getIDFromPath(r, "/api/users/")
 	log.Printf("Extracted username: '%s'", username)
 
 	if username == "" {
 		log.Printf("ERROR: Username is empty after extraction")
 		respondError(w, http.StatusBadRequest, "Username required")
+		return
+	}
+
+	if strings.Contains(username, "%00") {
+		log.Printf("ERROR: Invalid username contains raw null byte encoding: '%s'", username)
+		respondError(w, http.StatusBadRequest, "Invalid username")
 		return
 	}
 
