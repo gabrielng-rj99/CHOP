@@ -23,7 +23,7 @@ Testa todo o fluxo de gerenciamento de permissões de papéis
 
 import pytest
 import requests
-import time
+import uuid
 
 
 # =============================================================================
@@ -31,13 +31,13 @@ import time
 # =============================================================================
 
 @pytest.fixture
-def test_role(http_client, api_url, admin_user):
+def test_role(http_client, api_url, root_user):
     """Cria uma role de teste"""
-    if not admin_user or "token" not in admin_user:
-        pytest.skip("Admin user não disponível")
+    if not root_user or "token" not in root_user:
+        pytest.skip("Root user não disponível")
 
     role_data = {
-        "name": f"test_role_{int(time.time())}",
+        "name": f"test_role_{uuid.uuid4().hex[:8]}",
         "display_name": "Test Role for Permissions",
         "description": "Role de teste para verificar permissões",
         "priority": 50
@@ -46,20 +46,22 @@ def test_role(http_client, api_url, admin_user):
     response = http_client.post(
         f"{api_url}/roles",
         json=role_data,
-        headers={"Authorization": f"Bearer {admin_user['token']}"}
+        headers={"Authorization": f"Bearer {root_user['token']}"}
     )
 
     if response.status_code != 201:
         pytest.skip(f"Não foi possível criar role de teste: {response.status_code}")
 
     role = response.json()
+    if isinstance(role, dict) and "data" in role:
+        role = role["data"]
 
     yield role
 
     # Cleanup
     http_client.delete(
         f"{api_url}/roles/{role['id']}",
-        headers={"Authorization": f"Bearer {admin_user['token']}"}
+        headers={"Authorization": f"Bearer {root_user['token']}"}
     )
 
 
@@ -165,14 +167,14 @@ class TestGetRolePermissions:
         response = http_client.get(f"{api_url}/roles/{test_role['id']}/permissions")
         assert response.status_code == 401
 
-    def test_get_role_permissions_returns_200(self, http_client, api_url, admin_user, test_role, timer):
-        """Admin DEVE poder listar permissões de uma role"""
-        if not admin_user or "token" not in admin_user:
-            pytest.skip("Admin user não disponível")
+    def test_get_role_permissions_returns_200(self, http_client, api_url, root_user, test_role, timer):
+        """Root DEVE poder listar permissões de uma role"""
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
 
         response = http_client.get(
             f"{api_url}/roles/{test_role['id']}/permissions",
-            headers={"Authorization": f"Bearer {admin_user['token']}"}
+            headers={"Authorization": f"Bearer {root_user['token']}"}
         )
         assert response.status_code == 200
 
@@ -180,6 +182,41 @@ class TestGetRolePermissions:
         assert isinstance(data, list), "Response should be a list"
         # Nova role pode ter 0 permissões
         assert len(data) >= 0
+
+    def test_get_role_permissions_admin_forbidden(self, http_client, api_url, admin_user, test_role, timer):
+        """Admin deve respeitar permissão roles:read (200) ou receber 403"""
+        if not admin_user or "token" not in admin_user:
+            pytest.skip("Admin user não disponível")
+
+        perms_response = http_client.get(
+            f"{api_url}/user/permissions",
+            headers={"Authorization": f"Bearer {admin_user['token']}"}
+        )
+        if perms_response.status_code != 200:
+            pytest.skip("Não foi possível obter permissões do admin")
+
+        payload = perms_response.json()
+        permissions = payload.get("permissions") or {}
+        resources = payload.get("resources") or {}
+        has_roles_read = False
+
+        if isinstance(permissions, dict):
+            has_roles_read = bool(permissions.get("roles:read") or permissions.get("roles.read"))
+
+        if not has_roles_read and isinstance(resources, dict):
+            actions = resources.get("roles") or []
+            if isinstance(actions, list) and "read" in actions:
+                has_roles_read = True
+
+        response = http_client.get(
+            f"{api_url}/roles/{test_role['id']}/permissions",
+            headers={"Authorization": f"Bearer {admin_user['token']}"}
+        )
+
+        if has_roles_read:
+            assert response.status_code == 200
+        else:
+            assert response.status_code == 403
 
 
 # =============================================================================
@@ -197,30 +234,29 @@ class TestSetRolePermissions:
         )
         assert response.status_code == 401
 
-    def test_set_permissions_with_empty_array(self, http_client, api_url, admin_user, test_role, timer):
+    def test_set_permissions_with_empty_array(self, http_client, api_url, root_user, test_role, timer):
         """Root DEVE poder remover todas as permissões (array vazio)"""
-        if not admin_user or "token" not in admin_user:
-            pytest.skip("Admin user não disponível")
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
 
         response = http_client.put(
             f"{api_url}/roles/{test_role['id']}/permissions",
             json={"permission_ids": []},
-            headers={"Authorization": f"Bearer {admin_user['token']}"}
+            headers={"Authorization": f"Bearer {root_user['token']}"}
         )
 
-        # Pode ser 200 (sucesso) ou 403 (não é root)
-        assert response.status_code in [200, 403], \
-            f"Expected 200 or 403, got {response.status_code}"
+        assert response.status_code == 200, \
+            f"Expected 200, got {response.status_code}"
 
-    def test_set_permissions_with_valid_permission_ids(self, http_client, api_url, admin_user, test_role, timer):
+    def test_set_permissions_with_valid_permission_ids(self, http_client, api_url, root_user, test_role, timer):
         """Root DEVE poder adicionar permissões válidas"""
-        if not admin_user or "token" not in admin_user:
-            pytest.skip("Admin user não disponível")
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
 
         # Primeiro, obter lista de permissões disponíveis
         perms_response = http_client.get(
             f"{api_url}/permissions",
-            headers={"Authorization": f"Bearer {admin_user['token']}"}
+            headers={"Authorization": f"Bearer {root_user['token']}"}
         )
 
         if perms_response.status_code != 200:
@@ -236,27 +272,25 @@ class TestSetRolePermissions:
         response = http_client.put(
             f"{api_url}/roles/{test_role['id']}/permissions",
             json={"permission_ids": test_perm_ids},
-            headers={"Authorization": f"Bearer {admin_user['token']}"}
+            headers={"Authorization": f"Bearer {root_user['token']}"}
         )
 
-        # Pode ser 200 (root) ou 403 (não root)
-        assert response.status_code in [200, 403], \
-            f"Expected 200 or 403, got {response.status_code}"
+        assert response.status_code == 200, \
+            f"Expected 200, got {response.status_code}"
 
-        if response.status_code == 200:
-            # Verificar que as permissões foram adicionadas
-            get_response = http_client.get(
-                f"{api_url}/roles/{test_role['id']}/permissions",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
-            )
-            assert get_response.status_code == 200
+        # Verificar que as permissões foram adicionadas
+        get_response = http_client.get(
+            f"{api_url}/roles/{test_role['id']}/permissions",
+            headers={"Authorization": f"Bearer {root_user['token']}"}
+        )
+        assert get_response.status_code == 200
 
-            role_perms = get_response.json()
-            role_perm_ids = [p["id"] for p in role_perms]
+        role_perms = get_response.json()
+        role_perm_ids = [p["id"] for p in role_perms]
 
-            for test_id in test_perm_ids:
-                assert test_id in role_perm_ids, \
-                    f"Permission {test_id} should be in role permissions"
+        for test_id in test_perm_ids:
+            assert test_id in role_perm_ids, \
+                f"Permission {test_id} should be in role permissions"
 
     def test_set_permissions_with_invalid_permission_id_returns_400(self, http_client, api_url, admin_user, test_role, timer):
         """PUT com ID de permissão inválido DEVE retornar 400"""
@@ -371,14 +405,14 @@ class TestSetRolePermissions:
 class TestRolePermissionsIntegration:
     """Testes de integração do fluxo completo"""
 
-    def test_full_permission_workflow(self, http_client, api_url, admin_user, timer):
+    def test_full_permission_workflow(self, http_client, api_url, root_user, timer):
         """Teste completo: criar role → adicionar permissões → verificar → remover → verificar"""
-        if not admin_user or "token" not in admin_user:
-            pytest.skip("Admin user não disponível")
+        if not root_user or "token" not in root_user:
+            pytest.skip("Root user não disponível")
 
         # 1. Criar role
         role_data = {
-            "name": f"integration_test_role_{int(time.time())}",
+            "name": f"integration_test_role_{uuid.uuid4().hex[:8]}",
             "display_name": "Integration Test Role",
             "description": "Role para teste de integração",
             "priority": 50
@@ -387,7 +421,7 @@ class TestRolePermissionsIntegration:
         create_response = http_client.post(
             f"{api_url}/roles",
             json=role_data,
-            headers={"Authorization": f"Bearer {admin_user['token']}"}
+            headers={"Authorization": f"Bearer {root_user['token']}"}
         )
 
         if create_response.status_code != 201:
@@ -400,16 +434,16 @@ class TestRolePermissionsIntegration:
             # 2. Verificar que role começa sem permissões
             get_perms_response = http_client.get(
                 f"{api_url}/roles/{role_id}/permissions",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
             assert get_perms_response.status_code == 200
-            initial_perms = get_perms_response.json()
+            initial_perms = get_perms_response.json() or []
             assert len(initial_perms) == 0, "New role should have no permissions"
 
             # 3. Obter lista de todas as permissões
             all_perms_response = http_client.get(
                 f"{api_url}/permissions",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
             assert all_perms_response.status_code == 200
             all_perms = all_perms_response.json()
@@ -422,7 +456,7 @@ class TestRolePermissionsIntegration:
             set_response = http_client.put(
                 f"{api_url}/roles/{role_id}/permissions",
                 json={"permission_ids": test_perm_ids},
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
 
             if set_response.status_code == 403:
@@ -434,7 +468,7 @@ class TestRolePermissionsIntegration:
             # 5. Verificar que permissões foram adicionadas
             verify_response = http_client.get(
                 f"{api_url}/roles/{role_id}/permissions",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
             assert verify_response.status_code == 200
             added_perms = verify_response.json()
@@ -448,14 +482,14 @@ class TestRolePermissionsIntegration:
             remove_response = http_client.put(
                 f"{api_url}/roles/{role_id}/permissions",
                 json={"permission_ids": []},
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
             assert remove_response.status_code == 200
 
             # 7. Verificar que permissões foram removidas
             final_response = http_client.get(
                 f"{api_url}/roles/{role_id}/permissions",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
             assert final_response.status_code == 200
             final_perms = final_response.json()
@@ -465,7 +499,7 @@ class TestRolePermissionsIntegration:
             # Cleanup
             http_client.delete(
                 f"{api_url}/roles/{role_id}",
-                headers={"Authorization": f"Bearer {admin_user['token']}"}
+                headers={"Authorization": f"Bearer {root_user['token']}"}
             )
 
 

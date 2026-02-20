@@ -41,9 +41,10 @@ import pytest
 import requests
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from decimal import Decimal
+from typing import Any, Mapping, cast
 
 
 def catch_connection_errors(func):
@@ -61,6 +62,19 @@ def catch_connection_errors(func):
                 f"Erro: {str(e)[:200]}"
             )
     return wrapper
+
+
+def _extract_data(payload):
+    if isinstance(payload, dict) and "data" in payload:
+        return payload.get("data") or payload
+    return payload
+
+
+def _extract_id(payload):
+    data = _extract_data(payload)
+    if isinstance(data, dict):
+        return data.get("id")
+    return None
 
 
 # =============================================================================
@@ -90,14 +104,42 @@ def test_contract(http_client, api_url, admin_user):
     if client_response.status_code != 201:
         pytest.skip(f"Não foi possível criar cliente de teste: {client_response.status_code}")
 
-    client_id = client_response.json().get("id")
+    client_id = _extract_id(client_response.json())
+
+    # Criar categoria
+    category_response = http_client.post(
+        f"{api_url}/categories",
+        json={"name": f"Test Category Financials {uuid.uuid4().hex[:8]}"},
+        headers={"Authorization": f"Bearer {admin_user['token']}"}
+    )
+
+    if category_response.status_code != 201:
+        pytest.skip(f"Não foi possível criar categoria de teste: {category_response.status_code}")
+
+    category_id = _extract_id(category_response.json())
+
+    # Criar subcategoria
+    subcategory_response = http_client.post(
+        f"{api_url}/subcategories",
+        json={
+            "name": f"Test Subcategory Financials {uuid.uuid4().hex[:8]}",
+            "category_id": category_id
+        },
+        headers={"Authorization": f"Bearer {admin_user['token']}"}
+    )
+
+    if subcategory_response.status_code not in [200, 201]:
+        pytest.skip(f"Não foi possível criar subcategoria de teste: {subcategory_response.status_code}")
+
+    subcategory_id = _extract_id(subcategory_response.json())
 
     # Criar contrato
     contract_data = {
-        "title": f"Test Contract for Financials {uuid.uuid4().hex[:8]}",
+        "model": f"Test Contract for Financials {uuid.uuid4().hex[:8]}",
+        "item_key": f"FIN-{uuid.uuid4().hex[:8]}",
+        "subcategory_id": subcategory_id,
         "client_id": client_id,
-        "status": "ativo",
-        "start_date": datetime.now().isoformat()
+        "start_date": datetime.now(timezone.utc).isoformat()
     }
 
     contract_response = http_client.post(
@@ -109,13 +151,21 @@ def test_contract(http_client, api_url, admin_user):
     if contract_response.status_code != 201:
         pytest.skip(f"Não foi possível criar contrato de teste: {contract_response.status_code}")
 
-    contract = contract_response.json()
+    contract = _extract_data(contract_response.json())
 
     yield contract
 
-    # Cleanup - deletar contrato e cliente
+    # Cleanup - deletar contrato, subcategoria, categoria e cliente
     http_client.delete(
         f"{api_url}/contracts/{contract['id']}",
+        headers={"Authorization": f"Bearer {admin_user['token']}"}
+    )
+    http_client.delete(
+        f"{api_url}/subcategories/{subcategory_id}",
+        headers={"Authorization": f"Bearer {admin_user['token']}"}
+    )
+    http_client.delete(
+        f"{api_url}/categories/{category_id}",
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
     http_client.delete(
@@ -147,13 +197,19 @@ def test_financial(http_client, api_url, admin_user, test_contract):
     if response.status_code != 201:
         pytest.skip(f"Não foi possível criar financeiro de teste: {response.status_code}")
 
-    financial = response.json()
+    payload = response.json()
+    financial = _extract_data(payload) or {}
+    financial_id = _extract_id(payload)
+    if not financial_id:
+        pytest.skip("Resposta de financeiro sem id")
+    financial["id"] = financial_id
+    financial["_test_admin_token"] = admin_user["token"]
 
     yield financial
 
     # Cleanup
     http_client.delete(
-        f"{api_url}/financial/{financial['id']}",
+        f"{api_url}/financial/{financial_id}",
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
 
@@ -173,18 +229,21 @@ def test_financial_with_installments(http_client, api_url, admin_user, test_cont
         "installments": [
             {
                 "installment_number": 1,
-                "amount": 1000.00,
-                "due_date": (datetime.now() + timedelta(days=30)).isoformat()
+                "client_value": 1000.00,
+                "received_value": 1000.00,
+                "due_date": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
             },
             {
                 "installment_number": 2,
-                "amount": 1000.00,
-                "due_date": (datetime.now() + timedelta(days=60)).isoformat()
+                "client_value": 1000.00,
+                "received_value": 1000.00,
+                "due_date": (datetime.now(timezone.utc) + timedelta(days=60)).isoformat()
             },
             {
                 "installment_number": 3,
-                "amount": 1000.00,
-                "due_date": (datetime.now() + timedelta(days=90)).isoformat()
+                "client_value": 1000.00,
+                "received_value": 1000.00,
+                "due_date": (datetime.now(timezone.utc) + timedelta(days=90)).isoformat()
             }
         ]
     }
@@ -198,13 +257,19 @@ def test_financial_with_installments(http_client, api_url, admin_user, test_cont
     if response.status_code != 201:
         pytest.skip(f"Não foi possível criar financeiro com parcelas: {response.status_code}")
 
-    financial = response.json()
+    payload = response.json()
+    financial = _extract_data(payload) or {}
+    financial_id = _extract_id(payload)
+    if not financial_id:
+        pytest.skip("Resposta de financeiro sem id")
+    financial["id"] = financial_id
+    financial["_test_admin_token"] = admin_user["token"]
 
     yield financial
 
     # Cleanup
     http_client.delete(
-        f"{api_url}/financial/{financial['id']}",
+        f"{api_url}/financial/{financial_id}",
         headers={"Authorization": f"Bearer {admin_user['token']}"}
     )
 
@@ -581,7 +646,7 @@ class TestCreateFinancialOverflow:
             {
                 "contract_id": test_contract["id"],
                 "financial_type": "unico",
-                "client_value": float('inf'),  # Infinito
+                "client_value": "inf",  # Infinito (string inválida para JSON numérico)
                 "received_value": 900.00
             },
             {
@@ -690,8 +755,8 @@ class TestGetFinancialByID:
             f"Expected 404 for non-existent financial, got {response.status_code}"
 
     @catch_connection_errors
-    def test_get_financial_with_invalid_uuid_returns_400(self, http_client, api_url, admin_user, timer):
-        """GET /api/financial/{id} com UUID inválido DEVE retornar 400"""
+    def test_get_financial_with_invalid_uuid_returns_404(self, http_client, api_url, admin_user, timer):
+        """GET /api/financial/{id} com UUID inválido DEVE retornar 404"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
 
@@ -708,9 +773,9 @@ class TestGetFinancialByID:
                 f"{api_url}/financial/{invalid_id}",
                 headers={"Authorization": f"Bearer {admin_user['token']}"}
             )
-            # Deve retornar 400 ou 404, mas NÃO 500
-            assert response.status_code != 500, \
-                f"🔴 VALIDATION: Backend crashou com ID '{invalid_id}'"
+            # Deve retornar 404, mas NÃO 500
+            assert response.status_code == 404, \
+                f"Expected 404 for invalid ID '{invalid_id}', got {response.status_code}"
 
 
 # =============================================================================
@@ -800,6 +865,9 @@ class TestFinancialInstallments:
     @catch_connection_errors
     def test_get_installments_without_token_returns_401(self, http_client, api_url, test_financial_with_installments, timer):
         """GET /api/financial/{id}/installments sem token DEVE retornar 401"""
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
+
         response = http_client.get(
             f"{api_url}/financial/{test_financial_with_installments['id']}/installments"
         )
@@ -811,6 +879,8 @@ class TestFinancialInstallments:
         """POST /api/financial/{id}/installments com body vazio DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
 
         response = http_client.post(
             f"{api_url}/financial/{test_financial_with_installments['id']}/installments",
@@ -825,13 +895,16 @@ class TestFinancialInstallments:
         """POST /api/financial/{id}/installments com XSS DEVE sanitizar"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
 
         xss_payload = "<script>alert('XSS')</script>"
         installment_data = {
             "installment_number": 99,
-            "amount": 100.00,
-            "due_date": (datetime.now() + timedelta(days=120)).isoformat(),
-            "description": xss_payload
+            "client_value": 100.00,
+            "received_value": 100.00,
+            "due_date": (datetime.now(timezone.utc) + timedelta(days=120)).isoformat(),
+            "notes": xss_payload
         }
 
         response = http_client.post(
@@ -848,8 +921,8 @@ class TestFinancialInstallments:
             data = response.json()
             installment_id = data.get("id")
 
-            if "description" in data:
-                assert "<script" not in data["description"].lower(), \
+            if "notes" in data:
+                assert "<script" not in data["notes"].lower(), \
                     f"🔴 XSS: Script tag não foi sanitizado em parcela!"
 
             # Cleanup
@@ -870,16 +943,28 @@ class TestMarkInstallmentPaid:
     @catch_connection_errors
     def test_mark_installment_paid_without_token_returns_401(self, http_client, api_url, test_financial_with_installments, timer):
         """PUT /api/financial/{id}/installments/{inst_id}/pay sem token DEVE retornar 401"""
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
+
         # Pegar primeira parcela
+        financial_fixture = cast(Mapping[str, Any], test_financial_with_installments)
+        financial_id = financial_fixture["id"]
         response = http_client.get(
-            f"{api_url}/financial/{test_financial_with_installments['id']}/installments",
-            headers={"Authorization": f"Bearer {test_financial_with_installments.get('_test_admin_token', '')}"}
+            f"{api_url}/financial/{financial_id}/installments",
+            headers={"Authorization": f"Bearer {financial_fixture.get('_test_admin_token', '')}"}
         )
 
         if response.status_code != 200:
             pytest.skip("Não foi possível obter parcelas")
 
-        installments = response.json()
+        payload = response.json()
+        installments = payload.get("data") if isinstance(payload, dict) else payload
+        if not installments:
+            pytest.skip("Nenhuma parcela disponível")
+
+        if not isinstance(installments, list):
+            pytest.skip("Resposta inesperada para parcelas")
+
         if not installments:
             pytest.skip("Nenhuma parcela disponível")
 
@@ -887,7 +972,7 @@ class TestMarkInstallmentPaid:
 
         # Tentar marcar como paga sem token
         response = http_client.put(
-            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{first_installment['id']}/pay"
+            f"{api_url}/financial/{financial_id}/installments/{first_installment['id']}/pay"
         )
         assert response.status_code == 401, \
             f"🔴 FALHA DE SEGURANÇA: Expected 401 without token, got {response.status_code}"
@@ -897,10 +982,14 @@ class TestMarkInstallmentPaid:
         """PUT /api/financial/{id}/installments/{inst_id}/pay com parcela inexistente DEVE retornar 400 ou 404"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
 
         fake_installment_id = str(uuid.uuid4())
+        financial_fixture = cast(Mapping[str, Any], test_financial_with_installments)
+        financial_id = financial_fixture["id"]
         response = http_client.put(
-            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{fake_installment_id}/pay",
+            f"{api_url}/financial/{financial_id}/installments/{fake_installment_id}/pay",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         assert response.status_code in [400, 404], \
@@ -911,10 +1000,14 @@ class TestMarkInstallmentPaid:
         """PUT /api/financial/{id}/installments/{inst_id}/pay com UUID inválido DEVE retornar 400"""
         if not admin_user or "token" not in admin_user:
             pytest.skip("Admin user não disponível")
+        if not test_financial_with_installments or "id" not in test_financial_with_installments:
+            pytest.skip("Financeiro com parcelas não disponível")
 
         invalid_id = "'; DROP TABLE financial_installments; --"
+        financial_fixture = cast(Mapping[str, Any], test_financial_with_installments)
+        financial_id = financial_fixture["id"]
         response = http_client.put(
-            f"{api_url}/financial/{test_financial_with_installments['id']}/installments/{invalid_id}/pay",
+            f"{api_url}/financial/{financial_id}/installments/{invalid_id}/pay",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         # Não deve crashar

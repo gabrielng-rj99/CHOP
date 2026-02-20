@@ -150,7 +150,7 @@ def http_client():
         kwargs["headers"] = headers
         return original_request(method, url, **kwargs)
 
-    session.request = request_with_ip
+    setattr(session, "request", request_with_ip)
     return session
 
 
