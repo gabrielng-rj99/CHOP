@@ -77,7 +77,7 @@ export default function AuditLogs({ token, apiUrl, user, onTokenExpired }) {
     // Load logs whenever URL params change
     useEffect(() => {
         loadLogs();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [searchParams]);
 
     useEffect(() => {

@@ -625,7 +625,8 @@ export const ConfigProvider = ({ children }) => {
         const loadAllSettings = async () => {
             setLoading(true);
             try {
-                await Promise.all([fetchSettings(), fetchUserTheme()]);
+                await fetchSettings();
+                await fetchUserTheme();
             } catch (err) {
                 console.error("Error loading settings:", err);
             } finally {
