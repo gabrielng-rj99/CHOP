@@ -72,7 +72,9 @@ services:
             retries: 10
             start_period: 30s
         networks:
-            - test_network
+            test_network:
+                aliases:
+                    - backend
         restart: unless-stopped
 
     frontend_test:
