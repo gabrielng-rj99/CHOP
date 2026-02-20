@@ -26,6 +26,21 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Fixed test environment (no .env dependency)
+TEST_COMPOSE_FILE="$PROJECT_ROOT/tests/docker-compose.test.yml"
+export API_URL="http://localhost:63000/api"
+export TEST_API_URL="http://localhost:63000/api"
+export DB_HOST="localhost"
+export DB_PORT="65432"
+export DB_USER="test_user"
+export DB_PASSWORD="test_password"
+export DB_NAME="contracts_test"
+
+cleanup_docker() {
+    docker compose -f "$TEST_COMPOSE_FILE" down -v --remove-orphans
+}
+trap cleanup_docker EXIT
+
 # Parse arguments
 VERBOSE=""
 MARKER=""
@@ -116,6 +131,10 @@ echo ""
 
 # Change to project root
 cd "$PROJECT_ROOT"
+
+# Start test containers
+echo -e "${BLUE}🐳 Starting test containers...${NC}"
+docker compose -f "$TEST_COMPOSE_FILE" up -d postgres_test backend_test frontend_test
 
 # Run pytest with configuration
 echo -e "${BLUE}🚀 Running test suite...${NC}"
