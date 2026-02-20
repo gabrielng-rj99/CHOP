@@ -27,7 +27,7 @@ Baseado em:
 """
 
 import pytest
-import requests
+
 import time
 import base64
 import urllib.parse
@@ -173,7 +173,7 @@ class TestCaseSensitivityBypass:
             if response.status_code == 201:
                 # Se aceitar, verificar que normalizou
                 data = response.json()
-                assert "id" in data
+                assert "data" in data and "id" in data["data"]
             else:
                 assert response.status_code == 400
 
