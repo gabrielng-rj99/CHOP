@@ -45,8 +45,8 @@ FRONTEND_PORT=80
 FRONTEND_HTTPS_PORT=443
 
 # Database
-DB_NAME=ehopdb
-DB_USER=ehopuser
+DB_NAME=chopdb
+DB_USER=chopuser
 ```
 
 ### 3. Start
@@ -130,10 +130,10 @@ curl http://localhost:3000/api/initialize/status
 
 ```bash
 # Backup
-pg_dump -h localhost -U ehopuser ehopdb > backup.sql
+pg_dump -h localhost -U chopuser chopdb > backup.sql
 
 # Restore
-psql -h localhost -U ehopuser ehopdb < backup.sql
+psql -h localhost -U chopuser chopdb < backup.sql
 ```
 
 ### Reset Database
@@ -145,8 +145,8 @@ To start fresh:
 ./destroy-monolith.sh
 
 # Option 2: Manual reset
-sudo -u postgres psql -c "DROP DATABASE ehopdb;"
-sudo -u postgres psql -c "CREATE DATABASE ehopdb OWNER ehopuser;"
+sudo -u postgres psql -c "DROP DATABASE chopdb;"
+sudo -u postgres psql -c "CREATE DATABASE chopdb OWNER chopuser;"
 ```
 
 ---
@@ -165,23 +165,23 @@ Configuration is generated at: `app/monolith/nginx-runtime.conf`
 
 ### Custom Domain
 
-To use a custom domain (e.g., `ehop.home.arpa`):
+To use a custom domain (e.g., `chop.home.arpa`):
 
 1. Edit `monolith.ini`:
    ```ini
-   SSL_DOMAIN=ehop.home.arpa
-   CORS_ALLOWED_ORIGINS=https://ehop.home.arpa
+   SSL_DOMAIN=chop.home.arpa
+   CORS_ALLOWED_ORIGINS=https://chop.home.arpa
    ```
 
 2. Add to `/etc/hosts`:
    ```
-   127.0.0.1 ehop.home.arpa
+   127.0.0.1 chop.home.arpa
    ```
 
 3. Import certificate in browser or use mkcert:
    ```bash
    mkcert -install
-   mkcert ehop.home.arpa
+   mkcert chop.home.arpa
    ```
 
 ---
@@ -215,8 +215,8 @@ curl http://localhost/api/initialize/status
 
 ```bash
 # Check backend
-cat ../../app/monolith/pids/ehop-backend.bin.pid
-ps aux | grep ehop-backend
+cat ../../app/monolith/pids/chop-backend.bin.pid
+ps aux | grep chop-backend
 
 # Check Nginx
 sudo systemctl status nginx
@@ -257,7 +257,7 @@ sudo pkill -9 nginx
 tail -50 ../../app/monolith/logs/backend/backend.log
 
 # Check if database is accessible
-psql -h localhost -U ehopuser -d ehopdb
+psql -h localhost -U chopuser -d chopdb
 
 # Verify environment variables
 echo $DB_PASSWORD
@@ -316,7 +316,7 @@ monolith/
 └── README.md                # This file
 
 Generated during runtime:
-├── ../../app/monolith/pids/ehop-backend.bin.pid    # Backend process ID
+├── ../../app/monolith/pids/chop-backend.bin.pid    # Backend process ID
 ├── ../../app/monolith/logs/nginx_access.log        # Nginx access log
 ├── ../../app/monolith/logs/nginx_error.log         # Nginx error log
 └── ../../app/monolith/logs/backend/                # Backend logs
@@ -371,21 +371,21 @@ Before deploying to production:
 
 ```bash
 # Create backup script
-cat > ~/backup-ehop.sh << 'EOF'
+cat > ~/backup-chop.sh << 'EOF'
 #!/bin/bash
-BACKUP_DIR=~/ehop-backups
+BACKUP_DIR=~/chop-backups
 mkdir -p $BACKUP_DIR
 DATE=$(date +%Y%m%d_%H%M%S)
-pg_dump -h localhost -U ehopuser ehopdb > $BACKUP_DIR/ehop_$DATE.sql
+pg_dump -h localhost -U chopuser chopdb > $BACKUP_DIR/chop_$DATE.sql
 # Keep only last 7 days
-find $BACKUP_DIR -name "ehop_*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "chop_*.sql" -mtime +7 -delete
 EOF
 
-chmod +x ~/backup-ehop.sh
+chmod +x ~/backup-chop.sh
 
 # Add to crontab (daily at 2 AM)
 crontab -e
-# Add: 0 2 * * * /home/youruser/backup-ehop.sh
+# Add: 0 2 * * * /home/youruser/backup-chop.sh
 ```
 
 ---

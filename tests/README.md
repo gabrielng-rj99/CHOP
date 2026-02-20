@@ -1,8 +1,8 @@
-# EHOP - Test Suite Documentation
+# CHOP - Test Suite Documentation
 
 ## Overview
 
-This directory contains the complete test suite for the EHOP (Client Hub Open Project). Tests are organized by category and cover:
+This directory contains the complete test suite for the CHOP (Client Hub Open Project). Tests are organized by category and cover:
 
 - **Unit Tests**: Core functionality and business logic
 - **Integration Tests**: Component interactions and API endpoints
@@ -130,9 +130,9 @@ export TEST_ROOT_PASSWORD="THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc"
 # Database connection (for local integration tests)
 export DB_HOST="localhost"
 export DB_PORT="5432"
-export DB_USER="ehopuser"
+export DB_USER="chopuser"
 export DB_PASSWORD="password"
-export DB_NAME="ehopdb_dev"
+export DB_NAME="chopdb_dev"
 ```
 
 ### pytest Markers
@@ -424,4 +424,4 @@ pytest --pdbcls=IPython.terminal.debugger:TerminalPdb tests/test_login_blocking.
 
 ## License
 
-These tests are part of the EHOP project and are licensed under AGPL-3.0.
+These tests are part of the CHOP project and are licensed under AGPL-3.0.

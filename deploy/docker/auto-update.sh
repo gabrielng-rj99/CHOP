@@ -24,7 +24,7 @@ ENV_FILE="${ENV_FILE:-$DOCKER_DIR/.env}"
 
 AUTO_BACKUP="${AUTO_BACKUP:-true}"
 COMPOSE_FILE="${COMPOSE_FILE:-$DOCKER_DIR/docker-compose.yml}"
-PROJECT_NAME="${PROJECT_NAME:-ehop}"
+PROJECT_NAME="${PROJECT_NAME:-chop}"
 
 echo "🚀 Starting auto-update..."
 echo "Docker dir: $DOCKER_DIR"

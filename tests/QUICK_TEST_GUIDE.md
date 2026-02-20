@@ -1,4 +1,4 @@
-# EHOP Login Blocking System - Quick Test Guide
+# CHOP Login Blocking System - Quick Test Guide
 
 ## Overview
 

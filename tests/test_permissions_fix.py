@@ -147,11 +147,11 @@ def main():
             print()
             print("SOLUÇÃO:")
             print("   1. Parar o backend atual:")
-            print("      pkill ehop-backend")
+            print("      pkill chop-backend")
             print()
             print("   2. Iniciar a versão compilada nova:")
             print("      cd Client-Hub-Open-Project/backend")
-            print("      ./ehop-backend-new")
+            print("      ./chop-backend-new")
             print()
             return 1
 

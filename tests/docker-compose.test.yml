@@ -3,7 +3,7 @@ version: "3.8"
 services:
     postgres_test:
         image: postgres:16-alpine
-        container_name: ehop_test_db
+        container_name: chop_test_db
         environment:
             POSTGRES_USER: test_user
             POSTGRES_PASSWORD: test_password
@@ -27,7 +27,7 @@ services:
             dockerfile: deploy/docker/Dockerfile.backend
             args:
                 GO_VERSION: "1.25"
-        container_name: ehop_test_backend
+        container_name: chop_test_backend
         environment:
             DB_HOST: postgres_test
             DB_PORT: 5432
@@ -82,7 +82,7 @@ services:
             args:
                 VITE_API_URL: http://localhost:63000
                 NODE_VERSION: "24"
-        container_name: ehop_test_frontend
+        container_name: chop_test_frontend
         environment:
             VITE_API_URL: http://localhost:63000
             SSL_DOMAIN: ""
@@ -98,7 +98,7 @@ services:
     # Test runner service (optional - can be used to run tests inside container)
     test_runner:
         image: python:3.11-slim
-        container_name: ehop_test_runner
+        container_name: chop_test_runner
         working_dir: /tests
         volumes:
             - .:/tests
@@ -127,9 +127,9 @@ services:
 
 volumes:
     postgres_test_data:
-        name: ehop_test_postgres_data
+        name: chop_test_postgres_data
 
 networks:
     test_network:
-        name: ehop_test_network
+        name: chop_test_network
         driver: bridge

@@ -25,8 +25,8 @@ export DB_PASSWORD=postgres
 docker-compose up -d postgres
 
 # Build and run
-go build -o ehop-backend main.go
-./ehop-backend
+go build -o chop-backend main.go
+./chop-backend
 
 # Or run directly
 go run main.go
@@ -97,7 +97,7 @@ DB_PASSWORD=<database-password>       # Required in production
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
-DB_NAME=ehopdb_dev
+DB_NAME=chopdb_dev
 PORT=8080
 ```
 
@@ -105,7 +105,7 @@ PORT=8080
 
 ### Build
 ```bash
-go build -o ehop-backend main.go
+go build -o chop-backend main.go
 ```
 
 ### Run Tests

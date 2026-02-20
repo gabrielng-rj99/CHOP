@@ -120,8 +120,8 @@ echo ""
 # Set defaults if not in config
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_PORT="${DB_PORT:-5432}"
-export DB_USER="${DB_USER:-ehopuser}"
-export DB_NAME="${DB_NAME:-ehopdb}"
+export DB_USER="${DB_USER:-chopuser}"
+export DB_NAME="${DB_NAME:-chopdb}"
 export API_PORT="${API_PORT:-3000}"
 export FRONTEND_PORT="${FRONTEND_PORT:-80}"
 export FRONTEND_HTTPS_PORT="${FRONTEND_HTTPS_PORT:-443}"
@@ -179,7 +179,7 @@ echo ""
 echo "🔧 Building Backend..."
 cd "$PROJECT_ROOT/backend"
 mkdir -p "$RUNTIME_DIR/bin"
-if go build -o "$RUNTIME_DIR/bin/ehop-backend.bin" ./main.go; then
+if go build -o "$RUNTIME_DIR/bin/chop-backend.bin" ./main.go; then
     echo -e "${GREEN}✓ Backend built successfully${NC}"
 else
     echo -e "${RED}❌ Backend build failed!${NC}"
@@ -188,7 +188,7 @@ fi
 
 # Run Migrations
 echo "🧭 Running database migrations..."
-MIGRATE_ONLY=true AUTO_MIGRATIONS=true "$RUNTIME_DIR/bin/ehop-backend.bin"
+MIGRATE_ONLY=true AUTO_MIGRATIONS=true "$RUNTIME_DIR/bin/chop-backend.bin"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Database migrations applied${NC}"
 else
@@ -371,7 +371,7 @@ LOG_DIR="$RUNTIME_DIR/logs/backend"
 mkdir -p "$LOG_DIR" "$RUNTIME_DIR/pids"
 
 # Create a PID file location
-PID_FILE="$RUNTIME_DIR/pids/ehop-backend.bin.pid"
+PID_FILE="$RUNTIME_DIR/pids/chop-backend.bin.pid"
 
 # Export all necessary environment variables for the backend
 export DB_HOST="$DB_HOST"
@@ -384,7 +384,7 @@ export API_PORT="$API_PORT"
 export LOG_FILE="$LOG_DIR/backend.log"
 
 # Start backend in background
-nohup "$RUNTIME_DIR/bin/ehop-backend.bin" > "$LOG_DIR/backend.log" 2>&1 &
+nohup "$RUNTIME_DIR/bin/chop-backend.bin" > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > "$PID_FILE"
 

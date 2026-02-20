@@ -33,7 +33,7 @@ LOGS_DIR := $(RUNTIME_DIR)/logs
 CONFIG_FILE := $(SCRIPT_DIR)/dev.ini
 
 # Binary and log file names (standardized with .bin and .log extensions)
-BACKEND_BINARY := ehop-backend-dev.bin
+BACKEND_BINARY := chop-backend-dev.bin
 BACKEND_PATH := $(RUNTIME_DIR)/bin/$(BACKEND_BINARY)
 BACKEND_LOG_FILE := $(RUNTIME_DIR)/logs/backend.log
 FRONTEND_LOG_FILE := $(RUNTIME_DIR)/logs/frontend.log
@@ -78,8 +78,8 @@ ifneq (,$(wildcard $(CONFIG_FILE)))
     VITE_PORT := $(shell grep -E "^VITE_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "45173")
     DB_PORT := $(shell grep -E "^DB_PORT=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "5432")
     DB_HOST := $(shell grep -E "^DB_HOST=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "localhost")
-    DB_USER := $(shell grep -E "^DB_USER=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "ehopuser")
-    DB_NAME := $(shell grep -E "^DB_NAME=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "ehopdb_dev")
+    DB_USER := $(shell grep -E "^DB_USER=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "chopuser")
+    DB_NAME := $(shell grep -E "^DB_NAME=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "chopdb_dev")
     DB_PASSWORD := $(shell grep -E "^DB_PASSWORD=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 || echo "")
     JWT_SECRET := $(shell grep -E "^JWT_SECRET=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 || echo "")
 endif

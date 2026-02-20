@@ -112,7 +112,7 @@ def main():
         print("   The fix is working correctly!")
     else:
         print("❌ FAILED! Role ID validation still rejecting hardcoded UUIDs")
-        print("   Make sure to restart backend with ehop-backend-fixed")
+        print("   Make sure to restart backend with chop-backend-fixed")
     print("=" * 60)
 
     return success

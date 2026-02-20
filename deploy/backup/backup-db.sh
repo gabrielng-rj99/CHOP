@@ -63,8 +63,8 @@ COMPRESS="${COMPRESS:-true}"
 
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
-DB_USER="${DB_USER:-ehopuser}"
-DB_NAME="${DB_NAME:-ehopdb}"
+DB_USER="${DB_USER:-chopuser}"
+DB_NAME="${DB_NAME:-chopdb}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 
 mkdir -p "$BACKUP_DIR"
@@ -74,7 +74,7 @@ EXT="sql"
 if [[ "$COMPRESS" == "true" ]]; then
   EXT="sql.gz"
 fi
-OUT_FILE="$BACKUP_DIR/ehop_${TIMESTAMP}.${EXT}"
+OUT_FILE="$BACKUP_DIR/chop_${TIMESTAMP}.${EXT}"
 
 echo "Starting backup..."
 echo "Database: ${DB_NAME}"
@@ -95,21 +95,21 @@ echo ""
 
 # Retention by days
 echo "Applying retention: keep last ${DAYS_KEEP} days"
-find "$BACKUP_DIR" -type f -name 'ehop_*.sql*' -mtime +"$DAYS_KEEP" -print -delete || true
+find "$BACKUP_DIR" -type f -name 'chop_*.sql*' -mtime +"$DAYS_KEEP" -print -delete || true
 
 # Retention by total size
 total_bytes() {
   if command -v du >/dev/null 2>&1; then
     du -sb "$BACKUP_DIR" 2>/dev/null | cut -f1 || echo 0
   else
-    find "$BACKUP_DIR" -type f -name 'ehop_*.sql*' -printf '%s\n' | awk '{sum+=$1} END{print sum+0}'
+    find "$BACKUP_DIR" -type f -name 'chop_*.sql*' -printf '%s\n' | awk '{sum+=$1} END{print sum+0}'
   fi
 }
 
 echo "Applying retention: max total size ${MAX_TOTAL_BYTES} bytes"
 current_size=$(total_bytes)
 while [[ "$current_size" -gt "$MAX_TOTAL_BYTES" ]]; do
-  oldest_file=$(ls -1t "$BACKUP_DIR"/ehop_*.sql* 2>/dev/null | tail -n1 || true)
+  oldest_file=$(ls -1t "$BACKUP_DIR"/chop_*.sql* 2>/dev/null | tail -n1 || true)
   if [[ -z "$oldest_file" ]]; then
     break
   fi

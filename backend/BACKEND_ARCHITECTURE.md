@@ -234,7 +234,7 @@ host = localhost
 [database]
 host = localhost
 port = 5432
-name = ehopdb_dev
+name = chopdb_dev
 user = postgres
 ```
 

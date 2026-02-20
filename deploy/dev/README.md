@@ -5,7 +5,7 @@ Fast development environment with hot reload for Client Hub.
 ## 📋 Overview
 
 **Development mode** runs:
-- ✅ Backend API (compiled Go binary: `app/dev/bin/ehop-backend-dev.bin`)
+- ✅ Backend API (compiled Go binary: `app/dev/bin/chop-backend-dev.bin`)
 - ✅ Frontend (Vite dev server; no `dist/` output)
 - ✅ Logs: `app/dev/logs/backend.log`, `app/dev/logs/frontend.log`
 - ✅ PID files: `app/dev/pids/backend.pid`, `app/dev/pids/frontend.pid`
@@ -165,7 +165,7 @@ Options:
 
 ### Separate Development Database
 
-Development mode uses `ehopdb_dev` (separate from production `ehopdb`).
+Development mode uses `chopdb_dev` (separate from production `chopdb`).
 
 This means:
 - ✅ You can test destructive operations safely
@@ -211,8 +211,8 @@ DB_PORT=5432
 
 # Database
 DB_HOST=localhost
-DB_NAME=ehopdb_dev
-DB_USER=ehopuser
+DB_NAME=chopdb_dev
+DB_USER=chopuser
 DB_PASSWORD=your_password
 
 # Security

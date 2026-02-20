@@ -26,7 +26,7 @@ BACKUP_DIR := backups
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 
 # Compose project name
-COMPOSE_PROJECT := ehop
+COMPOSE_PROJECT := chop
 
 # Service names
 SERVICES := backend frontend postgres
@@ -175,10 +175,10 @@ status: ## Show container and image status
 	@$(DOCKER_CMD) ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 	@echo ""
 	@echo "$(CYAN)Images:$(NC)"
-	@docker images | grep -E "ehop|IMAGE" || echo "  No EHOP images built yet"
+	@docker images | grep -E "chop|IMAGE" || echo "  No CHOP images built yet"
 	@echo ""
 	@echo "$(CYAN)Volumes:$(NC)"
-	@docker volume ls | grep -E "ehop|DRIVER" || echo "  No EHOP volumes"
+	@docker volume ls | grep -E "chop|DRIVER" || echo "  No CHOP volumes"
 	@echo ""
 
 ps: ## Show running containers (short form)
@@ -271,7 +271,7 @@ build: env-check validate buildx-check volume-perms-check ## Build Docker images
 	@echo ""
 	@echo "$(GREEN)✅ Build complete$(NC)"
 	@echo ""
-	@docker images | grep -E "ehop|IMAGE"
+	@docker images | grep -E "chop|IMAGE"
 	@echo ""
 
 pull: ## Pull latest base images
@@ -398,7 +398,7 @@ shell-frontend: ## Open shell in frontend container
 shell-db: ## Open PostgreSQL shell
 	@echo "$(BLUE)🐚 Opening PostgreSQL shell...$(NC)"
 	@echo ""
-	@$(DOCKER_CMD) exec -it postgres psql -U postgres -d ehopdb
+	@$(DOCKER_CMD) exec -it postgres psql -U postgres -d chopdb
 
 # ==============================================================================
 # BACKUP & RECOVERY
@@ -408,9 +408,9 @@ backup: ## Backup database volume
 	@echo "$(BLUE)💾 Backing up database...$(NC)"
 	@echo ""
 	@mkdir -p $(BACKUP_DIR)
-	@BACKUP_FILE="$(BACKUP_DIR)/ehop-db-$(TIMESTAMP).sql.gz"; \
+	@BACKUP_FILE="$(BACKUP_DIR)/chop-db-$(TIMESTAMP).sql.gz"; \
 	echo "$(YELLOW)Dumping database to $$BACKUP_FILE...$(NC)"; \
-	$(DOCKER_CMD) exec postgres pg_dump -U postgres ehopdb | gzip > $$BACKUP_FILE && \
+	$(DOCKER_CMD) exec postgres pg_dump -U postgres chopdb | gzip > $$BACKUP_FILE && \
 	echo "$(GREEN)✓ Backup created: $$BACKUP_FILE$(NC)" || \
 	echo "$(RED)❌ Backup failed$(NC)"
 	@echo ""
@@ -439,7 +439,7 @@ restore: ## Restore database from backup
 		BACKUP_FILE=$$(ls -1t $(BACKUP_DIR)/*.sql.gz | sed -n "$${num}p"); \
 		if [ -n "$$BACKUP_FILE" ]; then \
 			echo "$(YELLOW)Restoring from: $$BACKUP_FILE$(NC)"; \
-			gunzip -c $$BACKUP_FILE | $(DOCKER_CMD) exec -T postgres psql -U postgres ehopdb && \
+			gunzip -c $$BACKUP_FILE | $(DOCKER_CMD) exec -T postgres psql -U postgres chopdb && \
 			echo "$(GREEN)✅ Restore complete$(NC)"; \
 		else \
 			echo "$(RED)Invalid selection$(NC)"; \

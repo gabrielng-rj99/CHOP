@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# EHOP - Test Runner
+# CHOP - Test Runner
 #
 # Executes all tests with proper configuration and reporting
 # Usage: ./tests/run_all_tests.sh [OPTIONS]
@@ -35,7 +35,7 @@ HTML_REPORT=""
 
 show_help() {
     cat << EOF
-EHOP Test Runner - Run all tests with proper configuration
+CHOP Test Runner - Run all tests with proper configuration
 
 USAGE:
     ./run_all_tests.sh [OPTIONS]
@@ -94,7 +94,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║${NC}         EHOP - Comprehensive Test Suite Runner            ${BLUE}║${NC}"
+echo -e "${BLUE}║${NC}         CHOP - Comprehensive Test Suite Runner            ${BLUE}║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 

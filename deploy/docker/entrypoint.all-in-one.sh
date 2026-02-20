@@ -21,8 +21,8 @@ log() {
 # Defaults
 : "${DB_HOST:=127.0.0.1}"
 : "${DB_PORT:=5432}"
-: "${DB_NAME:=ehopdb}"
-: "${DB_USER:=ehopuser}"
+: "${DB_NAME:=chopdb}"
+: "${DB_USER:=chopuser}"
 : "${DB_PASSWORD:=}"
 : "${DB_SSLMODE:=disable}"
 : "${API_PORT:=3000}"
@@ -157,7 +157,7 @@ start_backend() {
   su-exec appuser "$BACKEND_BIN" &
   mkdir -p /app/pids
   chown -R appuser:appuser /app/pids
-  echo $! > /app/pids/ehop-backend.pid
+  echo $! > /app/pids/chop-backend.pid
 }
 
 start_nginx() {
@@ -171,8 +171,8 @@ start_nginx() {
 
 stop_all() {
   log "Shutting down..."
-  if [ -f /app/pids/ehop-backend.pid ]; then
-    kill "$(cat /app/pids/ehop-backend.pid)" 2>/dev/null || true
+  if [ -f /app/pids/chop-backend.pid ]; then
+    kill "$(cat /app/pids/chop-backend.pid)" 2>/dev/null || true
   fi
   nginx -s quit 2>/dev/null || true
   run_as_postgres "pg_ctl -D '$POSTGRES_DATA_DIR' stop -m fast" || true
@@ -192,7 +192,7 @@ log "All services started."
 
 # Wait indefinitely while services run
 while true; do
-  if ! kill -0 "$(cat /app/pids/ehop-backend.pid 2>/dev/null || echo 0)" 2>/dev/null; then
+  if ! kill -0 "$(cat /app/pids/chop-backend.pid 2>/dev/null || echo 0)" 2>/dev/null; then
     log "Backend process stopped. Exiting."
     stop_all
     exit 1

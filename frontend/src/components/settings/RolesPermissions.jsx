@@ -452,7 +452,7 @@ export default function RolesPermissions({ token, apiUrl }) {
                             <strong>Para corrigir, execute no terminal:</strong>
                         </p>
                         <code>
-                            cd backend/database/schema && psql -d ehopdb_dev -f
+                            cd backend/database/schema && psql -d chopdb_dev -f
                             init.sql
                         </code>
                     </div>

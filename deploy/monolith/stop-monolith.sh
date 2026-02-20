@@ -18,7 +18,7 @@ echo -e "${BLUE}======================================${NC}"
 echo ""
 
 # PID file location
-PID_FILE="$(cd "$(dirname "$0")/../.." && pwd)/app/monolith/pids/ehop-backend.bin.pid"
+PID_FILE="$(cd "$(dirname "$0")/../.." && pwd)/app/monolith/pids/chop-backend.bin.pid"
 
 # Stop backend
 echo "Stopping backend..."
@@ -39,7 +39,7 @@ if [ -f "$PID_FILE" ]; then
     fi
 else
     # Fallback: try to kill by process name
-    if pkill -f "ehop-backend.bin" 2>/dev/null; then
+    if pkill -f "chop-backend.bin" 2>/dev/null; then
         echo -e "${GREEN}✓ Backend stopped (by process name)${NC}"
     else
         echo -e "${YELLOW}⚠️  Backend was not running${NC}"

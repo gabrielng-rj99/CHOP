@@ -55,8 +55,8 @@ load_ini_file "$INI_FILE"
 
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_PORT="${DB_PORT:-5432}"
-export DB_USER="${DB_USER:-ehopuser}"
-export DB_NAME="${DB_NAME:-ehopdb}"
+export DB_USER="${DB_USER:-chopuser}"
+export DB_NAME="${DB_NAME:-chopdb}"
 
 echo "🔍 Checking PostgreSQL..."
 if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1; then

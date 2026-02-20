@@ -1,4 +1,4 @@
-# EHOP - Backend Makefile
+# CHOP - Backend Makefile
 # Located in: backend/Makefile
 # Usage: make -f backend/Makefile <target>
 # Or: cd backend && make <target>
@@ -13,12 +13,12 @@ BLUE := \033[0;34m
 NC := \033[0m
 
 OUTPUT_DIR := ../app/dev/bin
-BINARY_NAME := $(OUTPUT_DIR)/ehop-backend-dev.bin
+BINARY_NAME := $(OUTPUT_DIR)/chop-backend-dev.bin
 MAIN_PATH := ./main.go
 
 help: ## Show backend build commands
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║$(NC)    EHOP - Backend Build & Development Tasks             $(BLUE)║$(NC)"
+	@echo "$(BLUE)║$(NC)    CHOP - Backend Build & Development Tasks             $(BLUE)║$(NC)"
 	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Build Commands:$(NC)"

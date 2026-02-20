@@ -1,7 +1,7 @@
 services:
     postgres:
         image: postgres:16-alpine
-        container_name: ehop_db
+        container_name: chop_db
         environment:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -19,7 +19,7 @@ services:
             dockerfile: deploy/docker/Dockerfile.backend
             args:
                 GO_VERSION: "1.25"
-        container_name: ehop_server
+        container_name: chop_server
         env_file: .env
         environment:
             DB_HOST: ${DB_HOST:-postgres}
@@ -41,7 +41,7 @@ services:
             args:
                 VITE_API_URL: ${VITE_API_URL:-}
                 NODE_VERSION: "24"
-        container_name: ehop_nginx
+        container_name: chop_nginx
         env_file: .env
         environment:
             SSL_DOMAIN: ${SSL_DOMAIN}
@@ -59,7 +59,7 @@ services:
             dockerfile: deploy/docker/Dockerfile.backend
             args:
                 GO_VERSION: "1.25"
-        container_name: ehop_migrator
+        container_name: chop_migrator
         env_file: .env
         environment:
             DB_HOST: ${DB_HOST:-postgres}
@@ -74,7 +74,7 @@ services:
 
     backup:
         image: postgres:16-alpine
-        container_name: ehop_backup
+        container_name: chop_backup
         env_file: .env
         environment:
             DB_HOST: ${DB_HOST:-postgres}
@@ -102,4 +102,4 @@ services:
 
 networks:
     app_network:
-        name: ehop_network
+        name: chop_network

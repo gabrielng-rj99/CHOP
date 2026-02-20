@@ -10,7 +10,7 @@
 #   - Complete single-unit installation of the entire application
 #   - Installs: backend binary, frontend assets, database, systemd services
 #   - Production-ready setup with proper permissions and configuration
-#   - Default installation path: /opt/ehop
+#   - Default installation path: /opt/chop
 #
 # Environment versions (configured in versions.ini):
 #   - Go:         >= 1.21
@@ -124,10 +124,10 @@ info: ## Show monolith deployment information
 	@echo "    • Configuration and secrets"
 	@echo ""
 	@echo "$(BOLD)Default Paths:$(NC)"
-	@echo "  Installation:  /opt/ehop"
-	@echo "  Logs:          /var/log/ehop"
-	@echo "  Data:          /var/lib/ehop"
-	@echo "  Config:        /etc/ehop"
+	@echo "  Installation:  /opt/chop"
+	@echo "  Logs:          /var/log/chop"
+	@echo "  Data:          /var/lib/chop"
+	@echo "  Config:        /etc/chop"
 	@echo ""
 	@echo "$(BOLD)Services:$(NC)"
 	@echo "  Frontend:  http://localhost:80"
@@ -154,7 +154,7 @@ status: ## Show installation and service status
 	@echo "$(CYAN)Installation:$(NC)"
 	@if [ -f "$(CONFIG_FILE)" ]; then \
 		echo "  $(GREEN)✓ Configuration exists$(NC)"; \
-		INSTALL_PATH=$$(grep "^INSTALL_PATH=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "/opt/ehop"); \
+		INSTALL_PATH=$$(grep "^INSTALL_PATH=" $(CONFIG_FILE) 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || echo "/opt/chop"); \
 		echo "  Path: $$INSTALL_PATH"; \
 		if [ -d "$$INSTALL_PATH" ]; then \
 			echo "  $(GREEN)✓ Installation directory found$(NC)"; \
@@ -167,8 +167,8 @@ status: ## Show installation and service status
 	fi
 	@echo ""
 	@echo "$(CYAN)Services:$(NC)"
-	@systemctl is-active --quiet ehop-backend && echo "  $(GREEN)● Backend running$(NC)" || echo "  $(RED)○ Backend stopped$(NC)"
-	@systemctl is-active --quiet ehop-frontend && echo "  $(GREEN)● Frontend running$(NC)" || echo "  $(RED)○ Frontend stopped$(NC)"
+	@systemctl is-active --quiet chop-backend && echo "  $(GREEN)● Backend running$(NC)" || echo "  $(RED)○ Backend stopped$(NC)"
+	@systemctl is-active --quiet chop-frontend && echo "  $(GREEN)● Frontend running$(NC)" || echo "  $(RED)○ Frontend stopped$(NC)"
 	@systemctl is-active --quiet postgresql && echo "  $(GREEN)● PostgreSQL running$(NC)" || echo "  $(RED)○ PostgreSQL stopped$(NC)"
 	@echo ""
 	@echo "$(CYAN)Endpoints:$(NC)"
@@ -262,9 +262,9 @@ start: ## Start all monolith services
 		exit 1; \
 	fi
 	@echo "$(CYAN)Starting backend...$(NC)"
-	@sudo systemctl start ehop-backend && echo "  $(GREEN)✓ Backend started$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have started$(NC)"
+	@sudo systemctl start chop-backend && echo "  $(GREEN)✓ Backend started$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have started$(NC)"
 	@echo "$(CYAN)Starting frontend...$(NC)"
-	@sudo systemctl start ehop-frontend && echo "  $(GREEN)✓ Frontend started$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have started$(NC)"
+	@sudo systemctl start chop-frontend && echo "  $(GREEN)✓ Frontend started$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have started$(NC)"
 	@echo ""
 	@echo "$(GREEN)✅ Services started$(NC)"
 	@echo ""
@@ -277,9 +277,9 @@ stop: ## Stop all monolith services
 	@echo "$(BLUE)🛑 Stopping monolith services...$(NC)"
 	@echo ""
 	@echo "$(CYAN)Stopping backend...$(NC)"
-	@sudo systemctl stop ehop-backend && echo "  $(GREEN)✓ Backend stopped$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have been running$(NC)"
+	@sudo systemctl stop chop-backend && echo "  $(GREEN)✓ Backend stopped$(NC)" || echo "  $(YELLOW)⚠️  Backend may not have been running$(NC)"
 	@echo "$(CYAN)Stopping frontend...$(NC)"
-	@sudo systemctl stop ehop-frontend && echo "  $(GREEN)✓ Frontend stopped$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have been running$(NC)"
+	@sudo systemctl stop chop-frontend && echo "  $(GREEN)✓ Frontend stopped$(NC)" || echo "  $(YELLOW)⚠️  Frontend may not have been running$(NC)"
 	@echo ""
 	@echo "$(GREEN)✅ All services stopped$(NC)"
 	@echo ""
@@ -316,17 +316,17 @@ health-check: ## Check health of all services
 logs: ## Show all service logs (live)
 	@echo "$(BLUE)📋 Monolith logs (Ctrl+C to exit)$(NC)"
 	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
-	@sudo journalctl -u ehop-backend -u ehop-frontend -f
+	@sudo journalctl -u chop-backend -u chop-frontend -f
 
 logs-backend: ## Show backend logs (live)
 	@echo "$(BLUE)📋 Backend logs (Ctrl+C to exit)$(NC)"
 	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
-	@sudo journalctl -u ehop-backend -f
+	@sudo journalctl -u chop-backend -f
 
 logs-frontend: ## Show frontend logs (live)
 	@echo "$(BLUE)📋 Frontend logs (Ctrl+C to exit)$(NC)"
 	@echo "$(CYAN)────────────────────────────────────────────────────────────────$(NC)"
-	@sudo journalctl -u ehop-frontend -f
+	@sudo journalctl -u chop-frontend -f
 
 # ==============================================================================
 # BACKUP & RECOVERY
@@ -379,11 +379,11 @@ restore-db: ## Restore database from snapshot
 	@echo "$(BLUE)📥 Restoring database from snapshot...$(NC)"
 	@echo ""
 	@echo "$(CYAN)Available database backups:$(NC)"
-	@if [ -d "$(BACKUP_DB_DIR)" ] && [ -n "$$(ls $(BACKUP_DB_DIR)/ehop_*.sql* 2>/dev/null)" ]; then \
-		ls -1t $(BACKUP_DB_DIR)/ehop_*.sql* | head -10 | nl; \
+	@if [ -d "$(BACKUP_DB_DIR)" ] && [ -n "$$(ls $(BACKUP_DB_DIR)/chop_*.sql* 2>/dev/null)" ]; then \
+		ls -1t $(BACKUP_DB_DIR)/chop_*.sql* | head -10 | nl; \
 		echo ""; \
 		read -p "Select backup number to restore: " num; \
-		BACKUP_FILE=$$(ls -1t $(BACKUP_DB_DIR)/ehop_*.sql* | sed -n "$${num}p"); \
+		BACKUP_FILE=$$(ls -1t $(BACKUP_DB_DIR)/chop_*.sql* | sed -n "$${num}p"); \
 		if [ -n "$$BACKUP_FILE" ]; then \
 			echo "$(YELLOW)Restoring from: $$BACKUP_FILE$(NC)"; \
 			set -a; . $(CONFIG_FILE); set +a; \

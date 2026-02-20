@@ -129,7 +129,7 @@ This section reflects the actual build outputs, runtime files, and storage paths
 
 ### ✅ Development (`deploy/dev`)
 **Backend binary**
-- `app/dev/bin/ehop-backend-dev.bin` (built by `deploy/dev/Makefile`)
+- `app/dev/bin/chop-backend-dev.bin` (built by `deploy/dev/Makefile`)
 
 **Frontend**
 - Vite dev server (no static build output by default)
@@ -148,7 +148,7 @@ This section reflects the actual build outputs, runtime files, and storage paths
 
 ### ✅ Monolith (`deploy/monolith`)
 **Backend binary**
-- `app/monolith/bin/ehop-backend.bin` (built by `deploy/monolith/start-monolith.sh`)
+- `app/monolith/bin/chop-backend.bin` (built by `deploy/monolith/start-monolith.sh`)
 
 **Frontend build**
 - `app/monolith/frontend/` (Vite build output)
@@ -164,11 +164,11 @@ This section reflects the actual build outputs, runtime files, and storage paths
 - Nginx: `app/monolith/logs/nginx_access.log`, `app/monolith/logs/nginx_error.log`
 
 **PIDs**
-- `app/monolith/pids/ehop-backend.bin.pid`
+- `app/monolith/pids/chop-backend.bin.pid`
 
 **Backups**
 - Config backup: `app/monolith/backups/monolith-<timestamp>.tar.gz`
-- DB snapshots: `app/monolith/backups/db/ehop_<timestamp>.sql(.gz)` (via `deploy/backup/backup-db.sh`)
+- DB snapshots: `app/monolith/backups/db/chop_<timestamp>.sql(.gz)` (via `deploy/backup/backup-db.sh`)
 
 **Database**
 - Native PostgreSQL on host (`DB_HOST`/`DB_PORT` from `deploy/monolith/monolith.ini`)
@@ -213,7 +213,7 @@ This section reflects the actual build outputs, runtime files, and storage paths
 
 ### ✅ Test Stack (`tests/docker-compose.test.yml`)
 **Postgres volume**
-- Named volume: `ehop_test_postgres_data` → `/var/lib/postgresql/data`
+- Named volume: `chop_test_postgres_data` → `/var/lib/postgresql/data`
 
 **Backend logs (host)**
 - `app/tests/logs/backend` → `/app/logs` (mounted)
@@ -345,8 +345,8 @@ Edit `monolith.ini`:
 
 ```ini
 # Database
-DB_USER=ehopuser
-DB_NAME=ehopdb
+DB_USER=chopuser
+DB_NAME=chopdb
 DB_PASSWORD=          # Leave empty to auto-generate
 
 # Backend
@@ -424,9 +424,9 @@ Same as Monolith (Go, Node, PostgreSQL).
 Edit `dev.ini`:
 
 ```ini
-# Database (uses separate DB: ehopdb_dev)
-DB_USER=ehopuser
-DB_NAME=ehopdb_dev
+# Database (uses separate DB: chopdb_dev)
+DB_USER=chopuser
+DB_NAME=chopdb_dev
 DB_PASSWORD=          # Leave empty to auto-generate
 
 # Backend
@@ -454,7 +454,7 @@ make stop
 1. ✅ Loads `dev.ini`
 2. ✅ Generates passwords if empty (saves to .ini)
 3. ✅ Checks PostgreSQL
-4. ✅ Creates database and user (separate: `ehopdb_dev`)
+4. ✅ Creates database and user (separate: `chopdb_dev`)
 5. ✅ Compiles backend (Go)
 6. ✅ Starts backend API
 7. ✅ Starts Vite dev server (hot reload)
@@ -488,8 +488,8 @@ state=Sao Paulo
 locality=Sao Paulo
 organization=Client Hub
 organizational_unit=IT
-common_name=ehop.home.arpa
-email=admin@ehop.home.arpa
+common_name=chop.home.arpa
+email=admin@chop.home.arpa
 days_valid=365
 key_size=2048
 ```
@@ -502,27 +502,27 @@ key_size=2048
 
 ### Custom Domain
 
-If using a custom domain (e.g., `ehop.home.arpa`):
+If using a custom domain (e.g., `chop.home.arpa`):
 
 1. Configure in .ini file:
 
    ```ini
-   SSL_DOMAIN=ehop.home.arpa
-   CORS_ALLOWED_ORIGINS=https://ehop.home.arpa
+   SSL_DOMAIN=chop.home.arpa
+   CORS_ALLOWED_ORIGINS=https://chop.home.arpa
    VITE_API_URL=/api
    ```
 
 2. Add to `/etc/hosts`:
 
    ```bash
-   127.0.0.1 ehop.home.arpa
+   127.0.0.1 chop.home.arpa
    ```
 
 3. Import certificate in browser or use mkcert:
 
    ```bash
    mkcert -install
-   mkcert ehop.home.arpa localhost 127.0.0.1
+   mkcert chop.home.arpa localhost 127.0.0.1
    ```
 
 ---
@@ -572,7 +572,7 @@ sudo pkill -9 nginx
 2. Test connection:
 
    ```bash
-   psql -h localhost -p 5432 -U ehopuser -d ehopdb
+   psql -h localhost -p 5432 -U chopuser -d chopdb
    ```
 
 3. Check exported variables:
@@ -617,20 +617,20 @@ When the database is empty, the system enters setup mode:
 
 ```bash
 # Backup
-pg_dump -h localhost -U ehopuser ehopdb > backup.sql
+pg_dump -h localhost -U chopuser chopdb > backup.sql
 
 # Restore
-psql -h localhost -U ehopuser ehopdb < backup.sql
+psql -h localhost -U chopuser chopdb < backup.sql
 ```
 
 ### Backup (Docker)
 
 ```bash
 # Backup
-docker exec ehop_db pg_dump -U ehopuser ehopdb > backup.sql
+docker exec chop_db pg_dump -U chopuser chopdb > backup.sql
 
 # Restore
-docker exec -i ehop_db psql -U ehopuser ehopdb < backup.sql
+docker exec -i chop_db psql -U chopuser chopdb < backup.sql
 ```
 
 ---

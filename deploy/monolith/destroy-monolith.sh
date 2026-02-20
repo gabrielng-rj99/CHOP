@@ -29,8 +29,8 @@ echo -e "${RED}${BOLD}║              Destroy Monolith Environment             
 echo -e "${RED}${BOLD}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}This will permanently delete:${NC}"
-echo -e "  ${RED}✗${NC} Database: ${BOLD}ehopdb${NC} (all data will be lost)"
-echo -e "  ${RED}✗${NC} Database user: ${BOLD}ehopuser${NC}"
+echo -e "  ${RED}✗${NC} Database: ${BOLD}chopdb${NC} (all data will be lost)"
+echo -e "  ${RED}✗${NC} Database user: ${BOLD}chopuser${NC}"
 echo -e "  ${RED}✗${NC} Backend logs"
 echo -e "  ${RED}✗${NC} Frontend build (app/monolith/frontend/)"
 echo -e "  ${RED}✗${NC} SSL certificates"
@@ -86,8 +86,8 @@ fi
 # Set defaults
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
-DB_USER="${DB_USER:-ehopuser}"
-DB_NAME="${DB_NAME:-ehopdb}"
+DB_USER="${DB_USER:-chopuser}"
+DB_NAME="${DB_NAME:-chopdb}"
 
 echo ""
 
@@ -171,8 +171,8 @@ echo ""
 echo "🗑️  Removing files and directories..."
 
 # Backend binary
-if [ -f "$PROJECT_ROOT/app/monolith/bin/ehop-backend.bin" ]; then
-    rm -f "$PROJECT_ROOT/app/monolith/bin/ehop-backend.bin"
+if [ -f "$PROJECT_ROOT/app/monolith/bin/chop-backend.bin" ]; then
+    rm -f "$PROJECT_ROOT/app/monolith/bin/chop-backend.bin"
     echo -e "${GREEN}✓ Removed backend binary${NC}"
 fi
 
@@ -213,8 +213,8 @@ if [ -f "/tmp/Client-Hub-monolith.conf" ]; then
 fi
 
 # PID files
-if [ -f "$PROJECT_ROOT/app/monolith/pids/ehop-backend.bin.pid" ]; then
-    rm -f "$PROJECT_ROOT/app/monolith/pids/ehop-backend.bin.pid"
+if [ -f "$PROJECT_ROOT/app/monolith/pids/chop-backend.bin.pid" ]; then
+    rm -f "$PROJECT_ROOT/app/monolith/pids/chop-backend.bin.pid"
     echo -e "${GREEN}✓ Removed PID file${NC}"
 fi
 

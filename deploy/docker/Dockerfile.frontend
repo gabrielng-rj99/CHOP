@@ -33,8 +33,8 @@ RUN ls -lh /build/dist
 # ============================================================================
 FROM nginx:alpine
 
-LABEL maintainer="EHOP Team"
-LABEL description="EHOP Frontend"
+LABEL maintainer="CHOP Team"
+LABEL description="CHOP Frontend"
 
 WORKDIR /app
 

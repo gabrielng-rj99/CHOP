@@ -61,7 +61,7 @@ def _unlock_root_via_db():
     candidates.append(("test_user", "test_password", "contracts_test"))
 
     # 4. Generic postgres defaults
-    candidates.append(("postgres", "postgres", "ehopdb_dev"))
+    candidates.append(("postgres", "postgres", "chopdb_dev"))
     candidates.append(("postgres", "postgres", "contracts_manager"))
 
     for db_user, db_password, db_name in candidates:

@@ -1,4 +1,4 @@
-# EHOP - Tests Makefile
+# CHOP - Tests Makefile
 # Located in: tests/Makefile
 # Usage: make -f tests/Makefile <target>
 # Or: cd tests && make <target>
@@ -14,7 +14,7 @@ NC := \033[0m
 
 help: ## Show test commands
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║$(NC)    EHOP - Test Suite Commands                            $(BLUE)║$(NC)"
+	@echo "$(BLUE)║$(NC)    CHOP - Test Suite Commands                            $(BLUE)║$(NC)"
 	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Test Execution:$(NC)"
