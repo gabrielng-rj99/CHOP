@@ -75,7 +75,7 @@ func (s *Server) handleCreateFinancial(w http.ResponseWriter, r *http.Request) {
 	// Criar o financeiro
 	financial := domain.ContractFinancial{
 		ContractID:     req.ContractID,
-		FinancialType:    req.FinancialType,
+		FinancialType:  req.FinancialType,
 		RecurrenceType: req.RecurrenceType,
 		DueDay:         req.DueDay,
 		ClientValue:    req.ClientValue,
@@ -157,6 +157,12 @@ func (s *Server) handleFinancialByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Validate UUID format
+	if err := domain.ValidateUUID(financialID); err != nil {
+		respondError(w, http.StatusNotFound, "Financeiro não encontrado")
+		return
+	}
+
 	// Verificar se é uma ação específica
 	if strings.Contains(r.URL.Path, "/installments") {
 		s.handleFinancialInstallments(w, r, financialID)
@@ -213,7 +219,7 @@ func (s *Server) handleUpdateFinancial(w http.ResponseWriter, r *http.Request, f
 	financial := domain.ContractFinancial{
 		ID:             financialID,
 		ContractID:     oldFinancial.ContractID,
-		FinancialType:    req.FinancialType,
+		FinancialType:  req.FinancialType,
 		RecurrenceType: req.RecurrenceType,
 		DueDay:         req.DueDay,
 		ClientValue:    req.ClientValue,
@@ -310,6 +316,10 @@ func (s *Server) handleDeleteFinancial(w http.ResponseWriter, r *http.Request, f
 				RequestMethod: getRequestMethod(r),
 				RequestPath:   getRequestPath(r),
 			})
+		}
+		if strings.Contains(err.Error(), "não encontrado") {
+			respondError(w, http.StatusNotFound, err.Error())
+			return
 		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -605,24 +615,24 @@ func (s *Server) handleOverdueFinancial(w http.ResponseWriter, r *http.Request) 
 
 // CreateFinancialRequest representa a requisição para criar um financeiro
 type CreateFinancialRequest struct {
-	ContractID     string                      `json:"contract_id"`
-	FinancialType    string                      `json:"financial_type"` // 'unico', 'recorrente', 'personalizado'
-	RecurrenceType *string                     `json:"recurrence_type,omitempty"`
-	DueDay         *int                        `json:"due_day,omitempty"`
-	ClientValue    *float64                    `json:"client_value,omitempty"`
-	ReceivedValue  *float64                    `json:"received_value,omitempty"`
-	Description    *string                     `json:"description,omitempty"`
+	ContractID     string                        `json:"contract_id"`
+	FinancialType  string                        `json:"financial_type"` // 'unico', 'recorrente', 'personalizado'
+	RecurrenceType *string                       `json:"recurrence_type,omitempty"`
+	DueDay         *int                          `json:"due_day,omitempty"`
+	ClientValue    *float64                      `json:"client_value,omitempty"`
+	ReceivedValue  *float64                      `json:"received_value,omitempty"`
+	Description    *string                       `json:"description,omitempty"`
 	Installments   []domain.FinancialInstallment `json:"installments,omitempty"` // Para tipo personalizado
 }
 
 // UpdateFinancialRequest representa a requisição para atualizar um financeiro
 type UpdateFinancialRequest struct {
-	FinancialType    string                      `json:"financial_type"`
-	RecurrenceType *string                     `json:"recurrence_type,omitempty"`
-	DueDay         *int                        `json:"due_day,omitempty"`
-	ClientValue    *float64                    `json:"client_value,omitempty"`
-	ReceivedValue  *float64                    `json:"received_value,omitempty"`
-	Description    *string                     `json:"description,omitempty"`
-	IsActive       bool                        `json:"is_active"`
+	FinancialType  string                        `json:"financial_type"`
+	RecurrenceType *string                       `json:"recurrence_type,omitempty"`
+	DueDay         *int                          `json:"due_day,omitempty"`
+	ClientValue    *float64                      `json:"client_value,omitempty"`
+	ReceivedValue  *float64                      `json:"received_value,omitempty"`
+	Description    *string                       `json:"description,omitempty"`
+	IsActive       bool                          `json:"is_active"`
 	Installments   []domain.FinancialInstallment `json:"installments,omitempty"`
 }
