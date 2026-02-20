@@ -339,7 +339,7 @@ func TestCreateContract(t *testing.T) {
 func TestContractStatusUtil(t *testing.T) {
 	now := time.Now()
 	contractActive := domain.Contract{
-		EndDate: timePtr(now.AddDate(0, 1, 0)), // expira em 1 mês
+		EndDate: timePtr(now.AddDate(0, 2, 0)), // expira em 2 meses (fora da janela de "expirando")
 	}
 	contractExpiring := domain.Contract{
 		EndDate: timePtr(now.AddDate(0, 0, 10)), // expira em 10 dias

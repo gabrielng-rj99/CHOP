@@ -22,8 +22,14 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
 	"sync"
 	"time"
+
+	"Open-Generic-Hub/backend/database"
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -53,7 +59,7 @@ func SetupTestDB() (*sql.DB, error) {
 	password := os.Getenv("POSTGRES_PASSWORD")
 	host := os.Getenv("POSTGRES_HOST")
 	port := os.Getenv("POSTGRES_PORT")
-	dbname := os.Getenv("POSTGRES_DB")
+	baseDB := os.Getenv("POSTGRES_DB")
 	sslmode := os.Getenv("POSTGRES_SSLMODE")
 	if sslmode == "" {
 		sslmode = "disable"
@@ -70,11 +76,16 @@ func SetupTestDB() (*sql.DB, error) {
 	if port == "" {
 		port = "5432"
 	}
-	if dbname == "" {
-		dbname = "contracts_manager_test"
+	if baseDB == "" {
+		baseDB = "contracts_manager_test"
 	}
-	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 
+	dbname := deriveTestDBName(baseDB)
+	if err := ensureDatabaseExists(user, password, host, port, sslmode, dbname); err != nil {
+		return nil, err
+	}
+
+	dsn := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=" + sslmode
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
@@ -85,9 +96,129 @@ func SetupTestDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %v", err)
 	}
 
+	migrationsDir := os.Getenv("MIGRATIONS_DIR")
+	if migrationsDir == "" {
+		migrationsDir = filepath.Join(resolveBackendRoot(), "database", "migrations")
+	}
+	if err := database.RunMigrations(db, migrationsDir); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %v", err)
+	}
+
+	schemaDir := os.Getenv("SCHEMA_DIR")
+	if schemaDir == "" {
+		schemaDir = filepath.Join(resolveBackendRoot(), "database", "schema")
+	}
+	if err := applySchemaIfNeeded(db, schemaDir); err != nil {
+		return nil, fmt.Errorf("failed to initialize schema: %v", err)
+	}
+
 	testDB = db
 	dbOpened = true
 	return db, nil
+}
+
+func deriveTestDBName(base string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return base
+	}
+	pkg := filepath.Base(wd)
+	if pkg == "" || pkg == "." || pkg == string(filepath.Separator) {
+		return base
+	}
+
+	re := regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	safe := strings.ToLower(re.ReplaceAllString(pkg, "_"))
+	if safe == "" {
+		return base
+	}
+
+	return base + "_" + safe
+}
+
+func resolveBackendRoot() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "backend"
+	}
+
+	current := wd
+	for {
+		if filepath.Base(current) == "backend" {
+			return current
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "backend"
+		}
+		current = parent
+	}
+}
+
+func applySchemaIfNeeded(db *sql.DB, schemaDir string) error {
+	if database.IsDatabaseInitialized(db) {
+		return nil
+	}
+
+	entries, err := os.ReadDir(schemaDir)
+	if err != nil {
+		return fmt.Errorf("failed to read schema directory: %v", err)
+	}
+
+	var schemaFiles []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") && entry.Name() != "init.sql" {
+			schemaFiles = append(schemaFiles, entry.Name())
+		}
+	}
+
+	sort.Strings(schemaFiles)
+
+	for _, schemaFile := range schemaFiles {
+		schemaPath := filepath.Join(schemaDir, schemaFile)
+		script, err := os.ReadFile(schemaPath)
+		if err != nil {
+			return fmt.Errorf("failed to read schema file %s: %v", schemaFile, err)
+		}
+
+		if _, err := db.Exec(string(script)); err != nil {
+			return fmt.Errorf("failed to execute schema file %s: %v", schemaFile, err)
+		}
+	}
+
+	return nil
+}
+
+func ensureDatabaseExists(user, password, host, port, sslmode, dbname string) error {
+	adminDB := os.Getenv("POSTGRES_ADMIN_DB")
+	if adminDB == "" {
+		adminDB = "postgres"
+	}
+	adminDSN := "postgres://" + user + ":" + password + "@" + host + ":" + port + "/" + adminDB + "?sslmode=" + sslmode
+	admin, err := sql.Open("pgx", adminDSN)
+	if err != nil {
+		return fmt.Errorf("failed to open admin database: %v", err)
+	}
+	defer admin.Close()
+
+	if err := admin.Ping(); err != nil {
+		return fmt.Errorf("failed to ping admin database: %v", err)
+	}
+
+	var exists bool
+	if err := admin.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)", dbname).Scan(&exists); err != nil {
+		return fmt.Errorf("failed to check test database: %v", err)
+	}
+	if !exists {
+		if _, err := admin.Exec("CREATE DATABASE " + pqQuoteIdentifier(dbname)); err != nil {
+			return fmt.Errorf("failed to create test database: %v", err)
+		}
+	}
+	return nil
+}
+
+func pqQuoteIdentifier(id string) string {
+	return `"` + strings.ReplaceAll(id, `"`, `""`) + `"`
 }
 
 // CloseDB closes the test database connection and removes the test database file and temporary directories
