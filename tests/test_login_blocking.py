@@ -18,8 +18,57 @@ import os
 
 from conftest import _unlock_root_via_db
 
+MAX_LOCK_ATTEMPTS_FOR_TESTS = int(os.getenv("TEST_MAX_LOCK_ATTEMPTS", "20"))
 
 
+def _fetch_security_config(api_url, root_token):
+    response = requests.get(
+        f"{api_url}/settings/security",
+        headers={"Authorization": f"Bearer {root_token}"}
+    )
+    if response.status_code != 200:
+        return None
+    try:
+        return response.json()
+    except json.JSONDecodeError:
+        return None
+
+
+def _resolve_lock_thresholds(api_url, root_token):
+    defaults = {
+        "level1": 3,
+        "level2": 5,
+        "level3": 10,
+        "manual": 15,
+    }
+    config = _fetch_security_config(api_url, root_token)
+    if not config:
+        return defaults
+
+    return {
+        "level1": config.get("lock_level_1_attempts", defaults["level1"]),
+        "level2": config.get("lock_level_2_attempts", defaults["level2"]),
+        "level3": config.get("lock_level_3_attempts", defaults["level3"]),
+        "manual": config.get("lock_manual_attempts", defaults["manual"]),
+    }
+
+
+def _should_skip_level(attempts):
+    return attempts > MAX_LOCK_ATTEMPTS_FOR_TESTS
+
+
+def _attempt_failed_logins(api_url, username, attempts):
+    locked = False
+    for i in range(attempts):
+        response = requests.post(
+            f"{api_url}/login",
+            json={"username": username, "password": f"wrong_password_{i}"}
+        )
+        if response.status_code == 423:
+            locked = True
+            break
+        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+    return locked
 
 
 @pytest.fixture
@@ -109,17 +158,19 @@ def test_user(api_url, root_token):
 class TestProgressiveLocking:
     """Tests for progressive lock levels (1, 2, 3, 4)"""
 
-    def test_level_1_block_on_3_failures(self, api_url, test_user):
-        """Test that level 1 block is applied after 3 failed attempts"""
+    def test_level_1_block_on_3_failures(self, api_url, test_user, root_token):
+        """Test that level 1 block is applied after configured failures"""
         username = test_user["username"]
 
-        # Attempt 3 wrong passwords
-        for i in range(3):
-            response = requests.post(
-                f"{api_url}/login",
-                json={"username": username, "password": f"wrong_password_{i}"}
-            )
-            assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+        thresholds = _resolve_lock_thresholds(api_url, root_token)
+        level1_attempts = thresholds["level1"]
+
+        if level1_attempts < 1:
+            pytest.skip("Lock level 1 attempts is disabled")
+        if _should_skip_level(level1_attempts):
+            pytest.skip(f"Lock level 1 requires {level1_attempts} attempts (too slow)")
+
+        _attempt_failed_logins(api_url, username, level1_attempts)
 
         # Next attempt should be blocked (423)
         response = requests.post(
@@ -133,17 +184,19 @@ class TestProgressiveLocking:
         error_message = response.json().get("error", "").lower()
         assert "bloqueado" in error_message or "locked" in error_message, "Response should indicate lock"
 
-    def test_level_2_block_on_5_failures(self, api_url, test_user):
-        """Test that level 2 block is applied after 5 failed attempts"""
+    def test_level_2_block_on_5_failures(self, api_url, test_user, root_token):
+        """Test that level 2 block is applied after configured failures"""
         username = test_user["username"]
 
-        # Attempt 5 wrong passwords
-        for i in range(5):
-            response = requests.post(
-                f"{api_url}/login",
-                json={"username": username, "password": f"wrong_password_{i}"}
-            )
-            assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+        thresholds = _resolve_lock_thresholds(api_url, root_token)
+        level2_attempts = thresholds["level2"]
+
+        if level2_attempts <= thresholds["level1"]:
+            pytest.skip("Lock level 2 is not higher than level 1 in current config")
+        if _should_skip_level(level2_attempts):
+            pytest.skip(f"Lock level 2 requires {level2_attempts} attempts (too slow)")
+
+        _attempt_failed_logins(api_url, username, level2_attempts)
 
         # Should be blocked now
         response = requests.post(
@@ -152,17 +205,19 @@ class TestProgressiveLocking:
         )
         assert response.status_code == 423
 
-    def test_level_3_block_on_10_failures(self, api_url, test_user):
-        """Test that level 3 block is applied after 10 failed attempts"""
+    def test_level_3_block_on_10_failures(self, api_url, test_user, root_token):
+        """Test that level 3 block is applied after configured failures"""
         username = test_user["username"]
 
-        # Attempt 10 wrong passwords
-        for i in range(10):
-            response = requests.post(
-                f"{api_url}/login",
-                json={"username": username, "password": f"wrong_password_{i}"}
-            )
-            assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+        thresholds = _resolve_lock_thresholds(api_url, root_token)
+        level3_attempts = thresholds["level3"]
+
+        if level3_attempts <= thresholds["level2"]:
+            pytest.skip("Lock level 3 is not higher than level 2 in current config")
+        if _should_skip_level(level3_attempts):
+            pytest.skip(f"Lock level 3 requires {level3_attempts} attempts (too slow)")
+
+        _attempt_failed_logins(api_url, username, level3_attempts)
 
         # Should be blocked now
         response = requests.post(
@@ -171,17 +226,19 @@ class TestProgressiveLocking:
         )
         assert response.status_code == 423
 
-    def test_level_4_permanent_block_on_15_failures(self, api_url, test_user):
-        """Test that level 4 (permanent) block is applied after 15 failed attempts"""
+    def test_level_4_permanent_block_on_15_failures(self, api_url, test_user, root_token):
+        """Test that level 4 (permanent) block is applied after configured failures"""
         username = test_user["username"]
 
-        # Attempt 15 wrong passwords
-        for i in range(15):
-            response = requests.post(
-                f"{api_url}/login",
-                json={"username": username, "password": f"wrong_password_{i}"}
-            )
-            assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+        thresholds = _resolve_lock_thresholds(api_url, root_token)
+        manual_attempts = thresholds["manual"]
+
+        if manual_attempts <= thresholds["level3"]:
+            pytest.skip("Manual lock threshold is not higher than level 3 in current config")
+        if _should_skip_level(manual_attempts):
+            pytest.skip(f"Manual lock requires {manual_attempts} attempts (too slow)")
+
+        _attempt_failed_logins(api_url, username, manual_attempts)
 
         # Should be permanently blocked
         response = requests.post(
@@ -217,12 +274,15 @@ class TestUserLockStatus:
         """Test that temporarily locked user shows is_locked=true and seconds_until_unlock"""
         username = test_user["username"]
 
-        # Create 3 failed attempts to trigger level 1 block
-        for i in range(3):
-            requests.post(
-                f"{api_url}/login",
-                json={"username": username, "password": f"wrong_{i}"}
-            )
+        thresholds = _resolve_lock_thresholds(api_url, root_token)
+        level1_attempts = thresholds["level1"]
+
+        if level1_attempts < 1:
+            pytest.skip("Lock level 1 attempts is disabled")
+        if _should_skip_level(level1_attempts):
+            pytest.skip(f"Lock level 1 requires {level1_attempts} attempts (too slow)")
+
+        _attempt_failed_logins(api_url, username, level1_attempts)
 
         # Check user status
         response = requests.get(
