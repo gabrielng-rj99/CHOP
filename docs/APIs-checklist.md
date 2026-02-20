@@ -1,6 +1,6 @@
 # Client Hub Open Project - API Security Test Checklist
 
-> **Última Atualização:** 2025-01-09
+> **Última Atualização:** 2026-02-20
 > **Status Geral:** ✅ JWT Security Tests Complete
 
 ---
@@ -1028,42 +1028,42 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_roles_permissions_security.py |
  | **Query Params** | include_permissions SQL | ⬜ | - |
 
 ### POST /api/roles
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Empty Request** | Body vazio | ⬜ | - |
- | **XSS** | Name com script | ⬜ | - |
- | **SQL Injection** | Name com SQL | ⬜ | - |
+ | **Empty Request** | Body vazio | ✅ | test_roles_permissions_security.py |
+ | **XSS** | Name com script | ✅ | test_roles_permissions_security.py |
+ | **SQL Injection** | Name com SQL | ✅ | test_roles_permissions_security.py |
 
 ### GET /api/roles/{id}
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_roles_permissions_security.py |
 
 ### PUT /api/roles/{id}
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_roles_permissions_security.py |
  | **XSS** | Fields com script | ⬜ | - |
 
 ### DELETE /api/roles/{id}
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_roles_permissions_security.py |
  | **System Role** | Deletar role sistema | ⬜ | - |
 
 ### GET /api/roles/{id}/permissions
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_roles_permissions_security.py |
 
 ### PUT /api/roles/{id}/permissions
 
@@ -1162,28 +1162,28 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
  | **Auth** | Sem token | ✅ | test_settings_security.py |
- | **XSS** | Valores com script | ⬜ | - |
- | **Overflow** | Valores > 2000 chars | ⬜ | - |
- | **Bypass** | XSS patterns | ⬜ | - |
+ | **XSS** | Valores com script | ✅ | test_settings_security.py |
+ | **Overflow** | Valores > 2000 chars | ✅ | test_settings_security.py |
+ | **Bypass** | XSS patterns | ✅ | test_settings_security.py |
 
 ### GET /api/settings/security
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_settings_security.py |
 
 ### PUT /api/settings/security
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
- | **Validation** | Valores inválidos | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_settings_security.py |
+ | **Validation** | Valores inválidos | ✅ | test_settings_security.py |
 
 ### GET /api/settings/password-policy
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_settings_security.py |
 
 ---
 
@@ -1193,65 +1193,65 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### PUT /api/user/theme
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
  | **XSS** | Color values | ✅ | test_appearance_security.py |
- | **Validation** | Invalid colors | ⬜ | - |
+ | **Validation** | Invalid colors | ✅ | test_appearance_security.py |
 
 ### GET /api/settings/theme-permissions
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### PUT /api/settings/theme-permissions
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### GET /api/settings/global-theme
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### PUT /api/settings/global-theme
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
- | **XSS** | Color values | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
+ | **XSS** | Color values | ✅ | test_appearance_security.py |
 
 ### GET /api/settings/allowed-themes
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### PUT /api/settings/allowed-themes
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
- | **XSS** | Theme names | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
+ | **XSS** | Theme names | ✅ | test_appearance_security.py |
 
 ### GET /api/settings/system-config
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ### PUT /api/settings/system-config
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_appearance_security.py |
 
 ---
 
@@ -1261,14 +1261,14 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_settings_security.py |
 
 ### PUT /api/system-config/dashboard
 
  | Categoria | Teste | Status | Arquivo |
  | ----------- | ------- | -------- | --------- |
- | **Auth** | Sem token | ⬜ | - |
- | **Validation** | Valores fora do range | ⬜ | - |
+ | **Auth** | Sem token | ✅ | test_settings_security.py |
+ | **Validation** | Valores fora do range | ✅ | test_settings_security.py |
 
 ---
 
