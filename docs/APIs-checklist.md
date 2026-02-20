@@ -803,7 +803,7 @@ Testes de tentativas de elevação de privilégio via adulteração de request b
  | ----------- | ------- | -------- | --------- |
  | **Auth** | Sem token | ✅ | test_financial_security.py |
  | **Not Found** | ID inexistente retorna 404 | ✅ | test_financial_security.py |
- | **Validation** | UUID inválido retorna 400 | ✅ | test_financial_security.py |
+ | **Validation** | UUID inválido retorna 404 | ✅ | test_financial_security.py |
  | **SQL Injection** | SQL em UUID não crasha | ✅ | test_financial_security.py |
  | **Path Traversal** | ../ em UUID rejeitado | ✅ | test_financial_security.py |
 
