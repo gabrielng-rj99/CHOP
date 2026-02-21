@@ -13,15 +13,24 @@ This directory contains the complete test suite for the CHOP (Client Hub Open Pr
 
 ### Prerequisites
 
-- Python 3.8+
-- pytest
-- requests
-- PostgreSQL (for integration/security tests)
+- Python 3.13.9 (strict)
+- pytest 9.0.2
+- requests 2.32.5
+- PostgreSQL 16 (for integration/security tests)
+
+### Virtual Environment (Project Root)
+
+Use the project-root virtual environment (`.venv`). This keeps the test runner, version update script, and tooling consistent.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
 
 ### Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### Run All Tests
@@ -302,7 +311,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13.9'
       - run: pip install -r tests/requirements.txt
       - run: ./tests/run_all_tests.sh --coverage
 ```
@@ -329,7 +338,7 @@ jobs:
 # Reinstall dependencies
 pip install --force-reinstall -r requirements.txt
 
-# Check Python version (should be 3.8+)
+# Check Python version (must be 3.13.9; validated on 3.13.2 and 3.13.9)
 python --version
 ```
 

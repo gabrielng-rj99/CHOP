@@ -25,16 +25,25 @@ NC='\033[0m'
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+LOG_FILE="$SCRIPT_DIR/run_all_tests.log"
 
-# Fixed test environment (no .env dependency)
+# Truncate log on each run
+: > "$LOG_FILE"
+
+# Redirect all output to log file (and stdout)
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Fixed test environment constants (no .env dependency)
+API_URL="http://localhost:63000/api"
+TEST_API_URL="http://localhost:63000/api"
+DB_HOST="localhost"
+DB_PORT="65432"
+DB_USER="test_user"
+DB_PASSWORD="test_password"
+DB_NAME="contracts_test"
+export API_URL TEST_API_URL DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
+
 TEST_COMPOSE_FILE="$PROJECT_ROOT/tests/docker-compose.test.yml"
-export API_URL="http://localhost:63000/api"
-export TEST_API_URL="http://localhost:63000/api"
-export DB_HOST="localhost"
-export DB_PORT="65432"
-export DB_USER="test_user"
-export DB_PASSWORD="test_password"
-export DB_NAME="contracts_test"
 
 cleanup_docker() {
     docker compose -f "$TEST_COMPOSE_FILE" down -v --remove-orphans
@@ -113,11 +122,28 @@ echo -e "${BLUE}║${NC}         CHOP - Comprehensive Test Suite Runner         
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
+# Create/use project-root venv
+VENV_DIR="$PROJECT_ROOT/.venv"
+PYTHON_BIN=""
+if command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+else
+    echo -e "${RED}❌ Python not found on PATH${NC}"
+    exit 1
+fi
+if [ ! -d "$VENV_DIR" ]; then
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+# shellcheck disable=SC1091
+source "$VENV_DIR/bin/activate"
+
 # Check if pytest is installed
 if ! command -v pytest &> /dev/null; then
     echo -e "${RED}❌ pytest not found. Installing dependencies...${NC}"
     cd "$PROJECT_ROOT"
-    pip install -q -r tests/requirements.txt
+    "$PYTHON_BIN" -m pip install -q -r tests/requirements.txt
 fi
 
 echo -e "${YELLOW}📋 Test Configuration:${NC}"
@@ -156,7 +182,7 @@ fi
 echo -e "${BLUE}🚀 Running test suite...${NC}"
 echo ""
 
-pytest \
+"$PYTHON_BIN" -m pytest \
     -v \
     $VERBOSE \
     $MARKER \
@@ -192,4 +218,7 @@ if [ -n "$HTML_REPORT" ]; then
 fi
 
 echo ""
+if [ -n "${VIRTUAL_ENV:-}" ]; then
+    deactivate
+fi
 exit $TEST_EXIT_CODE

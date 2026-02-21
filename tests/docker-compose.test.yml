@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
     postgres_test:
         image: postgres:16-alpine
@@ -26,7 +24,7 @@ services:
             context: ..
             dockerfile: deploy/docker/Dockerfile.backend
             args:
-                GO_VERSION: "1.25"
+                GO_VERSION: "1.25.6"
         container_name: chop_test_backend
         environment:
             DB_HOST: postgres_test
@@ -83,7 +81,7 @@ services:
             dockerfile: deploy/docker/Dockerfile.frontend
             args:
                 VITE_API_URL: http://localhost:63000
-                NODE_VERSION: "24"
+                NODE_VERSION: "24.11.1"
         container_name: chop_test_frontend
         environment:
             VITE_API_URL: http://localhost:63000
@@ -99,7 +97,7 @@ services:
 
     # Test runner service (optional - can be used to run tests inside container)
     test_runner:
-        image: python:3.11-slim
+        image: python:3.13.9-slim
         container_name: chop_test_runner
         working_dir: /tests
         volumes:

@@ -21,8 +21,8 @@ help: ## Show test commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Configuration:$(NC)"
-	@echo "  Test Framework: pytest"
-	@echo "  Language: Python 3.8+"
+	@echo "  Test Framework: pytest 9.0.2"
+	@echo "  Language: Python 3.13.9 (strict)"
 	@echo "  Test Files: test_*.py"
 	@echo "  API Endpoint: http://localhost:3000/api"
 	@echo ""

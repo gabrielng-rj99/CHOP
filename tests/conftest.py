@@ -21,7 +21,7 @@ import requests
 import time
 import os
 import itertools
-from typing import Dict, Optional
+
 
 
 def _unlock_root_via_db():
@@ -406,9 +406,7 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "database: marca testes de resiliência de banco de dados"
     )
-    config.addinivalue_line(
-        "markers", "rate_limiting: marca testes de rate limiting"
-    )
+
     config.addinivalue_line(
         "markers", "compliance: marca testes de conformidade AGPL"
     )
@@ -419,6 +417,7 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     """Adiciona marcadores automaticamente baseado no nome do arquivo/teste"""
+    _ = config
     for item in items:
         # Marcadores baseados no nome do arquivo
         if "test_jwt" in item.nodeid:
@@ -464,6 +463,8 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Adiciona sumário customizado ao final dos testes"""
+    _ = exitstatus
+    _ = config
     terminalreporter.write_sep("=", "Test Timing Summary")
 
     # Coletar timings

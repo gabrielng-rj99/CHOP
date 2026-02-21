@@ -1,0 +1,166 @@
+VERSION UPDATE RUNBOOK — Client Hub Open Project
+==============================================
+
+Purpose
+-------
+This runbook describes the exact, repeatable steps to update runtime and dependency versions across the project (Go, Node, React/Vite, Python testing stack, Docker images, and documentation).
+
+Scope
+-----
+- Backend (Go)
+- Frontend (React + Vite)
+- Test suite (Python)
+- Dockerfiles / docker-compose
+- Documentation & notices
+- Python virtual environment
+
+Pre-Flight Checklist
+--------------------
+1) Ensure you have the latest runtime toolchains installed:
+   - Go (target version)
+   - Node.js (target version)
+   - Python (target version)
+   - Docker (if touching containers)
+
+2) Confirm current versions on your machine:
+   - go version
+   - node --version
+   - npm --version
+   - python --version
+
+3) Ensure working tree is clean.
+
+Target Versions (Example)
+-------------------------
+- Go: 1.25.6
+- Node.js: 24.11.1
+- Python: 3.13.9
+- React: 19.2.4
+- Vite: 7.3.1
+
+Adjust these values as needed.
+
+Step 1 — Update Go Version
+--------------------------
+Update in these files:
+- backend/go.mod:
+  - go 1.25.x → target version
+- deploy/docker/Dockerfile.backend:
+  - FROM golang:1.25.x-alpine
+- deploy/docker/Dockerfile.all-in-one:
+  - FROM golang:1.25.x-alpine
+- deploy/docker/docker-compose.yml:
+  - GO_VERSION build arg
+- tests/docker-compose.test.yml:
+  - GO_VERSION build arg
+- backend/Makefile:
+  - help banner version
+- README.md, backend/README.md, deploy/dev/README.md, deploy/dev/INICIO-RAPIDO.md,
+  deploy/README.md, deploy/QUICKSTART.md, deploy/monolith/README.md, PROJECT_SUMMARY.md
+
+Command follow-up:
+- go mod tidy
+- go test ./...
+
+Step 2 — Update Node.js Version
+-------------------------------
+Update in these files:
+- frontend/.nvmrc
+- deploy/docker/Dockerfile.frontend:
+  - FROM node:24.x-alpine
+- deploy/docker/Dockerfile.all-in-one:
+  - FROM node:24.x-alpine
+- deploy/docker/docker-compose.yml:
+  - NODE_VERSION build arg
+- tests/docker-compose.test.yml:
+  - NODE_VERSION build arg
+- README.md, deploy/README.md, deploy/dev/README.md, deploy/dev/INICIO-RAPIDO.md,
+  deploy/QUICKSTART.md, deploy/monolith/README.md, PROJECT_SUMMARY.md
+
+Command follow-up:
+- npm install
+- npm run build
+- npm test (or project-specific test command)
+
+Step 3 — Update Frontend Dependencies (React/Vite/etc.)
+-------------------------------------------------------
+Update in:
+- frontend/package.json:
+  - react, react-dom
+  - react-router-dom
+  - vite, @vitejs/plugin-react
+  - @playwright/test, vitest, jsdom, eslint, etc.
+
+Command follow-up:
+- npm install
+- npm run build
+- npm run test (or per-suite tests)
+
+Step 4 — Update Python Test Stack
+---------------------------------
+Update in:
+- tests/requirements.txt (pin exact versions)
+- tests/Makefile (banner version)
+- tests/README.md (prereq versions)
+- tests/docker-compose.test.yml (python image tag)
+- README.md / PROJECT_SUMMARY.md / NOTICE as needed
+
+Recreate venv (project root, do not use tests/.venv):
+- python -m venv .venv
+- source .venv/bin/activate
+- python -m pip install --upgrade pip
+- python -m pip install -r tests/requirements.txt --upgrade
+
+Command follow-up:
+- pytest -v
+- ./tests/run_all_tests.sh
+
+Step 5 — Update Docker Images (Optional but Recommended)
+--------------------------------------------------------
+If you want strict pinning, update:
+- deploy/docker/Dockerfile.backend (golang image tag)
+- deploy/docker/Dockerfile.frontend (node image tag)
+- deploy/docker/Dockerfile.all-in-one (golang + node tags)
+- docker-compose files (GO_VERSION, NODE_VERSION)
+- (Optional) pin postgres/nginx/alpine tags
+
+Validate:
+- docker-compose -f deploy/docker/docker-compose.yml config
+- docker-compose -f tests/docker-compose.test.yml config
+
+Step 6 — Update Documentation & Notices
+---------------------------------------
+Keep all documentation consistent:
+- README.md
+- PROJECT_SUMMARY.md
+- backend/README.md
+- tests/README.md
+- deploy/README.md
+- deploy/dev/README.md
+- deploy/dev/INICIO-RAPIDO.md
+- deploy/QUICKSTART.md
+- deploy/monolith/README.md
+- NOTICE
+
+Step 7 — Verification
+---------------------
+- Go: go test ./...
+- Frontend: npm test (or project standard)
+- Python: pytest / run_all_tests.sh
+- Docker: docker-compose config
+
+Rollback Strategy
+-----------------
+If something breaks:
+- Revert changes in version files
+- Reinstall dependencies
+- Rebuild Docker images
+- Re-run tests
+
+Notes
+-----
+- Pin versions strictly. Avoid “latest” and “LTS” in docs.
+- Keep CI scripts in sync if applicable.
+- If upgrading major versions, expect breaking changes in React/Vite/ESLint and adjust code accordingly.
+
+End of Runbook
