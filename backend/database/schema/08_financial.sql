@@ -113,6 +113,19 @@ CREATE INDEX IF NOT EXISTS idx_financial_installments_status ON financial_instal
 CREATE INDEX IF NOT EXISTS idx_financial_installments_due_date ON financial_installments(due_date);
 CREATE INDEX IF NOT EXISTS idx_financial_installments_paid_at ON financial_installments(paid_at) WHERE paid_at IS NOT NULL;
 
+-- Composite covering indexes for performance optimization
+-- Enables Index-Only Scan on period summary queries (getPeriodSummariesBatch)
+-- Replaces BitmapAnd of two separate indexes with a single direct scan
+CREATE INDEX IF NOT EXISTS idx_fi_cfid_duedate_covering
+ON financial_installments (contract_financial_id, due_date)
+INCLUDE (status, received_value, client_value);
+
+-- Optimizes grouped monthly queries (GROUP BY DATE_TRUNC('month', due_date))
+-- Used by GetFinancialDetailedSummary for the monthly breakdown
+CREATE INDEX IF NOT EXISTS idx_fi_duedate_cfid_covering
+ON financial_installments (due_date, contract_financial_id)
+INCLUDE (status, received_value, client_value);
+
 -- ============================================
 -- PERMISSIONS - Financeiro
 -- ============================================

@@ -327,6 +327,143 @@ func (s *FinancialStore) GetAllFinancials() ([]domain.ContractFinancial, error) 
 	return financials, nil
 }
 
+// GetAllFinancialsPaged retorna financeiros com paginação real (server-side)
+func (s *FinancialStore) GetAllFinancialsPaged(limit, offset int) ([]domain.ContractFinancial, error) {
+	query := `
+		SELECT
+			cp.id, cp.contract_id, cp.financial_type, cp.recurrence_type, cp.due_day,
+			cp.client_value, cp.received_value, cp.description, cp.is_active,
+			cp.created_at, cp.updated_at
+		FROM contract_financial cp
+		JOIN contracts c ON c.id = cp.contract_id
+		WHERE c.archived_at IS NULL
+		ORDER BY cp.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := s.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var financials []domain.ContractFinancial
+	var personalizedIDs []string
+	for rows.Next() {
+		var f domain.ContractFinancial
+		err := rows.Scan(
+			&f.ID,
+			&f.ContractID,
+			&f.FinancialType,
+			&f.RecurrenceType,
+			&f.DueDay,
+			&f.ClientValue,
+			&f.ReceivedValue,
+			&f.Description,
+			&f.IsActive,
+			&f.CreatedAt,
+			&f.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if f.FinancialType == "personalizado" {
+			personalizedIDs = append(personalizedIDs, f.ID)
+		} else {
+			// For único or recorrente, use base values directly
+			f.TotalClientValue = f.ClientValue
+			f.TotalReceivedValue = f.ReceivedValue
+			f.TotalInstallments = 0
+			f.PaidInstallments = 0
+		}
+
+		financials = append(financials, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Batch calculate totals for personalized financials (1 query instead of N)
+	if len(personalizedIDs) > 0 {
+		totalsMap, err := s.calculateFinancialTotalsBatch(personalizedIDs)
+		if err != nil {
+			return nil, err
+		}
+		for i := range financials {
+			if financials[i].FinancialType == "personalizado" {
+				if totals, ok := totalsMap[financials[i].ID]; ok {
+					financials[i].TotalClientValue = &totals.totalClient
+					financials[i].TotalReceivedValue = &totals.totalReceived
+					financials[i].TotalInstallments = totals.total
+					financials[i].PaidInstallments = totals.paid
+				}
+			}
+		}
+	}
+
+	return financials, nil
+}
+
+// CountFinancials retorna o total de financeiros (para paginação)
+func (s *FinancialStore) CountFinancials() (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM contract_financial cp
+		JOIN contracts c ON c.id = cp.contract_id
+		WHERE c.archived_at IS NULL
+	`
+
+	var count int
+	err := s.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// financialTotals holds batch-computed totals for a personalized financial
+type financialTotals struct {
+	totalClient   float64
+	totalReceived float64
+	total         int
+	paid          int
+}
+
+// calculateFinancialTotalsBatch computes installment totals for multiple financials in 1 query
+func (s *FinancialStore) calculateFinancialTotalsBatch(ids []string) (map[string]financialTotals, error) {
+	query := `
+		SELECT
+			contract_financial_id,
+			COALESCE(SUM(client_value), 0),
+			COALESCE(SUM(received_value), 0),
+			COUNT(*),
+			COUNT(CASE WHEN status = 'pago' THEN 1 END)
+		FROM financial_installments
+		WHERE contract_financial_id = ANY($1)
+		GROUP BY contract_financial_id
+	`
+
+	rows, err := s.db.Query(query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[string]financialTotals, len(ids))
+	for rows.Next() {
+		var cfID string
+		var ft financialTotals
+		if err := rows.Scan(&cfID, &ft.totalClient, &ft.totalReceived, &ft.total, &ft.paid); err != nil {
+			return nil, err
+		}
+		result[cfID] = ft
+	}
+
+	return result, rows.Err()
+}
+
 // ============================================
 // FINANCIAL INSTALLMENTS CRUD
 // ============================================
@@ -611,6 +748,9 @@ func (s *FinancialStore) GetFinancialSummary() (*domain.FinancialSummary, error)
 
 // GetMonthlySummary retorna resumo de financeiro de um mês específico
 func (s *FinancialStore) GetMonthlySummary(year int, month int) (*domain.FinancialSummary, error) {
+	periodStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := periodStart.AddDate(0, 1, 0)
+
 	query := `
 		SELECT
 			COALESCE(SUM(pi.received_value), 0) AS total_to_receive,
@@ -623,12 +763,12 @@ func (s *FinancialStore) GetMonthlySummary(year int, month int) (*domain.Financi
 		JOIN contract_financial cp ON cp.id = pi.contract_financial_id
 		JOIN contracts c ON c.id = cp.contract_id
 		WHERE c.archived_at IS NULL
-		AND EXTRACT(YEAR FROM pi.due_date) = $1
-		AND EXTRACT(MONTH FROM pi.due_date) = $2
+		AND pi.due_date >= $1
+		AND pi.due_date < $2
 	`
 
 	var summary domain.FinancialSummary
-	err := s.db.QueryRow(query, year, month).Scan(
+	err := s.db.QueryRow(query, periodStart, periodEnd).Scan(
 		&summary.TotalToReceive,
 		&summary.TotalClientPays,
 		&summary.AlreadyReceived,
@@ -767,7 +907,7 @@ func (s *FinancialStore) GetFinancialDetailedSummary() (*domain.DetailedFinancia
 		CurrentDate: time.Now().Format("2006-01-02"),
 	}
 
-	// Query para totais gerais
+	// Query 1: Totais gerais (1 query, unchanged)
 	totalQuery := `
 		SELECT
 			COALESCE(SUM(pi.received_value), 0) AS total_to_receive,
@@ -794,36 +934,98 @@ func (s *FinancialStore) GetFinancialDetailedSummary() (*domain.DetailedFinancia
 		return nil, fmt.Errorf("erro ao buscar totais gerais: %w", err)
 	}
 
-	// Buscar dados do mês passado
-	lastMonth := time.Now().AddDate(0, -1, 0)
-	summary.LastMonth, _ = s.getPeriodSummary(lastMonth.Year(), int(lastMonth.Month()))
+	// Compute the full date range: -3 to +3 months from now
+	now := time.Now()
+	rangeStart := time.Date(now.Year(), now.Month()-3, 1, 0, 0, 0, 0, time.UTC)
+	rangeEnd := time.Date(now.Year(), now.Month()+4, 1, 0, 0, 0, 0, time.UTC) // exclusive upper bound
 
-	// Buscar dados do mês atual
-	currentMonth := time.Now()
-	summary.CurrentMonth, _ = s.getPeriodSummary(currentMonth.Year(), int(currentMonth.Month()))
+	// Build all period summaries in batch (replaces 10 individual getPeriodSummary calls)
+	allPeriods, err := s.getPeriodSummariesBatch(rangeStart, rangeEnd)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar resumos por período: %w", err)
+	}
 
-	// Buscar dados do próximo mês
-	nextMonth := time.Now().AddDate(0, 1, 0)
-	summary.NextMonth, _ = s.getPeriodSummary(nextMonth.Year(), int(nextMonth.Month()))
+	// Map periods to their keys for quick lookup
+	periodMap := make(map[string]*domain.PeriodSummary, len(allPeriods))
+	for i := range allPeriods {
+		periodMap[allPeriods[i].Period] = &allPeriods[i]
+	}
 
-	// Buscar breakdown mensal (últimos 3 meses + próximos 3 meses)
-	summary.MonthlyBreakdown = make([]domain.PeriodSummary, 0)
+	// Assign last/current/next month
+	lastMonthKey := now.AddDate(0, -1, 0).Format("2006-01")
+	currentMonthKey := now.Format("2006-01")
+	nextMonthKey := now.AddDate(0, 1, 0).Format("2006-01")
+
+	summary.LastMonth = periodMap[lastMonthKey]
+	summary.CurrentMonth = periodMap[currentMonthKey]
+	summary.NextMonth = periodMap[nextMonthKey]
+
+	// Ensure non-nil period summaries with correct labels
+	if summary.LastMonth == nil {
+		lm := now.AddDate(0, -1, 0)
+		summary.LastMonth = s.emptyPeriodSummary(lm.Year(), int(lm.Month()))
+	}
+	if summary.CurrentMonth == nil {
+		summary.CurrentMonth = s.emptyPeriodSummary(now.Year(), int(now.Month()))
+	}
+	if summary.NextMonth == nil {
+		nm := now.AddDate(0, 1, 0)
+		summary.NextMonth = s.emptyPeriodSummary(nm.Year(), int(nm.Month()))
+	}
+
+	// Build monthly breakdown from -3 to +3
+	summary.MonthlyBreakdown = make([]domain.PeriodSummary, 0, 7)
 	for i := -3; i <= 3; i++ {
-		month := time.Now().AddDate(0, i, 0)
-		periodSummary, err := s.getPeriodSummary(month.Year(), int(month.Month()))
-		if err == nil && periodSummary != nil {
-			summary.MonthlyBreakdown = append(summary.MonthlyBreakdown, *periodSummary)
+		m := now.AddDate(0, i, 0)
+		key := m.Format("2006-01")
+		if ps, ok := periodMap[key]; ok {
+			summary.MonthlyBreakdown = append(summary.MonthlyBreakdown, *ps)
+		} else {
+			summary.MonthlyBreakdown = append(summary.MonthlyBreakdown, *s.emptyPeriodSummary(m.Year(), int(m.Month())))
 		}
 	}
 
 	return summary, nil
 }
 
-// getPeriodSummary retorna o resumo de um período específico (mês/ano)
-func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSummary, error) {
-	// Query para parcelas (financeiros personalizados e únicos)
-	query := `
+// emptyPeriodSummary creates a zero-valued PeriodSummary with correct labels
+func (s *FinancialStore) emptyPeriodSummary(year int, month int) *domain.PeriodSummary {
+	monthNames := []string{"", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+		"Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"}
+	return &domain.PeriodSummary{
+		Period:      fmt.Sprintf("%04d-%02d", year, month),
+		PeriodLabel: fmt.Sprintf("%s %d", monthNames[month], year),
+	}
+}
+
+// recurrentFinancial holds data for a single recurrent financial record (loaded once, reused for all periods)
+type recurrentFinancial struct {
+	cfID              string
+	receivedValue     float64
+	clientValue       float64
+	recurrenceType    string
+	dueDay            int
+	contractStartDate time.Time
+	contractEndDate   time.Time
+	hasEndDate        bool
+}
+
+// getPeriodSummariesBatch computes PeriodSummary for every month in [rangeStart, rangeEnd).
+// It replaces the old getPeriodSummary() which was called 10 times (each with its own N+1).
+//
+// Total queries: 3 (installment aggregates + recurrent list + batch installment status lookup)
+// Previously: 10 × (1 aggregate + 1 recurrent load + ~1500 individual checks) ≈ 15,020 queries
+func (s *FinancialStore) getPeriodSummariesBatch(rangeStart, rangeEnd time.Time) ([]domain.PeriodSummary, error) {
+	monthNames := []string{"", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+		"Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"}
+
+	// ------------------------------------------------------------------
+	// Query 2: Installment-based aggregates grouped by month (1 query)
+	// Uses idx_fi_duedate_cfid_covering for Index-Only Scan
+	// ------------------------------------------------------------------
+	installmentQuery := `
 		SELECT
+			TO_CHAR(DATE_TRUNC('month', pi.due_date), 'YYYY-MM') AS period,
 			COALESCE(SUM(pi.received_value), 0) AS total_to_receive,
 			COALESCE(SUM(pi.client_value), 0) AS total_client_pays,
 			COALESCE(SUM(CASE WHEN pi.status = 'pago' THEN pi.received_value ELSE 0 END), 0) AS already_received,
@@ -836,27 +1038,46 @@ func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSu
 		JOIN contract_financial cp ON cp.id = pi.contract_financial_id
 		JOIN contracts c ON c.id = cp.contract_id
 		WHERE c.archived_at IS NULL
-		AND EXTRACT(YEAR FROM pi.due_date) = $1
-		AND EXTRACT(MONTH FROM pi.due_date) = $2
+		AND pi.due_date >= $1
+		AND pi.due_date < $2
+		GROUP BY DATE_TRUNC('month', pi.due_date)
+		ORDER BY DATE_TRUNC('month', pi.due_date)
 	`
 
-	var ps domain.PeriodSummary
-	err := s.db.QueryRow(query, year, month).Scan(
-		&ps.TotalToReceive,
-		&ps.TotalClientPays,
-		&ps.AlreadyReceived,
-		&ps.PendingAmount,
-		&ps.PendingCount,
-		&ps.PaidCount,
-		&ps.OverdueCount,
-		&ps.OverdueAmount,
-	)
-
+	rows, err := s.db.Query(installmentQuery, rangeStart, rangeEnd)
 	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar aggregates de installments por mês: %w", err)
+	}
+	defer rows.Close()
+
+	// Build a map of period -> PeriodSummary from installment data
+	periodMap := make(map[string]*domain.PeriodSummary)
+	for rows.Next() {
+		var ps domain.PeriodSummary
+		err := rows.Scan(
+			&ps.Period,
+			&ps.TotalToReceive,
+			&ps.TotalClientPays,
+			&ps.AlreadyReceived,
+			&ps.PendingAmount,
+			&ps.PendingCount,
+			&ps.PaidCount,
+			&ps.OverdueCount,
+			&ps.OverdueAmount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao escanear aggregate mensal: %w", err)
+		}
+		periodMap[ps.Period] = &ps
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	// Adicionar receitas recorrentes para este período
+	// ------------------------------------------------------------------
+	// Query 3: Load ALL active recurrent financials (1 query, loaded once)
+	// Previously this was loaded 10 separate times inside getPeriodSummary
+	// ------------------------------------------------------------------
 	recurrentQuery := `
 		SELECT
 			cf.id,
@@ -874,151 +1095,225 @@ func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSu
 		AND cf.received_value IS NOT NULL
 	`
 
-	rows, err := s.db.Query(recurrentQuery)
+	recRows, err := s.db.Query(recurrentQuery)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao buscar receitas recorrentes: %w", err)
 	}
-	defer rows.Close()
+	defer recRows.Close()
 
-	targetDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-
-	for rows.Next() {
-		var cfID string
-		var receivedValue, clientValue float64
-		var recurrenceType string
-		var dueDay int
+	var recurrents []recurrentFinancial
+	recurrentIDs := make([]string, 0)
+	for recRows.Next() {
+		var rf recurrentFinancial
 		var startDateStr, endDateStr sql.NullString
 
-		err := rows.Scan(&cfID, &receivedValue, &clientValue, &recurrenceType, &dueDay, &startDateStr, &endDateStr)
+		err := recRows.Scan(&rf.cfID, &rf.receivedValue, &rf.clientValue, &rf.recurrenceType, &rf.dueDay, &startDateStr, &endDateStr)
 		if err != nil {
 			continue
 		}
 
-		// Parse start_date
-		var contractStartDate time.Time
 		if startDateStr.Valid {
-			contractStartDate, _ = time.Parse("2006-01-02", startDateStr.String)
+			rf.contractStartDate, _ = time.Parse("2006-01-02", startDateStr.String)
 		}
-
-		// Parse end_date (vencimento do contrato)
-		var contractEndDate time.Time
-		hasEndDate := false
 		if endDateStr.Valid {
-			contractEndDate, _ = time.Parse("2006-01-02", endDateStr.String)
-			hasEndDate = true
+			rf.contractEndDate, _ = time.Parse("2006-01-02", endDateStr.String)
+			rf.hasEndDate = true
 		}
 
-		// Verificar se o período está dentro da vigência do contrato
-		// Contrato deve ter começado antes ou no mês em questão
-		if !contractStartDate.IsZero() && targetDate.Before(time.Date(contractStartDate.Year(), contractStartDate.Month(), 1, 0, 0, 0, 0, time.UTC)) {
-			continue
-		}
+		recurrents = append(recurrents, rf)
+		recurrentIDs = append(recurrentIDs, rf.cfID)
+	}
+	if err := recRows.Err(); err != nil {
+		return nil, err
+	}
 
-		// Se tem data de fim (vencimento), verificar se já expirou
-		if hasEndDate && !contractEndDate.IsZero() {
-			// Período deve ser antes ou no mesmo mês do vencimento
-			contractEndMonth := time.Date(contractEndDate.Year(), contractEndDate.Month(), 1, 0, 0, 0, 0, time.UTC)
-			if targetDate.After(contractEndMonth) {
+	// ------------------------------------------------------------------
+	// Query 4: Batch lookup of installment statuses for ALL recurrents
+	//          across the ENTIRE date range (1 query replaces ~15,000)
+	// Uses idx_fi_cfid_duedate_covering for Index-Only Scan
+	// ------------------------------------------------------------------
+	// Key: "cfID|YYYY-MM" -> status string
+	installmentStatusMap := make(map[string]string)
+
+	if len(recurrentIDs) > 0 {
+		batchQuery := `
+			SELECT
+				contract_financial_id,
+				TO_CHAR(DATE_TRUNC('month', due_date), 'YYYY-MM') AS period,
+				status
+			FROM financial_installments
+			WHERE contract_financial_id = ANY($1)
+			AND due_date >= $2
+			AND due_date < $3
+		`
+
+		statusRows, err := s.db.Query(batchQuery, recurrentIDs, rangeStart, rangeEnd)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao buscar status de installments em batch: %w", err)
+		}
+		defer statusRows.Close()
+
+		for statusRows.Next() {
+			var cfID, period, status string
+			if err := statusRows.Scan(&cfID, &period, &status); err != nil {
 				continue
 			}
-		}
-
-		// Verificar se a recorrência se aplica a este mês
-		shouldInclude := false
-		switch recurrenceType {
-		case "mensal":
-			shouldInclude = true
-		case "trimestral":
-			// Calcular meses desde o início do contrato
-			if !contractStartDate.IsZero() {
-				startMonth := int(contractStartDate.Month())
-				monthsSinceStart := (year-contractStartDate.Year())*12 + (month - startMonth)
-				shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%3 == 0
-			} else {
-				// Se não tem data de início, considerar meses padrão (janeiro, abril, julho, outubro)
-				shouldInclude = month == 1 || month == 4 || month == 7 || month == 10
-			}
-		case "semestral":
-			// Calcular meses desde o início do contrato
-			if !contractStartDate.IsZero() {
-				startMonth := int(contractStartDate.Month())
-				monthsSinceStart := (year-contractStartDate.Year())*12 + (month - startMonth)
-				shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%6 == 0
-			} else {
-				// Se não tem data de início, considerar meses padrão (janeiro e julho)
-				shouldInclude = month == 1 || month == 7
-			}
-		case "anual":
-			// Calcular anos desde o início do contrato
-			if !contractStartDate.IsZero() {
-				startMonth := int(contractStartDate.Month())
-				startYear := contractStartDate.Year()
-				shouldInclude = year >= startYear && month == startMonth && (year-startYear) >= 0
-			} else {
-				// Se não tem data de início, considerar apenas janeiro
-				shouldInclude = month == 1
+			// Store the first status found per cfID+period (matches old LIMIT 1 behavior)
+			key := cfID + "|" + period
+			if _, exists := installmentStatusMap[key]; !exists {
+				installmentStatusMap[key] = status
 			}
 		}
+		if err := statusRows.Err(); err != nil {
+			return nil, err
+		}
+	}
 
-		if shouldInclude {
-			// Verificar se a cobrança já foi paga consultando installments
-			// Para recorrentes que foram convertidos em parcelas
-			dueDate := time.Date(year, time.Month(month), dueDay, 0, 0, 0, 0, time.UTC)
-			if dueDay > 28 {
-				// Ajustar para o último dia do mês se necessário
+	// ------------------------------------------------------------------
+	// Process: For each month in range, apply recurrent financials
+	// All in memory, no more database calls
+	// ------------------------------------------------------------------
+	now := time.Now()
+	current := rangeStart
+	for current.Before(rangeEnd) {
+		year := current.Year()
+		month := int(current.Month())
+		periodKey := fmt.Sprintf("%04d-%02d", year, month)
+
+		// Ensure we have a PeriodSummary entry for this month
+		ps, exists := periodMap[periodKey]
+		if !exists {
+			ps = &domain.PeriodSummary{}
+			periodMap[periodKey] = ps
+		}
+
+		targetDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+
+		// Apply each recurrent financial to this month
+		for _, rf := range recurrents {
+			// Check contract validity window
+			if !rf.contractStartDate.IsZero() && targetDate.Before(time.Date(rf.contractStartDate.Year(), rf.contractStartDate.Month(), 1, 0, 0, 0, 0, time.UTC)) {
+				continue
+			}
+			if rf.hasEndDate && !rf.contractEndDate.IsZero() {
+				contractEndMonth := time.Date(rf.contractEndDate.Year(), rf.contractEndDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+				if targetDate.After(contractEndMonth) {
+					continue
+				}
+			}
+
+			// Check recurrence applies to this month
+			shouldInclude := false
+			switch rf.recurrenceType {
+			case "mensal":
+				shouldInclude = true
+			case "trimestral":
+				if !rf.contractStartDate.IsZero() {
+					startMonth := int(rf.contractStartDate.Month())
+					monthsSinceStart := (year-rf.contractStartDate.Year())*12 + (month - startMonth)
+					shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%3 == 0
+				} else {
+					shouldInclude = month == 1 || month == 4 || month == 7 || month == 10
+				}
+			case "semestral":
+				if !rf.contractStartDate.IsZero() {
+					startMonth := int(rf.contractStartDate.Month())
+					monthsSinceStart := (year-rf.contractStartDate.Year())*12 + (month - startMonth)
+					shouldInclude = monthsSinceStart >= 0 && monthsSinceStart%6 == 0
+				} else {
+					shouldInclude = month == 1 || month == 7
+				}
+			case "anual":
+				if !rf.contractStartDate.IsZero() {
+					startMonth := int(rf.contractStartDate.Month())
+					startYear := rf.contractStartDate.Year()
+					shouldInclude = year >= startYear && month == startMonth && (year-startYear) >= 0
+				} else {
+					shouldInclude = month == 1
+				}
+			}
+
+			if !shouldInclude {
+				continue
+			}
+
+			// Compute due date for this recurrent in this month
+			dueDate := time.Date(year, time.Month(month), rf.dueDay, 0, 0, 0, 0, time.UTC)
+			if rf.dueDay > 28 {
 				lastDay := time.Date(year, time.Month(month+1), 0, 0, 0, 0, 0, time.UTC).Day()
-				if dueDay > lastDay {
+				if rf.dueDay > lastDay {
 					dueDate = time.Date(year, time.Month(month), lastDay, 0, 0, 0, 0, time.UTC)
 				}
 			}
 
-			// Verificar se há uma parcela correspondente (caso tenha sido criada manualmente)
-			checkInstallment := `
-				SELECT status FROM financial_installments
-				WHERE contract_financial_id = $1
-				AND EXTRACT(YEAR FROM due_date) = $2
-				AND EXTRACT(MONTH FROM due_date) = $3
-				LIMIT 1
-			`
-			var installmentStatus string
-			err = s.db.QueryRow(checkInstallment, cfID, year, month).Scan(&installmentStatus)
-
-			if err == nil {
-				// Existe parcela, usar o status dela
-				if installmentStatus == "pago" {
-					ps.AlreadyReceived += receivedValue
+			// Lookup installment status from the batch map (O(1) instead of 1 SQL query)
+			lookupKey := rf.cfID + "|" + periodKey
+			if installmentStatus, found := installmentStatusMap[lookupKey]; found {
+				switch installmentStatus {
+				case "pago":
+					ps.AlreadyReceived += rf.receivedValue
 					ps.PaidCount++
-				} else if installmentStatus == "pendente" {
-					ps.PendingAmount += receivedValue
+				case "pendente":
+					ps.PendingAmount += rf.receivedValue
 					ps.PendingCount++
-				} else if installmentStatus == "atrasado" {
-					ps.OverdueAmount += receivedValue
+				case "atrasado":
+					ps.OverdueAmount += rf.receivedValue
 					ps.OverdueCount++
 				}
 			} else {
-				// Não existe parcela, considerar como pendente ou atrasado baseado na data
-				now := time.Now()
+				// No installment exists — classify by due date
 				if dueDate.Before(now) {
-					ps.OverdueAmount += receivedValue
+					ps.OverdueAmount += rf.receivedValue
 					ps.OverdueCount++
 				} else {
-					ps.PendingAmount += receivedValue
+					ps.PendingAmount += rf.receivedValue
 					ps.PendingCount++
 				}
 			}
 
-			ps.TotalToReceive += receivedValue
-			ps.TotalClientPays += clientValue
+			ps.TotalToReceive += rf.receivedValue
+			ps.TotalClientPays += rf.clientValue
 		}
+
+		// Set period label
+		ps.Period = periodKey
+		ps.PeriodLabel = fmt.Sprintf("%s %d", monthNames[month], year)
+
+		// Advance to next month
+		current = current.AddDate(0, 1, 0)
 	}
 
-	// Formatar período
-	ps.Period = fmt.Sprintf("%04d-%02d", year, month)
-	monthNames := []string{"", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-		"Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"}
-	ps.PeriodLabel = fmt.Sprintf("%s %d", monthNames[month], year)
+	// Collect all periods in order
+	result := make([]domain.PeriodSummary, 0, 7)
+	current = rangeStart
+	for current.Before(rangeEnd) {
+		key := current.Format("2006-01")
+		if ps, ok := periodMap[key]; ok {
+			result = append(result, *ps)
+		}
+		current = current.AddDate(0, 1, 0)
+	}
 
-	return &ps, nil
+	return result, nil
+}
+
+// getPeriodSummary retorna o resumo de um período específico (mês/ano).
+// Kept for backward compatibility but now delegates to getPeriodSummariesBatch
+// with a single-month range.
+func (s *FinancialStore) getPeriodSummary(year int, month int) (*domain.PeriodSummary, error) {
+	rangeStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	rangeEnd := rangeStart.AddDate(0, 1, 0)
+
+	periods, err := s.getPeriodSummariesBatch(rangeStart, rangeEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(periods) > 0 {
+		return &periods[0], nil
+	}
+
+	return s.emptyPeriodSummary(year, month), nil
 }
 
 // UpdateOverdueStatus atualiza o status de parcelas vencidas para 'atrasado'
