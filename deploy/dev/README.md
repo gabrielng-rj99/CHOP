@@ -21,9 +21,10 @@ This mode is optimized for rapid development with instant feedback.
 ### 1. Prerequisites
 
 Ensure you have installed:
-- Go 1.21+
-- Node.js 20+
-- PostgreSQL 14+
+- Go 1.25.6
+- Node.js 24.11.1
+- PostgreSQL 16
+- Python 3.13.9
 - Make
 
 ### 2. Start Development Environment

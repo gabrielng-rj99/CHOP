@@ -34,13 +34,13 @@ THIRD-PARTY COMPONENTS
 This project incorporates software from the following sources:
 
 JAVASCRIPT/REACT:
-  - React 18.2.0 (Facebook, MIT License)
-  - React DOM 18.2.0 (Facebook, MIT License)
-  - Vite 5.4.2 (Evan You, MIT License)
-  - Vite React Plugin 4.2.1 (Evan You, MIT License)
-  - FontAwesome Core 6.5.1 (Fonticons, Inc., MIT License)
-  - FontAwesome Solid Icons 6.5.1 (Fonticons, Inc., MIT License)
-  - FontAwesome React 0.2.0 (Fonticons, Inc., MIT License)
+  - React 19.2.4 (Facebook, MIT License)
+  - React DOM 19.2.4 (Facebook, MIT License)
+  - Vite 7.3.1 (Evan You, MIT License)
+  - Vite React Plugin 5.1.4 (Evan You, MIT License)
+  - FontAwesome Core 7.2.0 (Fonticons, Inc., MIT License)
+  - FontAwesome Solid Icons 7.2.0 (Fonticons, Inc., MIT License)
+  - FontAwesome React 3.2.0 (Fonticons, Inc., MIT License)
 
 GO DEPENDENCIES:
   - github.com/golang-jwt/jwt/v5 (Dave Grijalva, MIT License)
@@ -52,13 +52,13 @@ GO DEPENDENCIES:
   - gopkg.in/natefinch/lumberjack.v2 (Nate Finch, MIT License)
 
 PYTHON TESTING:
-  - pytest 7.4.3 (Holger Krekel, MIT License)
-  - requests 2.31.0 (Kenneth Reitz, Apache 2.0 License)
-  - Faker 20.1.0 (Joke Baert, MIT License)
+  - pytest 9.0.2 (Holger Krekel, MIT License)
+  - requests 2.32.5 (Kenneth Reitz, Apache 2.0 License)
+  - Faker 40.4.0 (Joke Baert, MIT License)
   - colorama 0.4.6 (Jonathan Hartley, BSD License)
-  - rich 13.7.0 (Will McGugan, MIT License)
-  - PyJWT 2.8.0 (David Wolever, MIT License)
-  - jsonschema 4.20.0 (Julian Berman, MIT License)
+  - rich 14.3.3 (Will McGugan, MIT License)
+  - PyJWT 2.11.0 (David Wolever, MIT License)
+  - jsonschema 4.26.0 (Julian Berman, MIT License)
 
 See each dependency's documentation for complete license information.
 

@@ -324,9 +324,9 @@ openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
 
 ### Requirements
 
-- Go 1.21+
-- Node.js 20+
-- PostgreSQL 14+
+- Go 1.25.6
+- Node.js 24.11.1
+- PostgreSQL 16
 - Nginx
 - OpenSSL
 

@@ -24,9 +24,9 @@ This mode simulates a production environment without Docker.
 ```
 
 This installs:
-- Go (latest)
-- Node.js (latest LTS)
-- PostgreSQL
+- Go 1.25.6
+- Node.js 24.11.1
+- PostgreSQL 16
 - Nginx
 - OpenSSL
 

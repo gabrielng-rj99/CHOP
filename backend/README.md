@@ -1,13 +1,13 @@
 # Client Hub Open Project - Backend
 
-**Language:** Go 1.21+  
-**Database:** PostgreSQL 13+
+**Language:** Go 1.25.6  
+**Database:** PostgreSQL 16
 
 ## Quick Start
 
 ### Prerequisites
-- Go 1.21+
-- PostgreSQL 13+
+- Go 1.25.6
+- PostgreSQL 16
 - Docker & Docker Compose (recommended)
 
 ### Development Setup

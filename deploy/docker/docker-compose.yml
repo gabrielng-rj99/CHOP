@@ -18,7 +18,7 @@ services:
             context: ../..
             dockerfile: deploy/docker/Dockerfile.backend
             args:
-                GO_VERSION: "1.25"
+                GO_VERSION: "1.25.6"
         container_name: chop_server
         env_file: .env
         environment:
@@ -40,7 +40,7 @@ services:
             dockerfile: deploy/docker/Dockerfile.frontend
             args:
                 VITE_API_URL: ${VITE_API_URL:-}
-                NODE_VERSION: "24"
+                NODE_VERSION: "24.11.1"
         container_name: chop_nginx
         env_file: .env
         environment:
@@ -58,7 +58,7 @@ services:
             context: ../..
             dockerfile: deploy/docker/Dockerfile.backend
             args:
-                GO_VERSION: "1.25"
+                GO_VERSION: "1.25.6"
         container_name: chop_migrator
         env_file: .env
         environment:

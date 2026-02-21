@@ -1,8 +1,8 @@
 # Client Hub Open Project
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Go Version](https://img.shields.io/badge/Go-1.25.1-blue)](https://golang.org)
-[![React Version](https://img.shields.io/badge/React-18.2.0-blue)](https://reactjs.org)
+[![Go Version](https://img.shields.io/badge/Go-1.25.6-blue)](https://golang.org)
+[![React Version](https://img.shields.io/badge/React-19.2.4-blue)](https://reactjs.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com)
 [![CI/CD](https://img.shields.io/badge/CI/CD-GitHub%20Actions-green)](https://github.com/features/actions)
@@ -63,12 +63,12 @@ Client Hub follows a modern, layered architecture designed for scalability, main
 ### System Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (React + Vite)                  │
-│              TypeScript, TailwindCSS, React Router          │
+│              Frontend (React 19.2.4 + Vite 7.3.1)           │
+│          TypeScript, TailwindCSS, React Router 7.13.0       │
 ├─────────────────────────────────────────────────────────────┤
 │                     API Gateway (NGINX)                     │
 ├─────────────────────────────────────────────────────────────┤
-│                      Backend (Go 1.25.1)                    │
+│                      Backend (Go 1.25.6)                    │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │   Handlers  │  │ Middleware  │  │   JWT Auth          │  │
 │  │   (HTTP)    │  │ (CORS/Auth) │  │   (Token Mgmt)      │  │
@@ -90,11 +90,11 @@ Client Hub follows a modern, layered architecture designed for scalability, main
 ```
 
 ### Tech Stack
-- **Backend**: Go 1.25.1 with Gin framework, Repository pattern, Clean Architecture
-- **Frontend**: React 18 with Vite, TypeScript, FontAwesome icons
+- **Backend**: Go 1.25.6 with Gin framework, Repository pattern, Clean Architecture
+- **Frontend**: React 19.2.4 with Vite 7.3.1, TypeScript, React Router 7.13.0, FontAwesome 7.2.0
 - **Database**: PostgreSQL 16 with modular schema and migrations
 - **Deployment**: Docker Compose with NGINX reverse proxy
-- **Testing**: Go tests, Vitest, Python/pytest E2E & security tests
+- **Testing**: Go tests, Vitest 4.0.18, Python 3.13.9 / pytest 9.0.2 E2E & security tests
 - **Security**: JWT with per-user signing, rate limiting, CORS
 
 ### Database Schema
@@ -113,7 +113,7 @@ The database is organized into 8 modular components:
 ### Prerequisites
 - Docker & Docker Compose
 - Git
-- (Optional) Go 1.25.1 and Node.js 24 for local development
+- (Optional) Go 1.25.6, Node.js 24.11.1, Python 3.13.9 for local development
 
 ### Quick Start with Docker
 
@@ -147,9 +147,10 @@ The database is organized into 8 modular components:
 The project includes automated development scripts for easy setup.
 
 #### Prerequisites
-- Go 1.25.1+
-- Node.js 24+
-- PostgreSQL 16+
+- Go 1.25.6
+- Node.js 24.11.1
+- PostgreSQL 16
+- Python 3.13.9
 - Make
 
 #### Setup Steps

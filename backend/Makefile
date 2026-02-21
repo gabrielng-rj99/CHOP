@@ -25,7 +25,7 @@ help: ## Show backend build commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Configuration:$(NC)"
-	@echo "  Language: Go 1.25.1+"
+	@echo "  Language: Go 1.25.6"
 	@echo "  Main: $(MAIN_PATH)"
 	@echo "  Binary: $(BINARY_NAME)"
 	@echo ""

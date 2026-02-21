@@ -59,9 +59,9 @@ cd deploy/dev
 make install-deps           # Just install project dependencies
 
 # Option 2: No version managers? Let Makefile install them
-make install-go             # Install Go 1.21
-make install-node           # Install Node.js 20
-make install-python         # Install Python 3.11
+make install-go             # Install Go 1.25.6
+make install-node           # Install Node.js 24.11.1
+make install-python         # Install Python 3.13.9
 make install-deps           # Install project dependencies
 
 # Start development
@@ -242,9 +242,9 @@ prune      - Remove unused Docker resources
 install           - Full installation (Monolith)
 uninstall         - Complete removal (Monolith)
 install-deps      - Install project dependencies
-install-go        - Install Go 1.21
-install-node      - Install Node.js 20
-install-python    - Install Python 3.11
+install-go        - Install Go 1.25.6
+install-node      - Install Node.js 24.11.1
+install-python    - Install Python 3.13.9
 env-setup         - Create .env from template (Docker)
 validate          - Validate configuration
 ```

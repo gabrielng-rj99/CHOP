@@ -1,32 +1,103 @@
-# Project Action Summary
+# Project Summary — Client Hub Open Project
 
-## Overview
-This document summarizes the recent actions taken to centralize runtime artifacts under `app/`, stabilize test configuration, and outline remaining work.
+Resumo único e consolidado de requisitos, estado atual e próximos passos.
 
-## ✅ Completed
-- [x] Centralized runtime paths to `app/` across deploy/dev/monolith/docker artifacts and docs.
-- [x] Added `tests/pytest.ini` and wired `tests/run_all_tests.sh` to use it.
-- [x] Normalized README license heading to `## License` for compliance tests.
-- [x] Adjusted AGPL compliance test to allow Go build tags before license headers.
-- [x] Rebuilt dev DB and started dev services (`deploy/dev`).
-- [x] Removed legacy runtime artifacts outside `app/`.
-- [x] Moved frontend build output from `frontend/dist` to `app/monolith/frontend`.
-- [x] Added Docker preflight checks for buildx and volume permissions in `deploy/docker/Makefile`.
-- [x] Aligned test scripts to use `TEST_ROOT_PASSWORD` (default `THIS_IS_A_DEV_ENVIRONMENT_PASSWORD!123abc`).
+## Visão geral
+- [x] Sistema de gestão de clientes, contratos e financeiro para pequenas empresas, MEIs e freelancers.
+- [x] Licença: **AGPL-3.0**.
 
-## ⚠️ Blockers / Needs Attention
-- [ ] Fix ownership/permissions of `app/docker/data/postgres` (requires elevated privileges); preflight check now detects this, but still needs a sudo chown to remediate.
-- [ ] Install/enable Docker buildx to allow `docker compose build`.
-- [ ] Reconcile Python API/security tests with current refactored backend behavior.
-- [ ] Restore/confirm test environment seeding and auth flows for API tests.
+## Stack
+- [x] **Backend:** Go 1.25.6, PostgreSQL 16, API REST com JWT (access + refresh)
+- [x] **Frontend:** React 19.2.4 (Vite 7.3.1), React Router 7.13.0, CSS Modules
+- [x] **Testes:** Go tests, suíte Python API/segurança (Python 3.13.9, pytest 9.0.2), Vitest 4.0.18, Playwright 1.58.2
+- [x] **Lint:** ESLint 9.39.3
 
-## Test Status (Last Run)
-- ✅ AGPL compliance suite: **PASS**
-- ✅ Docker build: **PASS** (images built after ignoring runtime artifacts)
-- ⚠️ Python API/Security suite: **PARTIAL** (core API tests pass on test stack; security suites still failing)
+## Escopo Beta (MVP) — Core deve funcionar 100%
+### 1) Autenticação
+- [x] Login, refresh token, logout
+- [x] Bloqueio por tentativas falhas
+- [x] Políticas de senha por role (via UI)
 
-## Recommended Next Steps
-1. Run tests against the test stack using `TEST_API_URL=http://localhost:63000/api`.
-2. Investigate failing security tests (401s on root-only endpoints and validation cases).
-3. Align security test expectations with current API behavior post-refactor.
-4. Re-run full suite after adjustments.
+### 2) Usuários (Admin+)
+- [x] CRUD, bloqueio/desbloqueio
+- [x] Políticas de sessão por role (via UI)
+
+### 3) Clientes
+- [x] CRUD, arquivamento (soft delete), tags
+- [x] Validação CPF/CNPJ
+- [x] Status automático com base em contratos ativos
+
+### 4) Contratos
+- [x] CRUD, categorias/subcategorias
+- [x] Datas início/fim, status automático
+- [x] Unarchive via `archived_at` com audit logging
+
+### 5) Financeiro
+- [x] Parcelas, recorrências, vencimentos
+- [x] Marcar pago/pendente
+- [x] Dashboard financeiro, atrasos, próximos vencimentos
+
+### 6) Permissões
+- [x] Roles: root, admin, user, viewer
+- [x] Permissões granulares por recurso
+- [x] Validação no banco (não apenas claims)
+
+### 7) Auditoria
+- [x] Log completo de operações
+- [x] IP, UA, método, path, old/new value
+- [x] Apenas root acessa
+
+### 8) Configurações
+- [x] Tema global e por usuário
+- [x] Segurança e políticas via UI
+- [x] Configuração de dashboard
+
+## Requisitos não-funcionais (Beta)
+### Segurança (obrigatório)
+- [x] bcrypt, JWT com expiração
+- [x] Rate limit, brute force protection
+- [x] Security headers (CSP, HSTS, X-Frame-Options etc.)
+- [x] Validação de input e sanitização
+- [x] Auditoria de operações sensíveis
+
+### Disponibilidade
+- [x] `/health` e modo manutenção via `/api/initialize/`
+
+### Performance (pendente)
+- [ ] Definir SLAs e testes de carga
+
+## Status atual (consolidado)
+### Concluído
+- [x] Centralização de runtime em `app/` (deploy/dev/monolith/docker)
+- [x] `tests/pytest.ini` e `tests/run_all_tests.sh` alinhados
+- [x] README com heading `## License`
+- [x] Ajuste de testes AGPL para aceitar build tags Go
+- [x] Backend Go tests ok (inclui testes de archive/unarchive)
+- [x] Suíte Python de segurança operacional (14 arquivos: auth, bypass, XSS, SQLi, JWT, roles, permissions, financeiro, contratos, clientes, settings, appearance, initialization, block)
+- [x] Seed do ambiente de testes, auth flows e resets robustos no `conftest.py`
+- [x] Build frontend direcionado para `app/monolith/frontend`
+- [x] Preflight de Docker (buildx + permissões de volume)
+- [x] Test scripts usam `TEST_ROOT_PASSWORD`
+
+### Bloqueios conhecidos
+- [ ] Permissões em `app/docker/data/postgres` exigem `chown` com privilégio
+- [ ] Docker buildx não habilitado em alguns ambientes
+
+## Testes — última execução registrada
+- [x] AGPL compliance: **PASS**
+- [x] Docker build: **PASS**
+- [x] Go tests: **PASS**
+- [x] Python segurança: **operacional**
+
+## Próximos passos recomendados
+- [ ] Executar suíte Python completa com `TEST_API_URL=http://localhost:63000/api`.
+- [ ] Resolver buildx e permissões de volume nos ambientes alvo.
+- [ ] Reexecutar suíte após ajustes de ambiente.
+
+## Pós-Beta (futuro)
+- [ ] Webhooks, API pública, exportações
+- [ ] Relatórios financeiros avançados
+- [ ] Temas adicionais e dashboards analíticos
+
+## Contato & contribuição
+- [ ] Repositório/Issues: **a definir**

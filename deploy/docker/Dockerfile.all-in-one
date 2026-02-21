@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 # Backend build stage
 # ---------------------------------------------------------------------------
-FROM golang:1.26-alpine AS backend-builder
+FROM golang:1.25.6-alpine AS backend-builder
 
 WORKDIR /build
 
@@ -23,7 +23,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
 # ---------------------------------------------------------------------------
 # Frontend build stage
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS frontend-builder
+FROM node:24.11.1-alpine AS frontend-builder
 
 WORKDIR /build
 
