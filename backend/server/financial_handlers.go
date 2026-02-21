@@ -44,13 +44,60 @@ func (s *Server) handleFinancial(w http.ResponseWriter, r *http.Request) {
 
 // handleListFinancial lista todos os financeiros
 func (s *Server) handleListFinancial(w http.ResponseWriter, r *http.Request) {
-	financials, err := s.financialStore.GetAllFinancials()
+	// Parse pagination params (backward compatible: limit=0 or absent returns all)
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+
+	// Clamp values
+	if offset < 0 {
+		offset = 0
+	}
+
+	// limit=0 or absent → return all (backward compatibility)
+	if limit <= 0 {
+		financials, err := s.financialStore.GetAllFinancials()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		total := len(financials)
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data":   financials,
+			"total":  total,
+			"limit":  total,
+			"offset": 0,
+		})
+		return
+	}
+
+	// Cap limit to a sane max to prevent abuse
+	if limit > 500 {
+		limit = 500
+	}
+
+	// Paginated path: use optimized paged query + separate count
+	total, err := s.financialStore.CountFinancials()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: financials})
+	financials, err := s.financialStore.GetAllFinancialsPaged(limit, offset)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data":   financials,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
 }
 
 // handleCreateFinancial cria um novo modelo de financeiro
@@ -644,7 +691,13 @@ func (s *Server) handleUpcomingFinancial(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: financials})
+	total := len(financials)
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data":   financials,
+		"total":  total,
+		"limit":  total,
+		"offset": 0,
+	})
 }
 
 // handleOverdueFinancial retorna parcelas em atraso
@@ -663,7 +716,13 @@ func (s *Server) handleOverdueFinancial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Data: financials})
+	total := len(financials)
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data":   financials,
+		"total":  total,
+		"limit":  total,
+		"offset": 0,
+	})
 }
 
 // ============= REQUEST TYPES =============
