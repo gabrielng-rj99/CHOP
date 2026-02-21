@@ -502,12 +502,12 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 		return nil, errors.New("contract ID cannot be empty")
 	}
 	sqlStatement := `
-		SELECT id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id
+		SELECT id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id, archived_at
 		FROM contracts
 		WHERE id = $1`
 
 	var contract domain.Contract
-	var startDate, endDate sql.NullTime
+	var startDate, endDate, archivedAt sql.NullTime
 	err := s.db.QueryRow(sqlStatement, id).Scan(
 		&contract.ID,
 		&contract.Model,
@@ -517,6 +517,7 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 		&contract.SubcategoryID,
 		&contract.ClientID,
 		&contract.AffiliateID,
+		&archivedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -533,6 +534,9 @@ func (s *ContractStore) GetContractByID(id string) (*domain.Contract, error) {
 	if endDate.Valid {
 		t := endDate.Time
 		contract.EndDate = &t
+	}
+	if archivedAt.Valid {
+		contract.ArchivedAt = &archivedAt.Time
 	}
 
 	return &contract, nil
@@ -587,6 +591,82 @@ func (s *ContractStore) DeleteContract(id string) error {
 	}
 	if rows == 0 {
 		return errors.New("no contract deleted")
+	}
+	return nil
+}
+
+// ArchiveContract arquiva um contrato definindo archived_at = NOW().
+func (s *ContractStore) ArchiveContract(id string) error {
+	if id == "" {
+		return errors.New("contract ID cannot be empty")
+	}
+	// Check if contract exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("contract not found")
+	}
+	// Check if already archived
+	var archivedAt sql.NullTime
+	err = s.db.QueryRow("SELECT archived_at FROM contracts WHERE id = $1", id).Scan(&archivedAt)
+	if err != nil {
+		return err
+	}
+	if archivedAt.Valid {
+		return errors.New("contract is already archived")
+	}
+	sqlStatement := `UPDATE contracts SET archived_at = $1 WHERE id = $2`
+	result, err := s.db.Exec(sqlStatement, time.Now(), id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no contract archived")
+	}
+	return nil
+}
+
+// UnarchiveContract desarquiva um contrato definindo archived_at = NULL.
+func (s *ContractStore) UnarchiveContract(id string) error {
+	if id == "" {
+		return errors.New("contract ID cannot be empty")
+	}
+	// Check if contract exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM contracts WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("contract not found")
+	}
+	// Check if actually archived
+	var archivedAt sql.NullTime
+	err = s.db.QueryRow("SELECT archived_at FROM contracts WHERE id = $1", id).Scan(&archivedAt)
+	if err != nil {
+		return err
+	}
+	if !archivedAt.Valid {
+		return errors.New("contract is not archived")
+	}
+	sqlStatement := `UPDATE contracts SET archived_at = NULL WHERE id = $1`
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no contract unarchived")
 	}
 	return nil
 }

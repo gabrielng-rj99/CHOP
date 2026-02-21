@@ -2537,3 +2537,321 @@ func TestGetContractStatsForAllClients(t *testing.T) {
 		t.Error("Client stats not found in global list")
 	}
 }
+
+func TestArchiveContract(t *testing.T) {
+	db := setupContractTestDB(t)
+	defer db.Close()
+
+	clientID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	store := NewContractStore(db)
+
+	// Create a contract to archive
+	now := time.Now()
+	endDate := now.AddDate(1, 0, 0)
+	contract := domain.Contract{
+		Model:         "Archive Test Contract",
+		ItemKey:       "archive-test-key-" + uuid.New().String()[:8],
+		StartDate:     &now,
+		EndDate:       &endDate,
+		SubcategoryID: subcategoryID,
+		ClientID:      clientID,
+	}
+
+	id, err := store.CreateContract(contract)
+	if err != nil {
+		t.Fatalf("Failed to create contract: %v", err)
+	}
+
+	// Verify contract is not archived initially
+	created, err := store.GetContractByID(id)
+	if err != nil {
+		t.Fatalf("Failed to get contract: %v", err)
+	}
+	if created.ArchivedAt != nil {
+		t.Error("Contract should not be archived initially")
+	}
+
+	// Archive the contract
+	err = store.ArchiveContract(id)
+	if err != nil {
+		t.Fatalf("Failed to archive contract: %v", err)
+	}
+
+	// Verify contract is excluded from GetAllContracts (non-archived only)
+	allContracts, err := store.GetAllContracts()
+	if err != nil {
+		t.Fatalf("Failed to get all contracts: %v", err)
+	}
+	for _, c := range allContracts {
+		if c.ID == id {
+			t.Error("Archived contract should NOT appear in GetAllContracts")
+		}
+	}
+
+	// Verify contract IS included in GetAllContractsIncludingArchived
+	allIncluding, err := store.GetAllContractsIncludingArchived()
+	if err != nil {
+		t.Fatalf("Failed to get all contracts including archived: %v", err)
+	}
+	found := false
+	for _, c := range allIncluding {
+		if c.ID == id {
+			found = true
+			if c.ArchivedAt == nil {
+				t.Error("Archived contract should have ArchivedAt set")
+			}
+		}
+	}
+	if !found {
+		t.Error("Archived contract should appear in GetAllContractsIncludingArchived")
+	}
+
+	// Archiving an already archived contract should fail
+	err = store.ArchiveContract(id)
+	if err == nil {
+		t.Error("Expected error when archiving an already archived contract")
+	}
+	if err != nil && !strings.Contains(err.Error(), "already archived") {
+		t.Errorf("Expected 'already archived' error, got: %v", err)
+	}
+
+	// Archiving a non-existent contract should fail
+	err = store.ArchiveContract(uuid.New().String())
+	if err == nil {
+		t.Error("Expected error when archiving non-existent contract")
+	}
+
+	// Archiving with empty ID should fail
+	err = store.ArchiveContract("")
+	if err == nil {
+		t.Error("Expected error when archiving with empty ID")
+	}
+}
+
+func TestUnarchiveContract(t *testing.T) {
+	db := setupContractTestDB(t)
+	defer db.Close()
+
+	clientID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	store := NewContractStore(db)
+
+	// Create and archive a contract
+	now := time.Now()
+	endDate := now.AddDate(1, 0, 0)
+	contract := domain.Contract{
+		Model:         "Unarchive Test Contract",
+		ItemKey:       "unarchive-test-key-" + uuid.New().String()[:8],
+		StartDate:     &now,
+		EndDate:       &endDate,
+		SubcategoryID: subcategoryID,
+		ClientID:      clientID,
+	}
+
+	id, err := store.CreateContract(contract)
+	if err != nil {
+		t.Fatalf("Failed to create contract: %v", err)
+	}
+
+	err = store.ArchiveContract(id)
+	if err != nil {
+		t.Fatalf("Failed to archive contract: %v", err)
+	}
+
+	// Verify it is archived
+	allContracts, err := store.GetAllContracts()
+	if err != nil {
+		t.Fatalf("Failed to get all contracts: %v", err)
+	}
+	for _, c := range allContracts {
+		if c.ID == id {
+			t.Error("Archived contract should NOT appear in GetAllContracts before unarchive")
+		}
+	}
+
+	// Unarchive the contract
+	err = store.UnarchiveContract(id)
+	if err != nil {
+		t.Fatalf("Failed to unarchive contract: %v", err)
+	}
+
+	// Verify contract reappears in GetAllContracts
+	allContracts, err = store.GetAllContracts()
+	if err != nil {
+		t.Fatalf("Failed to get all contracts after unarchive: %v", err)
+	}
+	found := false
+	for _, c := range allContracts {
+		if c.ID == id {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("Unarchived contract should appear in GetAllContracts")
+	}
+
+	// Unarchiving a non-archived contract should fail
+	err = store.UnarchiveContract(id)
+	if err == nil {
+		t.Error("Expected error when unarchiving a contract that is not archived")
+	}
+	if err != nil && !strings.Contains(err.Error(), "not archived") {
+		t.Errorf("Expected 'not archived' error, got: %v", err)
+	}
+
+	// Unarchiving a non-existent contract should fail
+	err = store.UnarchiveContract(uuid.New().String())
+	if err == nil {
+		t.Error("Expected error when unarchiving non-existent contract")
+	}
+
+	// Unarchiving with empty ID should fail
+	err = store.UnarchiveContract("")
+	if err == nil {
+		t.Error("Expected error when unarchiving with empty ID")
+	}
+}
+
+func TestArchiveUnarchiveContractRoundTrip(t *testing.T) {
+	db := setupContractTestDB(t)
+	defer db.Close()
+
+	clientID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	store := NewContractStore(db)
+
+	now := time.Now()
+	endDate := now.AddDate(1, 0, 0)
+	contract := domain.Contract{
+		Model:         "Roundtrip Test Contract",
+		ItemKey:       "roundtrip-test-key-" + uuid.New().String()[:8],
+		StartDate:     &now,
+		EndDate:       &endDate,
+		SubcategoryID: subcategoryID,
+		ClientID:      clientID,
+	}
+
+	id, err := store.CreateContract(contract)
+	if err != nil {
+		t.Fatalf("Failed to create contract: %v", err)
+	}
+
+	// Archive → Unarchive → Archive → Unarchive cycle
+	for i := 0; i < 3; i++ {
+		err = store.ArchiveContract(id)
+		if err != nil {
+			t.Fatalf("Round %d: Failed to archive: %v", i, err)
+		}
+
+		// Confirm excluded from active list
+		active, _ := store.GetAllContracts()
+		for _, c := range active {
+			if c.ID == id {
+				t.Fatalf("Round %d: Archived contract should not be in active list", i)
+			}
+		}
+
+		err = store.UnarchiveContract(id)
+		if err != nil {
+			t.Fatalf("Round %d: Failed to unarchive: %v", i, err)
+		}
+
+		// Confirm back in active list
+		active, _ = store.GetAllContracts()
+		found := false
+		for _, c := range active {
+			if c.ID == id {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("Round %d: Unarchived contract should be in active list", i)
+		}
+	}
+}
+
+func TestArchiveContractAffectsStats(t *testing.T) {
+	db := setupContractTestDB(t)
+	defer db.Close()
+
+	clientID, _, _, subcategoryID, err := insertTestDependencies(db)
+	if err != nil {
+		t.Fatalf("Failed to insert test dependencies: %v", err)
+	}
+
+	store := NewContractStore(db)
+
+	now := time.Now()
+	endDate := now.AddDate(1, 0, 0)
+	contract := domain.Contract{
+		Model:         "Stats Test Contract",
+		ItemKey:       "stats-test-key-" + uuid.New().String()[:8],
+		StartDate:     &now,
+		EndDate:       &endDate,
+		SubcategoryID: subcategoryID,
+		ClientID:      clientID,
+	}
+
+	id, err := store.CreateContract(contract)
+	if err != nil {
+		t.Fatalf("Failed to create contract: %v", err)
+	}
+
+	// Check stats before archiving
+	stats, err := store.GetContractStatsByClientID(clientID)
+	if err != nil {
+		t.Fatalf("Failed to get stats: %v", err)
+	}
+	if stats.ActiveContracts != 1 {
+		t.Errorf("Expected 1 active contract before archive, got %d", stats.ActiveContracts)
+	}
+	if stats.ArchivedContracts != 0 {
+		t.Errorf("Expected 0 archived contracts before archive, got %d", stats.ArchivedContracts)
+	}
+
+	// Archive
+	err = store.ArchiveContract(id)
+	if err != nil {
+		t.Fatalf("Failed to archive contract: %v", err)
+	}
+
+	// Check stats after archiving
+	stats, err = store.GetContractStatsByClientID(clientID)
+	if err != nil {
+		t.Fatalf("Failed to get stats after archive: %v", err)
+	}
+	if stats.ActiveContracts != 0 {
+		t.Errorf("Expected 0 active contracts after archive, got %d", stats.ActiveContracts)
+	}
+	if stats.ArchivedContracts != 1 {
+		t.Errorf("Expected 1 archived contract after archive, got %d", stats.ArchivedContracts)
+	}
+
+	// Unarchive
+	err = store.UnarchiveContract(id)
+	if err != nil {
+		t.Fatalf("Failed to unarchive contract: %v", err)
+	}
+
+	// Check stats after unarchiving
+	stats, err = store.GetContractStatsByClientID(clientID)
+	if err != nil {
+		t.Fatalf("Failed to get stats after unarchive: %v", err)
+	}
+	if stats.ActiveContracts != 1 {
+		t.Errorf("Expected 1 active contract after unarchive, got %d", stats.ActiveContracts)
+	}
+	if stats.ArchivedContracts != 0 {
+		t.Errorf("Expected 0 archived contracts after unarchive, got %d", stats.ArchivedContracts)
+	}
+}

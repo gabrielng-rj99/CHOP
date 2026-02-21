@@ -277,29 +277,78 @@ func (s *Server) handleContractArchive(w http.ResponseWriter, r *http.Request) {
 
 	contractID := parts[0]
 
-	// Get contract before archiving to update client status
-	oldContract, _ := s.contractStore.GetContractByID(contractID)
+	// SECURITY: Validate UUID format before querying database
+	if err := domain.ValidateUUID(contractID); err != nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
+		return
+	}
 
-	// Archive contract by deleting it (or you can add an archived_at field)
-	if err := s.contractStore.DeleteContract(contractID); err != nil {
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldContract, err := s.contractStore.GetContractByID(contractID)
+	if err != nil || oldContract == nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
+		return
+	}
+	oldValueJSON, _ := json.Marshal(oldContract)
+
+	// Soft-delete: set archived_at instead of hard delete
+	if err := s.contractStore.ArchiveContract(contractID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "archive",
+				Resource:      "contract",
+				ResourceID:    contractID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Update client status based on active contracts
-	if oldContract != nil {
-		if err := s.clientStore.UpdateClientStatus(oldContract.ClientID); err != nil {
-			// Log warning but don't fail the request
-			// This is a non-critical operation
-		}
+	if err := s.clientStore.UpdateClientStatus(oldContract.ClientID); err != nil {
+		// Log warning but don't fail the request
+	}
 
-		// Update category status based on usage
-		lineData, _ := s.subcategoryStore.GetSubcategoryByID(oldContract.SubcategoryID)
-		if lineData != nil {
-			if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
-				// Log warning but don't fail the request
-			}
+	// Update category status based on usage
+	lineData, _ := s.subcategoryStore.GetSubcategoryByID(oldContract.SubcategoryID)
+	if lineData != nil {
+		if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
+			// Log warning but don't fail the request
 		}
+	}
+
+	// Log successful archive
+	if claims != nil {
+		newContract, _ := s.contractStore.GetContractByID(contractID)
+		newValueJSON, _ := json.Marshal(newContract)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "archive",
+			Resource:      "contract",
+			ResourceID:    contractID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract archived successfully"})
@@ -311,5 +360,86 @@ func (s *Server) handleContractUnarchive(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract unarchive not implemented"})
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/contracts/"), "/")
+	if len(parts) < 2 || parts[0] == "" {
+		respondError(w, http.StatusBadRequest, "Contract ID required")
+		return
+	}
+
+	contractID := parts[0]
+
+	// SECURITY: Validate UUID format before querying database
+	if err := domain.ValidateUUID(contractID); err != nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
+		return
+	}
+
+	claims, _ := ValidateJWT(extractTokenFromHeader(r), s.userStore)
+
+	// Get old value for audit
+	oldContract, err := s.contractStore.GetContractByID(contractID)
+	if err != nil || oldContract == nil {
+		respondError(w, http.StatusNotFound, "Contract not found")
+		return
+	}
+	oldValueJSON, _ := json.Marshal(oldContract)
+
+	if err := s.contractStore.UnarchiveContract(contractID); err != nil {
+		// Log failed attempt
+		errMsg := err.Error()
+		if claims != nil {
+			s.auditStore.LogOperation(store.AuditLogRequest{
+				Operation:     "unarchive",
+				Resource:      "contract",
+				ResourceID:    contractID,
+				AdminID:       &claims.UserID,
+				AdminUsername: &claims.Username,
+				OldValue:      bytesToStringPtr(oldValueJSON),
+				NewValue:      nil,
+				Status:        "error",
+				ErrorMessage:  &errMsg,
+				IPAddress:     getIPAddress(r),
+				UserAgent:     getUserAgent(r),
+				RequestMethod: getRequestMethod(r),
+				RequestPath:   getRequestPath(r),
+			})
+		}
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Update client status based on active contracts
+	if err := s.clientStore.UpdateClientStatus(oldContract.ClientID); err != nil {
+		// Log warning but don't fail the request
+	}
+
+	// Update category status based on usage
+	lineData, _ := s.subcategoryStore.GetSubcategoryByID(oldContract.SubcategoryID)
+	if lineData != nil {
+		if err := s.categoryStore.UpdateCategoryStatus(lineData.CategoryID); err != nil {
+			// Log warning but don't fail the request
+		}
+	}
+
+	// Log successful unarchive
+	if claims != nil {
+		newContract, _ := s.contractStore.GetContractByID(contractID)
+		newValueJSON, _ := json.Marshal(newContract)
+		s.auditStore.LogOperation(store.AuditLogRequest{
+			Operation:     "unarchive",
+			Resource:      "contract",
+			ResourceID:    contractID,
+			AdminID:       &claims.UserID,
+			AdminUsername: &claims.Username,
+			OldValue:      bytesToStringPtr(oldValueJSON),
+			NewValue:      bytesToStringPtr(newValueJSON),
+			Status:        "success",
+			IPAddress:     getIPAddress(r),
+			UserAgent:     getUserAgent(r),
+			RequestMethod: getRequestMethod(r),
+			RequestPath:   getRequestPath(r),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, SuccessResponse{Message: "Contract unarchived successfully"})
 }
