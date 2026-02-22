@@ -47,6 +47,7 @@ func GetGlobalDB() *sql.DB {
 }
 
 type Server struct {
+	db               *sql.DB
 	userStore        *store.UserStore
 	contractStore    *store.ContractStore
 	clientStore      *store.ClientStore
@@ -57,7 +58,7 @@ type Server struct {
 	settingsStore    *store.SettingsStore
 	userThemeStore   *store.UserThemeStore
 	roleStore        *store.RoleStore
-	financialStore     *store.FinancialStore
+	financialStore   *store.FinancialStore
 	config           *config.Config
 	rateLimiter      *IPRateLimiter
 }
@@ -95,6 +96,7 @@ func NewServer(db *sql.DB) *Server {
 	}
 
 	return &Server{
+		db:               db,
 		userStore:        userStore,
 		contractStore:    contractStore,
 		clientStore:      clientStore,
@@ -105,7 +107,7 @@ func NewServer(db *sql.DB) *Server {
 		settingsStore:    settingsStore,
 		userThemeStore:   userThemeStore,
 		roleStore:        roleStore,
-		financialStore:     financialStore,
+		financialStore:   financialStore,
 		config:           cfg,
 		rateLimiter:      NewIPRateLimiter(rate.Limit(cfg.Security.RateLimit), cfg.Security.RateBurst),
 	}
@@ -114,6 +116,7 @@ func NewServer(db *sql.DB) *Server {
 // InitializeStores initializes all stores with the provided database connection
 func (s *Server) InitializeStores(db *sql.DB) {
 	if db != nil {
+		s.db = db
 		s.userStore = store.NewUserStore(db)
 		s.contractStore = store.NewContractStore(db)
 		s.clientStore = store.NewClientStore(db)

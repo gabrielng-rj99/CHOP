@@ -294,6 +294,12 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 		}
 	})))
 
+	// Dashboard Counts - Aggregated counts endpoint (replaces loading all records for counts)
+	mux.HandleFunc("/api/dashboard/counts", s.standardMiddleware(s.authMiddleware(s.handleDashboardCounts)))
+
+	// Client Counts - Client status breakdown for filter buttons
+	mux.HandleFunc("/api/clients/counts", s.standardMiddleware(s.authMiddleware(s.handleClientCounts)))
+
 	// Financial - Contract financial management
 	mux.HandleFunc("/api/financial/summary", s.standardMiddleware(s.authMiddleware(s.handleFinancialSummary)))
 	mux.HandleFunc("/api/financial/detailed-summary", s.standardMiddleware(s.authMiddleware(s.handleFinancialDetailedSummary)))
