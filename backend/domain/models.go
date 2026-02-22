@@ -87,6 +87,12 @@ type Contract struct {
 	ClientID      string     `json:"client_id"`
 	AffiliateID   *string    `json:"affiliate_id"` // Usamos um ponteiro para que possa ser nulo
 	ArchivedAt    *time.Time `json:"archived_at"`
+
+	// Enriched fields (populated by JOINs, not persisted)
+	ClientName      string  `json:"client_name,omitempty"`
+	ClientNickname  *string `json:"client_nickname,omitempty"`
+	CategoryName    string  `json:"category_name,omitempty"`
+	SubcategoryName string  `json:"subcategory_name,omitempty"`
 }
 
 // User representa um usuário do sistema para autenticação
@@ -183,6 +189,15 @@ type ContractFinancial struct {
 	TotalReceivedValue *float64 `json:"total_received_value,omitempty"`
 	TotalInstallments  int      `json:"total_installments,omitempty"`
 	PaidInstallments   int      `json:"paid_installments,omitempty"`
+
+	// Enriched fields (populated by JOINs, not persisted)
+	ContractModel   string     `json:"contract_model,omitempty"`
+	ClientName      string     `json:"client_name,omitempty"`
+	ClientNickname  *string    `json:"client_nickname,omitempty"`
+	CategoryName    string     `json:"category_name,omitempty"`
+	SubcategoryName string     `json:"subcategory_name,omitempty"`
+	ContractStart   *time.Time `json:"contract_start,omitempty"`
+	ContractEnd     *time.Time `json:"contract_end,omitempty"`
 
 	// Relacionamentos (para responses)
 	Installments []FinancialInstallment `json:"installments,omitempty"`

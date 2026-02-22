@@ -761,8 +761,19 @@ func (s *ContractStore) GetAllContracts() (contracts []domain.Contract, err erro
 
 // GetAllContractsIncludingArchived fetches all contracts in the system (including archived)
 func (s *ContractStore) GetAllContractsIncludingArchived() (contracts []domain.Contract, err error) {
-	sqlStatement := `SELECT id, model, item_key, start_date, end_date, subcategory_id, client_id, affiliate_id, archived_at
-	                 FROM contracts`
+	sqlStatement := `
+		SELECT
+			c.id, c.model, c.item_key, c.start_date, c.end_date,
+			c.subcategory_id, c.client_id, c.affiliate_id, c.archived_at,
+			COALESCE(cl.name, '') AS client_name,
+			cl.nickname AS client_nickname,
+			COALESCE(cat.name, '') AS category_name,
+			COALESCE(s.name, '') AS subcategory_name
+		FROM contracts c
+		LEFT JOIN clients cl ON cl.id = c.client_id
+		LEFT JOIN subcategories s ON s.id = c.subcategory_id
+		LEFT JOIN categories cat ON cat.id = s.category_id
+	`
 	rows, err := s.db.Query(sqlStatement)
 	if err != nil {
 		return nil, err
@@ -778,7 +789,12 @@ func (s *ContractStore) GetAllContractsIncludingArchived() (contracts []domain.C
 	for rows.Next() {
 		var c domain.Contract
 		var startDate, endDate, archivedAt sql.NullTime
-		if err = rows.Scan(&c.ID, &c.Model, &c.ItemKey, &startDate, &endDate, &c.SubcategoryID, &c.ClientID, &c.AffiliateID, &archivedAt); err != nil {
+		var clientNickname sql.NullString
+		if err = rows.Scan(
+			&c.ID, &c.Model, &c.ItemKey, &startDate, &endDate,
+			&c.SubcategoryID, &c.ClientID, &c.AffiliateID, &archivedAt,
+			&c.ClientName, &clientNickname, &c.CategoryName, &c.SubcategoryName,
+		); err != nil {
 			return nil, err
 		}
 		if startDate.Valid {
@@ -791,6 +807,9 @@ func (s *ContractStore) GetAllContractsIncludingArchived() (contracts []domain.C
 		}
 		if archivedAt.Valid {
 			c.ArchivedAt = &archivedAt.Time
+		}
+		if clientNickname.Valid {
+			c.ClientNickname = &clientNickname.String
 		}
 		contracts = append(contracts, c)
 	}

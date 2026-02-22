@@ -286,9 +286,19 @@ func (s *FinancialStore) GetAllFinancials() ([]domain.ContractFinancial, error) 
 		SELECT
 			cp.id, cp.contract_id, cp.financial_type, cp.recurrence_type, cp.due_day,
 			cp.client_value, cp.received_value, cp.description, cp.is_active,
-			cp.created_at, cp.updated_at
+			cp.created_at, cp.updated_at,
+			COALESCE(c.model, '') AS contract_model,
+			COALESCE(cl.name, '') AS client_name,
+			cl.nickname AS client_nickname,
+			COALESCE(cat.name, '') AS category_name,
+			COALESCE(sub.name, '') AS subcategory_name,
+			c.start_date AS contract_start,
+			c.end_date AS contract_end
 		FROM contract_financial cp
 		JOIN contracts c ON c.id = cp.contract_id
+		LEFT JOIN clients cl ON cl.id = c.client_id
+		LEFT JOIN subcategories sub ON sub.id = c.subcategory_id
+		LEFT JOIN categories cat ON cat.id = sub.category_id
 		WHERE c.archived_at IS NULL
 		ORDER BY cp.created_at DESC
 	`
@@ -300,8 +310,11 @@ func (s *FinancialStore) GetAllFinancials() ([]domain.ContractFinancial, error) 
 	defer rows.Close()
 
 	var financials []domain.ContractFinancial
+	var personalizedIDs []string
 	for rows.Next() {
 		var f domain.ContractFinancial
+		var clientNickname sql.NullString
+		var contractStart, contractEnd sql.NullTime
 		err := rows.Scan(
 			&f.ID,
 			&f.ContractID,
@@ -314,14 +327,66 @@ func (s *FinancialStore) GetAllFinancials() ([]domain.ContractFinancial, error) 
 			&f.IsActive,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.ContractModel,
+			&f.ClientName,
+			&clientNickname,
+			&f.CategoryName,
+			&f.SubcategoryName,
+			&contractStart,
+			&contractEnd,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		// Calcular totais para cada financeiro
-		s.calculateFinancialTotals(&f)
+		if clientNickname.Valid {
+			f.ClientNickname = &clientNickname.String
+		}
+		if contractStart.Valid {
+			f.ContractStart = &contractStart.Time
+		}
+		if contractEnd.Valid {
+			f.ContractEnd = &contractEnd.Time
+		}
+
+		if f.FinancialType == "personalizado" {
+			personalizedIDs = append(personalizedIDs, f.ID)
+		} else {
+			// Para único ou recorrente, usar os valores base
+			f.TotalClientValue = f.ClientValue
+			f.TotalReceivedValue = f.ReceivedValue
+			f.TotalInstallments = 0
+			f.PaidInstallments = 0
+		}
+
 		financials = append(financials, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Batch calculate totals for personalized financials (1 query instead of N)
+	if len(personalizedIDs) > 0 {
+		totalsMap, err := s.calculateFinancialTotalsBatch(personalizedIDs)
+		if err != nil {
+			return nil, err
+		}
+		for i := range financials {
+			if financials[i].FinancialType == "personalizado" {
+				if totals, ok := totalsMap[financials[i].ID]; ok {
+					financials[i].TotalClientValue = &totals.totalClient
+					financials[i].TotalReceivedValue = &totals.totalReceived
+					financials[i].TotalInstallments = totals.total
+					financials[i].PaidInstallments = totals.paid
+				} else {
+					zero := 0.0
+					financials[i].TotalClientValue = &zero
+					financials[i].TotalReceivedValue = &zero
+					financials[i].TotalInstallments = 0
+					financials[i].PaidInstallments = 0
+				}
+			}
+		}
 	}
 
 	return financials, nil
@@ -333,9 +398,19 @@ func (s *FinancialStore) GetAllFinancialsPaged(limit, offset int) ([]domain.Cont
 		SELECT
 			cp.id, cp.contract_id, cp.financial_type, cp.recurrence_type, cp.due_day,
 			cp.client_value, cp.received_value, cp.description, cp.is_active,
-			cp.created_at, cp.updated_at
+			cp.created_at, cp.updated_at,
+			COALESCE(c.model, '') AS contract_model,
+			COALESCE(cl.name, '') AS client_name,
+			cl.nickname AS client_nickname,
+			COALESCE(cat.name, '') AS category_name,
+			COALESCE(sub.name, '') AS subcategory_name,
+			c.start_date AS contract_start,
+			c.end_date AS contract_end
 		FROM contract_financial cp
 		JOIN contracts c ON c.id = cp.contract_id
+		LEFT JOIN clients cl ON cl.id = c.client_id
+		LEFT JOIN subcategories sub ON sub.id = c.subcategory_id
+		LEFT JOIN categories cat ON cat.id = sub.category_id
 		WHERE c.archived_at IS NULL
 		ORDER BY cp.created_at DESC
 		LIMIT $1 OFFSET $2
@@ -351,6 +426,8 @@ func (s *FinancialStore) GetAllFinancialsPaged(limit, offset int) ([]domain.Cont
 	var personalizedIDs []string
 	for rows.Next() {
 		var f domain.ContractFinancial
+		var clientNickname sql.NullString
+		var contractStart, contractEnd sql.NullTime
 		err := rows.Scan(
 			&f.ID,
 			&f.ContractID,
@@ -363,9 +440,26 @@ func (s *FinancialStore) GetAllFinancialsPaged(limit, offset int) ([]domain.Cont
 			&f.IsActive,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.ContractModel,
+			&f.ClientName,
+			&clientNickname,
+			&f.CategoryName,
+			&f.SubcategoryName,
+			&contractStart,
+			&contractEnd,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if clientNickname.Valid {
+			f.ClientNickname = &clientNickname.String
+		}
+		if contractStart.Valid {
+			f.ContractStart = &contractStart.Time
+		}
+		if contractEnd.Valid {
+			f.ContractEnd = &contractEnd.Time
 		}
 
 		if f.FinancialType == "personalizado" {
@@ -397,6 +491,12 @@ func (s *FinancialStore) GetAllFinancialsPaged(limit, offset int) ([]domain.Cont
 					financials[i].TotalReceivedValue = &totals.totalReceived
 					financials[i].TotalInstallments = totals.total
 					financials[i].PaidInstallments = totals.paid
+				} else {
+					zero := 0.0
+					financials[i].TotalClientValue = &zero
+					financials[i].TotalReceivedValue = &zero
+					financials[i].TotalInstallments = 0
+					financials[i].PaidInstallments = 0
 				}
 			}
 		}
