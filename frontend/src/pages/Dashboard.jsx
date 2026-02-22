@@ -16,25 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
 import "./styles/Dashboard.css";
 
 export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     const { config, getPersistentFilter, setPersistentFilter } = useConfig();
-    const {
-        fetchContracts,
-        fetchClients,
-        fetchCategories,
-        fetchSubcategories,
-    } = useData();
+    const { fetchContracts, fetchClients, fetchCategories, fetchWithCache } =
+        useData();
     const [contracts, setContracts] = useState([]);
     const [clients, setClients] = useState([]);
     const [categories, setCategories] = useState([]);
     const [lines, setLines] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState("");
+    // Phase 1: Aggregated counts from /api/dashboard/counts (instant)
+    const [dashCounts, setDashCounts] = useState(null);
     const [birthdayFilter, setBirthdayFilter] = useState(() =>
         getPersistentFilter("dashboard_birthday_filter", "day"),
     );
@@ -99,38 +98,57 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         }
     }, [token, apiUrl]);
 
-    // Sempre fazer fresh request ao carregar o Dashboard
-    // Cache é usado apenas para buscas/filtros durante a mesma sessão
+    // Two-phase loading:
+    // Phase 1: Load counts instantly (single lightweight query)
+    // Phase 2: Load detailed data in background for tabs (birthdays, expiring, etc.)
     useEffect(() => {
-        loadData(true); // forceRefresh=true para garantir dados atualizados
+        loadCounts();
+        loadData();
     }, []);
 
-    const loadData = async (forceRefresh = false) => {
-        setLoading(true);
+    const loadCounts = useCallback(async () => {
+        try {
+            const expiringDays = dashboardSettings.expiring_days_ahead || 30;
+            const response = await fetchWithCache(
+                "/dashboard/counts",
+                { params: { expiring_days: expiringDays } },
+                "dashboard_counts",
+                30 * 1000,
+                true,
+            );
+            if (response?.data) {
+                setDashCounts(response.data);
+            }
+            // Phase 1 complete — stats cards can render
+            setLoading(false);
+        } catch (err) {
+            console.warn("Failed to load dashboard counts:", err);
+            // Fall through to Phase 2 which will also provide counts
+            setLoading(false);
+        }
+    }, [fetchWithCache, dashboardSettings.expiring_days_ahead]);
+
+    const loadData = useCallback(async () => {
+        setDataLoading(true);
         setError("");
 
         try {
-            // Fetch data using cache
+            // Phase 2: Fetch full data for tabs (birthdays, expiring, recent activity)
             const [contractsData, clientsData, categoriesData] =
                 await Promise.all([
-                    fetchContracts({}, forceRefresh),
-                    fetchClients({}, forceRefresh),
-                    fetchCategories(forceRefresh),
+                    fetchContracts({}, true),
+                    fetchClients({}, true),
+                    fetchCategories(true),
                 ]);
 
             setContracts(contractsData.data || []);
             setClients(clientsData.data || []);
             setCategories(categoriesData.data || []);
 
-            // Load all lines for all categories
-            const allLinesPromises = (categoriesData.data || []).map(
-                (category) =>
-                    fetchSubcategories(category.id, forceRefresh)
-                        .then((data) => data.data || [])
-                        .catch(() => []),
+            // Use lines already returned by the categories endpoint
+            const flattenedLines = (categoriesData.data || []).flatMap(
+                (category) => category.lines || [],
             );
-            const allLinesResults = await Promise.all(allLinesPromises);
-            const flattenedLines = allLinesResults.flat();
             setLines(flattenedLines);
 
             // Always set birthday filter to 'day'
@@ -140,9 +158,9 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setDataLoading(false);
         }
-    };
+    }, [fetchContracts, fetchClients, fetchCategories, birthdayFilter]);
 
     const getContractStatus = (contract) => {
         // Se não tem data de término, é considerado ativo
@@ -233,6 +251,35 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
     );
 
     const archivedClients = clients.filter((c) => c.archived_at);
+
+    // Use dashCounts for instant stats, fall back to computed values once full data loads
+    const statsActiveClients = dashCounts
+        ? dashCounts.clients.active
+        : activeClients.length;
+    const statsInactiveClients = dashCounts
+        ? dashCounts.clients.inactive
+        : inactiveClients.length;
+    const statsArchivedClients = dashCounts
+        ? dashCounts.clients.archived
+        : archivedClients.length;
+    const statsActiveContracts = dashCounts
+        ? dashCounts.contracts.active
+        : activeContracts.length;
+    const statsExpiringContracts = dashCounts
+        ? dashCounts.contracts.expiring
+        : expiringContracts.length;
+    const statsExpiredContracts = dashCounts
+        ? dashCounts.contracts.expired
+        : expiredContracts.length;
+    const statsNotStartedContracts = dashCounts
+        ? dashCounts.contracts.not_started
+        : notStartedContracts.length;
+    const statsTotalCategories = dashCounts
+        ? dashCounts.categories.total
+        : totalCategories;
+    const statsTotalLines = dashCounts
+        ? dashCounts.categories.subcategories
+        : totalLines;
 
     // Clientes que fazem aniversário no mês atual ou dia atual (respeitando days_ahead)
     const birthdayClients = clients
@@ -406,7 +453,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.clients} Ativos
                         </div>
                         <div className="dashboard-stat-value clients">
-                            {activeClients.length}
+                            {statsActiveClients}
                         </div>
                     </div>
 
@@ -415,7 +462,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.contracts || "Contratos"} Ativos
                         </div>
                         <div className="dashboard-stat-value active">
-                            {activeContracts.length}
+                            {statsActiveContracts}
                         </div>
                     </div>
 
@@ -424,7 +471,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             Expirando em Breve
                         </div>
                         <div className="dashboard-stat-value expiring">
-                            {expiringContracts.length}
+                            {statsExpiringContracts}
                         </div>
                     </div>
 
@@ -433,7 +480,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.contracts || "Contratos"} Expirados
                         </div>
                         <div className="dashboard-stat-value expired">
-                            {expiredContracts.length}
+                            {statsExpiredContracts}
                         </div>
                     </div>
 
@@ -442,7 +489,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.clients} Inativos
                         </div>
                         <div className="dashboard-stat-value inactive">
-                            {inactiveClients.length}
+                            {statsInactiveClients}
                         </div>
                     </div>
 
@@ -451,7 +498,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.clients} Arquivados
                         </div>
                         <div className="dashboard-stat-value archived">
-                            {archivedClients.length}
+                            {statsArchivedClients}
                         </div>
                     </div>
 
@@ -460,7 +507,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.categories}
                         </div>
                         <div className="dashboard-stat-value categories">
-                            {totalCategories}
+                            {statsTotalCategories}
                         </div>
                     </div>
 
@@ -469,7 +516,7 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                             {config.labels.subcategories}
                         </div>
                         <div className="dashboard-stat-value lines">
-                            {totalLines}
+                            {statsTotalLines}
                         </div>
                     </div>
                 </div>
@@ -554,13 +601,13 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
                         className={`dashboard-info-tab ${activeInfoTab === "expiring" ? "active" : ""}`}
                         onClick={() => setActiveInfoTab("expiring")}
                     >
-                        ⌛ Expirando ({expiringContracts.length})
+                        ⌛ Expirando ({statsExpiringContracts})
                     </button>
                     <button
                         className={`dashboard-info-tab ${activeInfoTab === "expired" ? "active" : ""}`}
                         onClick={() => setActiveInfoTab("expired")}
                     >
-                        ❌ Expirados ({expiredContracts.length})
+                        ❌ Expirados ({statsExpiredContracts})
                     </button>
                 </div>
 
