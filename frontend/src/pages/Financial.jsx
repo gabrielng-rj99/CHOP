@@ -56,6 +56,8 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [detailedSummary, setDetailedSummary] = useState(null);
+    const [detailedLoading, setDetailedLoading] = useState(false);
+    const [detailedLoaded, setDetailedLoaded] = useState(false);
     const [upcomingFinancials, setUpcomingFinancials] = useState([]);
     const [overdueFinancials, setOverdueFinancials] = useState([]);
     const [upcomingCurrentPage, setUpcomingCurrentPage] = useState(1);
@@ -189,6 +191,13 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         loadData();
     }, []);
 
+    // Lazy-load detailedSummary only when user switches to the dashboard tab
+    useEffect(() => {
+        if (mainTab === "dashboard" && !detailedLoaded && !detailedLoading) {
+            loadDetailedSummary();
+        }
+    }, [mainTab, detailedLoaded, detailedLoading]);
+
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (showModal) {
@@ -233,7 +242,6 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                 contractsRes,
                 clientsRes,
                 categoriesRes,
-                detailedData,
                 upcomingData,
                 overdueData,
             ] = await Promise.all([
@@ -241,9 +249,6 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                 fetchContracts({}, true),
                 fetchClients({}, true),
                 fetchCategories({}, true),
-                financialApi
-                    .getDetailedSummary(apiUrl, token, onTokenExpired)
-                    .catch(() => null),
                 financialApi
                     .getUpcomingFinancial(apiUrl, token, 30, onTokenExpired)
                     .catch(() => []),
@@ -256,13 +261,28 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             setContracts(contractsRes?.data || []);
             setClients(clientsRes?.data || []);
             setCategories(categoriesRes?.data || []);
-            setDetailedSummary(detailedData);
             setUpcomingFinancials(upcomingData || []);
             setOverdueFinancials(overdueData || []);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Lazy-load detailed summary — only called when user opens the dashboard tab
+    const loadDetailedSummary = async () => {
+        setDetailedLoading(true);
+        try {
+            const data = await financialApi
+                .getDetailedSummary(apiUrl, token, onTokenExpired)
+                .catch(() => null);
+            setDetailedSummary(data);
+            setDetailedLoaded(true);
+        } catch (err) {
+            console.warn("Failed to load detailed summary:", err);
+        } finally {
+            setDetailedLoading(false);
         }
     };
 
@@ -530,6 +550,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
 
             // Update all data silently for automatic refresh
             loadData(true);
+            // Also refresh detailed summary if it was loaded
+            if (detailedLoaded) {
+                loadDetailedSummary();
+            }
 
             // Restore scroll position after state update
             setTimeout(restoreScrollPosition, 0);
@@ -599,6 +623,10 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
 
             // Update all data silently for automatic refresh
             loadData(true);
+            // Also refresh detailed summary if it was loaded
+            if (detailedLoaded) {
+                loadDetailedSummary();
+            }
 
             // Restore scroll position after state update
             setTimeout(restoreScrollPosition, 0);
@@ -890,6 +918,22 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             {mainTab === "dashboard" && (
                 <>
                     {/* Visão por Período - with tabs */}
+                    {detailedLoading && !detailedSummary && (
+                        <div className="financial-periods-section financial-gradient-section">
+                            <h2 className="financial-section-title">
+                                📅 Visão por Período
+                            </h2>
+                            <p
+                                style={{
+                                    textAlign: "center",
+                                    padding: "2rem",
+                                    color: "var(--text-secondary, #888)",
+                                }}
+                            >
+                                Carregando detalhamento financeiro...
+                            </p>
+                        </div>
+                    )}
                     {detailedSummary && (
                         <div className="financial-periods-section financial-gradient-section">
                             <h2 className="financial-section-title">

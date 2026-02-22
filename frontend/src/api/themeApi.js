@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 /**
  * Theme API service for managing user theme settings
  * Provides secure communication with the backend for theme persistence
@@ -41,12 +43,7 @@ const themeApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -88,12 +85,7 @@ const themeApi = {
             body: JSON.stringify(sanitizedSettings),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (response.status === 403) {
             throw new Error(
@@ -136,12 +128,7 @@ const themeApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (response.status === 403) {
             throw new Error(
@@ -197,12 +184,7 @@ const themeApi = {
             }),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (response.status === 403) {
             throw new Error(

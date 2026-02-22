@@ -593,7 +593,7 @@ ON CONFLICT (key) DO UPDATE SET
 -- SYSTEM SETTINGS - Security: Rate Limiting
 -- ============================================
 INSERT INTO system_settings (key, value, description, category)
-VALUES ('security.rate_limit', '5', 'Limite de requisições por segundo por IP', 'security')
+VALUES ('security.rate_limit', '10', 'Limite de requisições por segundo por IP', 'security')
 ON CONFLICT (key) DO UPDATE SET
     description = EXCLUDED.description,
     category = EXCLUDED.category,

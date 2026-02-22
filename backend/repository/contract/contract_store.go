@@ -21,6 +21,7 @@ package contractstore
 import (
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -481,6 +482,55 @@ func (s *ContractStore) GetContractStatsForAllClients() (map[string]*ContractSta
 	defer rows.Close()
 
 	statsMap := make(map[string]*ContractStats)
+	for rows.Next() {
+		var stats ContractStats
+		if err := rows.Scan(&stats.ClientID, &stats.ActiveContracts, &stats.ExpiredContracts, &stats.ArchivedContracts); err != nil {
+			return nil, err
+		}
+		statsMap[stats.ClientID] = &stats
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return statsMap, nil
+}
+
+// GetContractStatsForClientIDs retorna estatísticas de contratos para uma lista de clientes
+func (s *ContractStore) GetContractStatsForClientIDs(clientIDs []string) (map[string]*ContractStats, error) {
+	statsMap := make(map[string]*ContractStats)
+	if len(clientIDs) == 0 {
+		return statsMap, nil
+	}
+
+	placeholders := make([]string, 0, len(clientIDs))
+	args := make([]interface{}, 0, len(clientIDs)+1)
+	for i, id := range clientIDs {
+		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
+		args = append(args, id)
+	}
+	now := time.Now()
+	args = append(args, now)
+	nowPlaceholder := "$" + strconv.Itoa(len(args))
+
+	query := `
+		SELECT
+			client_id,
+			COUNT(CASE WHEN archived_at IS NULL AND (end_date IS NULL OR end_date > ` + nowPlaceholder + `) THEN 1 END) as active,
+			COUNT(CASE WHEN archived_at IS NULL AND end_date IS NOT NULL AND end_date <= ` + nowPlaceholder + ` THEN 1 END) as expired,
+			COUNT(CASE WHEN archived_at IS NOT NULL THEN 1 END) as archived
+		FROM contracts
+		WHERE client_id IN (` + strings.Join(placeholders, ", ") + `)
+		GROUP BY client_id
+	`
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var stats ContractStats
 		if err := rows.Scan(&stats.ClientID, &stats.ActiveContracts, &stats.ExpiredContracts, &stats.ArchivedContracts); err != nil {

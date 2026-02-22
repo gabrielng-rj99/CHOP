@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 const categoriesApi = {
     // Direct return method for getting categories (used by AuditLogs)
     getCategories: async (apiUrl, token, params = {}, onTokenExpired) => {
@@ -33,12 +35,7 @@ const categoriesApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
@@ -69,12 +66,7 @@ const categoriesApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar subcategorias");
@@ -94,12 +86,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
@@ -120,12 +107,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar linhas");
@@ -145,12 +127,7 @@ const categoriesApi = {
             body: JSON.stringify(categoryData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -176,12 +153,7 @@ const categoriesApi = {
             body: JSON.stringify(categoryData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -200,12 +172,7 @@ const categoriesApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar categoria");
@@ -226,12 +193,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao arquivar categoria");
@@ -252,12 +214,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar categoria");
@@ -276,12 +233,7 @@ const categoriesApi = {
             body: JSON.stringify(lineData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -307,12 +259,7 @@ const categoriesApi = {
             body: JSON.stringify(lineData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -331,12 +278,7 @@ const categoriesApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar linha");
@@ -357,12 +299,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao arquivar linha");
@@ -383,12 +320,7 @@ const categoriesApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar linha");

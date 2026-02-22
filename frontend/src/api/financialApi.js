@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 export const financialApi = {
     // ============================================
     // CONTRACT FINANCIAL
@@ -24,26 +26,33 @@ export const financialApi = {
     /**
      * Lista todos os financeiro
      */
-    loadFinancial: async (apiUrl, token, onTokenExpired) => {
-        const response = await fetch(`${apiUrl}/financial`, {
+    loadFinancial: async (apiUrl, token, onTokenExpired, params = {}) => {
+        const url = new URL(`${apiUrl}/financial`, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.append(key, value);
+            }
+        });
+
+        const response = await fetch(url.toString(), {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar financeiro");
         }
 
         const data = await response.json();
+        // Return full response when using server-side pagination (has total/limit/offset)
+        if (data.total !== undefined) {
+            return data;
+        }
+        // Backward compatibility: return just the array for legacy callers
         return data.data || [];
     },
 
@@ -61,12 +70,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar financeiro do contrato");
@@ -87,12 +91,7 @@ export const financialApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar financeiro");
@@ -124,12 +123,7 @@ export const financialApi = {
             body: JSON.stringify(financialData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -158,12 +152,7 @@ export const financialApi = {
             body: JSON.stringify(financialData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -185,12 +174,7 @@ export const financialApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar financeiro");
@@ -217,12 +201,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar parcelas");
@@ -254,12 +233,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -292,12 +266,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -328,12 +297,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao marcar parcela como paga");
@@ -363,12 +327,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao marcar parcela como pendente");
@@ -398,12 +357,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar parcela");
@@ -428,12 +382,7 @@ export const financialApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar resumo detalhado de financeiro");
@@ -454,12 +403,7 @@ export const financialApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar resumo de financeiro");
@@ -483,12 +427,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar resumo mensal");
@@ -518,12 +457,7 @@ export const financialApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar próximos financeiro");
@@ -544,12 +478,7 @@ export const financialApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar financeiro em atraso");
