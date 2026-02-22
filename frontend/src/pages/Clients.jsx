@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
@@ -28,7 +28,6 @@ import {
     getInitialFormData,
     getInitialAffiliateForm,
     prepareClientPayload,
-    filterClients,
 } from "../utils/clientHelpers";
 import ClientModal from "../components/clients/ClientModal";
 import ClientsTable from "../components/clients/ClientsTable";
@@ -42,13 +41,22 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
     const navigate = useNavigate();
     const {
         fetchClients,
+        fetchWithCache,
         createClient: createClientAPI,
         updateClient: updateClientAPI,
         deleteClient: deleteClientAPI,
         invalidateCache,
     } = useData();
     const [clients, setClients] = useState([]);
+    const [totalItems, setTotalItems] = useState(0);
+    const [counts, setCounts] = useState({
+        total: 0,
+        active: 0,
+        inactive: 0,
+        archived: 0,
+    });
     const [loading, setLoading] = useState(true);
+    const [tableLoading, setTableLoading] = useState(false);
     const [error, setError] = useState("");
     const [modalError, setModalError] = useState("");
     const [affiliateModalError, setAffiliateModalError] = useState("");
@@ -91,11 +99,21 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         getInitialAffiliateForm(),
     );
 
+    // Initial load: counts + first page of data
     useEffect(() => {
-        // Sempre fazer fresh request ao carregar a página
-        // Cache é útil apenas para buscas/filtros durante a mesma sessão
-        loadClients(true);
+        loadCounts();
+        loadClients();
     }, []);
+
+    // Reload data when filter/search/page/limit changes (skip initial mount)
+    const initialLoadDone = useRef(false);
+    useEffect(() => {
+        if (!initialLoadDone.current) {
+            initialLoadDone.current = true;
+            return;
+        }
+        loadClients();
+    }, [filter, searchTerm, currentPage, itemsPerPage]);
 
     // Equalize filter button widths
     useEffect(() => {
@@ -127,21 +145,62 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         }
     }, [filter, clients]); // Re-calculate when filter or clients change
 
-    const loadClients = async (forceRefresh = false) => {
-        setLoading(true);
+    const loadCounts = useCallback(async () => {
+        try {
+            const response = await fetchWithCache(
+                "/clients/counts",
+                {},
+                "clients_counts",
+                30 * 1000,
+                true,
+            );
+            if (response?.data) {
+                setCounts(response.data);
+            }
+        } catch (err) {
+            console.warn("Failed to load client counts:", err);
+        }
+    }, [fetchWithCache]);
+
+    const loadClients = useCallback(async () => {
+        // Use tableLoading for subsequent loads (not full-page loading spinner)
+        if (initialLoadDone.current) {
+            setTableLoading(true);
+        } else {
+            setLoading(true);
+        }
         setError("");
         try {
-            const response = await fetchClients(
-                { include_stats: true },
-                forceRefresh,
+            const offset = (currentPage - 1) * itemsPerPage;
+            const params = {
+                include_stats: true,
+                include_archived: true,
+                limit: itemsPerPage,
+                offset: offset,
+            };
+            // Only send filter if it's not "all" (backend returns all when no filter)
+            if (filter && filter !== "all") {
+                params.filter = filter;
+            }
+            if (searchTerm) {
+                params.search = searchTerm;
+            }
+            const response = await fetchWithCache(
+                "/clients",
+                { params },
+                null,
+                0,
+                true,
             );
-            setClients(response.data || []);
+            setClients(response?.data || []);
+            setTotalItems(response?.total ?? (response?.data?.length || 0));
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
+            setTableLoading(false);
         }
-    };
+    }, [fetchWithCache, filter, searchTerm, currentPage, itemsPerPage]);
 
     const loadAffiliates = async (clientId) => {
         try {
@@ -157,13 +216,17 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         }
     };
 
+    const reloadAfterMutation = useCallback(async () => {
+        invalidateCache("clients");
+        await Promise.all([loadCounts(), loadClients()]);
+    }, [invalidateCache, loadCounts, loadClients]);
+
     const createClient = async () => {
         setModalError("");
         try {
             const payload = prepareClientPayload(formData);
             await createClientAPI(payload);
-            invalidateCache("clients");
-            await loadClients(true);
+            await reloadAfterMutation();
             closeModal();
         } catch (err) {
             setModalError(err.message);
@@ -175,8 +238,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         try {
             const payload = prepareClientPayload(formData);
             await updateClientAPI(selectedClient.id, payload);
-            invalidateCache("clients");
-            await loadClients(true);
+            await reloadAfterMutation();
             closeModal();
         } catch (err) {
             setModalError(err.message);
@@ -189,8 +251,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
 
         try {
             await deleteClientAPI(clientId);
-            invalidateCache("clients");
-            await loadClients(true);
+            await reloadAfterMutation();
         } catch (err) {
             setError(err.message);
         }
@@ -206,8 +267,7 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 clientId,
                 onTokenExpired,
             );
-            invalidateCache("clients");
-            await loadClients(true);
+            await reloadAfterMutation();
         } catch (err) {
             setError(err.message);
         }
@@ -346,30 +406,8 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
         }
     };
 
-    function compareAlphaNum(a, b) {
-        const regex = /(.*?)(\d+)$/;
-        const aVal = (a.name || "").trim();
-        const bVal = (b.name || "").trim();
-        const aMatch = aVal.match(regex);
-        const bMatch = bVal.match(regex);
-
-        if (aMatch && bMatch && aMatch[1] === bMatch[1]) {
-            return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
-        }
-        return aVal.localeCompare(bVal);
-    }
-
-    const allFilteredClients = filterClients(
-        [...clients].sort(compareAlphaNum),
-        filter,
-        searchTerm,
-    );
-
-    // Pagination
-    const totalItems = allFilteredClients.length;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const filteredClients = allFilteredClients.slice(startIndex, endIndex);
+    // Server handles filtering, sorting, and pagination — just use the data directly
+    const filteredClients = clients;
 
     if (loading) {
         return (
@@ -404,25 +442,25 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                     onClick={() => setFilter("all")}
                     className={`clients-filter-button ${filter === "all" ? "active-all" : ""}`}
                 >
-                    {g.all} ({clients.length})
+                    {g.all} ({counts.total})
                 </button>
                 <button
                     onClick={() => setFilter("active")}
                     className={`clients-filter-button ${filter === "active" ? "active-active" : ""}`}
                 >
-                    {g.active}
+                    {g.active} ({counts.active})
                 </button>
                 <button
                     onClick={() => setFilter("inactive")}
                     className={`clients-filter-button ${filter === "inactive" ? "active-inactive" : ""}`}
                 >
-                    {g.inactive}
+                    {g.inactive} ({counts.inactive})
                 </button>
                 <button
                     onClick={() => setFilter("archived")}
                     className={`clients-filter-button ${filter === "archived" ? "active-archived" : ""}`}
                 >
-                    {g.archived}
+                    {g.archived} ({counts.archived})
                 </button>
 
                 <input
@@ -441,7 +479,13 @@ export default function Clients({ token, apiUrl, onTokenExpired }) {
                 desejado na tabela.
             </p>
 
-            <div className="clients-table-wrapper">
+            <div
+                className="clients-table-wrapper"
+                style={{
+                    opacity: tableLoading ? 0.6 : 1,
+                    transition: "opacity 0.15s",
+                }}
+            >
                 <ClientsTable
                     filteredClients={filteredClients}
                     openEditModal={openEditModal}
