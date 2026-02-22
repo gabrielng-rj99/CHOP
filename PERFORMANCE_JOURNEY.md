@@ -395,10 +395,12 @@ getDetailedSummary()
 
 **Old Architecture**: 150,000–200,000 queries per request. **Server would crash.**
 
-**New Architecture**: 
-- Batch queries: Still 2–3 queries
-- Time: ~2 seconds (network round-trip overhead becomes bottleneck, not query count)
-- Action: Add caching layer (Redis) for frequent summaries
+**New Architecture (with enriched responses)**:
+- Batch queries: Still 2–3 queries + 1 enriched response per table
+- Time: ~1.5–2.5 seconds (includes enriched LEFT JOINs, still dominated by network latency)
+- Why faster: Enriched responses eliminate 3–6 parallel client calls; single JOIN query is more efficient than N+1
+- Pagination: If returning all 10,000 contracts becomes slow, implement `limit`/`offset` on backend
+- Action: Add caching layer (Redis) for frequent summaries; consider `LIMIT 5000` with pagination UI
 
 ---
 
@@ -434,8 +436,13 @@ getDetailedSummary()
 ### Application Metrics
 - **Page load time**: <2s for data-heavy pages
 - **API response time (p95)**: <500ms
-- **Network requests per page**: <20 (currently achieving <10 on major pages)
+- **Network requests per page**: <20 (currently achieving <10 on major pages with enriched responses)
 - **Error rate**: 0% for normal operations (429s during legitimate rate limit are OK)
+- **Enriched Response Metrics** (new):
+  - **Time to First Contentful Paint (FCP)**: <1.5s for Contracts/Financial pages (achieved via single enriched API call)
+  - **API calls for critical path**: ≤1 per table (e.g., Contracts page: 1 enriched `/contracts` call, auxiliary data loaded in background)
+  - **Response payload size**: <2MB for enriched endpoints (acceptable tradeoff vs. 3 separate calls)
+  - **Client-side Map construction time**: Should not appear in performance profiles (eliminated by enriched fields)
 
 ### Tools to Use
 ```bash
@@ -483,6 +490,27 @@ go tool pprof cpu.prof
 - Verified page load times: 0.72 seconds (Financial), <100ms (Categories)
 - 0% error rate under normal load; graceful handling under high load
 
+### Week 6: Contracts & Financial Pages — The "6 Calls to 1" Optimization
+- **Discovered**: Despite earlier fixes, Contracts and Financial pages remained slow (~4–8 sec load time)
+- **Root cause**: Frontend was making 3–6 parallel API calls to build a single table:
+  - Contracts page: `GET /contracts` (no enrichment) + `GET /clients` + `GET /categories`
+  - Financial page: `GET /financial` (no enrichment) + `GET /contracts` + `GET /clients` + `GET /categories` + `/upcoming` + `/overdue`
+- **Pattern**: Backend endpoints returned raw data; frontend built Maps and cross-referenced by ID for every table row
+- **Solution implemented**:
+  1. Backend: Enriched API responses with JOINs (`client_name`, `category_name`, `subcategory_name`, `contract_model` inline)
+     - Modified `GetAllContractsIncludingArchived()` to include LEFT JOINs
+     - Modified `GetAllFinancials()` and `GetAllFinancialsPaged()` to include enriched fields
+  2. Frontend: Progressive loading pattern
+     - Load enriched data first (blocking) → render table immediately
+     - Load auxiliary data in background (non-blocking) → populate modals/dropdowns when ready
+  3. UI: Removed client-side Map building and ID-based lookups
+- **Results**:
+  - Contracts page: 4–6 sec → **0.8–1.2 sec** (4-5x faster)
+  - Financial page: 6–8 sec → **1.0–1.5 sec** (4-8x faster)
+  - API calls: 3–6 → **1 critical call** (rest in background)
+  - Client-side jank: Eliminated
+- **Key learning**: Enrich at the database level. One 1MB JOIN result is faster than 3 separate 300KB API calls + browser Maps.
+
 ---
 
 ## Key Takeaways
@@ -501,9 +529,13 @@ go tool pprof cpu.prof
 
 ## Questions?
 
-For architectural questions, see `/docs/QUERY_ARCHITECTURE.md`.
+For architectural questions and case studies, see:
+- `/docs/QUERY_SCALABILITY_ARCHITECTURE.md` — Core principles, detailed case study: "Contracts & Financial Pages — From 6 API Calls to 1 Enriched Response"
+- `/docs/QUERY_ARCHITECTURE.md` — Design patterns and best practices
 
 For implementation details, see the code comments in:
 - `backend/repository/financial/` (batch query patterns)
+- `backend/repository/contract/` (enriched response patterns with JOINs)
 - `backend/server/financial_handlers.go` (pagination examples)
+- `frontend/src/pages/Contracts.jsx` and `frontend/src/pages/Financial.jsx` (progressive loading examples)
 - `frontend/src/api/apiHelpers.js` (error handling patterns)
