@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 export const auditApi = {
     // Get audit logs with filters and pagination
     getAuditLogs: async (apiUrl, token, filters = {}, onTokenExpired) => {
@@ -60,12 +62,7 @@ export const auditApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const error = await response.json();
@@ -85,12 +82,7 @@ export const auditApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const error = await response.json();
@@ -125,12 +117,7 @@ export const auditApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const error = await response.json();
@@ -179,12 +166,7 @@ export const auditApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao exportar logs");

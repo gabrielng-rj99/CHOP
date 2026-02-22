@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 const usersApi = {
     loadUsers: async (apiUrl, token, onTokenExpired) => {
         const response = await fetch(`${apiUrl}/users`, {
@@ -25,12 +27,7 @@ const usersApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar usuários");
@@ -50,12 +47,7 @@ const usersApi = {
             body: JSON.stringify(userData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -75,12 +67,7 @@ const usersApi = {
             body: JSON.stringify(userData),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -99,12 +86,7 @@ const usersApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao bloquear usuário");
@@ -122,12 +104,7 @@ const usersApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao desbloquear usuário");
@@ -145,12 +122,7 @@ const usersApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar usuário");

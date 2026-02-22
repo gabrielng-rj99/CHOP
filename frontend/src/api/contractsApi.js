@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 export const contractsApi = {
     // Direct return method for getting contracts (used by AuditLogs)
     getContracts: async (apiUrl, token, params = {}, onTokenExpired) => {
@@ -31,12 +33,7 @@ export const contractsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar contratos");
@@ -53,12 +50,7 @@ export const contractsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar contratos");
@@ -76,12 +68,7 @@ export const contractsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar clientes");
@@ -99,12 +86,7 @@ export const contractsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar categorias");
@@ -125,12 +107,7 @@ export const contractsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar linhas");
@@ -151,12 +128,7 @@ export const contractsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar afiliados");
@@ -186,12 +158,7 @@ export const contractsApi = {
             body: JSON.stringify(payload),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -227,12 +194,7 @@ export const contractsApi = {
             body: JSON.stringify(payload),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -254,12 +216,7 @@ export const contractsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao arquivar contrato");
@@ -280,12 +237,7 @@ export const contractsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar contrato");

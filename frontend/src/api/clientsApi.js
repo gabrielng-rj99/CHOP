@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { handleResponseErrors } from "./apiHelpers";
+
 export const clientsApi = {
     // Direct return method for getting clients (used by AuditLogs)
     getClients: async (apiUrl, token, params = {}, onTokenExpired) => {
@@ -32,12 +34,7 @@ export const clientsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar clientes");
@@ -85,12 +82,7 @@ export const clientsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar clientes");
@@ -117,12 +109,7 @@ export const clientsApi = {
                 },
             );
 
-            if (response.status === 401) {
-                onTokenExpired?.();
-                throw new Error(
-                    "Token inválido ou expirado. Faça login novamente.",
-                );
-            }
+            handleResponseErrors(response, onTokenExpired);
 
             if (!response.ok) {
                 throw new Error("Erro ao carregar clientes");
@@ -169,12 +156,7 @@ export const clientsApi = {
             body: JSON.stringify(payload),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -218,12 +200,7 @@ export const clientsApi = {
             body: JSON.stringify(payload),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -242,12 +219,7 @@ export const clientsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao arquivar cliente");
@@ -268,12 +240,7 @@ export const clientsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao desarquivar cliente");
@@ -293,12 +260,7 @@ export const clientsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao carregar afiliados");
@@ -338,12 +300,7 @@ export const clientsApi = {
             },
         );
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -380,12 +337,7 @@ export const clientsApi = {
             body: JSON.stringify(payload),
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -404,12 +356,7 @@ export const clientsApi = {
             },
         });
 
-        if (response.status === 401) {
-            onTokenExpired?.();
-            throw new Error(
-                "Token inválido ou expirado. Faça login novamente.",
-            );
-        }
+        handleResponseErrors(response, onTokenExpired);
 
         if (!response.ok) {
             throw new Error("Erro ao deletar afiliado");
