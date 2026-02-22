@@ -70,28 +70,19 @@ func (s *Server) handleListCategories(w http.ResponseWriter, r *http.Request) {
 
 	var categoriesWithLines []CategoryWithLines
 
+	categoryIDs := make([]string, 0, len(categories))
 	for _, category := range categories {
-		var subcategories []domain.Subcategory
-		if includeArchived {
-			// Get all subcategories for this category including archived
-			allLines, err := s.subcategoryStore.GetAllSubcategoriesIncludingArchived()
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			// Filter by category ID
-			for _, line := range allLines {
-				if line.CategoryID == category.ID {
-					subcategories = append(subcategories, line)
-				}
-			}
-		} else {
-			subcategories, err = s.subcategoryStore.GetSubcategoriesByCategoryID(category.ID)
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-		}
+		categoryIDs = append(categoryIDs, category.ID)
+	}
+
+	linesByCategory, err := s.subcategoryStore.GetSubcategoriesByCategoryIDs(categoryIDs, includeArchived)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for _, category := range categories {
+		subcategories := linesByCategory[category.ID]
 
 		categoriesWithLines = append(categoriesWithLines, CategoryWithLines{
 			ID:         category.ID,

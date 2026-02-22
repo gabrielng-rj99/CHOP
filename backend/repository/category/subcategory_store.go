@@ -21,6 +21,7 @@ package categorystore
 import (
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -121,6 +122,46 @@ func (s *SubcategoryStore) GetSubcategoriesByCategoryID(categoryID string) (subc
 	}
 
 	return subcategories, nil
+}
+
+// GetSubcategoriesByCategoryIDs busca subcategorias agrupadas por categoria em batch.
+func (s *SubcategoryStore) GetSubcategoriesByCategoryIDs(categoryIDs []string, includeArchived bool) (map[string][]domain.Subcategory, error) {
+	results := make(map[string][]domain.Subcategory)
+	if len(categoryIDs) == 0 {
+		return results, nil
+	}
+
+	placeholders := make([]string, 0, len(categoryIDs))
+	args := make([]interface{}, 0, len(categoryIDs))
+	for i, id := range categoryIDs {
+		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
+		args = append(args, id)
+	}
+
+	query := `SELECT id, name, category_id, archived_at FROM subcategories WHERE category_id IN (` + strings.Join(placeholders, ", ") + `)`
+	if !includeArchived {
+		query += " AND archived_at IS NULL"
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var t domain.Subcategory
+		if err := rows.Scan(&t.ID, &t.Name, &t.CategoryID, &t.ArchivedAt); err != nil {
+			return nil, err
+		}
+		results[t.CategoryID] = append(results[t.CategoryID], t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 // GetSubcategoryByID busca um tipo específico pelo seu ID

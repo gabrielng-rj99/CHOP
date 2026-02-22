@@ -46,6 +46,59 @@ export const clientsApi = {
         return await response.json();
     },
 
+    /**
+     * Get clients with server-side filtering and pagination
+     * @param {string} apiUrl - API base URL
+     * @param {string} token - Auth token
+     * @param {Object} params - Query parameters
+     * @param {string} params.filter - Filter type: "active", "inactive", "archived", or "" for all
+     * @param {string} params.search - Search term for name, nickname, email, registration_id
+     * @param {number} params.limit - Items per page (max 500)
+     * @param {number} params.offset - Offset for pagination
+     * @param {boolean} params.include_stats - Include contract stats
+     * @param {boolean} params.include_archived - Include archived clients
+     * @param {Function} onTokenExpired - Callback for token expiration
+     * @returns {Promise<{data: Array, total: number, limit: number, offset: number}>}
+     */
+    getClientsFiltered: async (apiUrl, token, params = {}, onTokenExpired) => {
+        const queryParams = new URLSearchParams();
+
+        if (params.filter) queryParams.append("filter", params.filter);
+        if (params.search) queryParams.append("search", params.search);
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.offset !== undefined)
+            queryParams.append("offset", params.offset.toString());
+        if (params.include_stats) queryParams.append("include_stats", "true");
+        if (params.include_archived !== undefined) {
+            queryParams.append(
+                "include_archived",
+                params.include_archived.toString(),
+            );
+        }
+
+        const url = `${apiUrl}/clients${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 401) {
+            onTokenExpired?.();
+            throw new Error(
+                "Token inválido ou expirado. Faça login novamente.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar clientes");
+        }
+
+        return await response.json();
+    },
+
     loadClients: async (
         apiUrl,
         token,

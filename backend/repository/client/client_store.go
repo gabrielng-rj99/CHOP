@@ -23,6 +23,7 @@ import (
 	"Open-Generic-Hub/backend/repository"
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -617,4 +618,105 @@ func (s *ClientStore) GetAllClientsIncludingArchived() (clients []domain.Client,
 	}
 
 	return clients, nil
+}
+
+func buildClientFilterWhere(includeArchived bool, filter, search string, args *[]interface{}) string {
+	clauses := []string{}
+	filter = strings.ToLower(strings.TrimSpace(filter))
+	search = strings.ToLower(strings.TrimSpace(search))
+
+	if !includeArchived {
+		clauses = append(clauses, "archived_at IS NULL")
+	}
+
+	switch filter {
+	case "active":
+		clauses = append(clauses, "archived_at IS NULL", "status = 'ativo'")
+	case "inactive":
+		clauses = append(clauses, "archived_at IS NULL", "status = 'inativo'")
+	case "archived":
+		if includeArchived {
+			clauses = append(clauses, "archived_at IS NOT NULL")
+		} else {
+			clauses = append(clauses, "1=0")
+		}
+	}
+
+	if search != "" {
+		*args = append(*args, "%"+search+"%")
+		placeholder := "$" + strconv.Itoa(len(*args))
+		clauses = append(clauses,
+			"(LOWER(name) LIKE "+placeholder+" OR LOWER(COALESCE(nickname, '')) LIKE "+placeholder+
+				" OR LOWER(COALESCE(registration_id, '')) LIKE "+placeholder+
+				" OR LOWER(COALESCE(email, '')) LIKE "+placeholder+")",
+		)
+	}
+
+	if len(clauses) == 0 {
+		return ""
+	}
+
+	return " WHERE " + strings.Join(clauses, " AND ")
+}
+
+func (s *ClientStore) ListClientsFilteredPaged(filter, search string, includeArchived bool, limit, offset int) (clients []domain.Client, err error) {
+	args := []interface{}{}
+	whereClause := buildClientFilterWhere(includeArchived, filter, search, &args)
+
+	query := `SELECT id, name, registration_id, nickname, birth_date, email, phone, address,
+		notes, status, tags, contact_preference, last_contact_date, next_action_date,
+		created_at, documents, archived_at
+		FROM clients` + whereClause + ` ORDER BY created_at DESC`
+
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		args = append(args, limit)
+		limitPlaceholder := "$" + strconv.Itoa(len(args))
+		args = append(args, offset)
+		offsetPlaceholder := "$" + strconv.Itoa(len(args))
+		query += " LIMIT " + limitPlaceholder + " OFFSET " + offsetPlaceholder
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	for rows.Next() {
+		var client domain.Client
+		if err = rows.Scan(&client.ID, &client.Name, &client.RegistrationID, &client.Nickname,
+			&client.BirthDate, &client.Email, &client.Phone, &client.Address, &client.Notes,
+			&client.Status, &client.Tags, &client.ContactPreference, &client.LastContactDate,
+			&client.NextActionDate, &client.CreatedAt, &client.Documents, &client.ArchivedAt); err != nil {
+			return nil, err
+		}
+		clients = append(clients, client)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return clients, nil
+}
+
+func (s *ClientStore) CountClientsFiltered(filter, search string, includeArchived bool) (int, error) {
+	args := []interface{}{}
+	whereClause := buildClientFilterWhere(includeArchived, filter, search, &args)
+	query := `SELECT COUNT(*) FROM clients` + whereClause
+
+	var count int
+	if err := s.db.QueryRow(query, args...).Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

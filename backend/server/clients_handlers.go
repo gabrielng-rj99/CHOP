@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -47,6 +48,90 @@ func (s *Server) handleListClients(w http.ResponseWriter, r *http.Request) {
 	// Check if requesting with contract stats
 	includeStats := r.URL.Query().Get("include_stats") == "true"
 
+	includeArchivedParam := r.URL.Query().Get("include_archived")
+	includeArchived := true
+	if includeArchivedParam != "" {
+		includeArchived = includeArchivedParam == "true"
+	}
+
+	filter := r.URL.Query().Get("filter")
+	search := r.URL.Query().Get("search")
+
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+	if limit > 500 {
+		limit = 500
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	useFiltered := filter != "" || search != "" || limit > 0 || includeArchivedParam != ""
+	if useFiltered {
+		clients, err := s.clientStore.ListClientsFilteredPaged(filter, search, includeArchived, limit, offset)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		total, err := s.clientStore.CountClientsFiltered(filter, search, includeArchived)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if includeStats {
+			// Get contract stats only for the returned clients
+			clientIDs := make([]string, 0, len(clients))
+			for _, client := range clients {
+				clientIDs = append(clientIDs, client.ID)
+			}
+
+			statsMap, err := s.contractStore.GetContractStatsForClientIDs(clientIDs)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			// Create response with clients and their stats
+			type ClientWithStats struct {
+				domain.Client
+				ActiveContracts   int `json:"active_contracts"`
+				ExpiredContracts  int `json:"expired_contracts"`
+				ArchivedContracts int `json:"archived_contracts"`
+			}
+
+			clientsWithStats := make([]ClientWithStats, 0, len(clients))
+			for _, client := range clients {
+				cws := ClientWithStats{Client: client}
+				if stats, ok := statsMap[client.ID]; ok {
+					cws.ActiveContracts = stats.ActiveContracts
+					cws.ExpiredContracts = stats.ExpiredContracts
+					cws.ArchivedContracts = stats.ArchivedContracts
+				}
+				clientsWithStats = append(clientsWithStats, cws)
+			}
+
+			respondJSON(w, http.StatusOK, map[string]interface{}{
+				"data":   clientsWithStats,
+				"total":  total,
+				"limit":  limit,
+				"offset": offset,
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data":   clients,
+			"total":  total,
+			"limit":  limit,
+			"offset": offset,
+		})
+		return
+	}
+
 	clients, err := s.clientStore.GetAllClientsIncludingArchived()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
@@ -54,8 +139,13 @@ func (s *Server) handleListClients(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if includeStats {
-		// Get contract stats for all clients
-		statsMap, err := s.contractStore.GetContractStatsForAllClients()
+		// Get contract stats only for the returned clients
+		clientIDs := make([]string, 0, len(clients))
+		for _, client := range clients {
+			clientIDs = append(clientIDs, client.ID)
+		}
+
+		statsMap, err := s.contractStore.GetContractStatsForClientIDs(clientIDs)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
