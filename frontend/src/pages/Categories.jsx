@@ -127,7 +127,7 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
                 if (cat) {
                     if (!selectedCategory || selectedCategory.id !== cat.id) {
                         setSelectedCategory(cat);
-                        loadSubcategories(cat.id);
+                        setLines(cat.lines || []);
                     }
                 }
             } else {
@@ -150,35 +150,32 @@ export default function Categories({ token, apiUrl, onTokenExpired }) {
             );
             setCategories(data);
 
-            const allLinesPromises = data.map((category) =>
-                categoriesApi
-                    .loadSubcategories(
-                        apiUrl,
-                        token,
-                        category.id,
-                        onTokenExpired,
-                    )
-                    .catch(() => []),
+            const flattenedLines = data.flatMap(
+                (category) => category.lines || [],
             );
-            const allLinesResults = await Promise.all(allLinesPromises);
-            const flattenedLines = allLinesResults.flat();
             setAllLines(flattenedLines);
+
+            return data;
         } catch (err) {
             setError(err.message);
+            return [];
         } finally {
             setLoading(false);
         }
     };
 
     const loadSubcategories = async (categoryId) => {
+        // Use already-loaded categories instead of re-fetching everything
+        const existing = categories.find((cat) => cat.id == categoryId);
+        if (existing) {
+            setLines(existing.lines || []);
+            return;
+        }
+        // Fallback: only reload if category wasn't found locally (e.g. just created)
         try {
-            const data = await categoriesApi.loadSubcategories(
-                apiUrl,
-                token,
-                categoryId,
-                onTokenExpired,
-            );
-            setLines(data);
+            const data = await loadCategories();
+            const category = (data || []).find((cat) => cat.id == categoryId);
+            setLines(category?.lines || []);
         } catch (err) {
             setError(err.message);
         }
