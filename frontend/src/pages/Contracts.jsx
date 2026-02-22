@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Select from "react-select";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
@@ -221,14 +221,19 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
     const loadInitialData = async (forceRefresh = false) => {
         setLoading(true);
         try {
-            await Promise.all([
-                loadContracts(forceRefresh),
-                loadClients(forceRefresh),
-                loadCategories(forceRefresh),
-            ]);
+            // Load enriched contracts first — they contain client_name, category_name,
+            // subcategory_name inline, so the table renders immediately without
+            // waiting for separate /clients and /categories calls.
+            await loadContracts(forceRefresh);
         } finally {
             setLoading(false);
         }
+
+        // Load auxiliary data in background (needed for filter dropdowns & modals only)
+        Promise.all([
+            loadClients(forceRefresh),
+            loadCategories(forceRefresh),
+        ]).catch((err) => console.warn("Background data load:", err));
     };
 
     const loadContracts = async (forceRefresh = false) => {
@@ -476,7 +481,11 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         return aDiff - bDiff;
     }
 
-    function sortContracts(contracts, sortBy, sortOrder) {
+    function sortContracts(contracts, sortBy, sortOrder, lookupMaps) {
+        const clientById = lookupMaps?.clientById;
+        const categoryBySubcategoryId = lookupMaps?.categoryBySubcategoryId;
+        const subcategoryNameById = lookupMaps?.subcategoryNameById;
+
         return [...contracts].sort((a, b) => {
             let aVal, bVal;
 
@@ -502,43 +511,43 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                     bVal = new Date(b.end_date);
                     break;
                 case "client":
-                    const aClient = clients.find((c) => c.id === a.client_id);
-                    const bClient = clients.find((c) => c.id === b.client_id);
-                    aVal = (aClient?.name || "").toLowerCase();
-                    bVal = (bClient?.name || "").toLowerCase();
+                    // Use enriched field first, fallback to map lookup
+                    aVal = (
+                        a.client_name ||
+                        clientById?.get(a.client_id)?.name ||
+                        ""
+                    ).toLowerCase();
+                    bVal = (
+                        b.client_name ||
+                        clientById?.get(b.client_id)?.name ||
+                        ""
+                    ).toLowerCase();
                     break;
                 case "category":
-                    // Find category name from subcategory_id
-                    const getCategoryName = (contract) => {
-                        if (!contract.subcategory_id) return "";
-                        for (const cat of categories) {
-                            if (
-                                cat.lines?.some(
-                                    (l) => l.id === contract.subcategory_id,
-                                )
-                            ) {
-                                return cat.name || "";
-                            }
-                        }
-                        return "";
-                    };
-                    aVal = getCategoryName(a).toLowerCase();
-                    bVal = getCategoryName(b).toLowerCase();
+                    // Use enriched field first, fallback to map lookup
+                    aVal = (
+                        a.category_name ||
+                        categoryBySubcategoryId?.get(a.subcategory_id)?.name ||
+                        ""
+                    ).toLowerCase();
+                    bVal = (
+                        b.category_name ||
+                        categoryBySubcategoryId?.get(b.subcategory_id)?.name ||
+                        ""
+                    ).toLowerCase();
                     break;
                 case "subcategory":
-                    // Find subcategory/line name from subcategory_id
-                    const getSubcategoryName = (contract) => {
-                        if (!contract.subcategory_id) return "";
-                        for (const cat of categories) {
-                            const line = cat.lines?.find(
-                                (l) => l.id === contract.subcategory_id,
-                            );
-                            if (line) return line.name || "";
-                        }
-                        return contract.line?.name || "";
-                    };
-                    aVal = getSubcategoryName(a).toLowerCase();
-                    bVal = getSubcategoryName(b).toLowerCase();
+                    // Use enriched field first, fallback to map lookup
+                    aVal = (
+                        a.subcategory_name ||
+                        subcategoryNameById?.get(a.subcategory_id) ||
+                        ""
+                    ).toLowerCase();
+                    bVal = (
+                        b.subcategory_name ||
+                        subcategoryNameById?.get(b.subcategory_id) ||
+                        ""
+                    ).toLowerCase();
                     break;
                 case "status":
                     // Simple status comparison
@@ -563,21 +572,77 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
         });
     }
 
-    const allFilteredContracts = sortContracts(
-        filterContracts(
-            [...contracts].sort(compareContracts),
+    const clientById = useMemo(
+        () => new Map(clients.map((client) => [client.id, client])),
+        [clients],
+    );
+
+    const categoryBySubcategoryId = useMemo(() => {
+        const map = new Map();
+        for (const category of categories) {
+            if (!Array.isArray(category.lines)) continue;
+            for (const line of category.lines) {
+                map.set(line.id, category);
+            }
+        }
+        return map;
+    }, [categories]);
+
+    const subcategoryNameById = useMemo(() => {
+        const map = new Map();
+        for (const category of categories) {
+            if (!Array.isArray(category.lines)) continue;
+            for (const line of category.lines) {
+                map.set(line.id, line.name);
+            }
+        }
+        return map;
+    }, [categories]);
+
+    const filteredContractsAll = useMemo(
+        () =>
+            filterContracts(
+                [...contracts].sort(compareContracts),
+                filter,
+                {
+                    categoryId: categoryIdFilter,
+                    subcategoryId: subcategoryIdFilter,
+                    clientName: clientNameFilter,
+                    contractName: contractNameFilter,
+                },
+                clients,
+                categories,
+                { clientById, categoryBySubcategoryId },
+            ),
+        [
+            contracts,
             filter,
-            {
-                categoryId: categoryIdFilter,
-                subcategoryId: subcategoryIdFilter,
-                clientName: clientNameFilter,
-                contractName: contractNameFilter,
-            },
+            categoryIdFilter,
+            subcategoryIdFilter,
+            clientNameFilter,
+            contractNameFilter,
             clients,
             categories,
-        ),
-        sortBy,
-        sortOrder,
+            clientById,
+            categoryBySubcategoryId,
+        ],
+    );
+
+    const allFilteredContracts = useMemo(
+        () =>
+            sortContracts(filteredContractsAll, sortBy, sortOrder, {
+                clientById,
+                categoryBySubcategoryId,
+                subcategoryNameById,
+            }),
+        [
+            filteredContractsAll,
+            sortBy,
+            sortOrder,
+            clientById,
+            categoryBySubcategoryId,
+            subcategoryNameById,
+        ],
     );
 
     // Pagination
@@ -998,42 +1063,27 @@ export default function Contracts({ token, apiUrl, onTokenExpired }) {
                             )}
                             <DetailRow
                                 label={config.labels.category || "Categoria"}
-                                value={(() => {
-                                    // Find category name from subcategory_id
-                                    if (!selectedContract.subcategory_id)
-                                        return "-";
-                                    for (const cat of categories) {
-                                        if (
-                                            cat.lines?.some(
-                                                (l) =>
-                                                    l.id ===
-                                                    selectedContract.subcategory_id,
-                                            )
-                                        ) {
-                                            return cat.name;
-                                        }
-                                    }
-                                    return "-";
-                                })()}
+                                value={
+                                    selectedContract.subcategory_id
+                                        ? categoryBySubcategoryId.get(
+                                              selectedContract.subcategory_id,
+                                          )?.name || "-"
+                                        : "-"
+                                }
                             />
                             <DetailRow
                                 label={
                                     config.labels.subcategory || "Subcategoria"
                                 }
-                                value={(() => {
-                                    // Find subcategory/line name from subcategory_id
-                                    if (!selectedContract.subcategory_id)
-                                        return "-";
-                                    for (const cat of categories) {
-                                        const line = cat.lines?.find(
-                                            (l) =>
-                                                l.id ===
-                                                selectedContract.subcategory_id,
-                                        );
-                                        if (line) return line.name;
-                                    }
-                                    return selectedContract.line?.name || "-";
-                                })()}
+                                value={
+                                    selectedContract.subcategory_id
+                                        ? subcategoryNameById.get(
+                                              selectedContract.subcategory_id,
+                                          ) ||
+                                          selectedContract.line?.name ||
+                                          "-"
+                                        : "-"
+                                }
                             />
                             <DetailRow
                                 label="Data de Início"

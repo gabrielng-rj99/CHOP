@@ -252,34 +252,27 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
 
     const archivedClients = clients.filter((c) => c.archived_at);
 
+    const totalCategories = categories.length;
+    const totalLines = lines.length;
+
     // Use dashCounts for instant stats, fall back to computed values once full data loads
-    const statsActiveClients = dashCounts
-        ? dashCounts.clients.active
-        : activeClients.length;
-    const statsInactiveClients = dashCounts
-        ? dashCounts.clients.inactive
-        : inactiveClients.length;
-    const statsArchivedClients = dashCounts
-        ? dashCounts.clients.archived
-        : archivedClients.length;
-    const statsActiveContracts = dashCounts
-        ? dashCounts.contracts.active
-        : activeContracts.length;
-    const statsExpiringContracts = dashCounts
-        ? dashCounts.contracts.expiring
-        : expiringContracts.length;
-    const statsExpiredContracts = dashCounts
-        ? dashCounts.contracts.expired
-        : expiredContracts.length;
-    const statsNotStartedContracts = dashCounts
-        ? dashCounts.contracts.not_started
-        : notStartedContracts.length;
-    const statsTotalCategories = dashCounts
-        ? dashCounts.categories.total
-        : totalCategories;
-    const statsTotalLines = dashCounts
-        ? dashCounts.categories.subcategories
-        : totalLines;
+    const statsActiveClients =
+        dashCounts?.clients?.active ?? activeClients.length;
+    const statsInactiveClients =
+        dashCounts?.clients?.inactive ?? inactiveClients.length;
+    const statsArchivedClients =
+        dashCounts?.clients?.archived ?? archivedClients.length;
+    const statsActiveContracts =
+        dashCounts?.contracts?.active ?? activeContracts.length;
+    const statsExpiringContracts =
+        dashCounts?.contracts?.expiring ?? expiringContracts.length;
+    const statsExpiredContracts =
+        dashCounts?.contracts?.expired ?? expiredContracts.length;
+    const statsNotStartedContracts =
+        dashCounts?.contracts?.not_started ?? notStartedContracts.length;
+    const statsTotalCategories =
+        dashCounts?.categories?.total ?? totalCategories;
+    const statsTotalLines = dashCounts?.categories?.subcategories ?? totalLines;
 
     // Clientes que fazem aniversário no mês atual ou dia atual (respeitando days_ahead)
     const birthdayClients = clients
@@ -338,9 +331,6 @@ export default function Dashboard({ token, apiUrl, onTokenExpired }) {
             // If same date, sort alphabetically by name
             return a.name.localeCompare(b.name);
         });
-
-    const totalCategories = categories.length;
-    const totalLines = lines.length;
 
     // Data subsets for recent activities
     const archivedClientsList = clients.filter((c) => c.archived_at);

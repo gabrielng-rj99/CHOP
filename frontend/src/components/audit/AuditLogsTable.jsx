@@ -20,20 +20,10 @@ import React, { useState } from "react";
 import "./AuditLogsTable.css";
 import { useConfig } from "../../contexts/ConfigContext";
 
-// Adiciona prop users para resolver nomes de usuários
-export default function AuditLogsTable({
-    logs,
-    users = [],
-    clients = [],
-    contracts = [],
-    categories = [],
-    lines = [],
-    affiliates = [],
-    onViewDetail,
-    loading,
-}) {
+// Tabela de logs de auditoria
+export default function AuditLogsTable({ logs, loading }) {
     const [expandedId, setExpandedId] = useState(null);
-    const { config, getGenderHelpers } = useConfig();
+    const { config } = useConfig();
     const labels = config.labels || {};
 
     if (loading) {
@@ -61,23 +51,6 @@ export default function AuditLogsTable({
         );
     }
 
-    const getOperationColor = (operation) => {
-        switch (operation) {
-            case "create":
-                return "#27ae60";
-            case "update":
-                return "#f39c12";
-            case "delete":
-                return "#e74c3c";
-            case "read":
-                return "#3498db";
-            case "login":
-                return "#9b59b6";
-            default:
-                return "#95a5a6";
-        }
-    };
-
     const getOperationLabel = (operation) => {
         switch (operation) {
             case "create":
@@ -93,12 +66,6 @@ export default function AuditLogsTable({
             default:
                 return operation;
         }
-    };
-
-    const getStatusColor = (status) => {
-        if (status === "success") return "#27ae60";
-        if (status === "error" || status === "failed") return "#e74c3c";
-        return "#95a5a6";
     };
 
     const getStatusLabel = (status) => {
@@ -177,83 +144,11 @@ export default function AuditLogsTable({
         }
     };
 
-    const getChangeContext = (log) => {
-        if (!log || (!log.old_value && !log.new_value)) return "N/A";
-
-        try {
-            // Parse inicial
-            let oldData = log.old_value ? JSON.parse(log.old_value) : null;
-            let newData = log.new_value ? JSON.parse(log.new_value) : null;
-
-            // Se o resultado ainda for uma string, fazer parse novamente (double-encoded JSON)
-            if (typeof oldData === "string") {
-                oldData = JSON.parse(oldData);
-            }
-            if (typeof newData === "string") {
-                newData = JSON.parse(newData);
-            }
-
-            // Para operação de criação - mostrar apenas o nome/identificador criado
-            if (log.operation === "create" && newData) {
-                // Sempre buscar por 'name' primeiro, depois outros campos
-                if (newData.name) {
-                    return String(newData.name).substring(0, 40);
-                }
-                if (newData.username) {
-                    return String(newData.username).substring(0, 40);
-                }
-                if (newData.display_name) {
-                    return String(newData.display_name).substring(0, 40);
-                }
-                if (newData.line) {
-                    return String(newData.line).substring(0, 40);
-                }
-                return "N/A";
-            }
-
-            // Para operação de atualização - mostrar o nome/identificador do registro atualizado
-            if (log.operation === "update") {
-                const data = newData || oldData;
-                if (!data) return "N/A";
-
-                if (data.name) {
-                    return String(data.name).substring(0, 40);
-                }
-                if (data.username) {
-                    return String(data.username).substring(0, 40);
-                }
-                if (data.display_name) {
-                    return String(data.display_name).substring(0, 40);
-                }
-                if (data.line) {
-                    return String(data.line).substring(0, 40);
-                }
-                return "N/A";
-            }
-
-            // Para operação de deleção - mostrar apenas o nome/identificador deletado
-            if (log.operation === "delete" && oldData) {
-                if (oldData.name) {
-                    return String(oldData.name).substring(0, 40);
-                }
-                if (oldData.username) {
-                    return String(oldData.username).substring(0, 40);
-                }
-                if (oldData.display_name) {
-                    return String(oldData.display_name).substring(0, 40);
-                }
-            }
-
-            // fallback
-            return "N/A";
-        } catch {
-            return "N/A";
-        }
-    };
-
     // NOVA FUNÇÃO: resolve objeto pelo usuário - sempre busca o nome mais recente por ID
     const getObjectLabel = (log) => {
         if (!log) return "N/A";
+
+        if (log.object_name) return log.object_name;
 
         const resourceId = log.resource_id;
 
@@ -271,122 +166,10 @@ export default function AuditLogsTable({
         // SEMPRE tentar extrair do new_value primeiro (mais confiável para operações de criação)
         const newValue = parseNewValue();
 
-        // Para login (autenticação) - mostra o username
-        if (log.resource === "auth" || log.operation === "login") {
-            // Primeiro tenta do new_value
-            if (newValue?.username) return newValue.username;
-            if (newValue?.display_name) return newValue.display_name;
-            // Depois tenta da lista de usuários
-            if (resourceId && users && Array.isArray(users)) {
-                const user = users.find((u) => u.id === resourceId);
-                if (user) {
-                    return user.username || user.display_name || resourceId;
-                }
-            }
-            return "-";
-        }
-
-        // Para usuários
-        if (log.resource === "user") {
-            // Primeiro tenta do new_value
-            if (newValue?.username) return newValue.username;
-            if (newValue?.display_name) return newValue.display_name;
-            // Depois tenta da lista de usuários
-            if (resourceId && users && Array.isArray(users)) {
-                const user = users.find((u) => u.id === resourceId);
-                if (user) {
-                    return user.username || user.display_name || resourceId;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para clientes
-        if (log.resource === "client") {
-            // Primeiro tenta do new_value
-            if (newValue?.name) return newValue.name;
-            // Depois tenta da lista de clientes
-            if (resourceId && clients && Array.isArray(clients)) {
-                const client = clients.find((c) => c.id === resourceId);
-                if (client && client.name) {
-                    return client.name;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para contratos
-        if (log.resource === "contract") {
-            // Primeiro tenta do new_value
-            if (newValue?.model) return newValue.model;
-            // Depois tenta da lista de contratos
-            if (resourceId && contracts && Array.isArray(contracts)) {
-                const contract = contracts.find((c) => c.id === resourceId);
-                if (contract && contract.model) {
-                    return contract.model;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para categorias
-        if (log.resource === "category") {
-            // Primeiro tenta do new_value
-            if (newValue?.name) return newValue.name;
-            // Depois tenta da lista de categorias
-            if (resourceId && categories && Array.isArray(categories)) {
-                const category = categories.find((c) => c.id === resourceId);
-                if (category && category.name) {
-                    return category.name;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para subcategorias/linhas
-        if (log.resource === "line" || log.resource === "subcategory") {
-            // Primeiro tenta do new_value
-            if (newValue?.name) return newValue.name;
-            // Depois tenta da lista de linhas
-            if (resourceId && lines && Array.isArray(lines)) {
-                const line = lines.find((l) => l.id === resourceId);
-                if (line && line.name) {
-                    return line.name;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para afiliados
-        if (log.resource === "affiliate") {
-            // Primeiro tenta do new_value (mais confiável para criação)
-            if (newValue?.name) return newValue.name;
-            // Depois tenta da lista de afiliados
-            if (resourceId && affiliates && Array.isArray(affiliates)) {
-                const affiliate = affiliates.find((a) => a.id === resourceId);
-                if (affiliate && affiliate.name) {
-                    return affiliate.name;
-                }
-            }
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Para roles
-        if (log.resource === "role") {
-            if (newValue?.name) return newValue.name;
-            if (newValue?.display_name) return newValue.display_name;
-            if (resourceId) return resourceId.substring(0, 8) + "...";
-            return "-";
-        }
-
-        // Fallback genérico: tenta extrair name do new_value
         if (newValue?.name) return newValue.name;
+        if (newValue?.model) return newValue.model;
+        if (newValue?.username) return newValue.username;
+        if (newValue?.display_name) return newValue.display_name;
 
         // Fallback: retorna ID truncado
         if (resourceId) {

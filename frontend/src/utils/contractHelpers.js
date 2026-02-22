@@ -120,6 +120,7 @@ export const filterContracts = (
     searchFilters,
     clients,
     categories,
+    lookupMaps = null,
 ) => {
     // searchFilters can be an object with: categoryId, subcategoryId, clientName, contractName
     // or a string for backward compatibility
@@ -127,6 +128,23 @@ export const filterContracts = (
         typeof searchFilters === "object"
             ? searchFilters
             : { searchTerm: searchFilters };
+
+    const clientById =
+        lookupMaps?.clientById ||
+        new Map(clients.map((client) => [client.id, client]));
+
+    const categoryBySubcategoryId =
+        lookupMaps?.categoryBySubcategoryId ||
+        (() => {
+            const map = new Map();
+            for (const category of categories) {
+                if (!Array.isArray(category.lines)) continue;
+                for (const line of category.lines) {
+                    map.set(line.id, category);
+                }
+            }
+            return map;
+        })();
 
     return contracts.filter((contract) => {
         const isArchived = !!contract.archived_at;
@@ -147,14 +165,21 @@ export const filterContracts = (
 
         if (!matchesFilter) return false;
 
-        const client = clients.find((c) => c.id === contract.client_id);
-        const category = categories.find((cat) =>
-            cat.lines?.some((line) => line.id === contract.subcategory_id),
-        );
+        // Use enriched fields when available, fallback to map lookup
+        const client = contract.client_name
+            ? { name: contract.client_name }
+            : clientById.get(contract.client_id);
+        const category = contract.category_name
+            ? { id: null, name: contract.category_name }
+            : categoryBySubcategoryId.get(contract.subcategory_id);
 
         // Filter by category ID
         if (filters.categoryId && filters.categoryId !== "") {
-            if (!category || category.id !== filters.categoryId) {
+            // When using enriched data, we need map lookup for ID matching
+            const catFromMap = categoryBySubcategoryId.get(
+                contract.subcategory_id,
+            );
+            if (!catFromMap || catFromMap.id !== filters.categoryId) {
                 return false;
             }
         }
@@ -166,10 +191,11 @@ export const filterContracts = (
             }
         }
 
-        // Filter by client name (partial match)
+        // Filter by client name (partial match) — use enriched field
         if (filters.clientName && filters.clientName !== "") {
             const clientNameLower = filters.clientName.toLowerCase();
-            if (!client?.name?.toLowerCase().includes(clientNameLower)) {
+            const resolvedName = contract.client_name || client?.name || "";
+            if (!resolvedName.toLowerCase().includes(clientNameLower)) {
                 return false;
             }
         }
@@ -191,11 +217,15 @@ export const filterContracts = (
         // Legacy search term support (searches all fields)
         if (filters.searchTerm && filters.searchTerm !== "") {
             const searchLower = filters.searchTerm.toLowerCase();
+            const resolvedClientName =
+                contract.client_name || client?.name || "";
+            const resolvedCategoryName =
+                contract.category_name || category?.name || "";
             const matchesSearch =
                 contract.model?.toLowerCase().includes(searchLower) ||
                 contract.item_key?.toLowerCase().includes(searchLower) ||
-                client?.name?.toLowerCase().includes(searchLower) ||
-                category?.name?.toLowerCase().includes(searchLower);
+                resolvedClientName.toLowerCase().includes(searchLower) ||
+                resolvedCategoryName.toLowerCase().includes(searchLower);
             if (!matchesSearch) {
                 return false;
             }
@@ -205,7 +235,18 @@ export const filterContracts = (
     });
 };
 
-export const getClientName = (clientId, clients) => {
+export const getClientName = (clientIdOrContract, clients) => {
+    // Support enriched contract object directly
+    if (
+        typeof clientIdOrContract === "object" &&
+        clientIdOrContract?.client_name
+    ) {
+        return clientIdOrContract.client_name;
+    }
+    const clientId =
+        typeof clientIdOrContract === "string"
+            ? clientIdOrContract
+            : clientIdOrContract?.client_id;
     const client = clients.find((c) => c.id === clientId);
     return client?.name || "-";
 };

@@ -42,27 +42,45 @@ export default function ContractsTable({
     const { config } = useConfig();
     const { labels } = config;
 
-    // Helper to get category name from subcategory_id
-    const getCategoryName = (subcategoryId) => {
-        if (!subcategoryId) return "-";
+    // Fallback Maps only built if enriched fields are missing (backward compat)
+    const categoryBySubcategoryId = React.useMemo(() => {
+        const map = new Map();
         for (const category of categories) {
-            if (category.lines?.some((line) => line.id === subcategoryId)) {
-                return category.name;
+            if (!Array.isArray(category.lines)) continue;
+            for (const line of category.lines) {
+                map.set(line.id, category.name);
             }
         }
-        return "-";
+        return map;
+    }, [categories]);
+
+    const subcategoryNameById = React.useMemo(() => {
+        const map = new Map();
+        for (const category of categories) {
+            if (!Array.isArray(category.lines)) continue;
+            for (const line of category.lines) {
+                map.set(line.id, line.name);
+            }
+        }
+        return map;
+    }, [categories]);
+
+    // Use enriched fields when available, fallback to Map lookup
+    const getCategoryName = (contract) => {
+        if (contract.category_name) return contract.category_name;
+        if (!contract.subcategory_id) return "-";
+        return categoryBySubcategoryId.get(contract.subcategory_id) || "-";
     };
 
-    // Helper to get subcategory/line name from subcategory_id
-    const getSubcategoryName = (subcategoryId) => {
-        if (!subcategoryId) return "-";
-        for (const category of categories) {
-            const line = category.lines?.find((l) => l.id === subcategoryId);
-            if (line) {
-                return line.name;
-            }
-        }
-        return "-";
+    const getSubcategoryName = (contract) => {
+        if (contract.subcategory_name) return contract.subcategory_name;
+        if (!contract.subcategory_id) return "-";
+        return subcategoryNameById.get(contract.subcategory_id) || "-";
+    };
+
+    const getContractClientName = (contract) => {
+        if (contract.client_name) return contract.client_name;
+        return getClientName(contract.client_id, clients);
     };
 
     if (filteredContracts.length === 0) {
@@ -111,7 +129,7 @@ export default function ContractsTable({
                                 )}
                             </td>
                             <td>
-                                {getClientName(contract.client_id, clients)}
+                                {getContractClientName(contract)}
                                 {contract.affiliate && (
                                     <div className="contracts-table-affiliate">
                                         {labels.affiliate || "Afiliado"}:{" "}
@@ -119,10 +137,8 @@ export default function ContractsTable({
                                     </div>
                                 )}
                             </td>
-                            <td>{getCategoryName(contract.subcategory_id)}</td>
-                            <td>
-                                {getSubcategoryName(contract.subcategory_id)}
-                            </td>
+                            <td>{getCategoryName(contract)}</td>
+                            <td>{getSubcategoryName(contract)}</td>
                             <td>{formatDate(contract.start_date)}</td>
                             <td>{formatDate(contract.end_date)}</td>
                             <td className="status">

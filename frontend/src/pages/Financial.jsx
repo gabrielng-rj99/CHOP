@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Select from "react-select";
 import { useConfig } from "../contexts/ConfigContext";
 import { useData } from "../contexts/DataContext";
@@ -161,9 +161,22 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         });
     };
 
+    const contractsById = useMemo(
+        () => new Map(contracts.map((contract) => [contract.id, contract])),
+        [contracts],
+    );
+    const clientsById = useMemo(
+        () => new Map(clients.map((client) => [client.id, client])),
+        [clients],
+    );
+    const categoriesById = useMemo(
+        () => new Map(categories.map((category) => [category.id, category])),
+        [categories],
+    );
+
     // Get subcategories from selected category
     const availableSubcategories = categoryFilter
-        ? categories.find((c) => c.id === categoryFilter)?.lines || []
+        ? categoriesById.get(categoryFilter)?.lines || []
         : categories.flatMap((c) => c.lines || []);
 
     // Modal states
@@ -237,37 +250,48 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
         setError("");
 
         try {
-            const [
-                financialRecordsData,
-                contractsRes,
-                clientsRes,
-                categoriesRes,
-                upcomingData,
-                overdueData,
-            ] = await Promise.all([
-                financialApi.loadFinancial(apiUrl, token, onTokenExpired),
-                fetchContracts({}, true),
-                fetchClients({}, true),
-                fetchCategories({}, true),
-                financialApi
-                    .getUpcomingFinancial(apiUrl, token, 30, onTokenExpired)
-                    .catch(() => []),
-                financialApi
-                    .getOverdueFinancial(apiUrl, token, onTokenExpired)
-                    .catch(() => []),
-            ]);
+            // Primary load: enriched financial records contain contract_model,
+            // client_name, category_name, subcategory_name inline — so the table
+            // renders immediately without waiting for /contracts, /clients, /categories.
+            const financialRecordsData = await financialApi.loadFinancial(
+                apiUrl,
+                token,
+                onTokenExpired,
+            );
 
-            setFinancialRecords(financialRecordsData || []);
-            setContracts(contractsRes?.data || []);
-            setClients(clientsRes?.data || []);
-            setCategories(categoriesRes?.data || []);
-            setUpcomingFinancials(upcomingData || []);
-            setOverdueFinancials(overdueData || []);
+            const normalizedFinancialRecords = Array.isArray(
+                financialRecordsData,
+            )
+                ? financialRecordsData
+                : financialRecordsData?.data || [];
+            setFinancialRecords(normalizedFinancialRecords);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
+
+        // Background load: auxiliary data for filter dropdowns, modals, and lists.
+        // These don't block initial render.
+        Promise.all([
+            fetchContracts({}, true)
+                .then((res) => setContracts(res?.data || []))
+                .catch(() => {}),
+            fetchClients({}, true)
+                .then((res) => setClients(res?.data || []))
+                .catch(() => {}),
+            fetchCategories({}, true)
+                .then((res) => setCategories(res?.data || []))
+                .catch(() => {}),
+            financialApi
+                .getUpcomingFinancial(apiUrl, token, 30, onTokenExpired)
+                .then((data) => setUpcomingFinancials(data || []))
+                .catch(() => {}),
+            financialApi
+                .getOverdueFinancial(apiUrl, token, onTokenExpired)
+                .then((data) => setOverdueFinancials(data || []))
+                .catch(() => {}),
+        ]).catch((err) => console.warn("Background data load:", err));
     };
 
     // Lazy-load detailed summary — only called when user opens the dashboard tab
@@ -287,11 +311,20 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     };
 
     // Get contract info for a financial
-    const getContractInfo = (contractId) => {
-        const contract = contracts.find((c) => c.id === contractId);
+    const getContractInfo = (financial) => {
+        // Use enriched fields from backend JOIN when available (instant, no map lookup)
+        if (financial.contract_model || financial.client_name) {
+            return {
+                model: financial.contract_model || "—",
+                clientName: financial.client_name || "—",
+                clientNickname: financial.client_nickname,
+            };
+        }
+        // Fallback to map lookup for backward compatibility
+        const contract = contractsById.get(financial.contract_id);
         if (!contract) return { model: "—", clientName: "—" };
 
-        const client = clients.find((c) => c.id === contract.client_id);
+        const client = clientsById.get(contract.client_id);
         return {
             model: contract.model || "—",
             clientName: client?.name || "—",
@@ -301,15 +334,16 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
 
     // Filter financialRecords
     const filteredFinancial = financialRecords.filter((financial) => {
-        const contractInfo = getContractInfo(financial.contract_id);
-        const contract = contracts.find((c) => c.id === financial.contract_id);
+        const contractInfo = getContractInfo(financial);
+        const contract = contractsById.get(financial.contract_id);
 
         // Date Range filter (using contract dates)
         if (values.startDate) {
             const startLimit = new Date(values.startDate);
-            const contractStart = contract?.start_date
-                ? new Date(contract.start_date)
-                : null;
+            const contractStart =
+                financial.contract_start || contract?.start_date
+                    ? new Date(financial.contract_start || contract.start_date)
+                    : null;
             if (contractStart && contractStart < startLimit) {
                 // Se o contrato começou antes da data de início, talvez queiramos filtrar?
                 // Ou talvez queiramos filtrar se ele está ATIVO no range.
@@ -317,12 +351,15 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             // Simplificando: filtrar se o contrato termina antes do início do range ou começa depois do fim do range
         }
 
-        if (values.startDate && contract?.end_date) {
-            if (new Date(contract.end_date) < new Date(values.startDate))
+        const effectiveEndDate = financial.contract_end || contract?.end_date;
+        const effectiveStartDate =
+            financial.contract_start || contract?.start_date;
+        if (values.startDate && effectiveEndDate) {
+            if (new Date(effectiveEndDate) < new Date(values.startDate))
                 return false;
         }
-        if (values.endDate && contract?.start_date) {
-            if (new Date(contract.start_date) > new Date(values.endDate))
+        if (values.endDate && effectiveStartDate) {
+            if (new Date(effectiveStartDate) > new Date(values.endDate))
                 return false;
         }
 
@@ -356,23 +393,33 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
             return false;
         }
 
-        // Category filter
-        if (categoryFilter && contract) {
-            const category = categories.find((c) => c.id === categoryFilter);
-            const subcategory = category?.lines?.find(
-                (s) => s.id === contract.subcategory_id,
-            );
-            if (!subcategory) {
+        // Category filter — use enriched category_name for fast match when possible
+        if (categoryFilter) {
+            if (financial.category_name) {
+                // Enriched path: match by category ID via the categories map
+                const category = categoriesById.get(categoryFilter);
+                if (!category || category.name !== financial.category_name) {
+                    return false;
+                }
+            } else if (contract) {
+                const category = categoriesById.get(categoryFilter);
+                const subcategory = category?.lines?.find(
+                    (s) => s.id === contract.subcategory_id,
+                );
+                if (!subcategory) {
+                    return false;
+                }
+            } else {
                 return false;
             }
         }
 
         // Subcategory filter
-        if (
-            subcategoryFilter &&
-            contract?.subcategory_id !== subcategoryFilter
-        ) {
-            return false;
+        if (subcategoryFilter) {
+            const contractSubcategoryId = contract?.subcategory_id;
+            if (contractSubcategoryId !== subcategoryFilter) {
+                return false;
+            }
         }
 
         // Description filter
@@ -397,21 +444,41 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
     const sortedFinancial = [...filteredFinancial].sort((a, b) => {
         if (!sortBy) return 0;
 
-        const contractA = contracts.find((c) => c.id === a.contract_id);
-        const contractB = contracts.find((c) => c.id === b.contract_id);
-        const clientA = clients.find((c) => c.id === contractA?.client_id);
-        const clientB = clients.find((c) => c.id === contractB?.client_id);
+        const contractA = contractsById.get(a.contract_id);
+        const contractB = contractsById.get(b.contract_id);
 
         let aVal, bVal;
 
         switch (sortBy) {
             case "client":
-                aVal = (clientA?.name || "").toLowerCase();
-                bVal = (clientB?.name || "").toLowerCase();
+                // Use enriched field first, fallback to map lookup
+                aVal = (
+                    a.client_name ||
+                    (contractA
+                        ? clientsById.get(contractA.client_id)?.name
+                        : null) ||
+                    ""
+                ).toLowerCase();
+                bVal = (
+                    b.client_name ||
+                    (contractB
+                        ? clientsById.get(contractB.client_id)?.name
+                        : null) ||
+                    ""
+                ).toLowerCase();
                 break;
             case "contract":
-                aVal = (contractA?.model || "").toLowerCase();
-                bVal = (contractB?.model || "").toLowerCase();
+                // Use enriched field first, fallback to map lookup
+                aVal = (
+                    a.contract_model ||
+                    contractA?.model ||
+                    ""
+                ).toLowerCase();
+                bVal = (
+                    b.contract_model ||
+                    contractB?.model ||
+                    ""
+                ).toLowerCase();
                 break;
             case "type":
                 aVal = a.financial_type || "";
@@ -2614,9 +2681,8 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                 </thead>
                                 <tbody>
                                     {paginatedFinancial.map((financial) => {
-                                        const contractInfo = getContractInfo(
-                                            financial.contract_id,
-                                        );
+                                        const contractInfo =
+                                            getContractInfo(financial);
                                         const progress =
                                             financial.total_installments > 0
                                                 ? Math.round(
@@ -2793,7 +2859,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 <span>
                                                     {
                                                         getContractInfo(
-                                                            selectedFinancial.contract_id,
+                                                            selectedFinancial,
                                                         ).clientName
                                                     }
                                                 </span>
@@ -2806,7 +2872,7 @@ export default function Financial({ token, apiUrl, onTokenExpired }) {
                                                 <span>
                                                     {
                                                         getContractInfo(
-                                                            selectedFinancial.contract_id,
+                                                            selectedFinancial,
                                                         ).model
                                                     }
                                                 </span>
